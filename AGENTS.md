@@ -82,7 +82,7 @@ When the user requests a durable behavior change, record it here or in the relev
 
 This repo maps NASA public data and APIs so future NASA hackathons and contests can start from checked sources.
 
-- Root `README.md` holds the living notes until a folder becomes its own boundary.
+- Root `README.md` holds the living notes until a folder becomes its own boundary, including the **Tech stack (NSAC)** section (offline LLM, RAG, drift detection, NASA OSDR, UI, packaging).
 - Every factual claim needs a source URL and the date it was checked. Figures from the 2019 Open-Innovation Tour for Space Apps are historical; refresh them against the live site before a contest.
 - Harvest catalogs (`data.nasa.gov`, `api.nasa.gov`) suit name lookup. Domain archives (Planetary Data System, Earthdata, STI, and similar) suit discovery. Do not treat a harvest miss as proof a dataset does not exist.
 - Keep NASA API keys and tokens out of the repo.

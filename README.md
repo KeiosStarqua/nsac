@@ -79,3 +79,69 @@ Challenge: choose which Moon samples to return.
 - Johnson Space Center Astromaterials Group Apollo sample database
 - STI paper: *GeoLab Concept: The Importance of Sample Selection During Long Duration Human Exploration Mission*
 - data.nasa.gov report: *SAND-E: Semi-Autonomous Navigation for Detrital Environments*
+
+## Tech stack (NSAC)
+
+Thứ tự và link dưới đây là stack dự kiến cho dự án; mỗi URL đã mở thử **2026-10-18**.
+
+### Chạy model offline
+
+| Thành phần | Link | Ghi chú |
+|---|---|---|
+| Ollama | [github.com/ollama/ollama](https://github.com/ollama/ollama) | MIT |
+| llama.cpp | [github.com/ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) | MIT, dự phòng |
+| Qwen3.6-35B-A3B | [huggingface.co/Qwen/Qwen3.6-35B-A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B) | cho máy 32 GB |
+| Qwen3.5-9B | [huggingface.co/Qwen/Qwen3.5-9B](https://huggingface.co/Qwen/Qwen3.5-9B) | cho máy 16 GB |
+| MedPsy-4B-GGUF | [huggingface.co/qvac/MedPsy-4B-GGUF](https://huggingface.co/qvac/MedPsy-4B-GGUF) | chuyên gia y khoa; chạy llama.cpp và Ollama |
+
+### Agent có bước người duyệt
+
+| Thành phần | Link | Ghi chú |
+|---|---|---|
+| LangGraph | [github.com/langchain-ai/langgraph](https://github.com/langchain-ai/langgraph) | MIT |
+
+### Tra tài liệu NASA
+
+| Thành phần | Link | Ghi chú |
+|---|---|---|
+| Docling | [github.com/docling-project/docling](https://github.com/docling-project/docling) | MIT, đọc PDF |
+| Qwen3-Embedding-0.6B | [huggingface.co/Qwen/Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) | Apache 2.0, embedding |
+| Chroma | [github.com/chroma-core/chroma](https://github.com/chroma-core/chroma) | Apache 2.0, vector DB |
+| ISS Medical Checklist (bản sao) | [newspaceeconomy.ca/.../163533main_iss_med_cl.pdf](https://newspaceeconomy.ca/wp-content/uploads/2022/11/163533main_iss_med_cl.pdf) | link gốc nasa.gov đã chết |
+
+### Phát hiện lệch
+
+| Thành phần | Link | Ghi chú |
+|---|---|---|
+| pandas | [github.com/pandas-dev/pandas](https://github.com/pandas-dev/pandas) | BSD |
+| statsmodels | [github.com/statsmodels/statsmodels](https://github.com/statsmodels/statsmodels) | BSD |
+| ruptures | [github.com/deepcharles/ruptures](https://github.com/deepcharles/ruptures) | BSD, điểm đổi xu hướng |
+
+### Tín hiệu tim
+
+| Thành phần | Link | Ghi chú |
+|---|---|---|
+| NeuroKit2 | [github.com/neuropsychology/NeuroKit](https://github.com/neuropsychology/NeuroKit) | MIT |
+
+### Dữ liệu NASA
+
+| Thành phần | Link | Ghi chú |
+|---|---|---|
+| OSD-569 | [osdr.nasa.gov/.../OSD-569](https://osdr.nasa.gov/bio/repo/data/studies/OSD-569) | công thức máu Inspiration4 |
+| OSD-575 | [osdr.nasa.gov/.../OSD-575](https://osdr.nasa.gov/bio/repo/data/studies/OSD-575) | chuyển hóa và chỉ số viêm |
+| API dữ liệu OSDR | [visualization.osdr.nasa.gov/biodata/api/](https://visualization.osdr.nasa.gov/biodata/api/) | |
+| DONKI | [ccmc.gsfc.nasa.gov/tools/DONKI/](https://ccmc.gsfc.nasa.gov/tools/DONKI/) | bão Mặt Trời |
+
+### Giao diện
+
+| Thành phần | Link | Ghi chú |
+|---|---|---|
+| NiceGUI | [github.com/zauberzeug/nicegui](https://github.com/zauberzeug/nicegui) | MIT |
+
+### Báo cáo và đóng gói
+
+| Thành phần | Link | Ghi chú |
+|---|---|---|
+| Jinja2 | [github.com/pallets/jinja](https://github.com/pallets/jinja) | BSD |
+| WeasyPrint | [github.com/Kozea/WeasyPrint](https://github.com/Kozea/WeasyPrint) | BSD, xuất PDF |
+| uv | [github.com/astral-sh/uv](https://github.com/astral-sh/uv) | quản lý thư viện Python |
