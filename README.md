@@ -1,3 +1,67 @@
+# HKT — NASA Space Apps 2026
+
+**Challenge:** [Create Health Monitoring Software for Astronauts on Space Missions](https://www.spaceappschallenge.org/)
+
+**Sự kiện:** Ho Chi Minh, 14–15/11/2026. **Nộp bài:** trước 15/11 23:59 giờ địa phương.
+
+Quy tắc hackathon, hợp đồng schema, chia việc agent và checklist nộp bài: root `AGENTS.md` (mục HKT và Verification).
+
+## Sản phẩm
+
+Một “bác sĩ tạm” onboard **offline** theo baseline từng phi hành gia, chỉ liều tập để phục hồi tim và chân, và **Mars landing readiness** (đứng được ở 3/8 G?), tự báo cáo về Trái Đất qua link trễ 20 phút.
+
+Khác dashboard sức khỏe: người dùng là phi hành gia (không phải bác sĩ mặt đất); không cần mạng; nói **việc làm tiếp**, không chỉ “sai chỗ nào”.
+
+**Câu chuyện Trái Đất:** người già nằm lâu và bệnh nhân sau phẫu thuật ở TP.HCM — cùng cơ chế mất thể lực.
+
+## Phạm vi (BOD 18/10)
+
+- Tim mạch (HR, HRV, BP, LV/SV 2 tuần đầu), xương/cơ + coach liều tập, **DONKI**.
+- Agent tổng hợp: liên kết tín hiệu, triage xanh/vàng/đỏ, một hành động, xác nhận, báo cáo mặt đất.
+- Readiness 0–100 (công thức minh bạch, cited); immune/máu, hành vi, môi trường — chỉ interface trên sơ đồ.
+
+## Kiến trúc
+
+```mermaid
+flowchart LR
+  D[Synthetic astronaut generator\n(OSDR OSD-569/575 ranges)] --> E[Deviation engine\npandas/statsmodels/ruptures\nper-person baseline]
+  W[DONKI space weather] --> E
+  E --> C[Cardio module]
+  E --> B[Bone/muscle + exercise coach]
+  C --> S[Synthesis agent\nLangGraph + local Qwen]
+  B --> S
+  S <--> R[RAG: ISS Medical Checklist\nDocling + Qwen3-Embedding + Chroma]
+  S <--> M[MedPsy-4B medical expert tool]
+  S --> H{Astronaut confirms\nLangGraph interrupt}
+  H --> X[Readiness score + action]
+  H --> O[Ground report PDF\nJinja2 + WeasyPrint]
+  O --> Q[SQLite outbox\n20-min delay simulation]
+  X --> U[NiceGUI app, offline]
+```
+
+## Demo (60 giây)
+
+Ngày ~170 (2–3 tuần trướn hạ cánh Mars), link trễ 20 phút, sau bão Mặt Trời và 2 tuần bỏ tập → readiness **62** (vàng) → liều tập → **Confirm** → báo cáo vào queue → fast-forward → **81** (xanh). Cắt sang bệnh nhân lớn tuổi TP.HCM sau 2 tuần nằm viện: cùng vấn đề, cùng hướng xử lý. **Rút dây mạng** trên sân khấu.
+
+Gần hạ cánh (vài giờ): chuyển sang tư vấn an toàn (áo nén, đứng có hỗ trợ), không chỉ tập.
+
+Ngày 1 hackathon: PR/FAQ (câu đầu: “Khác dashboard sức khỏe thế nào?”), README, sơ đồ kiến trúc, AI disclosure, danh sách nguồn, trang submission.
+
+## Nguồn dữ liệu dự án
+
+| Nguồn | URL |
+|---|---|
+| OSD-569 (Inspiration4 CBC) | https://osdr.nasa.gov/bio/repo/data/studies/OSD-569 |
+| OSD-575 (CMP, cytokines) | https://osdr.nasa.gov/bio/repo/data/studies/OSD-575 |
+| OSDR API | https://visualization.osdr.nasa.gov/biodata/api/ |
+| DONKI | https://ccmc.gsfc.nasa.gov/tools/DONKI/ |
+| ISS Medical Checklist (mirror; nasa.gov gốc 404) | https://newspaceeconomy.ca/wp-content/uploads/2022/11/163533main_iss_med_cl.pdf |
+| Tim ISS 2 tuần đầu (Circulation 2026) | https://www.ahajournals.org/doi/full/10.1161/CIRCULATIONAHA.125.078665 |
+
+Cập nhật khi NASA công bố tài nguyên challenge **28/10/2026**.
+
+---
+
 # NASA public data — Open-Innovation Tour for Space Apps 2019
 
 Source: [Open-Innovation_Tour_for_Space_Apps_2019](https://docs.google.com/presentation/d/10xoC0N1jWOxEFwGml-Ivnn6GYxJ2_tbAZjdl7aRzaI8/edit?slide=id.g61f57fe376_0_30#slide=id.g61f57fe376_0_30) (Justin Gosses, SAIC, supporting NASA OCIO). The link opens slide 2, the title slide. Figures below are from the 2019 talk; the deck was last modified 21 Sep 2021.

@@ -78,11 +78,56 @@ Default section order:
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
+### HKT — NASA Space Apps 2026 (implementation contract)
+
+Challenge: **Create Health Monitoring Software for Astronauts on Space Missions**. Sự kiện HCMC 14–15/11/2026; nộp trước 15/11 23:59 giờ địa phương. Tổng quan sản phẩm, kiến trúc, demo và nguồn dữ liệu: root `README.md` (mục HKT). Stack phần mềm: mục **Tech stack (NSAC)** trong `README.md`.
+
+#### Hard rules (đọc trước khi code)
+
+1. **Không code dự án trước 14/11/2026 09:00 (Asia/Saigon).** FAQ Space Apps: teams không được làm challenge trước hackathon — https://www.spaceappschallenge.org/resources/participant-faqs/
+   - Trước 14/11 được: cài tool, tải model và dataset công khai, tutorial thư viện chung, benchmark tốc độ generic trên laptop demo, đọc docs, ghi chú nghiên cứu.
+   - Trước 14/11 không được: code dự án, prompt, index ISS checklist vào RAG, file dữ liệu tổng hợp, công thức readiness, mockup UI chi tiết.
+2. Chạy **hoàn toàn offline** trên một laptop; demo có thể rút dây mạng trên sân khấu.
+3. **License:** mọi dependency phải OSI-approved (MIT/Apache/BSD). Không dùng PyMuPDF (AGPL), hrv-analysis (GPL), piper1-gpl (GPL), SDV/Copulas (BSL), CircAdapt, MedGemma, EmbeddingGemma. Repo: Apache-2.0 — https://www.spaceappschallenge.org/legal/
+4. Mọi ngưỡng y khoa, trọng số và claim phải có **nguồn (URL)** trong comment code và trên UI.
+5. **AI không quyết định một mình:** phát hiện deterministic; LLM chỉ giải thích, trích checklist và soạn draft; phi hành gia xác nhận mọi hành động. Hiển thị disclaimer: "AI-generated, not a substitute for a physician".
+6. Không dữ liệu cá nhân; không ảnh hoặc hình ảnh trẻ vị thành niên trong bài nộp.
+
+#### Scope (BOD 18/10)
+
+- Module thật: (a) tim mạch — HR, HRV, BP, xu hướng thể tích LV / stroke volume (2 tuần đầu, Circulation 2026 ISS: https://www.ahajournals.org/doi/full/10.1161/CIRCULATIONAHA.125.078665); (b) xương/cơ + coach liều tập; tín hiệu **DONKI**.
+- Agent tổng hợp: liên kết tín hiệu (bão Mặt Trời → mất ngủ → bỏ tập → tim/chân giảm), triage xanh/vàng/đỏ, **một** hành động, chờ xác nhận, báo cáo mặt đất.
+- **Mars landing readiness (0–100):** công thức minh bạch, một nguồn cited mỗi trọng số; tăng khi hoàn thành liều tập; mô phỏng fast-forward.
+- Chỉ sơ đồ (interface cắm được, không code): miễn dịch/máu, hành vi/nhận thức, môi trường.
+
+#### Shared contract (giờ 1 — `shared/schemas.py`, Pydantic)
+
+- `Reading {astronaut_id, ts, metric, value, unit, source}`
+- `Deviation {metric, value, baseline_median, baseline_mad, z, slope, severity: green|yellow|red, threshold_source_url}`
+- `Recommendation {action, dose, checklist_ref{doc, page}, rationale, requires_confirmation: true}`
+- `ReadinessScore {score, components[{name, value, weight, source_url}], ts}`
+- `GroundReport {mission_day, summary, deviations[], actions_taken[], queued_at, deliver_at}`
+
+#### Work split (3 người / 3 agent)
+
+**Agent 1 — data, detection, score:** OSDR OSD-569/575 (httpx); generator 180 ngày (numpy) theo spread dữ liệu thật; kịch bản inject; deviation engine (median/MAD, EWMA, slope, ruptures); coach liều tập + readiness; validation hold-out một crew Inspiration4.
+
+**Agent 2 — agent, RAG, report, delay:** Ollama (Qwen3.6-35B-A3B trên 32 GB, else Qwen3.5-9B) + MedPsy-4B-GGUF tool; LangGraph → checklist RAG → MedPsy → một action → `interrupt()` → report; SQLite checkpointer; RAG ISS Medical Checklist + NASA docs (chỉ action có trong checklist); Jinja2 → PDF; SQLite outbox delay 20 phút.
+
+**Agent 3 — UI, story, submission:** NiceGUI (timeline, gauge, cards, Confirm, trạng thái link 20 phút/offline, fast-forward); script demo 60s; gần landing chuyển sang an toàn (compression garment, đứng có hỗ trợ); PR/FAQ, README, architecture, AI disclosure, sources, trang nộp.
+
+#### Known gaps
+
+- Không có model mở cho orthostatic tolerance ở 3/8 G — score là công thức minh họa có citation.
+- Không có ECG/echo liên tục công khai — tín hiệu tim synthetic theo paper.
+- Offline: embedding model riêng cho Chroma, tải sẵn model Docling, Pango cho WeasyPrint trên Mac.
+- Benchmark tốc độ model trên laptop demo trước 14/11 (test generic).
+
 ### NASA research
 
 This repo maps NASA public data and APIs so future NASA hackathons and contests can start from checked sources.
 
-- Root `README.md` holds the living notes until a folder becomes its own boundary, including the **Tech stack (NSAC)** section (offline LLM, RAG, drift detection, NASA OSDR, UI, packaging).
+- Root `README.md` holds the living notes until a folder becomes its own boundary, including **HKT (Space Apps 2026)** and the **Tech stack (NSAC)** section (offline LLM, RAG, drift detection, NASA OSDR, UI, packaging).
 - Every factual claim needs a source URL and the date it was checked. Figures from the 2019 Open-Innovation Tour for Space Apps are historical; refresh them against the live site before a contest.
 - Harvest catalogs (`data.nasa.gov`, `api.nasa.gov`) suit name lookup. Domain archives (Planetary Data System, Earthdata, STI, and similar) suit discovery. Do not treat a harvest miss as proof a dataset does not exist.
 - Keep NASA API keys and tokens out of the repo.
@@ -110,6 +155,18 @@ Prefer modules with **simple interfaces and substantial hidden complexity**. Avo
 #### Design patterns
 
 Use GoF patterns when they match a recurring problem — not for decoration. Catalog: https://refactoring.guru/design-patterns/catalog
+
+## Verification
+
+### HKT Space Apps 2026 (trước 15/11 23:59)
+
+- [ ] App chạy end-to-end khi rút mạng.
+- [ ] Demo scenario dưới 60 giây, không crash.
+- [ ] Mọi ngưỡng và trọng số hiển thị nguồn.
+- [ ] Bước xác nhận chặn mọi hành động nếu chưa confirm.
+- [ ] PDF báo cáo mặt đất tạo và queue với delay.
+- [ ] Repo public, Apache-2.0, README + AI disclosure + sources.
+- [ ] Trang submission điền đủ; team review trước khi nộp.
 
 ## Child DOX Index
 
