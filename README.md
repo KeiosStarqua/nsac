@@ -6,6 +6,8 @@
 
 Quy tắc hackathon, hợp đồng schema, chia việc agent và checklist nộp bài: root `AGENTS.md` (mục HKT và Verification).
 
+**Tham chiếu chỉ số theo hệ cơ quan (⭐ = NASA đã/đang đo):** [`docs/references/astronaut-health-metrics-by-system.md`](docs/references/astronaut-health-metrics-by-system.md)
+
 ## Sản phẩm
 
 Một “bác sĩ tạm” onboard **offline** theo baseline từng phi hành gia, chỉ liều tập để phục hồi tim và chân, và **Mars landing readiness** (đứng được ở 3/8 G?), tự báo cáo về Trái Đất qua link trễ 20 phút.

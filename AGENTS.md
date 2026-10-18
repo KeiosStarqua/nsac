@@ -170,4 +170,8 @@ Use GoF patterns when they match a recurring problem — not for decoration. Cat
 
 ## Child DOX Index
 
-No child `AGENTS.md` files. The only durable content is root `README.md`, and the root doc owns it. Add a child `AGENTS.md` when a folder gains its own purpose, such as a catalog, an API client, or a contest entry.
+| Path | Scope |
+|---|---|
+| `docs/references/AGENTS.md` | Catalog tham chiếu HKT (chỉ số theo hệ cơ quan, liên kết OSDR) |
+
+Root `README.md` vẫn là điểm vào sản phẩm và tech stack; thêm child khi một thư mục có boundary riêng (catalog, API client, contest entry).
