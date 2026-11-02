@@ -60,7 +60,7 @@ Ngày 1 hackathon: PR/FAQ (câu đầu: “Khác dashboard sức khỏe thế n�
 | ISS Medical Checklist (mirror; nasa.gov gốc 404) | https://newspaceeconomy.ca/wp-content/uploads/2022/11/163533main_iss_med_cl.pdf |
 | Tim ISS 2 tuần đầu (Circulation 2026) | https://www.ahajournals.org/doi/full/10.1161/CIRCULATIONAHA.125.078665 |
 
-Cập nhật khi NASA công bố tài nguyên challenge **28/10/2026**.
+Cập nhật khi NASA công bố tài nguyên challenge **13/11/2026** (tab Resources của challenge ghi ngày này, kiểm tra 2026-11-02). Ghi chú đề bài: [`docs/references/challenge-health-monitoring-software.md`](docs/references/challenge-health-monitoring-software.md).
 
 ---
 
