@@ -1,1 +1,5 @@
 *.pdf
+
+# runtime state (sqlite, chroma, exported reports)
+var/*
+!var/.gitkeep
