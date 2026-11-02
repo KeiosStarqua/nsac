@@ -27,3 +27,4 @@ Không có framework riêng; đối chiếu với README HKT và OSDR khi nghi n
 | File | Nội dung |
 |---|---|
 | `astronaut-health-metrics-by-system.md` | 17 hệ cơ quan + ghi chú liên tục vs định kỳ |
+| `nasa-std-3001/` | NASA-STD-3001 Vol.1 Rev B (Crew Health): bản Markdown (Docling) cho agent đọc (PDF gốc chỉ giữ local, bị gitignore; tải lại từ `source_url` trong front matter); yêu cầu dạng `[V1 xxxx]`. Chưa index vào RAG trước 14/11 |
