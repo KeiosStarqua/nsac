@@ -1,0 +1,35 @@
+---
+title: "NASA-STD-3001 Vol.1 Rev B: Front matter: Document History Log and Foreword"
+section: "Front matter"
+source_url: https://www.nasa.gov/wp-content/uploads/2020/10/2022-01-05_nasa-std-3001_vol.1_rev._b_final_draft_with_signature_010522.pdf
+approved: 2022-01-05
+---
+
+# Front matter: Document History Log and Foreword
+
+| Status   | Document Revision   |   Change Number | Approval Date   | Description                                                                                                                                                                                                                                                                                                                                                                                                                         |
+|----------|---------------------|-----------------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Baseline |                     |                 | 2007-03-05      | Initial Release                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Revision | A                   |                 | 2014-07-30      | 2013 Revision This is a complete revision with the following major changes: Radiation (Standard Updates) Decompression Sickness (New Standard) Aerobic Capacity (Standard Updates)                                                                                                                                                                                                                                                  |
+| Change   |                     |               1 | 2015-02-12      | Orthostatic Hypotension (New Standard) Administrative Change: Corrected two typos on page 22 in Table 1: 1. Last row column 3 from: 1,00 to 100 2. Last row column 4 from: 2,50 to 250 These edits provide the correct values and return the listed limits to what appeared in the baseline version of NASA-STD-3001. Corrected two typos on page 76 in Table 7: 1. Title from (mSv to Sv) Row 3, column 3, from 0.06 Sv to 0.6 Sv. |
+| Revision | B                   |                 | 2022-01-05      | This is a complete revision with the following major changes: Section 3 -The Levels of Care have been replaced with Health and Medical Care Standards. Section 4 - Aerobic Capacity Standards to account for celestial surface conditions during EVAs. Addition of Muscle Strength and Function Performance Standards.                                                                                                              |
+
+DOCUMENT HISTORY LOG (Continued)
+
+| Status   | Document Revision   | Change Number   | Approval Date   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+|----------|---------------------|-----------------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Revision | B                   |                 | YYYY-MM-DD      | Continued Updates to Bone Mineral Density Standards to reflect new evidence. Updates and additions to the Radiation Standards, including a new standard addressing Crew Radiation Limits for Nuclear technologies. Many Standards have been deleted as their information has been captured in the New Health and Medical Care Standards section (section 3). A new PRA appendix has been added clarifying the process of medical conditions screening and treatment development. |
+
+This NASA Technical Standard is published by the National Aeronautics and Space Administration (NASA) to provide uniform engineering and technical requirements for processes, procedures, practices, and methods endorsed as standard for NASA programs and projects, including requirements for selection, application, and design criteria of an item. This NASA Technical Standard provides uniform technical requirements for the design, selection, and application of hardware, software, processes, procedures, practices, and methods for humanrated systems.
+
+This NASA Technical Standard is approved for use by NASA Headquarters and NASA Centers and Facilities, including Component Facilities and Technical and Service Support Centers; applicable technical requirements may be cited in contract, program, and other Agency documents. It may also apply to the Jet Propulsion Laboratory (A Federally Funded Research and Development Center [FFRDC]), other contractors, recipients of grants and cooperative agreements, and parties to other agreements only to the extent specified or referenced in applicable contracts, grants, and agreements.
+
+This NASA Technical Standard establishes Agency-wide requirements that minimize health and performance risks for flight crew in human space flight programs. This NASA Technical Standard applies to space vehicles, habitats, facilities, payloads, and related equipment with which the crew interfaces during space flight and lunar and planetary, e.g., Mars, habitation.
+
+In this NASA Technical Standard, the Office of the Chief Health and Medical Officer establishes NASA's space flight crew health requirements for the pre-mission, in-mission, and post-mission phases of human space flight. These requirements apply to all NASA human space flight programs and are not developed for any specific program.
+
+Requests for information should be submitted via "Feedback" at https://standards.nasa.gov. Requests for changes to this NASA Technical Standard should be submitted via MSFC Form 4657, Change Request for a NASA Engineering Standard.
+
+01-05-2022
+
+J. D. Polk, DO, MS, MMM, CPE, FACOEP, FAsMA NASA Chief Health and Medical Officer NASA Headquarters Approval Date
