@@ -1,0 +1,53 @@
+/* Styles for the OpenUI health components. Dark "ship console" look. */
+.hl-stack { display: flex; }
+.hl-stack.hl-column { flex-direction: column; }
+.hl-stack.hl-row { flex-direction: row; flex-wrap: wrap; }
+.hl-gap-s { gap: 0.5rem; }
+.hl-gap-m { gap: 1rem; }
+.hl-gap-l { gap: 1.75rem; }
+.hl-stack-item { min-width: 0; }
+
+.hl-heading { margin: 0; letter-spacing: 0.02em; }
+.hl-paragraph { margin: 0; color: var(--muted, #9fb0c8); line-height: 1.5; }
+
+.hl-tile {
+  min-width: 9rem; padding: 0.75rem 1rem; border-radius: 0.75rem;
+  background: var(--panel, #121a2b); border: 1px solid var(--line, #24314d);
+}
+.hl-tile-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted, #9fb0c8); }
+.hl-tile-value { font-size: 1.9rem; font-weight: 700; }
+.hl-tile-unit { font-size: 0.9rem; font-weight: 400; color: var(--muted, #9fb0c8); }
+.hl-tile-note { font-size: 0.8rem; color: var(--muted, #9fb0c8); }
+.hl-status-ok { border-left: 4px solid #3ddc97; }
+.hl-status-watch { border-left: 4px solid #ffc857; }
+.hl-status-alert { border-left: 4px solid #ff5d73; }
+
+.hl-crew {
+  width: 9.5rem; padding: 0.75rem; border-radius: 0.75rem;
+  background: var(--panel, #121a2b); border: 1px solid var(--line, #24314d);
+}
+.hl-crew-name { font-weight: 700; }
+.hl-crew-role { font-size: 0.78rem; color: var(--muted, #9fb0c8); }
+.hl-crew-state { margin: 0.35rem 0; font-size: 0.8rem; text-transform: capitalize; }
+.hl-meter { height: 6px; border-radius: 3px; background: #1d2a44; overflow: hidden; }
+.hl-meter-fill { height: 100%; background: #ff5d73; transition: width 0.4s ease; }
+.hl-health-susceptible { border-top: 3px solid #4aa3ff; }
+.hl-health-exposed { border-top: 3px solid #ffc857; }
+.hl-health-infectious { border-top: 3px solid #ff5d73; }
+.hl-health-recovered { border-top: 3px solid #3ddc97; }
+
+.hl-chart { margin: 0; padding: 0.75rem 1rem; border-radius: 0.75rem; background: var(--panel, #121a2b); border: 1px solid var(--line, #24314d); }
+.hl-chart figcaption { font-size: 0.78rem; color: var(--muted, #9fb0c8); margin-bottom: 0.4rem; }
+.hl-chart svg { width: 100%; max-width: 28rem; height: 4.5rem; }
+.hl-chart rect { fill: #4aa3ff; }
+
+.hl-callout { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid var(--line, #24314d); background: #14203a; }
+.hl-sev-watch { border-color: #ffc857; }
+.hl-sev-alert { border-color: #ff5d73; }
+
+.hl-confirm { padding: 1rem; border-radius: 0.75rem; border: 1px dashed #4aa3ff; background: #0f1a30; display: flex; flex-direction: column; gap: 0.5rem; }
+.hl-confirm-title { font-weight: 700; }
+.hl-confirm-why { margin: 0; color: var(--muted, #9fb0c8); }
+.hl-button { align-self: flex-start; padding: 0.55rem 1rem; border: 0; border-radius: 0.5rem; background: #4aa3ff; color: #06101f; font-weight: 700; cursor: pointer; }
+.hl-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.hl-disclaimer { color: var(--muted, #9fb0c8); }

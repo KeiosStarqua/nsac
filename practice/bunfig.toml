@@ -1,0 +1,3 @@
+[install]
+# Keep the package cache on D: (user rule: nothing installed on C:).
+cache = "D:/repos/nsac/practice/.bun-cache"

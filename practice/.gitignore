@@ -1,0 +1,10 @@
+node_modules
+.bun-cache
+.turbo
+.output
+.nitro
+dist
+.env
+.env.local
+*.tsbuildinfo
+apps/web/src/routeTree.gen.ts
