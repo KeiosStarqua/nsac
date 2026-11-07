@@ -57,4 +57,8 @@ export function linkStateFor(stage: Stage): LinkState {
 export const canConfirm = (stage: Stage) => stage === "alert";
 export const canFastForward = (stage: Stage) => stage === "confirmed";
 
-export const DemoSearchSchema = z.object({ stage: StageSchema.catch("alert") });
+/**
+ * `?stage=` is optional and lenient: a missing or unknown value becomes `undefined` (treated as "alert"
+ * by the page) instead of an error page, and links to /demo do not have to pass it.
+ */
+export const DemoSearchSchema = z.object({ stage: StageSchema.optional().catch(undefined) });

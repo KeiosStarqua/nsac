@@ -58,8 +58,9 @@ describe("DemoSearchSchema", () => {
     expect(DemoSearchSchema.parse({ stage: "confirmed" })).toEqual({ stage: "confirmed" });
   });
 
-  it("falls back to alert for anything else instead of throwing", () => {
-    expect(DemoSearchSchema.parse({ stage: "hacked" })).toEqual({ stage: "alert" });
-    expect(DemoSearchSchema.parse({})).toEqual({ stage: "alert" });
+  it("falls back to undefined for anything else instead of throwing", () => {
+    expect(DemoSearchSchema.parse({ stage: "hacked" })).toEqual({ stage: undefined });
+    expect(DemoSearchSchema.parse({ stage: 7 })).toEqual({ stage: undefined });
+    expect(DemoSearchSchema.parse({})).toEqual({ stage: undefined });
   });
 });
