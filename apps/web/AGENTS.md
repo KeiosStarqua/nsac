@@ -2,11 +2,12 @@
 
 ## Purpose
 
-Landing page that shows the concept of the onboard doctor: why it is not a dashboard, the detect → connect → recommend → confirm → report loop, an interactive Mars landing readiness demo, the "Sky" story, modules, safety rules and sources. Pages: `/` (landing), `/demo`, `/story`. It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI).
+Landing page for **Sky**, the clinical assistant for astronauts and flight surgeons. Pages: `/` (product description, the two core features, five hazards, data and standards, the detect → recommend → confirm → report loop, demo teaser, story teaser, modules, safety rules, sources), `/demo` (interactive Mars landing readiness), `/story` (the "Sky" story). It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI).
 
 ## Ownership
 
 - Owns everything under `apps/web/`. The root `package.json`, `turbo.json` and `tsconfig.base.json` belong to the root `AGENTS.md`.
+- Concept content comes from the team PRD, `NASA HACKATHON_Prd Description.pdf` at the repo root (local only, `*.pdf` is gitignored): objective, the two core features with their onboarding examples, the five hazards with symptom risks and measurement tools, and the data table. Keep the page in step with it.
 - `STORY.md` at the repo root is the only source of the story text. This app renders it; never copy it into `src/`. Edit the story in `STORY.md`.
 - `practice/` is separate. Nothing here is copied from it.
 
@@ -20,6 +21,7 @@ Landing page that shows the concept of the onboard doctor: why it is not a dashb
 - Search params are validated with zod and are lenient: a bad value falls back (`.optional().catch(undefined)`) and never shows an error page. `?lang=en|vi` lives on the root route; `?stage=` on `/demo`. Language comes from `?lang=`, then `Accept-Language` (server function `getRequestLocale`).
 - SSR mode per route, with the reason in the route file: `/` and `/story` `ssr: true` (content); `/demo` `ssr: 'data-only'` (loader on the server, interactive client component). `/` defers the gauge snapshot with `Await` (streaming); `/demo` fast-forward streams one `Snapshot` per day from an async-generator server function.
 - Content: all UI text is in `src/shared/i18n/{en,vi}.ts` against one `Copy` type, so the two languages cannot drift. The story text stays Vietnamese (it is `STORY.md`).
+- PRD thresholds: the PRD's hazard tables carry numeric limits (e.g. pulse wave velocity, troponin, ONSD) with no source URL, so the page does not show them. Only limits that trace to NASA-STD-3001 Vol. 1 Rev B are shown, each linked to its `[V1 xxxx]` requirement. The PRD also calls Sky a model trained and fine-tuned on NASA data; the page does not claim that, because the implementation is deterministic detection plus a local model with retrieval over NASA documents (root `AGENTS.md`).
 - Claims: every outbound claim links to an entry in `src/shared/sources.ts`, with `checked` only when a person opened the URL. Demo numbers are illustrative and labelled "Simulated data". Do not add medical thresholds or weights here. Keep the disclaimer "AI-generated, not a substitute for a physician".
 - No personal data, no photos or images of minors.
 - Demo rule: nothing is queued or sent before Confirm (`canConfirm` / `canFastForward` / `linkStateFor` in `features/readiness-demo/model/readiness.ts`).

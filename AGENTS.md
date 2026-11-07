@@ -184,6 +184,6 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 |---|---|
 | `docs/references/AGENTS.md` | Catalog tham chiếu HKT (chỉ số theo hệ cơ quan, liên kết OSDR) |
 | `practice/AGENTS.md` | Monorepo luyện tay (bun + Turborepo: TanStack Start, Mastra, OpenUI, mô phỏng cúm); không thuộc bài nộp HKT, không chuyển vào thư mục dự án trước 14/11/2026 09:00 |
-| `apps/web/AGENTS.md` | Landing page (TanStack Start, bun, Turborepo): trang chủ, demo tương tác, truyện `/story` từ `STORY.md`; offline, song ngữ en/vi |
+| `apps/web/AGENTS.md` | Landing page Sky (TanStack Start, bun, Turborepo): nội dung concept theo PRD (`NASA HACKATHON_Prd Description.pdf`), demo tương tác, truyện `/story` từ `STORY.md`; offline, song ngữ en/vi |
 
 Root `README.md` vẫn là điểm vào sản phẩm và tech stack; thêm child khi một thư mục có boundary riêng (catalog, API client, contest entry).
