@@ -159,7 +159,9 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 
 - `backend/src/nsac/` — Python, không import UI. Phụ thuộc: `api` → `harness`/`agent`/`modules` → `domain` → `contracts`; `adapters` cài đặt interface của `domain`/`modules`.
   - `contracts/` schema Pydantic dùng chung · `domain/{health,crew,outbreak}` entity và luật thuần, không IO · `modules/{cardio,musculoskeletal,space_weather,epidemic,stubs}` module cắm được (`stubs` chỉ interface) · `harness/{triage,dispatch,broadcast,policies}` điều phối deterministic, mỗi luật có `source_url` · `agent/` LangGraph + `rag/` · `reporting/` Jinja2, PDF, outbox · `adapters/{osdr,donki,ollama,sqlite}` · `simulation/` generator và fast-forward · `api/` lớp mỏng cho UI.
-- `apps/onboard/` NiceGUI theo `features/<name>/` + `shared/` · `apps/generative-ui/{presets,catalog,renderer}` OpenUI · `apps/website/` website tĩnh.
+- `apps/onboard/` NiceGUI theo `features/<name>/` + `shared/` · `apps/generative-ui/{presets,catalog,renderer}` OpenUI · `apps/website/` website tĩnh (chỗ giữ, chưa dùng) · `apps/web/` landing page giới thiệu concept (TanStack Start, xem `apps/web/AGENTS.md`).
+- Workspace JS ở root: `package.json` (bun, `workspaces: ["apps/*"]`), `turbo.json` (Turborepo: `dev`, `build`, `typecheck`, `test`), `tsconfig.base.json`. Mỗi app JS là một package `@nsac/<tên>` trong `apps/`; app Python (`onboard`) và `practice/` (workspace riêng) nằm ngoài. Cài và chạy từ root: `bun install`, `bun run typecheck|test|build`.
+
 - `STORY.md` truyện hư cấu "Sky" (thiên thần theo phi hành gia, dịch từ khu vườn trên tàu) cho phần kể chuyện/demo; bảng cuối map truyện sang module, cập nhật khi module đổi.
 - `assets/models3d/` (mỗi model kèm license/nguồn) · `assets/fixtures/` · `scripts/` · `tests/` (phản chiếu `backend/`) · `var/` (gitignored, trạng thái runtime).
 - Chưa chốt: OpenUI (JS) cùng NiceGUI (Python) hay thay thế; nếu đổi, cập nhật mục này.
@@ -182,5 +184,6 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 |---|---|
 | `docs/references/AGENTS.md` | Catalog tham chiếu HKT (chỉ số theo hệ cơ quan, liên kết OSDR) |
 | `practice/AGENTS.md` | Monorepo luyện tay (bun + Turborepo: TanStack Start, Mastra, OpenUI, mô phỏng cúm); không thuộc bài nộp HKT, không chuyển vào thư mục dự án trước 14/11/2026 09:00 |
+| `apps/web/AGENTS.md` | Landing page (TanStack Start, bun, Turborepo): trang chủ, demo tương tác, truyện `/story` từ `STORY.md`; offline, song ngữ en/vi |
 
 Root `README.md` vẫn là điểm vào sản phẩm và tech stack; thêm child khi một thư mục có boundary riêng (catalog, API client, contest entry).
