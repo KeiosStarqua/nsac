@@ -1,6 +1,7 @@
 import { Await, Link } from "@tanstack/react-router";
-import { Section } from "~/shared/ui";
 import { useCopy, useLocale } from "~/shared/i18n";
+import { SOURCES } from "~/shared/sources";
+import { ExternalLink, Section } from "~/shared/ui";
 import type { Snapshot } from "../model/readiness";
 import { Gauge } from "./Gauge";
 import styles from "./DemoTeaser.module.css";
@@ -41,9 +42,9 @@ export function DemoTeaser({ snapshot }: { snapshot: Promise<Snapshot | null> })
         <div className={styles.copy}>
           <p>
             {copy.demo.gravity}{" "}
-            <a href="https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html" target="_blank" rel="noopener noreferrer">
+            <ExternalLink href={SOURCES.marsGravity.url}>
               {copy.demo.gravitySource}
-            </a>
+            </ExternalLink>
           </p>
           <Link to="/demo" search={{ lang: locale }} className={styles.cta}>
             {copy.demoTeaser.cta}
