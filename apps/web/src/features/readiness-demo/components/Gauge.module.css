@@ -1,0 +1,62 @@
+.gauge {
+  --tone: var(--yellow);
+  position: relative;
+  width: min(100%, 240px);
+  aspect-ratio: 1;
+}
+
+.gauge[data-severity="green"] {
+  --tone: var(--green);
+}
+
+.gauge svg {
+  width: 100%;
+  height: 100%;
+}
+
+.track,
+.value {
+  fill: none;
+  stroke-width: 9;
+}
+
+.track {
+  stroke: var(--surface-2);
+}
+
+.value {
+  stroke: var(--tone);
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset 0.35s ease-out,
+    stroke 0.3s;
+}
+
+.readout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+}
+
+.score {
+  font-size: clamp(3rem, 9vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sev {
+  color: var(--tone);
+  font-size: 0.875rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.range {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
