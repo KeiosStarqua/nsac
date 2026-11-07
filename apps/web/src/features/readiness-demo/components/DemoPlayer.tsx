@@ -63,7 +63,7 @@ export function DemoPlayer({ scenario, stage, onStageChange }: DemoPlayerProps) 
     <div className={styles.player}>
       <section className={styles.panel} aria-labelledby="demo-readiness">
         <div className={styles.panelHead}>
-          <h2 id="demo-readiness">{copy.title}</h2>
+          <h3 id="demo-readiness">{copy.scoreLabel}</h3>
           <ul className={styles.chips}>
             <li className={styles.chip}>
               <CloudSlash aria-hidden="true" size={16} /> {copy.offline}
