@@ -2,14 +2,15 @@ import type { Copy } from "./types";
 
 export const vi: Copy = {
   meta: {
-    title: "Bác sĩ tạm trên tàu | NASA Space Apps 2026 HCMC",
+    title: "Sky, trợ lý lâm sàng cho phi hành gia | NASA Space Apps 2026 HCMC",
     description:
-      "Trợ lý sức khỏe offline cho phi hành gia: baseline riêng từng người, một hành động phục hồi, mức sẵn sàng hạ cánh Sao Hỏa.",
+      "Sky là trợ lý lâm sàng offline cho các chuyến bay dài ngày: thu thập dữ liệu sức khỏe phi hành đoàn, cảnh báo phi hành gia và bác sĩ bay, đề xuất một hành động.",
   },
   nav: {
-    concept: "Ý tưởng",
+    features: "Tính năng",
+    hazards: "Rủi ro",
+    data: "Dữ liệu",
     demo: "Demo",
-    modules: "Module",
     story: "Câu chuyện",
     trust: "An toàn",
     sources: "Nguồn",
@@ -18,46 +19,226 @@ export const vi: Copy = {
   },
   hero: {
     eyebrow: "NASA Space Apps 2026 · TP. Hồ Chí Minh",
-    title: "Một bác sĩ trong khoang tàu khi Trái Đất cách 20 phút.",
-    lead: "Trợ lý offline học baseline riêng của từng phi hành gia, phát hiện lệch sớm và nói việc cần làm tiếp: một hành động phục hồi, một lần xác nhận, một báo cáo gửi về.",
+    title: "Gặp Sky, trợ lý lâm sàng đi cùng phi hành đoàn.",
+    lead: "Trên chuyến bay tới Sao Hỏa không có tiếp tế và Trái Đất ở rất xa. Sky đóng vai điều dưỡng lâm sàng: thu thập dữ liệu y khoa quan trọng, phân tích, rồi đưa ra khuyến nghị và cảnh báo cho phi hành gia và bác sĩ bay trước khi vấn đề thành sự cố y tế.",
     challenge: "Thử thách: Create Health Monitoring Software for Astronauts on Space Missions",
     primaryCta: "Thử demo",
-    secondaryCta: "Cách hoạt động",
-    badges: ["Chạy hoàn toàn offline", "Phi hành gia xác nhận mọi hành động", "Mã nguồn mở, Apache-2.0"],
+    secondaryCta: "Xem tính năng",
+    badges: ["Chạy hoàn toàn offline", "Con người xác nhận mọi hành động", "Mã nguồn mở, Apache-2.0"],
   },
-  difference: {
-    title: "Không phải một dashboard sức khỏe nữa",
-    lead: "Dashboard cho bác sĩ thấy chỗ nào sai. Sản phẩm này dành cho phi hành gia không có bác sĩ bên cạnh.",
-    columns: { label: "", dashboard: "Dashboard thông thường", ours: "Bác sĩ tạm" },
-    rows: [
-      { label: "Ai dùng", dashboard: "Bác sĩ bay trên mặt đất", ours: "Phi hành gia, ngay trên tàu" },
-      { label: "Mạng", dashboard: "Cần đường truyền sống", ours: "Rút dây mạng vẫn chạy" },
-      { label: "So với", dashboard: "Khoảng giá trị quần thể", ours: "Baseline của chính bạn" },
-      { label: "Kết quả", dashboard: "Biểu đồ chỗ lệch", ours: "Một việc làm tiếp" },
+  features: {
+    title: "Hai trợ lý, một phi hành đoàn",
+    lead: "Sky phục vụ phi hành gia và bác sĩ bay từ cùng một nguồn dữ liệu.",
+    exampleLabel: "Ví dụ",
+    items: [
+      {
+        audience: "Cho phi hành gia",
+        name: "Trợ lý sức khỏe cá nhân",
+        body: "Sky phân tích các hoạt động và môi trường gắn với từng nhiệm vụ, rồi đưa ra gợi ý riêng giúp phi hành gia làm việc tốt nhất. Nếu một phi hành gia gặp sự cố y tế, Sky báo cho mọi thành viên để cả đoàn cùng ứng phó.",
+        example:
+          "Ngày mai phi hành gia phải làm việc nặng trên bề mặt thiên thể. Sky khuyên dùng một loại thực phẩm bổ sung và ngủ đủ để chuẩn bị.",
+      },
+      {
+        audience: "Cho bác sĩ bay",
+        name: "Trợ lý lâm sàng",
+        body: "Sky liên tục thu thập dữ liệu y khoa của cả đoàn và phân tích để hỗ trợ bác sĩ bay chẩn đoán và đề xuất điều trị. Sky đo nguy cơ bệnh truyền nhiễm trong đoàn, cho từng người và cho cả đoàn.",
+        example:
+          "Nhật ký y tế của một phi hành gia có triệu chứng cúm, nên nguy cơ lan ra cả đoàn tăng. Sky cảnh báo bác sĩ bay và đề xuất cách ly. Sky gợi ý điều trị cho người có nguy cơ, và biện pháp phòng ngừa cùng triệu chứng cần để ý cho những người còn lại.",
+      },
     ],
+  },
+  hazards: {
+    title: "Năm rủi ro Sky theo dõi",
+    lead: "NASA chia rủi ro của chuyến đi Sao Hỏa thành năm nhóm. Với mỗi nhóm, Sky theo dõi các tín hiệu quan trọng và so với baseline trước chuyến bay của chính phi hành gia.",
+    risksLabel: "Rủi ro",
+    measuredLabel: "Đo bằng",
+    items: [
+      {
+        name: "Bức xạ vũ trụ",
+        body: "Tổn thương tim mạch và nội mạc, và suy giảm sinh thần kinh.",
+        risks: [
+          "Cứng động mạch và lão hóa mạch sớm",
+          "Dày nội mạc",
+          "Rối loạn nhịp và dẫn truyền",
+          "Tổn thương cơ tim",
+          "Không dung nạp tư thế đứng sau EVA và hạ cánh",
+          "Trí nhớ không gian và trí nhớ làm việc",
+          "Áp lực nội sọ và stress thần kinh-thị giác",
+          "Rối loạn nhịp thức-ngủ",
+        ],
+        measured: [
+          "Vận tốc sóng mạch",
+          "Siêu âm động mạch cảnh",
+          "ECG Holter hoặc miếng dán thông minh",
+          "Troponin, hs-CRP, IL-6 tại chỗ",
+          "Huyết áp và nhịp tim liên tục",
+          "Bộ test nhận thức NASA",
+          "Chụp cắt lớp quang học",
+          "fNIRS",
+          "Actigraphy đeo cổ tay",
+        ],
+      },
+      {
+        name: "Thay đổi trường trọng lực",
+        body: "Nhiều tháng không trọng lực trên đường đi, khoảng ⅜ trọng lực Trái Đất trên Sao Hỏa, rồi thích nghi lại với trọng lực Trái Đất.",
+        risks: [
+          "Dịch chuyển lên đầu và hội chứng thần kinh-mắt do bay vũ trụ",
+          "Mất xương",
+          "Teo cơ và giảm sức mạnh",
+          "Suy giảm thể trạng tim mạch",
+          "Say vận động vũ trụ và mất thăng bằng",
+        ],
+        measured: [
+          "Chụp cắt lớp quang học",
+          "DXA hoặc pQCT và chỉ dấu luân chuyển xương",
+          "Theo dõi tải và công suất ARED",
+          "Siêu âm và siêu âm tim",
+          "Holter và máy đo huyết áp",
+          "Test hành vi thần kinh và đánh giá dáng đi",
+        ],
+      },
+      {
+        name: "Cô lập và giam hãm",
+        body: "Một nhóm nhỏ, xa nhà, trong thời gian dài.",
+        risks: ["Thiếu ngủ", "Lệch nhịp sinh học", "Quá tải công việc"],
+        measured: [
+          "Actigraphy cổ tay và nhật ký giấc ngủ",
+          "Test cảnh giác tâm vận động",
+          "Nhịp melatonin và cortisol",
+          "Thân nhiệt lõi",
+          "NASA Task Load Index",
+          "Nhật ký tâm trạng và phân tích stress giọng nói",
+        ],
+      },
+      {
+        name: "Môi trường kín và khắc nghiệt",
+        body: "Hệ sinh thái trong tàu ảnh hưởng đến vi sinh vật, hệ miễn dịch và nội tiết của phi hành đoàn.",
+        risks: [
+          "Hệ vi sinh ruột, da và niêm mạc thay đổi",
+          "Rối loạn miễn dịch và tái hoạt hóa virus",
+          "Rối loạn nội tiết",
+        ],
+        measured: [
+          "Giải trình tự metagenomic trên tàu",
+          "Calprotectin trong phân và zonulin huyết tương",
+          "Tải lượng DNA virus bằng PCR",
+          "Panel cytokine",
+          "Panel nội tiết nước bọt và huyết tương",
+        ],
+      },
+      {
+        name: "Khoảng cách với Trái Đất",
+        body: "Chuyến đi Sao Hỏa mất 7 đến 10 tháng và không có tiếp tế. Phi hành đoàn dựa vào kế hoạch kỹ và khả năng tự lực, vì vậy Sky chạy không cần đường truyền về Trái Đất.",
+        risks: [],
+        measured: [],
+      },
+    ],
+  },
+  data: {
+    title: "Dữ liệu Sky cần và tiêu chuẩn để đối chiếu",
+    lead: "Các giới hạn dưới đây lấy từ NASA-STD-3001 Volume 1 Rev B (Crew Health). Mỗi yêu cầu liên kết về cùng một tài liệu.",
+    collectionTitle: "Sky lấy dữ liệu thế nào",
+    collection: [
+      {
+        title: "Tự động",
+        body: "Máy móc và công cụ trên tàu đồng bộ số đo với Sky, ví dụ thiết bị tập luyện và thiết bị đeo.",
+      },
+      {
+        title: "Bằng cách hỏi",
+        body: "Khi một số đo không có máy, Sky nhắc phi hành gia nhập tay, ví dụ triệu chứng hoặc bữa ăn.",
+      },
+    ],
+    columns: { data: "Dữ liệu", standard: "Tiêu chuẩn", context: "Bối cảnh", requirement: "Yêu cầu" },
+    rows: [
+      {
+        data: "Khả năng hiếu khí tối đa (VO2max)",
+        standard: "Tối thiểu 32,9 ml·min⁻¹·kg⁻¹",
+        context: "Nhiệm vụ có EVA trong vi trọng lực",
+        requirement: "V1 4001",
+      },
+      {
+        data: "Khả năng hiếu khí tối đa (VO2max)",
+        standard: "Tối thiểu 36,5 ml·min⁻¹·kg⁻¹",
+        context: "Nhiệm vụ có EVA trên bề mặt thiên thể",
+        requirement: "V1 4002",
+      },
+      {
+        data: "Lượng dinh dưỡng nạp vào",
+        standard:
+          "Tối thiểu 90% nhu cầu tính toán, theo tuổi, giới, khối lượng, chiều cao và hệ số hoạt động 1,25",
+        context: "Trong nhiệm vụ",
+        requirement: "V1 4020",
+      },
+      {
+        data: "Sức mạnh cơ xương",
+        standard: "Tối thiểu 80% baseline",
+        context: "Trong nhiệm vụ",
+        requirement: "V1 4024",
+      },
+      {
+        data: "Khối lượng xương",
+        standard: "Hông và cột sống tối thiểu 95% giá trị trước nhiệm vụ, cổ xương đùi tối thiểu 90%",
+        context: "Không đo được khi bay. Sky ước tính từ thời gian tập và thuốc dùng.",
+        requirement: "V1 4027",
+      },
+      {
+        data: "Tổng liều bức xạ",
+        standard: "Dưới 600 mSv",
+        context: "Cả sự nghiệp",
+        requirement: "V1 4030",
+      },
+      {
+        data: "Liều bức xạ ngắn hạn",
+        standard: "Dưới 250 mSv",
+        context: "Sự kiện hạt Mặt Trời",
+        requirement: "V1 4031",
+      },
+      {
+        data: "Liều bức xạ ngắn hạn",
+        standard: "Dưới 20 mSv mỗi năm nhiệm vụ",
+        context: "Công nghệ hạt nhân, như nguồn điện đồng vị phóng xạ và lò phân hạch",
+        requirement: "V1 4032",
+      },
+      {
+        data: "Cảm giác-vận động phù hợp nhiệm vụ",
+        standard: "Định nghĩa theo vận hành",
+        context: "Tùy nhiệm vụ",
+      },
+      {
+        data: "Sức khỏe hành vi và nhận thức",
+        standard: "Đánh giá sức khỏe hành vi",
+        context: "Trong nhiệm vụ",
+      },
+      {
+        data: "Huyết học và miễn dịch",
+        standard: "Nằm trong giá trị tới hạn được chấp nhận",
+        context: "Trong nhiệm vụ",
+      },
+    ],
+    note: "Các ngưỡng khác Sky dùng, như giới hạn theo từng nhóm rủi ro, là quy tắc theo baseline cá nhân và có nguồn riêng trong ứng dụng.",
   },
   pipeline: {
     title: "Từ tín hiệu đến hành động",
-    lead: "Phát hiện là mã deterministic. Mô hình ngôn ngữ chỉ giải thích và soạn nháp. Phi hành gia quyết định.",
+    lead: "Phát hiện là mã deterministic. Mô hình ngôn ngữ chỉ giải thích và soạn nháp. Người trên tàu quyết định.",
     steps: [
+      {
+        title: "Thu thập",
+        body: "Lấy dữ liệu từ máy móc và công cụ đã đồng bộ, hoặc nhắc phi hành gia nhập tay.",
+        tag: "Tự động hoặc hỏi",
+      },
       {
         title: "Phát hiện",
         body: "So từng chỉ số với baseline của chính phi hành gia: median và độ phân tán, xu hướng, điểm đổi.",
         tag: "Deterministic",
       },
       {
-        title: "Liên kết",
-        body: "Nối tín hiệu giữa các hệ: bão Mặt Trời, rồi mất ngủ, rồi bỏ tập, rồi tim và chân giảm sẵn sàng.",
-        tag: "Thời tiết vũ trụ, tim, xương và cơ",
-      },
-      {
         title: "Đề xuất",
-        body: "Chọn một hành động trong ISS Medical Checklist và giải thích bằng lời dễ hiểu.",
+        body: "Nối tín hiệu giữa các hệ, chọn một hành động trong ISS Medical Checklist và giải thích dễ hiểu. Cảnh báo bác sĩ bay và cả đoàn khi rủi ro chung.",
         tag: "AI cục bộ giải thích",
       },
       {
         title: "Xác nhận",
-        body: "Không có gì chạy cho đến khi phi hành gia bấm Confirm.",
+        body: "Không có gì chạy cho đến khi một người bấm Confirm.",
         tag: "Có người duyệt",
       },
       {
@@ -127,8 +308,8 @@ export const vi: Copy = {
     cta: "Đọc câu chuyện",
   },
   story: {
-    pageTitle: "Câu chuyện | Bác sĩ tạm trên tàu",
-    pageDescription: "Sky, truyện hư cấu cho thấy bác sĩ tạm phát hiện, nối tín hiệu và xin phi hành đoàn xác nhận một hành động.",
+    pageTitle: "Câu chuyện | Sky",
+    pageDescription: "Truyện hư cấu cho thấy Sky phát hiện, nối tín hiệu và xin phi hành đoàn xác nhận một hành động.",
     eyebrow: "Truyện hư cấu",
     tocTitle: "Các chương",
     languageNote: "Truyện hư cấu: tên người, tên tàu và diễn biến đều là tưởng tượng.",
@@ -198,7 +379,7 @@ export const vi: Copy = {
   },
   sources: {
     title: "Nguồn",
-    lead: "Các link của dự án được mở ngày 2026-10-18. Link không có ngày là link chặn kiểm tra tự động.",
+    lead: "Mỗi link ghi ngày mở gần nhất. Link không có ngày là link chặn kiểm tra tự động.",
     checkedLabel: "đã kiểm tra",
     items: {
       osd569: { label: "OSD-569", note: "Công thức máu Inspiration4" },
@@ -209,6 +390,8 @@ export const vi: Copy = {
       circulation: { label: "Circulation 2026", note: "Thay đổi ở tim trong hai tuần đầu trên ISS" },
       marsGravity: { label: "Bảng số liệu Sao Hỏa của NASA", note: "Trọng lực bề mặt, 0,38 so với Trái Đất" },
       bedRest: { label: "NASA: nằm giường như mô hình tương tự", note: "Vì sao dùng nằm giường để nghiên cứu bay vũ trụ" },
+      fiveHazards: { label: "NASA: năm rủi ro của bay vũ trụ có người", note: "Vì sao Sky chia rủi ro thành năm nhóm" },
+      nasaStd3001: { label: "NASA-STD-3001 Vol. 1 Rev B", note: "Giới hạn sức khỏe phi hành đoàn trong bảng dữ liệu" },
     },
   },
   footer: {

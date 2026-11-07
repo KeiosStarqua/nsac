@@ -15,7 +15,7 @@ export function Hero() {
           <Link to="/demo" search={{ lang: locale }} className={styles.primary}>
             {copy.primaryCta}
           </Link>
-          <Link to="/" hash="concept" search={{ lang: locale }} className={styles.secondary}>
+          <Link to="/" hash="features" search={{ lang: locale }} className={styles.secondary}>
             {copy.secondaryCta}
           </Link>
         </div>

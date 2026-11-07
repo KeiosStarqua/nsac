@@ -9,9 +9,10 @@ export interface SourceCopy {
 export interface Copy {
   meta: { title: string; description: string };
   nav: {
-    concept: string;
+    features: string;
+    hazards: string;
+    data: string;
     demo: string;
-    modules: string;
     story: string;
     trust: string;
     sources: string;
@@ -27,11 +28,27 @@ export interface Copy {
     secondaryCta: string;
     badges: string[];
   };
-  difference: {
+  features: {
     title: string;
     lead: string;
-    columns: { label: string; dashboard: string; ours: string };
-    rows: { label: string; dashboard: string; ours: string }[];
+    exampleLabel: string;
+    items: { audience: string; name: string; body: string; example: string }[];
+  };
+  hazards: {
+    title: string;
+    lead: string;
+    risksLabel: string;
+    measuredLabel: string;
+    items: { name: string; body: string; risks: string[]; measured: string[] }[];
+  };
+  data: {
+    title: string;
+    lead: string;
+    collectionTitle: string;
+    collection: { title: string; body: string }[];
+    columns: { data: string; standard: string; context: string; requirement: string };
+    rows: { data: string; standard: string; context: string; requirement?: string }[];
+    note: string;
   };
   pipeline: {
     title: string;

@@ -13,7 +13,7 @@ export const Route = createFileRoute("/demo")({
   loader: () => getScenario(),
   head: ({ match }) => {
     const copy = getCopy(match.context.locale);
-    return { meta: [{ title: `${copy.demo.title} | Onboard Doctor` }] };
+    return { meta: [{ title: `${copy.demo.title} | Sky` }] };
   },
   pendingComponent: DemoPending,
   component: DemoPage,

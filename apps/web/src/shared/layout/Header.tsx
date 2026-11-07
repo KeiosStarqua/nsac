@@ -9,13 +9,19 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.headerInner}>
-        <Link className={styles.brand} to="/" search={{ lang: locale }} aria-label="Onboard Doctor">
+        <Link className={styles.brand} to="/" search={{ lang: locale }} aria-label="Sky">
           <img src="/favicon.svg" alt="" width={28} height={28} />
-          <span>Onboard Doctor</span>
+          <span>Sky</span>
         </Link>
         <nav aria-label="Primary" className={styles.nav}>
-          <Link to="/" hash="concept" search={{ lang: locale }}>
-            {copy.nav.concept}
+          <Link to="/" hash="features" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
+            {copy.nav.features}
+          </Link>
+          <Link to="/" hash="hazards" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
+            {copy.nav.hazards}
+          </Link>
+          <Link to="/" hash="data" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
+            {copy.nav.data}
           </Link>
           <Link to="/demo" search={{ lang: locale }} activeProps={{ "aria-current": "page" }}>
             {copy.nav.demo}
@@ -23,13 +29,10 @@ export function Header() {
           <Link to="/story" search={{ lang: locale }} activeProps={{ "aria-current": "page" }}>
             {copy.nav.story}
           </Link>
-          <Link to="/" hash="modules" search={{ lang: locale }}>
-            {copy.nav.modules}
-          </Link>
-          <Link to="/" hash="trust" search={{ lang: locale }}>
+          <Link to="/" hash="trust" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
             {copy.nav.trust}
           </Link>
-          <Link to="/" hash="sources" search={{ lang: locale }}>
+          <Link to="/" hash="sources" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
             {copy.nav.sources}
           </Link>
         </nav>

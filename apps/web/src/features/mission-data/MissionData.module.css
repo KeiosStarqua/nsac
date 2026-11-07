@@ -1,0 +1,90 @@
+.subtitle {
+  margin-bottom: 14px;
+  font-size: 1.25rem;
+}
+
+.collection {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.collection li {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.collection strong {
+  color: var(--text);
+}
+
+.collection p {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.table th,
+.table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table thead th {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.table tbody th {
+  font-weight: 600;
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table td {
+  color: var(--muted);
+}
+
+.table .standard {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.note {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .collection {
+    grid-template-columns: 1fr;
+  }
+}

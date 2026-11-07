@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Difference } from "~/features/difference";
+import { CoreFeatures } from "~/features/core-features";
 import { Earth } from "~/features/earth";
+import { Hazards } from "~/features/hazards";
 import { Hero } from "~/features/hero";
+import { MissionData } from "~/features/mission-data";
 import { Modules } from "~/features/modules";
 import { Pipeline } from "~/features/pipeline";
 import { DemoTeaser, getAlertSnapshot } from "~/features/readiness-demo";
@@ -26,7 +28,9 @@ function Landing() {
   return (
     <>
       <Hero />
-      <Difference />
+      <CoreFeatures />
+      <Hazards />
+      <MissionData />
       <Pipeline />
       <DemoTeaser snapshot={snapshot} />
       <StoryTeaser />

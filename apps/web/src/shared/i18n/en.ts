@@ -2,14 +2,15 @@ import type { Copy } from "./types";
 
 export const en: Copy = {
   meta: {
-    title: "Astronaut onboard doctor | NASA Space Apps 2026 HCMC",
+    title: "Sky, the clinical assistant for astronauts | NASA Space Apps 2026 HCMC",
     description:
-      "An offline onboard health companion for astronauts: per-person baselines, one recovery action, Mars landing readiness.",
+      "Sky is an offline clinical assistant for long space missions. It collects crew health data, warns astronauts and flight surgeons, and recommends one action.",
   },
   nav: {
-    concept: "Concept",
+    features: "Features",
+    hazards: "Hazards",
+    data: "Data",
     demo: "Demo",
-    modules: "Modules",
     story: "Story",
     trust: "Safety",
     sources: "Sources",
@@ -18,46 +19,226 @@ export const en: Copy = {
   },
   hero: {
     eyebrow: "NASA Space Apps 2026 · Ho Chi Minh City",
-    title: "A doctor in the cabin when Earth is 20 minutes away.",
-    lead: "An offline companion that learns each astronaut's own baseline, spots drift early, and says what to do next: one recovery action, one confirmation, one report home.",
+    title: "Meet Sky, the clinical assistant that travels with the crew.",
+    lead: "On a mission to Mars there is no resupply and Earth is far away. Sky plays the role of a clinical nurse: it collects medically significant data, analyses it, and gives astronauts and flight surgeons recommendations and warnings before a problem becomes a medical event.",
     challenge: "Challenge: Create Health Monitoring Software for Astronauts on Space Missions",
     primaryCta: "Try the demo",
-    secondaryCta: "How it works",
-    badges: ["Runs fully offline", "Astronaut confirms every action", "Open source, Apache-2.0"],
+    secondaryCta: "See the features",
+    badges: ["Runs fully offline", "Humans confirm every action", "Open source, Apache-2.0"],
   },
-  difference: {
-    title: "Not another health dashboard",
-    lead: "A dashboard shows a doctor what went wrong. This is built for the astronaut who has no doctor in the room.",
-    columns: { label: "", dashboard: "Typical dashboard", ours: "Onboard doctor" },
-    rows: [
-      { label: "Who uses it", dashboard: "A flight surgeon on the ground", ours: "The astronaut, onboard" },
-      { label: "Network", dashboard: "Needs a live link", ours: "Works with the cable unplugged" },
-      { label: "Compared against", dashboard: "Population ranges", ours: "Your own baseline" },
-      { label: "Output", dashboard: "Charts of what is off", ours: "One next action" },
+  features: {
+    title: "Two assistants, one crew",
+    lead: "Sky serves the astronaut and the flight surgeon from the same data.",
+    exampleLabel: "Example",
+    items: [
+      {
+        audience: "For astronauts",
+        name: "Personal health assistant",
+        body: "Sky analyses the activities and environments tied to each duty, then gives personalised suggestions that help the astronaut perform at their best. If one astronaut has a medical incident, Sky alerts every crew member so the crew can respond together.",
+        example:
+          "An astronaut has labor-intensive work on the celestial surface tomorrow. Sky recommends a certain supplement and enough rest to prepare.",
+      },
+      {
+        audience: "For flight surgeons",
+        name: "Clinical assistant",
+        body: "Sky continuously collects medical data from the whole crew and analyses it to support diagnosis and treatment recommendations. It measures the risk of infectious disease among crew members, for each person and for the crew as a whole.",
+        example:
+          "An astronaut's medical log shows symptoms of influenza, so the risk of it spreading to the crew rises. Sky warns the flight surgeon and suggests quarantine. It suggests treatment to the astronaut at risk, and preventive methods and symptoms to watch for to everyone else.",
+      },
     ],
+  },
+  hazards: {
+    title: "Five hazards Sky watches for",
+    lead: "NASA groups the risks of a journey to Mars into five hazards. For each one, Sky follows the signals that matter and compares them with the astronaut's own pre-flight baseline.",
+    risksLabel: "Risks",
+    measuredLabel: "Measured with",
+    items: [
+      {
+        name: "Space radiation",
+        body: "Cardiovascular and endothelial damage, and impaired neurogenesis.",
+        risks: [
+          "Arterial stiffness and early vascular aging",
+          "Endothelial thickening",
+          "Arrhythmias and conduction disturbances",
+          "Myocardial injury",
+          "Orthostatic intolerance after EVA and landing",
+          "Spatial and working memory",
+          "Intracranial pressure and neuro-optic stress",
+          "Sleep-wake rhythm disruption",
+        ],
+        measured: [
+          "Pulse wave velocity",
+          "Carotid ultrasound",
+          "Holter ECG or smart patch",
+          "Point-of-care troponin, hs-CRP, IL-6",
+          "Continuous blood pressure and heart rate",
+          "NASA Cognition tests",
+          "Optical coherence tomography",
+          "fNIRS",
+          "Wrist actigraphy",
+        ],
+      },
+      {
+        name: "Changes in gravity fields",
+        body: "Months of weightlessness on the way, about ⅜ of Earth's gravity on Mars, then re-adaptation to Earth's gravity.",
+        risks: [
+          "Fluid shift and spaceflight-associated neuro-ocular syndrome",
+          "Bone loss",
+          "Muscle atrophy and strength loss",
+          "Cardiovascular deconditioning",
+          "Space motion sickness and balance problems",
+        ],
+        measured: [
+          "Optical coherence tomography",
+          "DXA or pQCT and bone-turnover markers",
+          "ARED load and power tracking",
+          "Ultrasound and echocardiogram",
+          "Holter monitoring and blood pressure cuffs",
+          "Neurobehavioral tests and gait assessment",
+        ],
+      },
+      {
+        name: "Isolation and confinement",
+        body: "A small crew, far from home, for a long time.",
+        risks: ["Sleep loss", "Circadian desynchronization", "Work overload"],
+        measured: [
+          "Wrist actigraphy and sleep logs",
+          "Psychomotor vigilance task",
+          "Melatonin and cortisol rhythms",
+          "Core body temperature",
+          "NASA Task Load Index",
+          "Mood logs and voice stress analysis",
+        ],
+      },
+      {
+        name: "Hostile and closed environments",
+        body: "The ecosystem inside the spacecraft shapes the crew's microbes, immune system and hormones.",
+        risks: [
+          "Altered gut, skin and mucosal microbiome",
+          "Immune dysregulation and viral reactivation",
+          "Endocrine disruption",
+        ],
+        measured: [
+          "Onboard metagenomic sequencing",
+          "Fecal calprotectin and plasma zonulin",
+          "Viral DNA load by PCR",
+          "Cytokine panels",
+          "Salivary and plasma endocrine panels",
+        ],
+      },
+      {
+        name: "Distance from Earth",
+        body: "The trip to Mars takes 7 to 10 months and there is no resupply. The crew depends on careful planning and its own self-sufficiency, which is why Sky works without a link to Earth.",
+        risks: [],
+        measured: [],
+      },
+    ],
+  },
+  data: {
+    title: "The data Sky needs, and the standard it is checked against",
+    lead: "Limits below come from NASA-STD-3001 Volume 1 Rev B (Crew Health). Every requirement links to the same document.",
+    collectionTitle: "How Sky gets its data",
+    collection: [
+      {
+        title: "Automatically",
+        body: "Machines and tools on board synchronise their measurements with Sky, for example exercise equipment and wearables.",
+      },
+      {
+        title: "By asking",
+        body: "When a measurement has no machine, Sky prompts the astronaut for a manual entry, such as a symptom or a meal.",
+      },
+    ],
+    columns: { data: "Data", standard: "Standard", context: "Context", requirement: "Requirement" },
+    rows: [
+      {
+        data: "Maximum aerobic capacity (VO2max)",
+        standard: "At least 32.9 ml·min⁻¹·kg⁻¹",
+        context: "Missions with microgravity EVA",
+        requirement: "V1 4001",
+      },
+      {
+        data: "Maximum aerobic capacity (VO2max)",
+        standard: "At least 36.5 ml·min⁻¹·kg⁻¹",
+        context: "Missions with celestial surface EVA",
+        requirement: "V1 4002",
+      },
+      {
+        data: "Nutrient intake",
+        standard:
+          "At least 90% of the calculated requirement, from age, sex, body mass, height and an activity factor of 1.25",
+        context: "In mission",
+        requirement: "V1 4020",
+      },
+      {
+        data: "Skeletal muscle strength",
+        standard: "At least 80% of baseline",
+        context: "In mission",
+        requirement: "V1 4024",
+      },
+      {
+        data: "Bone mass",
+        standard: "Hip and spine at least 95% of pre-mission values, femoral neck at least 90%",
+        context: "Not measurable in flight. Sky estimates it from exercise duration and medicine intake.",
+        requirement: "V1 4027",
+      },
+      {
+        data: "Total radiation exposure",
+        standard: "Below 600 mSv",
+        context: "Whole career",
+        requirement: "V1 4030",
+      },
+      {
+        data: "Short-term radiation exposure",
+        standard: "Below 250 mSv",
+        context: "Solar particle events",
+        requirement: "V1 4031",
+      },
+      {
+        data: "Short-term radiation exposure",
+        standard: "Below 20 mSv per mission year",
+        context: "Nuclear technologies, such as radioisotope power systems and fission reactors",
+        requirement: "V1 4032",
+      },
+      {
+        data: "Fitness-for-duty sensorimotor",
+        standard: "Operationally defined",
+        context: "Depends on the mission",
+      },
+      {
+        data: "Behavioral health and cognition",
+        standard: "Behavioral health evaluation",
+        context: "In mission",
+      },
+      {
+        data: "Hematology and immunology",
+        standard: "Stay inside accepted critical values",
+        context: "In mission",
+      },
+    ],
+    note: "Other thresholds Sky uses, such as limits per hazard, are personal-baseline rules that carry their own source in the app.",
   },
   pipeline: {
     title: "From signal to action",
-    lead: "Detection is deterministic code. The language model only explains and drafts. The astronaut decides.",
+    lead: "Detection is deterministic code. The language model only explains and drafts. The people on board decide.",
     steps: [
+      {
+        title: "Collect",
+        body: "Gather data from synchronised machines and tools, or ask the astronaut for a manual entry.",
+        tag: "Automatic or by asking",
+      },
       {
         title: "Detect",
         body: "Compare each reading with that astronaut's own baseline: median and spread, trend, change points.",
         tag: "Deterministic",
       },
       {
-        title: "Connect",
-        body: "Link signals across systems: a solar storm, then poor sleep, then skipped training, then heart and leg readiness falling.",
-        tag: "Space weather, heart, bone and muscle",
-      },
-      {
         title: "Recommend",
-        body: "Pick one action from the ISS Medical Checklist and explain why in plain language.",
+        body: "Link signals across systems, pick one action from the ISS Medical Checklist, and explain why in plain language. Warn the flight surgeon and the crew when risk is shared.",
         tag: "Local AI explains",
       },
       {
         title: "Confirm",
-        body: "Nothing runs until the astronaut presses Confirm.",
+        body: "Nothing runs until a person presses Confirm.",
         tag: "Human in the loop",
       },
       {
@@ -127,8 +308,8 @@ export const en: Copy = {
     cta: "Read the story",
   },
   story: {
-    pageTitle: "Story | Onboard Doctor",
-    pageDescription: "Sky, a fictional story that shows how the onboard doctor detects, links signals and asks the crew to confirm one action.",
+    pageTitle: "Story | Sky",
+    pageDescription: "A fictional story that shows how Sky detects, links signals and asks the crew to confirm one action.",
     eyebrow: "Fiction",
     tocTitle: "Chapters",
     languageNote: "The story is written in Vietnamese. It is fiction: names, ship and events are invented.",
@@ -198,7 +379,7 @@ export const en: Copy = {
   },
   sources: {
     title: "Sources",
-    lead: "Project links were opened on 2026-10-18. Links without a date block automated checks.",
+    lead: "Each link shows the date it was last opened. Links without a date block automated checks.",
     checkedLabel: "checked",
     items: {
       osd569: { label: "OSD-569", note: "Inspiration4 complete blood count" },
@@ -209,6 +390,8 @@ export const en: Copy = {
       circulation: { label: "Circulation 2026", note: "Heart changes in the first two weeks on the ISS" },
       marsGravity: { label: "NASA Mars fact sheet", note: "Surface gravity, 0.38 of Earth's" },
       bedRest: { label: "NASA: bed rest as an analog", note: "Why bed rest is used to study spaceflight" },
+      fiveHazards: { label: "NASA: five hazards of human spaceflight", note: "Why Sky groups risks into five hazards" },
+      nasaStd3001: { label: "NASA-STD-3001 Vol. 1 Rev B", note: "Crew health limits in the data table" },
     },
   },
   footer: {
