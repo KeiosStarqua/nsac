@@ -3,3 +3,6 @@
 # runtime state (sqlite, chroma, exported reports)
 var/*
 !var/.gitkeep
+
+# Playwright MCP output
+.playwright-mcp/
