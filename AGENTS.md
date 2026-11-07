@@ -84,14 +84,11 @@ Challenge: **Create Health Monitoring Software for Astronauts on Space Missions*
 
 #### Hard rules (đọc trước khi code)
 
-1. **Không code dự án trước 14/11/2026 09:00 (Asia/Saigon).** FAQ Space Apps: teams không được làm challenge trước hackathon — https://www.spaceappschallenge.org/resources/participant-faqs/
-   - Trước 14/11 được: cài tool, tải model và dataset công khai, tutorial thư viện chung, benchmark tốc độ generic trên laptop demo, đọc docs, ghi chú nghiên cứu.
-   - Trước 14/11 không được: code dự án, prompt, index ISS checklist vào RAG, file dữ liệu tổng hợp, công thức readiness, mockup UI chi tiết.
-2. Chạy **hoàn toàn offline** trên một laptop; demo có thể rút dây mạng trên sân khấu.
-3. **License:** mọi dependency phải OSI-approved (MIT/Apache/BSD). Không dùng PyMuPDF (AGPL), hrv-analysis (GPL), piper1-gpl (GPL), SDV/Copulas (BSL), CircAdapt, MedGemma, EmbeddingGemma. Repo: Apache-2.0 — https://www.spaceappschallenge.org/legal/
-4. Mọi ngưỡng y khoa, trọng số và claim phải có **nguồn (URL)** trong comment code và trên UI.
-5. **AI không quyết định một mình:** phát hiện deterministic; LLM chỉ giải thích, trích checklist và soạn draft; phi hành gia xác nhận mọi hành động. Hiển thị disclaimer: "AI-generated, not a substitute for a physician".
-6. Không dữ liệu cá nhân; không ảnh hoặc hình ảnh trẻ vị thành niên trong bài nộp.
+1. Chạy **hoàn toàn offline** trên một laptop; demo có thể rút dây mạng trên sân khấu.
+2. **License:** mọi dependency phải OSI-approved (MIT/Apache/BSD). Không dùng PyMuPDF (AGPL), hrv-analysis (GPL), piper1-gpl (GPL), SDV/Copulas (BSL), CircAdapt, MedGemma, EmbeddingGemma. Repo: Apache-2.0 — https://www.spaceappschallenge.org/legal/
+3. Mọi ngưỡng y khoa, trọng số và claim phải có **nguồn (URL)** trong comment code và trên UI.
+4. **AI không quyết định một mình:** phát hiện deterministic; LLM chỉ giải thích, trích checklist và soạn draft; phi hành gia xác nhận mọi hành động. Hiển thị disclaimer: "AI-generated, not a substitute for a physician".
+5. Không dữ liệu cá nhân; không ảnh hoặc hình ảnh trẻ vị thành niên trong bài nộp.
 
 #### Scope (BOD 18/10)
 
@@ -168,7 +165,7 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 
 ## Verification
 
-### HKT Space Apps 2026 (trước 15/11 23:59)
+### HKT Space Apps 2026
 
 - [ ] App chạy end-to-end khi rút mạng.
 - [ ] Demo scenario dưới 60 giây, không crash.
