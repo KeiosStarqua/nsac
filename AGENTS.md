@@ -160,6 +160,7 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 - `backend/src/nsac/` — Python, không import UI. Phụ thuộc: `api` → `harness`/`agent`/`modules` → `domain` → `contracts`; `adapters` cài đặt interface của `domain`/`modules`.
   - `contracts/` schema Pydantic dùng chung · `domain/{health,crew,outbreak}` entity và luật thuần, không IO · `modules/{cardio,musculoskeletal,space_weather,epidemic,stubs}` module cắm được (`stubs` chỉ interface) · `harness/{triage,dispatch,broadcast,policies}` điều phối deterministic, mỗi luật có `source_url` · `agent/` LangGraph + `rag/` · `reporting/` Jinja2, PDF, outbox · `adapters/{osdr,donki,ollama,sqlite}` · `simulation/` generator và fast-forward · `api/` lớp mỏng cho UI.
 - `apps/onboard/` NiceGUI theo `features/<name>/` + `shared/` · `apps/generative-ui/{presets,catalog,renderer}` OpenUI · `apps/website/` website tĩnh.
+- `STORY.md` truyện hư cấu "Sky" (thiên thần theo phi hành gia, dịch từ khu vườn trên tàu) cho phần kể chuyện/demo; bảng cuối map truyện sang module, cập nhật khi module đổi.
 - `assets/models3d/` (mỗi model kèm license/nguồn) · `assets/fixtures/` · `scripts/` · `tests/` (phản chiếu `backend/`) · `var/` (gitignored, trạng thái runtime).
 - Chưa chốt: OpenUI (JS) cùng NiceGUI (Python) hay thay thế; nếu đổi, cập nhật mục này.
 
