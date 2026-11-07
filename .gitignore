@@ -6,3 +6,12 @@ var/*
 
 # Playwright MCP output
 .playwright-mcp/
+
+# JS workspace (Turborepo + bun)
+node_modules/
+.turbo/
+dist/
+.output/
+.nitro/
+*.tsbuildinfo
+apps/web/src/routeTree.gen.ts
