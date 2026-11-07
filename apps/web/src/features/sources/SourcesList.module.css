@@ -1,0 +1,36 @@
+.list {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.list li {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 2fr auto;
+  gap: 16px;
+  align-items: baseline;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.list li:last-child {
+  border-bottom: 0;
+}
+
+.note {
+  color: var(--muted);
+}
+
+.checked {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .list li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

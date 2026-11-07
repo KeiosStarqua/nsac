@@ -1,0 +1,46 @@
+.card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 1.125rem;
+}
+
+/* "Sky" is a pale blue-green light in the story. */
+.dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ccfbf1 0%, var(--accent) 45%, transparent 70%);
+  box-shadow: 0 0 32px rgb(94 234 212 / 0.55);
+  animation: glow 3s ease-in-out infinite;
+}
+
+@keyframes glow {
+  50% {
+    box-shadow: 0 0 12px rgb(94 234 212 / 0.3);
+  }
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .card {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+}
