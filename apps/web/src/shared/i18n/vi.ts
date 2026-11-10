@@ -11,6 +11,7 @@ export const vi: Copy = {
     hazards: "Rủi ro",
     data: "Dữ liệu",
     demo: "Demo",
+    concept: "Khái niệm",
     story: "Câu chuyện",
     trust: "An toàn",
     sources: "Nguồn",
@@ -398,5 +399,93 @@ export const vi: Copy = {
     line: "Làm cho NASA Space Apps Challenge 2026, TP. Hồ Chí Minh. Không phải sản phẩm chính thức của NASA.",
     license: "Apache-2.0",
     synthetic: "Giá trị demo là mô phỏng và dữ liệu phi hành đoàn là synthetic.",
+  },
+  sky: {
+    startTour: "Sky: bắt đầu tour hướng dẫn",
+    stopTour: "Sky: dừng tour hướng dẫn",
+    waiting: "Sky sẽ ghé chỗ này.",
+    composing: "Sky đang dựng bảng này bằng model chạy trên máy…",
+    origin: {
+      model: "Do model trên máy dựng",
+      offline: "Model trên máy chưa chạy, đang hiện bảng có sẵn",
+      rejected: "Bảng của model trên máy vi phạm quy tắc an toàn, đang hiện bảng có sẵn",
+    },
+    sourceLabel: "Nguồn",
+    disclaimer: "Nội dung do AI tạo, không thay thế bác sĩ.",
+    facts: {
+      tripLength: { label: "Chuyến đi Sao Hỏa", value: "7 đến 10 tháng" },
+      marsGravity: { label: "Trọng lực bề mặt Sao Hỏa", value: "0,38 so với Trái Đất" },
+      radiationCareer: { label: "Tổng liều bức xạ, cả sự nghiệp", value: "Dưới 600 mSv" },
+      radiationSolar: { label: "Liều ngắn hạn, sự kiện hạt Mặt Trời", value: "Dưới 250 mSv" },
+      muscleStrength: { label: "Sức cơ xương trong nhiệm vụ", value: "Tối thiểu 80% baseline" },
+      aerobicSurface: { label: "VO2max cho EVA trên bề mặt thiên thể", value: "Tối thiểu 36,5 ml·min⁻¹·kg⁻¹" },
+    },
+    goTo: {
+      demo: "Mở demo tương tác",
+      story: "Đọc câu chuyện",
+      hazards: "Xem năm rủi ro",
+      data: "Xem bảng dữ liệu",
+      sources: "Xem mọi nguồn",
+    },
+    stations: {
+      welcome: {
+        name: "Chào mừng",
+        brief:
+          "Người xem vừa mở trang giới thiệu. Giới thiệu Sky: trợ lý lâm sàng offline, so mỗi phi hành gia với baseline của chính họ và đề xuất một hành động để con người xác nhận.",
+        preset: `root = SkyCard("Chào bạn, mình là Sky", [say, trip, gravity, next])
+say = Say("Mình đi cùng phi hành đoàn và so mỗi người với chính họ của những tuần trước. Bạn cuộn trang, mình bay theo.")
+trip = Fact("tripLength")
+gravity = Fact("marsGravity")
+next = GoTo("demo")`,
+      },
+      hazards: {
+        name: "Rủi ro",
+        brief:
+          "Người xem đang đọc năm rủi ro của chuyến đi Sao Hỏa: bức xạ, thay đổi trọng lực, cô lập, môi trường kín, khoảng cách tới Trái Đất. Giải thích Sky theo dõi tín hiệu nào cho bức xạ và vì sao dùng cảnh báo thời tiết vũ trụ.",
+        preset: `root = SkyCard("Những gì mình canh trên đường đi", [say, career, solar, note])
+say = Say("Bức xạ là rủi ro không ai cảm thấy, nên mình ghép giới hạn liều với cảnh báo thời tiết vũ trụ từ DONKI.")
+career = Fact("radiationCareer")
+solar = Fact("radiationSolar")
+note = Note("info", "Đây là giới hạn của NASA. Mình theo dõi xu hướng của từng người, mình không chẩn đoán.")`,
+      },
+      data: {
+        name: "Dữ liệu",
+        brief:
+          "Người xem đang đọc cách Sky thu dữ liệu (tự động từ máy, hoặc hỏi phi hành gia) và các giới hạn NASA-STD-3001 dùng để đối chiếu.",
+        preset: `root = SkyCard("Đối chiếu với tiêu chuẩn", [say, muscle, aerobic, next])
+say = Say("Khi không có máy nào đo được, mình hỏi bạn. Sau đó mình đối chiếu với tiêu chuẩn sức khỏe phi hành đoàn của NASA.")
+muscle = Fact("muscleStrength")
+aerobic = Fact("aerobicSurface")
+next = GoTo("sources")`,
+      },
+      pipeline: {
+        name: "Từ tín hiệu tới hành động",
+        brief:
+          "Người xem đang đọc vòng lặp: thu thập, phát hiện bằng code deterministic, đề xuất một hành động từ ISS Medical Checklist, con người xác nhận, gửi báo cáo về mặt đất sau độ trễ đường truyền.",
+        preset: `root = SkyCard("Cách mình đưa bạn một hành động", [say, steps, note])
+say = Say("Phần phát hiện là code thường. Mình chỉ giải thích và soạn nháp.")
+steps = Steps(["Mình thấy một thay đổi so với baseline của bạn", "Mình nối nó với các tín hiệu khác", "Mình đề xuất một hành động có trong checklist", "Bạn bấm Xác nhận, rồi báo cáo mới về mặt đất"])
+note = Note("caution", "Không có gì chạy cho tới khi một người bấm Xác nhận.")`,
+      },
+      readiness: {
+        name: "Sẵn sàng hạ cánh",
+        brief:
+          "Người xem đang ở demo tương tác, vài tuần trước khi hạ cánh Sao Hỏa. Một cơn bão Mặt Trời làm bỏ tập hai tuần và độ sẵn sàng tụt dưới baseline. Sky đề xuất một buổi tập phục hồi; người xem phải tự bấm Xác nhận. Giá trị là mô phỏng.",
+        preset: `root = SkyCard("Chuẩn bị đứng trên Sao Hỏa", [say, gravity, muscle, note])
+say = Say("Hai tuần bỏ tập kéo độ sẵn sàng xuống. Mỗi ngày một buổi tập phục hồi sẽ kéo nó lên lại.")
+gravity = Fact("marsGravity")
+muscle = Fact("muscleStrength")
+note = Note("caution", "Điểm ở đây là mô phỏng. Bạn bấm Xác nhận, mình không bao giờ bấm thay bạn.")`,
+      },
+      story: {
+        name: "Câu chuyện",
+        brief:
+          "Người xem mở câu chuyện hư cấu viết bằng tiếng Việt. Bốn phi hành gia, mỗi người có một Sky; một ổ dịch bắt đầu trong khu vườn trên tàu và các Sky nối tín hiệu của cả đoàn.",
+        preset: `root = SkyCard("Chuyện về tụi mình", [say, trip, next])
+say = Say("Câu chuyện là hư cấu. Nó cho thấy các Sky làm gì khi gần hết đoàn chuyển vàng trong cùng một tuần.")
+trip = Fact("tripLength")
+next = GoTo("demo")`,
+      },
+    },
   },
 };

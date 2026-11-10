@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { z } from "zod";
+import { SkyGuideProvider } from "~/features/sky-guide";
 import { LocaleSchema, getCopy, getRequestLocale, useCopy, type Locale } from "~/shared/i18n";
 import { Footer, Header } from "~/shared/layout";
 import appCss from "~/styles/global.css?url";
@@ -61,8 +62,9 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootLayout() {
   const copy = useCopy();
+  // Sky flies over every page: the provider hosts it and the stations each route places.
   return (
-    <>
+    <SkyGuideProvider>
       <a className="skip-link" href="#main">
         {copy.nav.skip}
       </a>
@@ -71,7 +73,7 @@ function RootLayout() {
         <Outlet />
       </main>
       <Footer />
-    </>
+    </SkyGuideProvider>
   );
 }
 

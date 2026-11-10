@@ -14,25 +14,25 @@ export function Header() {
           <span>Sky</span>
         </Link>
         <nav aria-label="Primary" className={styles.nav}>
-          <Link to="/" hash="features" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
+          <Link to="/concept" hash="features" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
             {copy.nav.features}
           </Link>
-          <Link to="/" hash="hazards" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
+          <Link to="/concept" hash="hazards" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
             {copy.nav.hazards}
           </Link>
-          <Link to="/" hash="data" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
+          <Link to="/concept" hash="data" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
             {copy.nav.data}
           </Link>
-          <Link to="/demo" search={{ lang: locale }} activeProps={{ "aria-current": "page" }}>
-            {copy.nav.demo}
+          <Link to="/concept" search={{ lang: locale }} activeProps={{ "aria-current": "page" }}>
+            {copy.nav.concept}
           </Link>
           <Link to="/story" search={{ lang: locale }} activeProps={{ "aria-current": "page" }}>
             {copy.nav.story}
           </Link>
-          <Link to="/" hash="trust" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
+          <Link to="/concept" hash="trust" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
             {copy.nav.trust}
           </Link>
-          <Link to="/" hash="sources" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
+          <Link to="/concept" hash="sources" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
             {copy.nav.sources}
           </Link>
         </nav>

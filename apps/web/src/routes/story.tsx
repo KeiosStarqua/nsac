@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SkyStation } from "~/features/sky-guide";
 import { StoryReader, getStory } from "~/features/story";
 import { getCopy, useCopy } from "~/shared/i18n";
 
@@ -20,7 +21,12 @@ export const Route = createFileRoute("/story")({
 });
 
 function StoryPage() {
-  return <StoryReader story={Route.useLoaderData()} />;
+  return (
+    <>
+      <SkyStation id="story" placement="top" />
+      <StoryReader story={Route.useLoaderData()} />
+    </>
+  );
 }
 
 function StoryError() {

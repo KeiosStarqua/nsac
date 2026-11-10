@@ -68,7 +68,7 @@
   text-decoration: none;
 }
 
-.lang a[aria-current="true"] {
+.lang a[aria-current] {
   background: var(--accent);
   color: var(--accent-ink);
 }

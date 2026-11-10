@@ -203,6 +203,7 @@ Thứ tự và link dưới đây là stack dự kiến cho dự án; mỗi URL 
 | Thành phần | Link | Ghi chú |
 |---|---|---|
 | NiceGUI | [github.com/zauberzeug/nicegui](https://github.com/zauberzeug/nicegui) | MIT |
+| OpenUI (`@openuidev/react-lang` 1.1.0) | [github.com/thesysdev/openui](https://github.com/thesysdev/openui) | MIT; panel Sky trên `apps/web`. Telemetry lúc chạy tắt mặc định; đặt `DO_NOT_TRACK=1` khi cài (kiểm tra 2026-11-09) |
 
 ### Báo cáo và đóng gói
 

@@ -1,8 +1,29 @@
+import type { FactId, GoToTarget, StationId } from "../sky";
 import type { SourceId } from "../sources";
 
 export interface SourceCopy {
   label: string;
   note: string;
+}
+
+export interface SkyCopy {
+  /** Accessible name of the flying Sky button, per tour state. */
+  startTour: string;
+  stopTour: string;
+  /** Slot text before Sky has landed there. */
+  waiting: string;
+  composing: string;
+  origin: { model: string; offline: string; rejected: string };
+  sourceLabel: string;
+  disclaimer: string;
+  facts: Record<FactId, { label: string; value: string }>;
+  goTo: Record<GoToTarget, string>;
+  /**
+   * `brief` is what the local model is told about the place Sky landed. `preset` is an OpenUI Lang
+   * program shown at once and kept when the model is offline or its output is rejected. Free text in a
+   * preset never contains digits: numbers only come from `Fact`.
+   */
+  stations: Record<StationId, { name: string; brief: string; preset: string }>;
 }
 
 /** One typed shape for all page text, so `en` and `vi` cannot drift apart. */
@@ -13,6 +34,7 @@ export interface Copy {
     hazards: string;
     data: string;
     demo: string;
+    concept: string;
     story: string;
     trust: string;
     sources: string;
@@ -127,4 +149,5 @@ export interface Copy {
     items: Record<SourceId, SourceCopy>;
   };
   footer: { line: string; license: string; synthetic: string };
+  sky: SkyCopy;
 }

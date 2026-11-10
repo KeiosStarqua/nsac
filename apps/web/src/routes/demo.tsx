@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DemoPlayer, DemoSearchSchema, getScenario, type Stage } from "~/features/readiness-demo";
+import { SkyStation } from "~/features/sky-guide";
 import { getCopy, useCopy } from "~/shared/i18n";
 import { Section } from "~/shared/ui";
 
@@ -40,6 +41,7 @@ function DemoPage() {
   return (
     <Section id="demo" title={copy.demo.title} lead={copy.demo.lead}>
       <DemoPlayer scenario={scenario} stage={stage} onStageChange={onStageChange} />
+      <SkyStation id="readiness" placement="inline" />
     </Section>
   );
 }

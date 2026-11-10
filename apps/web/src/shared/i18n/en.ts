@@ -11,6 +11,7 @@ export const en: Copy = {
     hazards: "Hazards",
     data: "Data",
     demo: "Demo",
+    concept: "Concept",
     story: "Story",
     trust: "Safety",
     sources: "Sources",
@@ -398,5 +399,93 @@ export const en: Copy = {
     line: "Built for the NASA Space Apps Challenge 2026, Ho Chi Minh City. Not an official NASA product.",
     license: "Apache-2.0",
     synthetic: "Demo values are simulated and crew data is synthetic.",
+  },
+  sky: {
+    startTour: "Sky: start the guided tour",
+    stopTour: "Sky: stop the guided tour",
+    waiting: "Sky will stop here.",
+    composing: "Sky is composing this panel with the local model…",
+    origin: {
+      model: "Composed by the local model",
+      offline: "Local model offline, built-in panel shown",
+      rejected: "The local model's panel broke a safety rule, built-in panel shown",
+    },
+    sourceLabel: "Source",
+    disclaimer: "AI-generated, not a substitute for a physician.",
+    facts: {
+      tripLength: { label: "Trip to Mars", value: "7 to 10 months" },
+      marsGravity: { label: "Surface gravity on Mars", value: "0.38 of Earth's" },
+      radiationCareer: { label: "Total radiation exposure, whole career", value: "Below 600 mSv" },
+      radiationSolar: { label: "Short-term exposure, solar particle events", value: "Below 250 mSv" },
+      muscleStrength: { label: "Skeletal muscle strength in mission", value: "At least 80% of baseline" },
+      aerobicSurface: { label: "VO2max for celestial surface EVA", value: "At least 36.5 ml·min⁻¹·kg⁻¹" },
+    },
+    goTo: {
+      demo: "Open the interactive demo",
+      story: "Read the story",
+      hazards: "See the five hazards",
+      data: "See the data table",
+      sources: "See every source",
+    },
+    stations: {
+      welcome: {
+        name: "Welcome",
+        brief:
+          "The visitor just opened the landing page. Introduce Sky: an offline clinical assistant that compares each astronaut with their own baseline and suggests one action that a person confirms.",
+        preset: `root = SkyCard("Hi, I am Sky", [say, trip, gravity, next])
+say = Say("I travel with the crew and compare each person with their own baseline. Scroll, and I will follow you.")
+trip = Fact("tripLength")
+gravity = Fact("marsGravity")
+next = GoTo("demo")`,
+      },
+      hazards: {
+        name: "Hazards",
+        brief:
+          "The visitor is reading the five hazards of a Mars mission: radiation, gravity changes, isolation, a closed environment, distance from Earth. Explain which signals Sky watches for radiation and why it uses space weather alerts.",
+        preset: `root = SkyCard("What I watch on the way", [say, career, solar, note])
+say = Say("Radiation is the hazard nobody feels, so I pair the dose limits with space weather alerts from DONKI.")
+career = Fact("radiationCareer")
+solar = Fact("radiationSolar")
+note = Note("info", "These are NASA limits. I follow the trend for each person, I do not diagnose.")`,
+      },
+      data: {
+        name: "Data",
+        brief:
+          "The visitor is reading how Sky collects data (automatically from machines, or by asking the astronaut) and the NASA-STD-3001 limits it checks against.",
+        preset: `root = SkyCard("Checked against the standard", [say, muscle, aerobic, next])
+say = Say("When no machine can measure something, I ask you. Then I check it against NASA's crew health standard.")
+muscle = Fact("muscleStrength")
+aerobic = Fact("aerobicSurface")
+next = GoTo("sources")`,
+      },
+      pipeline: {
+        name: "Signal to action",
+        brief:
+          "The visitor is reading the loop: collect, detect with deterministic code, recommend one action from the ISS Medical Checklist, confirm by a person, report to the ground after the link delay.",
+        preset: `root = SkyCard("How I hand you one action", [say, steps, note])
+say = Say("My detection is plain code. I only explain and draft.")
+steps = Steps(["I notice a change against your own baseline", "I link it to other signals", "I suggest one action from the checklist", "You press Confirm, then the report goes to the ground"])
+note = Note("caution", "Nothing runs until a person presses Confirm.")`,
+      },
+      readiness: {
+        name: "Landing readiness",
+        brief:
+          "The visitor is on the interactive demo, a few weeks before landing on Mars. A solar storm led to two weeks of skipped training and readiness fell below baseline. Sky proposes a recovery session; the visitor must press Confirm. Values are simulated.",
+        preset: `root = SkyCard("Getting ready to stand on Mars", [say, gravity, muscle, note])
+say = Say("Two weeks of skipped training pulled readiness down. A recovery session each day brings it back.")
+gravity = Fact("marsGravity")
+muscle = Fact("muscleStrength")
+note = Note("caution", "The score here is simulated. You press Confirm, I never do it for you.")`,
+      },
+      story: {
+        name: "Story",
+        brief:
+          "The visitor opened the fictional story, written in Vietnamese. Four crew members each have a Sky; an outbreak starts in the ship's garden and the Skys link the signals across the crew.",
+        preset: `root = SkyCard("A story about us", [say, trip, next])
+say = Say("This story is fiction. It shows what the Skys do when most of the crew turn yellow in the same week.")
+trip = Fact("tripLength")
+next = GoTo("demo")`,
+      },
+    },
   },
 };

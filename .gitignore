@@ -4,6 +4,9 @@
 var/*
 !var/.gitkeep
 
+# Workspace MCP config (holds the Meshy API key)
+.kiro/settings/mcp.json
+
 # Playwright MCP output
 .playwright-mcp/
 
