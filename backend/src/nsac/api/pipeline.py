@@ -24,9 +24,13 @@ class MissionPipeline:
     UI layers (NiceGUI) call only this class; it owns no UI concerns.
     """
 
-    def __init__(self, mission_day: int = 0):
+    def __init__(self, mission_day: int = 0, days_to_landing: int | None = None):
         self.mission_day = mission_day
-        self.session = AgentSession(days_to_landing=max(0, 14 - mission_day))
+        # Landing is on mission day 184 in the demo script (README "Demo (60 giây)").
+        # Callers pass days_to_landing explicitly when the timeline differs.
+        if days_to_landing is None:
+            days_to_landing = max(0, 184 - mission_day)
+        self.session = AgentSession(days_to_landing=days_to_landing)
         self._last_deviations: list[Deviation] = []
         self._last_readiness: ReadinessScore | None = None
 
