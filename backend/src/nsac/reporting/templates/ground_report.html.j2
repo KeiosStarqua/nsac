@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ground report — mission day {{ report.mission_day }}</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; color: #111; }
+    h1 { font-size: 1.4rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.9rem; }
+    .disclaimer { margin-top: 2rem; font-size: 0.8rem; color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>Ground report — mission day {{ report.mission_day }}</h1>
+  <p>Queued {{ report.queued_at | fmt_ts }} · Deliver {{ report.deliver_at | fmt_ts }}</p>
+  <p>{{ report.summary }}</p>
+
+  {% if report.readiness %}
+  <h2>Readiness</h2>
+  <p><strong>{{ report.readiness.score }}</strong> / 100</p>
+  <table>
+    <tr><th>Component</th><th>Value</th><th>Weight</th><th>Source</th></tr>
+    {% for c in report.readiness.components %}
+    <tr><td>{{ c.name }}</td><td>{{ "%.1f" | format(c.value) }}</td><td>{{ c.weight }}</td><td><a href="{{ c.source_url }}">{{ c.source_url }}</a></td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if report.deviations %}
+  <h2>Deviations</h2>
+  <table>
+    <tr><th>Severity</th><th>Metric</th><th>Value</th><th>Baseline</th><th>z</th><th>Threshold source</th></tr>
+    {% for d in report.deviations %}
+    <tr><td>{{ d.severity | sev }}</td><td>{{ d.metric }}</td><td>{{ "%.2f" | format(d.value) }}</td><td>{{ "%.2f" | format(d.baseline_median) }}</td><td>{{ "%.2f" | format(d.z) }}</td><td><a href="{{ d.threshold_source_url }}">link</a></td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if report.actions_taken %}
+  <h2>Actions taken</h2>
+  <table>
+    <tr><th>Action</th><th>Dose</th><th>Confirmed</th><th>Applied</th></tr>
+    {% for a in report.actions_taken %}
+    <tr><td>{{ a.action }}</td><td>{{ a.dose }}</td><td>{{ a.confirmed_at | fmt_ts }}</td><td>{{ a.applied }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <p class="disclaimer">{{ disclaimer }}</p>
+</body>
+</html>
