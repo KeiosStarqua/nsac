@@ -404,14 +404,27 @@ export const en: Copy = {
     startTour: "Sky: start the guided tour",
     stopTour: "Sky: stop the guided tour",
     waiting: "Sky will stop here.",
-    composing: "Sky is composing this panel with the local model…",
+    composing: "Sky is composing this panel…",
     origin: {
-      model: "Composed by the local model",
-      offline: "Local model offline, built-in panel shown",
-      rejected: "The local model's panel broke a safety rule, built-in panel shown",
+      model: "Composed by the model",
+      offline: "The model could not run, built-in panel shown",
+      rejected: "The model's panel broke a safety rule, built-in panel shown",
+    },
+    keyDialog: {
+      title: "Sky needs an OpenRouter key",
+      cardTitle: "One key and I compose the panels",
+      body: "I compose these panels with a model on OpenRouter. Paste your key: it stays on this laptop, is never logged and never shown again.",
+      fieldLabel: "OpenRouter API key",
+      saveLabel: "Save key",
+      note: "Create a key at openrouter.ai/keys. Stored on this laptop only, never logged, never shown again.",
+      keepPreset: "Keep the built-in panel",
+      errorInvalid: "That does not look like an OpenRouter key — check it and try again.",
+      errorIo: "Could not save the key on this machine. Try again.",
+      fixKey: "Set the OpenRouter key…",
     },
     sourceLabel: "Source",
     disclaimer: "AI-generated, not a substitute for a physician.",
+    stepsLabel: "What happens next",
     facts: {
       tripLength: { label: "Trip to Mars", value: "7 to 10 months" },
       marsGravity: { label: "Surface gravity on Mars", value: "0.38 of Earth's" },
@@ -423,16 +436,35 @@ export const en: Copy = {
     goTo: {
       demo: "Open the interactive demo",
       story: "Read the story",
+      concept: "Read the full concept",
       hazards: "See the five hazards",
       data: "See the data table",
       sources: "See every source",
     },
     stations: {
+      console: {
+        name: "Console",
+        brief:
+          "The visitor opened the Sky console, the app itself. Show what Sky holds for the crew: the trip it watches over, the limits it checks against, and the way out to the interactive demo. Keep it short and operational.",
+        preset: `root = Console("Sky console", [crew, limits, loop])
+crew = Card("Who Sky watches over", [badge, say, trip])
+badge = Badge("Offline first", "info")
+say = Say("I compare every astronaut with their own baseline, then I draft one action for a person to confirm.")
+trip = Fact("tripLength")
+limits = Card("What the crew keeps", [gravity, muscle])
+gravity = Fact("marsGravity")
+muscle = Fact("muscleStrength")
+loop = Card("See the loop", [steps, note, next])
+steps = Steps(["I notice a change against your own baseline", "I link it to the other signals", "I draft one action from the checklist", "You press Confirm, then the report goes to the ground"])
+note = Alert("caution", "Nothing runs until a person presses Confirm.")
+next = GoTo("demo")`,
+      },
       welcome: {
         name: "Welcome",
         brief:
-          "The visitor just opened the landing page. Introduce Sky: an offline clinical assistant that compares each astronaut with their own baseline and suggests one action that a person confirms.",
-        preset: `root = SkyCard("Hi, I am Sky", [say, trip, gravity, next])
+          "The visitor is reading the concept page. Introduce Sky: an offline clinical assistant that compares each astronaut with their own baseline and suggests one action that a person confirms.",
+        preset: `root = Console("Sky", [card])
+card = Card("I fly with the crew", [say, trip, gravity, next])
 say = Say("I travel with the crew and compare each person with their own baseline. Scroll, and I will follow you.")
 trip = Fact("tripLength")
 gravity = Fact("marsGravity")
@@ -442,17 +474,19 @@ next = GoTo("demo")`,
         name: "Hazards",
         brief:
           "The visitor is reading the five hazards of a Mars mission: radiation, gravity changes, isolation, a closed environment, distance from Earth. Explain which signals Sky watches for radiation and why it uses space weather alerts.",
-        preset: `root = SkyCard("What I watch on the way", [say, career, solar, note])
+        preset: `root = Console("What I watch on the way", [card])
+card = Card("The hazard nobody feels", [say, career, solar, note])
 say = Say("Radiation is the hazard nobody feels, so I pair the dose limits with space weather alerts from DONKI.")
 career = Fact("radiationCareer")
 solar = Fact("radiationSolar")
-note = Note("info", "These are NASA limits. I follow the trend for each person, I do not diagnose.")`,
+note = Alert("info", "These are NASA limits. I follow the trend for each person, I do not diagnose.")`,
       },
       data: {
         name: "Data",
         brief:
           "The visitor is reading how Sky collects data (automatically from machines, or by asking the astronaut) and the NASA-STD-3001 limits it checks against.",
-        preset: `root = SkyCard("Checked against the standard", [say, muscle, aerobic, next])
+        preset: `root = Console("Checked against the standard", [card])
+card = Card("Measured, or asked", [say, muscle, aerobic, next])
 say = Say("When no machine can measure something, I ask you. Then I check it against NASA's crew health standard.")
 muscle = Fact("muscleStrength")
 aerobic = Fact("aerobicSurface")
@@ -462,26 +496,29 @@ next = GoTo("sources")`,
         name: "Signal to action",
         brief:
           "The visitor is reading the loop: collect, detect with deterministic code, recommend one action from the ISS Medical Checklist, confirm by a person, report to the ground after the link delay.",
-        preset: `root = SkyCard("How I hand you one action", [say, steps, note])
+        preset: `root = Console("How I hand you one action", [card])
+card = Card("Plain code first, model second", [say, steps, note])
 say = Say("My detection is plain code. I only explain and draft.")
 steps = Steps(["I notice a change against your own baseline", "I link it to other signals", "I suggest one action from the checklist", "You press Confirm, then the report goes to the ground"])
-note = Note("caution", "Nothing runs until a person presses Confirm.")`,
+note = Alert("caution", "Nothing runs until a person presses Confirm.")`,
       },
       readiness: {
         name: "Landing readiness",
         brief:
           "The visitor is on the interactive demo, a few weeks before landing on Mars. A solar storm led to two weeks of skipped training and readiness fell below baseline. Sky proposes a recovery session; the visitor must press Confirm. Values are simulated.",
-        preset: `root = SkyCard("Getting ready to stand on Mars", [say, gravity, muscle, note])
+        preset: `root = Console("Getting ready to stand on Mars", [card])
+card = Card("Readiness after the storm", [say, gravity, muscle, note])
 say = Say("Two weeks of skipped training pulled readiness down. A recovery session each day brings it back.")
 gravity = Fact("marsGravity")
 muscle = Fact("muscleStrength")
-note = Note("caution", "The score here is simulated. You press Confirm, I never do it for you.")`,
+note = Alert("caution", "The score here is simulated. You press Confirm, I never do it for you.")`,
       },
       story: {
         name: "Story",
         brief:
           "The visitor opened the fictional story, written in Vietnamese. Four crew members each have a Sky; an outbreak starts in the ship's garden and the Skys link the signals across the crew.",
-        preset: `root = SkyCard("A story about us", [say, trip, next])
+        preset: `root = Console("A story about us", [card])
+card = Card("When the crew turns yellow together", [say, trip, next])
 say = Say("This story is fiction. It shows what the Skys do when most of the crew turn yellow in the same week.")
 trip = Fact("tripLength")
 next = GoTo("demo")`,

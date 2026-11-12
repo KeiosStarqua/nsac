@@ -404,14 +404,27 @@ export const vi: Copy = {
     startTour: "Sky: bắt đầu tour hướng dẫn",
     stopTour: "Sky: dừng tour hướng dẫn",
     waiting: "Sky sẽ ghé chỗ này.",
-    composing: "Sky đang dựng bảng này bằng model chạy trên máy…",
+    composing: "Sky đang dựng bảng này…",
     origin: {
-      model: "Do model trên máy dựng",
-      offline: "Model trên máy chưa chạy, đang hiện bảng có sẵn",
-      rejected: "Bảng của model trên máy vi phạm quy tắc an toàn, đang hiện bảng có sẵn",
+      model: "Soạn bởi model",
+      offline: "Model không chạy được, đang hiện bảng có sẵn",
+      rejected: "Bảng của model vi phạm quy tắc an toàn, đang hiện bảng có sẵn",
+    },
+    keyDialog: {
+      title: "Sky cần một OpenRouter key",
+      cardTitle: "Một key là Sky tự dựng bảng",
+      body: "Tôi dựng các bảng này bằng model trên OpenRouter. Dán key của bạn: key chỉ nằm trên chiếc laptop này, không log và không bao giờ hiện lại.",
+      fieldLabel: "OpenRouter API key",
+      saveLabel: "Lưu key",
+      note: "Tạo key tại openrouter.ai/keys. Key chỉ lưu trên máy này, không log, không hiện lại.",
+      keepPreset: "Giữ bản dựng sẵn",
+      errorInvalid: "Key này không giống OpenRouter key — kiểm tra lại rồi thử lần nữa.",
+      errorIo: "Không lưu được key trên máy này. Thử lại.",
+      fixKey: "Đặt OpenRouter key…",
     },
     sourceLabel: "Nguồn",
     disclaimer: "Nội dung do AI tạo, không thay thế bác sĩ.",
+    stepsLabel: "Chuyện gì xảy ra tiếp theo",
     facts: {
       tripLength: { label: "Chuyến đi Sao Hỏa", value: "7 đến 10 tháng" },
       marsGravity: { label: "Trọng lực bề mặt Sao Hỏa", value: "0,38 so với Trái Đất" },
@@ -423,16 +436,35 @@ export const vi: Copy = {
     goTo: {
       demo: "Mở demo tương tác",
       story: "Đọc câu chuyện",
+      concept: "Đọc toàn bộ concept",
       hazards: "Xem năm rủi ro",
       data: "Xem bảng dữ liệu",
       sources: "Xem mọi nguồn",
     },
     stations: {
+      console: {
+        name: "Bảng điều khiển",
+        brief:
+          "Người xem vừa mở bảng điều khiển của Sky, chính là ứng dụng. Cho biết Sky giữ gì cho đoàn: chuyến đi mà Sky theo dõi, các giới hạn Sky đối chiếu, và lối ra tới demo tương tác. Ngắn gọn, mang tính vận hành.",
+        preset: `root = Console("Bảng điều khiển Sky", [crew, limits, loop])
+crew = Card("Ai Sky canh giữ", [badge, say, trip])
+badge = Badge("Chạy offline", "info")
+say = Say("Mình so từng phi hành gia với chính baseline của họ, rồi soạn một hành động để con người xác nhận.")
+trip = Fact("tripLength")
+limits = Card("Đoàn giữ được gì", [gravity, muscle])
+gravity = Fact("marsGravity")
+muscle = Fact("muscleStrength")
+loop = Card("Xem cả vòng lặp", [steps, note, next])
+steps = Steps(["Mình thấy một thay đổi so với baseline của bạn", "Mình nối nó với các tín hiệu khác", "Mình đề xuất một hành động có trong checklist", "Bạn bấm Xác nhận, rồi báo cáo mới về mặt đất"])
+note = Alert("caution", "Không có gì chạy cho tới khi một người bấm Xác nhận.")
+next = GoTo("demo")`,
+      },
       welcome: {
         name: "Chào mừng",
         brief:
-          "Người xem vừa mở trang giới thiệu. Giới thiệu Sky: trợ lý lâm sàng offline, so mỗi phi hành gia với baseline của chính họ và đề xuất một hành động để con người xác nhận.",
-        preset: `root = SkyCard("Chào bạn, mình là Sky", [say, trip, gravity, next])
+          "Người xem đang đọc trang concept. Giới thiệu Sky: trợ lý lâm sàng offline, so mỗi phi hành gia với baseline của chính họ và đề xuất một hành động để con người xác nhận.",
+        preset: `root = Console("Sky", [card])
+card = Card("Mình bay cùng đoàn", [say, trip, gravity, next])
 say = Say("Mình đi cùng phi hành đoàn và so mỗi người với chính họ của những tuần trước. Bạn cuộn trang, mình bay theo.")
 trip = Fact("tripLength")
 gravity = Fact("marsGravity")
@@ -442,17 +474,19 @@ next = GoTo("demo")`,
         name: "Rủi ro",
         brief:
           "Người xem đang đọc năm rủi ro của chuyến đi Sao Hỏa: bức xạ, thay đổi trọng lực, cô lập, môi trường kín, khoảng cách tới Trái Đất. Giải thích Sky theo dõi tín hiệu nào cho bức xạ và vì sao dùng cảnh báo thời tiết vũ trụ.",
-        preset: `root = SkyCard("Những gì mình canh trên đường đi", [say, career, solar, note])
+        preset: `root = Console("Những gì mình canh trên đường đi", [card])
+card = Card("Rủi ro không ai cảm thấy", [say, career, solar, note])
 say = Say("Bức xạ là rủi ro không ai cảm thấy, nên mình ghép giới hạn liều với cảnh báo thời tiết vũ trụ từ DONKI.")
 career = Fact("radiationCareer")
 solar = Fact("radiationSolar")
-note = Note("info", "Đây là giới hạn của NASA. Mình theo dõi xu hướng của từng người, mình không chẩn đoán.")`,
+note = Alert("info", "Đây là giới hạn của NASA. Mình theo dõi xu hướng của từng người, mình không chẩn đoán.")`,
       },
       data: {
         name: "Dữ liệu",
         brief:
           "Người xem đang đọc cách Sky thu dữ liệu (tự động từ máy, hoặc hỏi phi hành gia) và các giới hạn NASA-STD-3001 dùng để đối chiếu.",
-        preset: `root = SkyCard("Đối chiếu với tiêu chuẩn", [say, muscle, aerobic, next])
+        preset: `root = Console("Đối chiếu với tiêu chuẩn", [card])
+card = Card("Đo được, hoặc phải hỏi", [say, muscle, aerobic, next])
 say = Say("Khi không có máy nào đo được, mình hỏi bạn. Sau đó mình đối chiếu với tiêu chuẩn sức khỏe phi hành đoàn của NASA.")
 muscle = Fact("muscleStrength")
 aerobic = Fact("aerobicSurface")
@@ -462,26 +496,29 @@ next = GoTo("sources")`,
         name: "Từ tín hiệu tới hành động",
         brief:
           "Người xem đang đọc vòng lặp: thu thập, phát hiện bằng code deterministic, đề xuất một hành động từ ISS Medical Checklist, con người xác nhận, gửi báo cáo về mặt đất sau độ trễ đường truyền.",
-        preset: `root = SkyCard("Cách mình đưa bạn một hành động", [say, steps, note])
+        preset: `root = Console("Cách mình đưa bạn một hành động", [card])
+card = Card("Code thuần trước, model sau", [say, steps, note])
 say = Say("Phần phát hiện là code thường. Mình chỉ giải thích và soạn nháp.")
 steps = Steps(["Mình thấy một thay đổi so với baseline của bạn", "Mình nối nó với các tín hiệu khác", "Mình đề xuất một hành động có trong checklist", "Bạn bấm Xác nhận, rồi báo cáo mới về mặt đất"])
-note = Note("caution", "Không có gì chạy cho tới khi một người bấm Xác nhận.")`,
+note = Alert("caution", "Không có gì chạy cho tới khi một người bấm Xác nhận.")`,
       },
       readiness: {
         name: "Sẵn sàng hạ cánh",
         brief:
           "Người xem đang ở demo tương tác, vài tuần trước khi hạ cánh Sao Hỏa. Một cơn bão Mặt Trời làm bỏ tập hai tuần và độ sẵn sàng tụt dưới baseline. Sky đề xuất một buổi tập phục hồi; người xem phải tự bấm Xác nhận. Giá trị là mô phỏng.",
-        preset: `root = SkyCard("Chuẩn bị đứng trên Sao Hỏa", [say, gravity, muscle, note])
+        preset: `root = Console("Chuẩn bị đứng trên Sao Hỏa", [card])
+card = Card("Độ sẵn sàng sau cơn bão", [say, gravity, muscle, note])
 say = Say("Hai tuần bỏ tập kéo độ sẵn sàng xuống. Mỗi ngày một buổi tập phục hồi sẽ kéo nó lên lại.")
 gravity = Fact("marsGravity")
 muscle = Fact("muscleStrength")
-note = Note("caution", "Điểm ở đây là mô phỏng. Bạn bấm Xác nhận, mình không bao giờ bấm thay bạn.")`,
+note = Alert("caution", "Điểm ở đây là mô phỏng. Bạn bấm Xác nhận, mình không bao giờ bấm thay bạn.")`,
       },
       story: {
         name: "Câu chuyện",
         brief:
           "Người xem mở câu chuyện hư cấu viết bằng tiếng Việt. Bốn phi hành gia, mỗi người có một Sky; một ổ dịch bắt đầu trong khu vườn trên tàu và các Sky nối tín hiệu của cả đoàn.",
-        preset: `root = SkyCard("Chuyện về tụi mình", [say, trip, next])
+        preset: `root = Console("Chuyện về tụi mình", [card])
+card = Card("Khi cả đoàn chuyển vàng cùng lúc", [say, trip, next])
 say = Say("Câu chuyện là hư cấu. Nó cho thấy các Sky làm gì khi gần hết đoàn chuyển vàng trong cùng một tuần.")
 trip = Fact("tripLength")
 next = GoTo("demo")`,

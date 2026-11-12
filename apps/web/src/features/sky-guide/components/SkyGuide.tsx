@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { StationId } from "~/shared/sky";
 import type { PanelOrigin } from "../model/panel";
+import { OpenRouterKeyDialog } from "./OpenRouterKeyDialog";
 import { SkyCompanion } from "./SkyCompanion";
 
 export interface SettledPanel {
@@ -25,6 +26,10 @@ interface SkyGuideValue {
   visited: ReadonlySet<StationId>;
   /** Accepted model panels by `station:locale`, so returning to a page does not ask the model again. */
   panels: Map<string, SettledPanel>;
+  /** Opens the dialog that asks for the OpenRouter key Sky needs to compose. Idempotent. */
+  requestKey: () => void;
+  /** Bumps every time a key is saved; stations compose again without the saved-panel cache. */
+  keyVersion: number;
 }
 
 const SkyGuideContext = createContext<SkyGuideValue | null>(null);
@@ -47,6 +52,9 @@ export function SkyGuideProvider({ children }: { children: ReactNode }) {
   const [arrivedAt, setArrivedAt] = useState<StationId | null>(null);
   const [visited, setVisited] = useState<ReadonlySet<StationId>>(() => new Set());
   const [touring, setTouring] = useState(false);
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false);
+  const [keyVersion, setKeyVersion] = useState(0);
+  const requestKey = useCallback(() => setKeyDialogOpen(true), []);
 
   const register = useCallback((id: StationId, element: HTMLElement | null) => {
     if (element) stations.current.set(id, element);
@@ -64,8 +72,8 @@ export function SkyGuideProvider({ children }: { children: ReactNode }) {
   useGuidedTour(touring, stations, () => setTouring(false));
 
   const value = useMemo(
-    () => ({ register, arrivedAt, visited, panels: panels.current }),
-    [register, arrivedAt, visited],
+    () => ({ register, arrivedAt, visited, panels: panels.current, requestKey, keyVersion }),
+    [register, arrivedAt, visited, requestKey, keyVersion],
   );
 
   return (
@@ -77,6 +85,14 @@ export function SkyGuideProvider({ children }: { children: ReactNode }) {
         onLeave={onLeave}
         touring={touring}
         onToggleTour={toggleTour}
+      />
+      <OpenRouterKeyDialog
+        open={keyDialogOpen}
+        onOpenChange={setKeyDialogOpen}
+        onSaved={() => {
+          setKeyVersion((version) => version + 1);
+          setKeyDialogOpen(false);
+        }}
       />
     </SkyGuideContext.Provider>
   );

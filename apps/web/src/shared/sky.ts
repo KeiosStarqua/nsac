@@ -5,7 +5,7 @@ import type { SourceId } from "./sources";
 // is keyed by them and `shared/` never imports features.
 
 /** A station is a place on a page where Sky lands and composes a panel with OpenUI. */
-export const STATION_IDS = ["welcome", "hazards", "data", "pipeline", "readiness", "story"] as const;
+export const STATION_IDS = ["console", "welcome", "hazards", "data", "pipeline", "readiness", "story"] as const;
 export const StationIdSchema = z.enum(STATION_IDS);
 export type StationId = z.infer<typeof StationIdSchema>;
 
@@ -41,6 +41,7 @@ export const FACT_META: Readonly<Record<FactId, FactMeta>> = {
 
 /** Which facts each station may show. Anything else in a generated panel is rejected. */
 export const STATION_FACTS: Readonly<Record<StationId, readonly FactId[]>> = {
+  console: ["tripLength", "marsGravity", "muscleStrength", "aerobicSurface"],
   welcome: ["tripLength", "marsGravity"],
   hazards: ["radiationCareer", "radiationSolar", "marsGravity"],
   data: ["muscleStrength", "aerobicSurface", "radiationCareer"],
@@ -50,6 +51,6 @@ export const STATION_FACTS: Readonly<Record<StationId, readonly FactId[]>> = {
 };
 
 /** In-app destinations a panel may link to. Labels come from the copy, never from the model. */
-export const GO_TO_TARGETS = ["demo", "story", "hazards", "data", "sources"] as const;
+export const GO_TO_TARGETS = ["demo", "story", "concept", "hazards", "data", "sources"] as const;
 export const GoToTargetSchema = z.enum(GO_TO_TARGETS);
 export type GoToTarget = z.infer<typeof GoToTargetSchema>;

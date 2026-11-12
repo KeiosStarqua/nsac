@@ -21,7 +21,10 @@ export const initialPanel: PanelState = { kind: "waiting" };
 export function panelReducer(state: PanelState, event: PanelEvent, preset: string): PanelState {
   switch (event.type) {
     case "arrive":
-      return state.kind === "waiting" ? { kind: "composing", draft: "" } : state;
+      if (state.kind === "waiting") return { kind: "composing", draft: "" };
+      // A settled "model unavailable" panel tries again when Sky re-asks (e.g. after a key was saved).
+      if (state.kind === "settled" && state.origin === "offline") return { kind: "composing", draft: "" };
+      return state;
     case "chunk":
       return state.kind === "composing" ? { kind: "composing", draft: state.draft + event.text } : state;
     case "end":

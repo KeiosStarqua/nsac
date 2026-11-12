@@ -1,0 +1,1 @@
+../../.agents/bot/ceo/.opencode/commands/heartbeat-status.md

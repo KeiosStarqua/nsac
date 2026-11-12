@@ -18,25 +18,33 @@ describe("built-in panels", () => {
 });
 
 describe("reviewProgram on model output", () => {
-  const ok = 'root = SkyCard("Hi", [s])\ns = Say("Hello from Sky")';
+  const ok = 'root = Console("Hi", [card])\ncard = Card("Hello", [s])\ns = Say("Hello from Sky")';
 
   it("accepts a clean program, also when wrapped in a fence", () => {
     expect(reviewProgram(extractProgram("```openui\n" + ok + "\n```"), "pipeline", parseSkyProgram).ok).toBe(true);
   });
 
   it("rejects digits in free text", () => {
-    const review = reviewProgram('root = SkyCard("Hi", [s])\ns = Say("Your HR is 120")', "pipeline", parseSkyProgram);
+    const review = reviewProgram(
+      'root = Console("Hi", [card])\ncard = Card("Hello", [s])\ns = Say("Your HR is 120")',
+      "pipeline",
+      parseSkyProgram,
+    );
     expect(review).toMatchObject({ ok: false, reasons: ["digit in free text"] });
   });
 
   it("rejects a fact the station does not allow", () => {
-    const review = reviewProgram('root = SkyCard("Hi", [f])\nf = Fact("radiationCareer")', "pipeline", parseSkyProgram);
+    const review = reviewProgram(
+      'root = Console("Hi", [card])\ncard = Card("Hello", [f])\nf = Fact("radiationCareer")',
+      "pipeline",
+      parseSkyProgram,
+    );
     expect(review.ok).toBe(false);
   });
 
   it("rejects unknown components and unresolved references", () => {
-    expect(reviewProgram('root = SkyCard("Hi", [Button("Go")])', "pipeline", parseSkyProgram).ok).toBe(false);
-    expect(reviewProgram('root = SkyCard("Hi", [missing])', "pipeline", parseSkyProgram).ok).toBe(false);
+    expect(reviewProgram('root = Console("Hi", [card])\ncard = Card("Hello", [Button("Go")])', "pipeline", parseSkyProgram).ok).toBe(false);
+    expect(reviewProgram('root = Console("Hi", [missing])', "pipeline", parseSkyProgram).ok).toBe(false);
   });
 });
 

@@ -17,6 +17,38 @@
   margin: 48px auto -24px;
 }
 
+/* The console is the page, not a card dropped into one: it fills the width, drops the drop-zone frame
+   and fills the screen, so the reading line always finds a station here. */
+.station[data-variant="console"] {
+  min-height: calc(100vh - 60px);
+  margin: 0 auto;
+  padding: 48px 24px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.station[data-variant="console"] .frame,
+.station[data-variant="console"] .frame:has(.panel) {
+  flex: 1;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.station[data-variant="console"] .frame[data-arrived="true"] {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* The console fills the frame; the provenance line sits at the bottom, like a status bar. */
+.station[data-variant="console"] .panel {
+  height: 100%;
+  grid-template-rows: 1fr auto;
+}
+
 .frame {
   max-width: 720px;
   padding: 20px 22px;
@@ -73,4 +105,16 @@
     margin: -24px auto;
     padding: 0 20px;
   }
+}
+
+.fixKey {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }

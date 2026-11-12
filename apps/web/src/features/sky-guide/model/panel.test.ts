@@ -32,4 +32,15 @@ describe("panel state", () => {
     const settled = run([{ type: "arrive" }, { type: "unavailable" }, { type: "chunk", text: "late" }]);
     expect(settled.kind).toBe("settled");
   });
+
+  it("re-arms an offline-settled panel when Sky re-asks (after a key was saved)", () => {
+    const reArmed = run([{ type: "arrive" }, { type: "unavailable" }, { type: "arrive" }]);
+    expect(reArmed).toEqual({ kind: "composing", draft: "" });
+
+    // …but a settled "model" or "rejected" panel is left alone.
+    const model = run([{ type: "arrive" }, { type: "end", accepted: true, program: "P" }, { type: "arrive" }]);
+    expect(model).toEqual({ kind: "settled", program: "P", origin: "model" });
+    const rejected = run([{ type: "arrive" }, { type: "end", accepted: false, program: "P" }, { type: "arrive" }]);
+    expect(rejected).toEqual({ kind: "settled", program: PRESET, origin: "rejected" });
+  });
 });

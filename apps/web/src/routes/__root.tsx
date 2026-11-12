@@ -12,6 +12,7 @@ import { SkyGuideProvider } from "~/features/sky-guide";
 import { LocaleSchema, getCopy, getRequestLocale, useCopy, type Locale } from "~/shared/i18n";
 import { Footer, Header } from "~/shared/layout";
 import appCss from "~/styles/global.css?url";
+import arcCss from "~/components/arc/foundation.css?url";
 
 export const Route = createRootRoute({
   // `?lang=` is the single source of truth for language. A malformed value falls back to detection.
@@ -33,6 +34,8 @@ export const Route = createRootRoute({
         { name: "description", content: copy.meta.description },
       ],
       links: [
+        // Arc's design tokens come first; the app stylesheet maps them onto Sky's palette.
+        { rel: "stylesheet", href: arcCss },
         { rel: "stylesheet", href: appCss },
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       ],
@@ -48,7 +51,7 @@ function RootShell({ children }: { children: ReactNode }) {
   const rawLocale = useRouterState({ select: (state) => state.matches[0]?.context });
   const parsed = LocaleSchema.safeParse((rawLocale as { locale?: unknown } | undefined)?.locale);
   return (
-    <html lang={parsed.success ? parsed.data : "en"}>
+    <html lang={parsed.success ? parsed.data : "en"} data-theme="dark">
       <head>
         <HeadContent />
       </head>

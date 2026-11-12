@@ -14,8 +14,31 @@ export interface SkyCopy {
   waiting: string;
   composing: string;
   origin: { model: string; offline: string; rejected: string };
+  /** The built-in OpenUI panel the dialog renders to ask for the OpenRouter key. */
+  keyDialog: {
+    /** Console title of the panel; also the dialog's accessible name. */
+    title: string;
+    /** Card title inside the panel. */
+    cardTitle: string;
+    /** What Sky says in the panel: why the key is needed, that it stays on this machine. */
+    body: string;
+    /** Accessible label of the masked field. */
+    fieldLabel: string;
+    /** Label of the panel's save button. */
+    saveLabel: string;
+    /** Small print: where to create a key and that it never leaves this machine. */
+    note: string;
+    /** Close without saving; the built-in panel stays. */
+    keepPreset: string;
+    errorInvalid: string;
+    errorIo: string;
+    /** Footer link shown with an offline panel, to fix or replace the key. */
+    fixKey: string;
+  };
   sourceLabel: string;
   disclaimer: string;
+  /** Accessible name of the ordered steps inside a card. */
+  stepsLabel: string;
   facts: Record<FactId, { label: string; value: string }>;
   goTo: Record<GoToTarget, string>;
   /**

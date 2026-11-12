@@ -1,23 +1,77 @@
 /* System fonts only: the page must render with the network unplugged. */
 :root {
-  --bg: #070b14;
-  --bg-raised: #0d1424;
-  --surface: #111a2e;
-  --surface-2: #17223b;
-  --border: #243252;
-  --text: #e8eef9;
-  --muted: #9aa9c4;
-  --accent: #5eead4;
-  --accent-ink: #04201c;
-  --yellow: #fbbf24;
-  --green: #4ade80;
-  --red: #f87171;
+  /* Sky's palette. The --sky-* names hold the raw values and the short names below are what the app
+     stylesheets use. Arc's token bridge needs the raw values: Arc also defines --surface, --border
+     and --accent, and a custom property cannot point at itself. */
+  --sky-bg: #070b14;
+  --sky-bg-raised: #0d1424;
+  --sky-surface: #111a2e;
+  --sky-surface-2: #17223b;
+  --sky-border: #243252;
+  --sky-text: #e8eef9;
+  --sky-muted: #9aa9c4;
+  --sky-accent: #5eead4;
+  --sky-accent-ink: #04201c;
+  --sky-yellow: #fbbf24;
+  --sky-green: #4ade80;
+  --sky-red: #f87171;
+
+  --bg: var(--sky-bg);
+  --bg-raised: var(--sky-bg-raised);
+  --surface: var(--sky-surface);
+  --surface-2: var(--sky-surface-2);
+  --border: var(--sky-border);
+  --text: var(--sky-text);
+  --muted: var(--sky-muted);
+  --accent: var(--sky-accent);
+  --accent-ink: var(--sky-accent-ink);
+  --yellow: var(--sky-yellow);
+  --green: var(--sky-green);
+  --red: var(--sky-red);
   --radius: 16px;
   --radius-sm: 10px;
   --max: 1120px;
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: dark;
+}
+
+/* Arc (https://uiarc.dev, MIT) design tokens, mapped onto the palette above. The app is dark only, so
+   <html> carries data-theme="dark" and this block replaces Arc's neutral greys with Sky's navy and
+   teal. The sizes, spacing, motion curves and shadows Arc ships with are kept as they are. */
+:root[data-theme="dark"] {
+  --background: var(--sky-bg);
+  --foreground: var(--sky-text);
+  --surface: var(--sky-surface);
+  --surface-raised: var(--sky-bg-raised);
+  --surface-muted: var(--sky-surface-2);
+  --text-secondary: var(--sky-muted);
+  --text-muted: #7e8dab;
+  --border: var(--sky-border);
+  --border-subtle: #1b2540;
+  --border-strong: #33456f;
+  --accent: var(--sky-accent);
+  --accent-strong: #99f6e4;
+  --accent-subtle: rgb(94 234 212 / 0.12);
+  --accent-foreground: var(--sky-accent-ink);
+  --radius-control: 12px;
+  --radius-panel: var(--radius);
+  --radius-surface: 20px;
+  --radius-pill: 9999px;
+  --shadow-resting: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-raised: 0 10px 28px rgb(0 0 0 / 0.45);
+  --shadow-floating: 0 24px 60px rgb(0 0 0 / 0.55);
+  --font-display: var(--font);
+  --font-body: var(--font);
+  --success: var(--sky-green);
+  --warning: var(--sky-yellow);
+  --danger: var(--sky-red);
+  --info: #7dd3fc;
+  --tone-teal: var(--sky-accent);
+  --tone-sky: #7dd3fc;
+  --tone-green: var(--sky-green);
+  --tone-amber: var(--sky-yellow);
+  --tone-rose: var(--sky-red);
 }
 
 *,
