@@ -6,10 +6,12 @@ import { dirname, resolve } from "node:path";
 import { parseOpenRouterKey } from "../model/api-key";
 
 /**
- * The one secret Sky's composer keeps: an OpenRouter key, saved on the demo laptop — never in the repo.
- * Default location is `var/sky-openrouter.json` under the process working directory (gitignored); set
- * `NSAC_SETTINGS_PATH` to point elsewhere. The file is mode 0600, the key is write-only: no read path
- * leaves this module.
+ * The one secret Sky's composer keeps: an OpenRouter key. Two sources, in order:
+ * the `SKY_OPENROUTER_API_KEY` environment variable (preferred for the deployed demo — set it via the
+ * service environment, never in the repo or the flake), then `var/sky-openrouter.json` under the process
+ * working directory (gitignored, mode 0600; set `NSAC_SETTINGS_PATH` to point elsewhere). The file is
+ * mode 0600, the key is write-only: no read path leaves this module. A malformed env key falls back to
+ * the file; a set-but-empty one counts as absent.
  */
 const SETTINGS_PATH = process.env.NSAC_SETTINGS_PATH ?? resolve(process.cwd(), "var", "sky-openrouter.json");
 
@@ -17,11 +19,20 @@ interface SettingsFile {
   openrouterKey?: unknown;
 }
 
-/** The saved key, or `null` when there is none (or the file is unreadable — the demo must not crash on it). */
+/** The key from the environment, or `null` when it is unset/blank/malformed. */
+function readEnvKey(): string | null {
+  const raw = process.env.SKY_OPENROUTER_API_KEY;
+  if (typeof raw !== "string") return null;
+  return parseOpenRouterKey(raw);
+}
+
+/** The env key when set, else the file key, or `null` (the demo must not crash when neither is readable). */
 export function readOpenRouterKey(): string | null {
+  const fromEnv = readEnvKey();
+  if (fromEnv !== null) return fromEnv;
   try {
     const parsed = JSON.parse(readFileSync(SETTINGS_PATH, "utf8")) as SettingsFile;
-    return typeof parsed.openrouterKey === "string" && parsed.openrouterKey.length > 0 ? parsed.openrouterKey : null;
+    return typeof parsed.openrouterKey === "string" ? parseOpenRouterKey(parsed.openrouterKey) : null;
   } catch {
     return null;
   }
