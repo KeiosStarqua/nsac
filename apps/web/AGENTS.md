@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. Routes: `/` (Sky's console: exactly one image — Sky, the companion — and an interface composed entirely with OpenUI by the PI SDK agent running inside), `/concept` (the product description: hero, the two core features, five hazards, data and standards, the detect → recommend → confirm → report loop, demo teaser, story teaser, modules, safety rules, sources), `/demo` (interactive Mars landing readiness), `/story` (the "Sky" story). It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI). On every page Sky (a static angel image) flies over the interface and, at each station it lands on, composes a panel with OpenUI.
+Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. Routes: `/` (Sky's console: exactly one image — Sky, the companion — and an interface composed entirely with OpenUI by the PI SDK agent running inside), `/concept` (the product description: hero, the two core features, five hazards, data and standards, the detect → recommend → confirm → report loop, demo teaser, story teaser, modules, safety rules, sources), `/demo` (interactive Mars landing readiness), `/sky` (the living interface: Living Core canvas, the §4 state machine, OpenUI-style scene IR, 12 device embodiments, simulated mission data — all deterministic, no network needed), `/story` (the "Sky" story). It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI). On every page Sky (a static angel image) flies over the interface and, at each station it lands on, composes a panel with OpenUI.
 
 ## Ownership
 
