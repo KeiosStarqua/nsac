@@ -1,0 +1,15 @@
+.sceneRoot { position: relative; padding: 1rem; }
+.simulatedBadge { font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.5rem; }
+.fieldSvg { width: 100%; max-width: 300px; height: auto; }
+.coreCircle { fill: var(--accent, #6cf); }
+.coreLabel { font-size: 10px; fill: #000; }
+.filament { stroke: var(--border, #444); stroke-width: 1; }
+.fieldNode { fill: var(--surface, #222); stroke: var(--border, #444); }
+.fieldValue { font-size: 8px; fill: var(--text-primary, #eee); }
+.membrane { margin-top: 0.5rem; padding: 0.5rem; border: 1px solid var(--border, #444); border-radius: 8px; }
+.membraneTitle { font-weight: 600; }
+.membraneDetail { font-size: 0.85rem; opacity: 0.8; }
+.fallbackPanel { padding: 1rem; }
+.sceneTitle { font-weight: 600; margin-top: 0.5rem; }
+.sceneSummary { font-size: 0.9rem; }
+.sceneCaveat { font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem; }
