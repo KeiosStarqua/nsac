@@ -27,7 +27,7 @@
   - **Chưa xong / rõ ràng thiếu bước** (chưa commit, chưa verify, đang chờ): gửi `hc send <t> "<prompt thích hợp>"` — ví dụ yêu cầu chạy test/typecheck (`bun run typecheck|test`, `pytest`), commit, hoặc hoàn tất phần còn lại; chờ lượt sau kiểm tra lại.
   - **Bị chặn / cần quyết định của Keios** (thiếu key, chọn trade-off, lỗi ngoài phạm vi): báo cáo ngắn gọn, không tự ý làm liều.
 - Không merge nhánh chưa hoàn chỉnh hoặc còn thay đổi chưa commit; không `-D` nhánh chưa merge.
-- **Repo này không có deploy pipeline** (hackathon, nộp bài qua form submission): heartbeat **không tự push** `main`/tags và không tự "deploy". Push chỉ khi Keios yêu cầu; tuyệt đối không force-push, không push nhánh đang làm dở. Việc "release" gần nhất của dự án là trang submission + repo public Apache-2.0 — làm theo checklist HKT trong root AGENTS.md, không tự động hoá.
+- **Deploy là tự động sau mỗi lần đổi code** (user 2026-11-14, xem root AGENTS.md mục User Preferences): rsync → `sudo nix build .#web` trên box → `sudo systemctl restart nsac-web` → verify 4 route 200. Commit trước deploy. Heartbeat vẫn **không tự push** `main`/tags (push chỉ khi Keios yêu cầu; không force-push, không push nhánh dở).
 - Ghi kết quả xử lý vào HC-AGENTS.md (git-ignored, local only — không commit; schedule `hc-agents-update` cũng làm việc này).
 
 ## Background wait — mọi agent trong hc phải có ngón tay canh (Keios, 2026-11-12)
