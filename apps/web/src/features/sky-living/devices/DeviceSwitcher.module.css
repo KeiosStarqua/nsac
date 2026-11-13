@@ -1,0 +1,35 @@
+.switcher {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 320px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  z-index: 40;
+}
+.switcher:not(:focus-within) {
+  opacity: 0.6;
+}
+.btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary, #fff);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.active {
+  background: var(--accent);
+  color: #000;
+}
+@media (prefers-reduced-motion: reduce) {
+  .switcher { transition: none; }
+}
