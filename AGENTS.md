@@ -171,6 +171,7 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 - Workspace JS ở root: `package.json` (bun, `workspaces: ["apps/*"]`), `turbo.json` (Turborepo: `dev`, `build`, `typecheck`, `test`), `tsconfig.base.json`. Mỗi app JS là một package `@nsac/<tên>` trong `apps/`; app Python (`onboard`) và `practice/` (workspace riêng) nằm ngoài. Cài và chạy từ root: `bun install`, `bun run typecheck|test|build`.
 
 - `STORY.md` truyện hư cấu "Sky" (thiên thần theo phi hành gia, dịch từ khu vườn trên tàu) cho phần kể chuyện/demo; bảng cuối map truyện sang module, cập nhật khi module đổi.
+- `UX.md` bản đặc tả UX/UI của Sky (SKY — Living Symbiotic Healthcare Interface): vision, ngôn ngữ visual, design tokens, không phải code; cập nhật khi hướng thiết kế đổi.
 - `ARCHITECTURE.md` mô tả cấu trúc code đang có: bản đồ repo, luồng dữ liệu backend, layer và chiều phụ thuộc, layout/SSR/server boundary của `apps/web`, nguồn dữ liệu, cách chạy và khoảng trống. Cập nhật khi cấu trúc hay ranh giới layer đổi.
 - `assets/models3d/` (mỗi model kèm license/nguồn) · `assets/fixtures/` · `scripts/` · `tests/` (phản chiếu `backend/`) · `var/` (gitignored, trạng thái runtime).
 - Chưa chốt: OpenUI (JS) cùng NiceGUI (Python) hay thay thế; nếu đổi, cập nhật mục này.
