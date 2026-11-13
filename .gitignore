@@ -22,3 +22,7 @@ apps/web/src/routeTree.gen.ts
 
 # CEO bot local state
 .agents/bot/ceo/HC-AGENTS.md
+
+# Local env files (may hold secrets)
+.env
+.env.*
