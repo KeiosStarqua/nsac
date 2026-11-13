@@ -7,6 +7,7 @@ export const vi: Copy = {
       "Sky là trợ lý lâm sàng offline cho các chuyến bay dài ngày: thu thập dữ liệu sức khỏe phi hành đoàn, cảnh báo phi hành gia và bác sĩ bay, đề xuất một hành động.",
   },
   nav: {
+    living: "SKY Trực tiếp",
     features: "Tính năng",
     hazards: "Rủi ro",
     data: "Dữ liệu",

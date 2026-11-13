@@ -29,6 +29,9 @@ export function Header() {
           <Link to="/story" search={{ lang: locale }} activeProps={{ "aria-current": "page" }}>
             {copy.nav.story}
           </Link>
+          <Link to="/sky" search={{ lang: locale }} activeProps={{ "aria-current": "page" }}>
+            {copy.nav.living}
+          </Link>
           <Link to="/concept" hash="trust" search={{ lang: locale }} activeOptions={{ includeHash: true }}>
             {copy.nav.trust}
           </Link>

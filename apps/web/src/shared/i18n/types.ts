@@ -66,6 +66,7 @@ export interface Copy {
   meta: { title: string; description: string };
   nav: {
     features: string;
+    living: string;
     hazards: string;
     data: string;
     demo: string;

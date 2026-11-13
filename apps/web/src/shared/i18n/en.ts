@@ -7,6 +7,7 @@ export const en: Copy = {
       "Sky is an offline clinical assistant for long space missions. It collects crew health data, warns astronauts and flight surgeons, and recommends one action.",
   },
   nav: {
+    living: "SKY Live",
     features: "Features",
     hazards: "Hazards",
     data: "Data",
