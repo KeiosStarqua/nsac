@@ -11,6 +11,7 @@ import {
 import type { StationId } from "~/shared/sky";
 import type { PanelOrigin } from "../model/panel";
 import { OpenRouterKeyDialog } from "./OpenRouterKeyDialog";
+import { SkyAsk } from "./SkyAsk";
 import { SkyCompanion } from "./SkyCompanion";
 
 export interface SettledPanel {
@@ -30,6 +31,17 @@ interface SkyGuideValue {
   requestKey: () => void;
   /** Bumps every time a key is saved; stations compose again without the saved-panel cache. */
   keyVersion: number;
+  /** Whether the Ask Sky panel (click-to-type instruction for the composer) is open. */
+  askOpen: boolean;
+  toggleAsk: () => void;
+  closeAsk: () => void;
+  /**
+   * The latest instruction typed into the Ask Sky panel, with a sequence number so stations re-compose
+   * on every submit. `null` until the first ask.
+   */
+  askRequest: { station: StationId; text: string; seq: number } | null;
+  /** Sends a trimmed, capped instruction to the station Sky is sitting on right now. */
+  submitAsk: (text: string) => void;
 }
 
 const SkyGuideContext = createContext<SkyGuideValue | null>(null);
@@ -54,7 +66,22 @@ export function SkyGuideProvider({ children }: { children: ReactNode }) {
   const [touring, setTouring] = useState(false);
   const [keyDialogOpen, setKeyDialogOpen] = useState(false);
   const [keyVersion, setKeyVersion] = useState(0);
+  const [askOpen, setAskOpen] = useState(false);
+  const [askRequest, setAskRequest] = useState<{ station: StationId; text: string; seq: number } | null>(null);
+  const askSeq = useRef(0);
+  const arrivedRef = useRef<StationId | null>(null);
   const requestKey = useCallback(() => setKeyDialogOpen(true), []);
+  const toggleAsk = useCallback(() => setAskOpen((open) => !open), []);
+  const closeAsk = useCallback(() => setAskOpen(false), []);
+  const submitAsk = useCallback((text: string) => {
+    // Capped and trimmed here as well as on the server (the server is the boundary that matters).
+    const trimmed = text.trim().slice(0, 280);
+    const station = arrivedRef.current;
+    if (!trimmed || !station) return;
+    askSeq.current += 1;
+    setAskRequest({ station, text: trimmed, seq: askSeq.current });
+    setAskOpen(false);
+  }, []);
 
   const register = useCallback((id: StationId, element: HTMLElement | null) => {
     if (element) stations.current.set(id, element);
@@ -62,18 +89,22 @@ export function SkyGuideProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const onArrive = useCallback((id: StationId) => {
+    arrivedRef.current = id;
     setArrivedAt(id);
     setVisited((previous) => (previous.has(id) ? previous : new Set(previous).add(id)));
   }, []);
 
-  const onLeave = useCallback(() => setArrivedAt(null), []);
+  const onLeave = useCallback(() => {
+    arrivedRef.current = null;
+    setArrivedAt(null);
+  }, []);
   const toggleTour = useCallback(() => setTouring((on) => !on), []);
 
   useGuidedTour(touring, stations, () => setTouring(false));
 
   const value = useMemo(
-    () => ({ register, arrivedAt, visited, panels: panels.current, requestKey, keyVersion }),
-    [register, arrivedAt, visited, requestKey, keyVersion],
+    () => ({ register, arrivedAt, visited, panels: panels.current, requestKey, keyVersion, askOpen, toggleAsk, closeAsk, askRequest, submitAsk }),
+    [register, arrivedAt, visited, requestKey, keyVersion, askOpen, toggleAsk, closeAsk, askRequest, submitAsk],
   );
 
   return (
@@ -86,6 +117,7 @@ export function SkyGuideProvider({ children }: { children: ReactNode }) {
         touring={touring}
         onToggleTour={toggleTour}
       />
+      <SkyAsk />
       <OpenRouterKeyDialog
         open={keyDialogOpen}
         onOpenChange={setKeyDialogOpen}

@@ -403,6 +403,13 @@ export const vi: Copy = {
   sky: {
     startTour: "Sky: bắt đầu tour hướng dẫn",
     stopTour: "Sky: dừng tour hướng dẫn",
+    ask: {
+      openLabel: "Hỏi Sky để soạn panel này",
+      closeLabel: "Đóng ô hỏi Sky",
+      placeholder: "Hỏi Sky…",
+      submitLabel: "Hỏi Sky",
+      answering: "Đang trả lời về",
+    },
     waiting: "Sky sẽ ghé chỗ này.",
     composing: "Sky đang dựng bảng này…",
     origin: {

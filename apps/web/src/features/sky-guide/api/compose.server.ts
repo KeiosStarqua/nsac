@@ -110,8 +110,13 @@ function ensureModelsFile(parts: { model: string; withModelEntry: boolean }): st
   return path;
 }
 
-/** Streams the model's OpenUI Lang for one station, or a single `unavailable` / `missing_key`. */
-export async function* composeStation(station: StationId, locale: Locale): AsyncGenerator<ComposeEvent> {
+/**
+ * Streams the model's OpenUI Lang for one station, or a single `unavailable` / `missing_key`.
+ * `ask` is the viewer's free text from the Ask Sky panel; it is folded into the prompt, not the system
+ * prompt. A malicious ask can steer the answer, so the output goes through exactly the same review as
+ * any other panel (`reviewProgram`: parse, digits, fact allow-list) and anything else falls back to the preset.
+ */
+export async function* composeStation(station: StationId, locale: Locale, ask?: string): AsyncGenerator<ComposeEvent> {
   const key = readOpenRouterKey();
   if (key === null) {
     yield { kind: "missing_key" };
@@ -211,7 +216,12 @@ export async function* composeStation(station: StationId, locale: Locale): Async
     const onAbort = () => void session.abort();
     abort.signal.addEventListener("abort", onAbort, { once: true });
     try {
-      await session.prompt(getCopy(locale).sky.stations[station].brief);
+      const brief = getCopy(locale).sky.stations[station].brief;
+      const viewerAsk = ask?.trim();
+      const instruction = viewerAsk
+        ? `${brief}\n\nThe viewer just asked: """${viewerAsk}""". Compose the panel to answer that, staying inside every rule above.`
+        : brief;
+      await session.prompt(instruction);
     } catch (e) {
       failed ??= e instanceof Error ? e.message : "the model call failed";
     } finally {

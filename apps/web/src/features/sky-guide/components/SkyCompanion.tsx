@@ -13,6 +13,7 @@ import {
   type Viewport,
 } from "../model/flight";
 import styles from "./SkyCompanion.module.css";
+import { useSkyGuide } from "./SkyGuide";
 
 /**
  * Static artwork of Sky. Placeholder until the final angel image lands: replace the file, or point this at
@@ -43,6 +44,7 @@ interface SkyCompanionProps {
  */
 export function SkyCompanion({ stations, onArrive, onLeave, touring, onToggleTour }: SkyCompanionProps) {
   const copy = useCopy();
+  const { askOpen, toggleAsk } = useSkyGuide();
   const button = useRef<HTMLButtonElement>(null);
   // Client only: the position depends on the viewport, which the server does not have.
   const [mounted, setMounted] = useState(false);
@@ -115,20 +117,26 @@ export function SkyCompanion({ stations, onArrive, onLeave, touring, onToggleTou
   if (!mounted) return null;
 
   return (
-    <button
-      ref={button}
-      type="button"
-      className={styles.sky}
-      data-sky-button=""
-      data-flying="false"
-      aria-pressed={touring}
-      aria-label={touring ? copy.sky.stopTour : copy.sky.startTour}
-      title={touring ? copy.sky.stopTour : copy.sky.startTour}
-      onClick={onToggleTour}
-    >
-      <span className={styles.figure}>
-        <img src={SKY_IMAGE} alt="" draggable={false} />
-      </span>
-    </button>
+    <>
+      <button
+        ref={button}
+        type="button"
+        className={styles.sky}
+        data-sky-button=""
+        data-flying="false"
+        aria-expanded={askOpen}
+        aria-controls="sky-ask-panel"
+        aria-label={askOpen ? copy.sky.ask.closeLabel : copy.sky.ask.openLabel}
+        title={askOpen ? copy.sky.ask.closeLabel : copy.sky.ask.openLabel}
+        onClick={toggleAsk}
+      >
+        <span className={styles.figure}>
+          <img src={SKY_IMAGE} alt="" draggable={false} />
+        </span>
+      </button>
+      <button type="button" className={styles.tourButton} data-sky-button="" aria-pressed={touring} onClick={onToggleTour}>
+        {touring ? copy.sky.stopTour : copy.sky.startTour}
+      </button>
+    </>
   );
 }

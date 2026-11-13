@@ -1,5 +1,5 @@
 import { Renderer } from "@openuidev/react-lang";
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useCopy, useLocale } from "~/shared/i18n";
 import { STATION_FACTS, type StationId } from "~/shared/sky";
 import { streamStationPanel } from "../api/compose.functions";
@@ -55,8 +55,18 @@ export function SkyStation({
 function StationPanel({ id, headingLevel }: { id: StationId; headingLevel: "one" | "two" }) {
   const copy = useCopy();
   const locale = useLocale();
-  const { panels, requestKey, keyVersion } = useSkyGuide();
+  const { panels, requestKey, keyVersion, askRequest } = useSkyGuide();
   const preset = copy.sky.stations[id].preset;
+  // A viewer instruction for this station, applied once, on submit. `recompose` bypasses the cache.
+  const askForThis = askRequest?.station === id ? askRequest : null;
+  const [intent, setIntent] = useState<string | null>(null);
+  const seenSeq = useRef(0);
+  useEffect(() => {
+    if (askForThis && askForThis.seq !== seenSeq.current) {
+      seenSeq.current = askForThis.seq;
+      setIntent(askForThis.text);
+    }
+  }, [askForThis]);
   const [state, dispatch] = useReducer(
     (current: PanelState, event: PanelEvent) => panelReducer(current, event, preset),
     initialPanel,
@@ -64,19 +74,20 @@ function StationPanel({ id, headingLevel }: { id: StationId; headingLevel: "one"
 
   useEffect(() => {
     const cacheKey = `${id}:${locale}`;
-    const cached = panels.get(cacheKey);
+    // An explicit ask re-composes; the generic panel cache does not answer a specific question.
+    const cached = intent ? null : panels.get(cacheKey);
     if (cached) {
       dispatch({ type: "restore", ...cached });
       return;
     }
 
-    dispatch({ type: "arrive" });
+    dispatch(intent ? { type: "recompose" } : { type: "arrive" });
     let cancelled = false;
     let draft = "";
 
     void (async () => {
       try {
-        for await (const event of await streamStationPanel({ data: { station: id, locale } })) {
+        for await (const event of await streamStationPanel({ data: { station: id, locale, ask: intent ?? undefined } })) {
           if (cancelled) return;
           if (event.kind === "chunk") {
             draft += event.text;
@@ -86,7 +97,7 @@ function StationPanel({ id, headingLevel }: { id: StationId; headingLevel: "one"
             const review = reviewProgram(program, id, parseSkyProgram);
             if (!review.ok) console.info(`[sky] ${id}: model panel rejected`, review.reasons);
             dispatch({ type: "end", accepted: review.ok, program });
-            panels.set(cacheKey, review.ok ? { program, origin: "model" } : { program: preset, origin: "rejected" });
+            if (!intent) panels.set(cacheKey, review.ok ? { program, origin: "model" } : { program: preset, origin: "rejected" });
             return;
           } else if (event.kind === "missing_key") {
             // Not cached: after a key is saved the panel composes again. The dialog asks for the key.
@@ -107,7 +118,7 @@ function StationPanel({ id, headingLevel }: { id: StationId; headingLevel: "one"
     return () => {
       cancelled = true;
     };
-  }, [id, locale, panels, preset, keyVersion, requestKey]);
+  }, [id, locale, panels, preset, keyVersion, requestKey, intent]);
 
   const draftProgram = state.kind === "composing" ? extractProgram(state.draft) : "";
   const program = visibleProgram(state, preset, draftProgram);

@@ -10,6 +10,18 @@ export interface SkyCopy {
   /** Accessible name of the flying Sky button, per tour state. */
   startTour: string;
   stopTour: string;
+  /** The click-to-ask panel: click Sky to open it and type an instruction for the composer. */
+  ask: {
+    /** Accessible name of the Sky button while the panel is closed, and while it is open. */
+    openLabel: string;
+    closeLabel: string;
+    /** Placeholder of the text field. */
+    placeholder: string;
+    /** Accessible name of the send button; also the panel's accessible title. */
+    submitLabel: string;
+    /** Prefix shown before the station name Sky is currently on. */
+    answering: string;
+  };
   /** Slot text before Sky has landed there. */
   waiting: string;
   composing: string;

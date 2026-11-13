@@ -403,6 +403,13 @@ export const en: Copy = {
   sky: {
     startTour: "Sky: start the guided tour",
     stopTour: "Sky: stop the guided tour",
+    ask: {
+      openLabel: "Ask Sky to compose this panel",
+      closeLabel: "Close the Ask Sky panel",
+      placeholder: "Ask Sky…",
+      submitLabel: "Ask Sky",
+      answering: "Answering about",
+    },
     waiting: "Sky will stop here.",
     composing: "Sky is composing this panel…",
     origin: {

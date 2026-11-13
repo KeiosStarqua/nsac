@@ -10,6 +10,8 @@ export type PanelState =
 
 export type PanelEvent =
   | { readonly type: "arrive" }
+  /** The viewer asked for something different; the panel composes again from scratch. */
+  | { readonly type: "recompose" }
   | { readonly type: "chunk"; readonly text: string }
   /** The stream ended. `accepted` is the verdict of `reviewProgram` on the finished draft. */
   | { readonly type: "end"; readonly accepted: boolean; readonly program: string }
@@ -25,6 +27,8 @@ export function panelReducer(state: PanelState, event: PanelEvent, preset: strin
       // A settled "model unavailable" panel tries again when Sky re-asks (e.g. after a key was saved).
       if (state.kind === "settled" && state.origin === "offline") return { kind: "composing", draft: "" };
       return state;
+    case "recompose":
+      return { kind: "composing", draft: "" };
     case "chunk":
       return state.kind === "composing" ? { kind: "composing", draft: state.draft + event.text } : state;
     case "end":
