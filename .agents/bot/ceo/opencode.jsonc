@@ -1,0 +1,9 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Folder này: .agents/bot/ceo — opencode tự tìm AGENTS.md (file đó nạp tự động),
+  // nên HC-AGENTS.md và SCHEDULE.md nạp qua đây. Cài đặt tương đối resolve theo repo root
+  // (nơi opencode chạy), KHÔNG theo thư mục chứa file config này.
+  "instructions": [
+    ".agents/bot/ceo/*.md",
+  ],
+}
