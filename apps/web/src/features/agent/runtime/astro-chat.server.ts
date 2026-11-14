@@ -2,6 +2,7 @@ import "@tanstack/react-start/server-only";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { readOpenRouterKey } from "./pi.server";
+import { currentAgentModel, modelChanged } from "./agent-model.server";
 import { getAgent } from "../agents/registry";
 import { findAstronaut } from "../../astronaut/model/astronauts";
 import type { SessionFactory } from "./run.server";
@@ -37,7 +38,7 @@ export async function openOrCreateSessionManager(id: string, dir: string, cwd: s
   }
 }
 
-type Cached = { session: SessionFacade; lastUsed: number };
+type Cached = { session: SessionFacade; lastUsed: number; model: string };
 const cache = new Map<string, Cached>();
 const queues = new Map<string, Promise<unknown>>();
 
@@ -61,9 +62,20 @@ function evictOldest() {
 }
 
 async function getSession(id: string, astronaut: { name: string; role: string; callsign: string }): Promise<SessionFacade> {
+  // Model gắn với session lúc tạo; admin đổi model → huỷ session cũ và tạo lại.
+  // Lịch sử hội thoại vẫn nằm trong SessionManager files (var/sky-sessions).
+  const model = await currentAgentModel();
   const existing = cache.get(id);
-  if (existing && Date.now() - existing.lastUsed < IDLE_TTL) { existing.lastUsed = Date.now(); return existing.session; }
-  if (existing) { existing.session.dispose(); cache.delete(id); }
+  if (existing && modelChanged(existing.model, model)) {
+    existing.session.dispose();
+    cache.delete(id);
+  } else if (existing && Date.now() - existing.lastUsed < IDLE_TTL) {
+    existing.lastUsed = Date.now();
+    return existing.session;
+  } else if (existing) {
+    existing.session.dispose();
+    cache.delete(id);
+  }
   evictOldest();
   const profile = getAgent("sky-chat");
   const sessFactory = factory ?? (await import("./pi.server")).createSession;
@@ -71,7 +83,7 @@ async function getSession(id: string, astronaut: { name: string; role: string; c
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   const sessionManager = factory ? undefined : await openOrCreateSessionManager(id, dir);
   const sess = await (sessFactory as any)(profile, { request: "", astronaut }, sessionManager ? { sessionManager } : undefined);
-  cache.set(id, { session: sess, lastUsed: Date.now() });
+  cache.set(id, { session: sess, lastUsed: Date.now(), model });
   return sess;
 }
 

@@ -4,12 +4,14 @@ import { askSky } from "../runtime/orchestrator.server";
 
 export const listAgentRoster = createServerFn({ method: "GET" }).handler(async () => {
   const { readOpenRouterKey } = await import("../runtime/pi.server");
+  const { currentAgentModel } = await import("../runtime/agent-model.server");
   const keyConfigured = readOpenRouterKey() !== null;
+  const effectiveModel = await currentAgentModel();
   return listAgents().map((a) => ({
     id: a.id,
     name: a.name,
     role: a.role,
-    effectiveModel: process.env[a.modelEnv]?.trim() || a.defaultModel,
+    effectiveModel,
     keyConfigured,
   }));
 });
