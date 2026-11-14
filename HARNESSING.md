@@ -81,6 +81,10 @@ sendChatTurn(astronautId, message)                   [api/chat.functions.ts]
   → getSession: reuse nếu còn hạn + model không đổi; ngược lại tạo mới
     (OpenOrCreateSessionManager mở/tạo var/sky-sessions/<id>.jsonl)
   → prompt → trim 2000 ký tự → append assistant message → trả về transcript
+
+streamChatTurn(astronautId, message, { onDelta, signal })   [/api/chat-stream, SSE]
+  → cùng pipeline runChatTurn (queue, session, timeout, trim, ghi transcript một lần)
+  → onDelta mỗi text_delta → `data: {"type":"delta","text":…}` — kết thúc `done` | `error{code}`
 ```
 
 ### 3.3 Ask Sky / generative UI (one-shot)

@@ -125,7 +125,31 @@ function writeTranscript(id: string, messages: TranscriptMessage[]) {
   renameSync(tmp, p);
 }
 
-export async function sendChatTurn(astronautIdRaw: string, messageRaw: string) {
+export type ChatTurnResult = {
+  status: ChatStatus;
+  reply?: string;
+  messages?: TranscriptMessage[];
+};
+
+/**
+ * Hooks for an in-flight turn. `onDelta` receives each text delta as the model produces it (the
+ * blocking `sendChatTurn` passes none); `signal` aborts the turn from the caller's side — the SSE
+ * route cancels it when the browser disconnects, so the PI session is disposed instead of running
+ * on unwatched.
+ */
+export type ChatTurnHooks = {
+  onDelta?: (delta: string) => void;
+  signal?: AbortSignal;
+};
+
+/**
+ * The one turn pipeline behind both `sendChatTurn` (whole reply, `sendChat` server function) and
+ * `streamChatTurn` (deltas over `/api/chat-stream`): sanitize/validate, key check, transcript push,
+ * per-astronaut queue, session (cache/TTL/model eviction), shared-context injection, wall-clock
+ * timeout, then failure handling (dispose + evict, publish `ok=false`, no assistant write) or success
+ * handling (trim, write the assistant message ONCE, publish `ok=true`).
+ */
+async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: ChatTurnHooks = {}): Promise<ChatTurnResult> {
   const id = sanitizeAstronautId(astronautIdRaw);
   if (!id) return { status: "unavailable" as ChatStatus };
   const astronaut = findAstronaut(id);
@@ -154,13 +178,15 @@ export async function sendChatTurn(astronautIdRaw: string, messageRaw: string) {
       : message;
     const ac = new AbortController();
     const profile = getAgent("sky-chat");
+    const onExternalAbort = () => ac.abort();
+    if (hooks.signal?.aborted) ac.abort();
+    else hooks.signal?.addEventListener("abort", onExternalAbort, { once: true });
     const timer = setTimeout(() => ac.abort(), profile.timeoutMs);
     try {
       const reply = await Promise.race([
-        session.prompt(promptText, { signal: ac.signal }),
+        session.prompt(promptText, { onDelta: hooks.onDelta, signal: ac.signal }),
         new Promise<string>((_, reject) => ac.signal.addEventListener("abort", () => reject(new Error("timeout")))),
       ]);
-      clearTimeout(timer);
       const trimmed = reply.trim().slice(0, MAX_REPLY);
       if (trimmed === "") {
         // Belt and braces: pi.server already throws on empty replies. Never push an empty bubble.
@@ -177,13 +203,29 @@ export async function sendChatTurn(astronautIdRaw: string, messageRaw: string) {
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", true);
       return { status: "ok" as ChatStatus, reply: trimmed, messages: readTranscript(id) };
     } catch (e) {
-      clearTimeout(timer);
       const cached = cache.get(id); cached?.session.dispose(); cache.delete(id);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", false);
       if ((e as { message?: string })?.message === "timeout" || ac.signal.aborted) return { status: "timeout" as ChatStatus };
       return { status: "unavailable" as ChatStatus };
+    } finally {
+      clearTimeout(timer);
+      hooks.signal?.removeEventListener("abort", onExternalAbort);
     }
   });
+}
+
+/** One whole reply (the `sendChat` server function, used by the legacy `/watch` panel). */
+export async function sendChatTurn(astronautIdRaw: string, messageRaw: string): Promise<ChatTurnResult> {
+  return runChatTurn(astronautIdRaw, messageRaw);
+}
+
+/**
+ * The same turn, pushing every text delta through `hooks.onDelta` as it arrives. The assistant
+ * transcript message is still written once, on success only; any failure returns a status code and
+ * never throws (nothing partial reaches the transcript).
+ */
+export async function streamChatTurn(astronautIdRaw: string, messageRaw: string, hooks: ChatTurnHooks = {}): Promise<ChatTurnResult> {
+  return runChatTurn(astronautIdRaw, messageRaw, hooks);
 }
 
 export async function loadChatHistory(astronautIdRaw: string) {
