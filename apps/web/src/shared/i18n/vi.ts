@@ -70,7 +70,6 @@ export const vi: Copy = {
     deviceSwitcher: "Thiết bị",
     deviceConsole: "Bảng điều khiển",
     deviceWatch: "Đồng hồ",
-    watchCaption: "SKY · Xem thử Đồng hồ — minh họa trực tiếp",
     spacecraftButton: "TÀU VŨ TRỤ",
     spacecraftButtonAria: "Mở chế độ xem trạm ISS 3D toàn màn hình",
     captionsListening: "Mic đang bật · âm thanh phân tích cục bộ",

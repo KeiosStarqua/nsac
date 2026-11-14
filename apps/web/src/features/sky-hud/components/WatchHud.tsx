@@ -1,5 +1,6 @@
-// Watch Mode — minimal glanceable HUD for ≤480px screens and the desktop watch preview.
-// Fixture-driven like the staged HUD: every value comes from `vitals.ts` and stays labelled SIMULATED.
+// Watch Mode — minimal glanceable HUD rendered full-screen by the `/watch` route; the hud-gen
+// below-480px fallback shares it. Fixture-driven like the staged HUD: every value comes from
+// `vitals.ts` and stays labelled SIMULATED.
 // Three swipeable screens (Vitals · Wellness · Sky) behind scroll-snap paging — see watchScreens.ts.
 import "../watch-hud.css";
 import { useCallback, useEffect, useRef, useState } from "react";
