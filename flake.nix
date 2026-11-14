@@ -41,8 +41,8 @@
             outputHashMode = "recursive";
             # The FOD output differs per platform (optional native deps), so pin a hash per system.
             outputHash = {
-              x86_64-linux = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-              aarch64-linux = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+              x86_64-linux = "sha256-AXNDjPHWl+XbUBMQ22gdtWw5zpyWEYsWi7gKbx9Rx0c=";
+              aarch64-linux = "sha256-z3U6eqnaifSyfiBRGV9Pqpvzr8EJSLAvnGksSWs17GY=";
             }.${pkgs.stdenv.hostPlatform.system};
           };
         in
