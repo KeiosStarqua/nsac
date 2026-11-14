@@ -62,7 +62,7 @@ export const vi: Copy = {
     wellnessDemo: "TRẠNG THÁI DEMO",
     typeInsteadAria: "Nhập tin nhắn cho SKY",
     spacecraftButton: "TÀU VŨ TRỤ",
-    spacecraftButtonAria: "Mở trang thử nghiệm mô hình trạm ISS 3D",
+    spacecraftButtonAria: "Mở chế độ xem trạm ISS 3D toàn màn hình",
     captionsListening: "Mic đang bật · âm thanh phân tích cục bộ",
     captionsError: "Mic không khả dụng — hãy nhập thay",
     greetingFallback: "Chào buổi sáng.",
