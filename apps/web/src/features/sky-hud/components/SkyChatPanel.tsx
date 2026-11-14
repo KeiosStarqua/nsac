@@ -1,9 +1,10 @@
 /**
- * SkyChatPanel — the `/` chat overlay, built on the hand-vendored shadcn AI Elements chat
+ * SkyChatPanel — the `/` chat card, built on the hand-vendored shadcn AI Elements chat
  * (`src/shared/ai-elements/`, MIT) with a custom AI SDK transport (`features/agent/runtime/chat-transport.ts`).
  *
  * `/watch` keeps the legacy `ChatPanel` (a compact text row inside the watch face); this panel is the
- * full-height console conversation rendered above the HUD. Behaviour it owns:
+ * console conversation. It is a **floating card portalled to `document.body`** (bottom-right, HUD still
+ * visible behind it) over its own dismissable backdrop — full-bleed below 480px. Behaviour it owns:
  *
  *  - `useChat` state only; history comes from the existing `loadChatHistory` server function (the SDK
  *    never fetches it) and a turn streams through the SSE route `/api/chat-stream` (transport-owned):
@@ -17,6 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { useChat } from "@ai-sdk/react";
 import { ArrowUpIcon, LoaderCircleIcon, MessageCircleDashedIcon, RotateCwIcon, XIcon } from "lucide-react";
 import {
@@ -60,11 +62,50 @@ export type SkyChatPanelProps = {
   onReply: (text: string) => void;
 };
 
+// Floating card over the HUD: a dismissable backdrop below the card, card in the bottom-right corner
+// above the detail overlay (z-35) and the chrome chips. Full-bleed on phones (≤480px), where the old
+// full-screen shape is the only sensible one. Palette unchanged (Sky navy + cyan border).
+const CHAT_BACKDROP = "fixed inset-0 z-[40] bg-[rgba(2,12,28,.35)] backdrop-blur-[2px]";
+
+const CHAT_CARD = [
+  "fixed right-4 bottom-4 z-[45] flex h-[min(620px,82dvh)] w-[min(430px,94vw)] flex-col overflow-hidden",
+  "rounded-[20px] border border-[rgba(123,225,255,.35)]",
+  "bg-[color-mix(in_srgb,var(--sky-bg)_96%,transparent)]",
+  "shadow-[0_0_60px_rgba(75,151,244,.25)] text-foreground",
+  // Tailwind v4 emits `translate` (not `transform`) for the 8px rise, so the transition lists it.
+  "[transition:opacity_.18s_ease-out,translate_.18s_ease-out] motion-reduce:transition-none!",
+  "max-[480px]:inset-0! max-[480px]:h-dvh max-[480px]:w-full max-[480px]:rounded-none! max-[480px]:border-0",
+  "max-[480px]:[transition:none]",
+].join(" ");
+
+/** The two rAFs between mount and this state are the fade + 8px rise; skipped for reduced motion. */
+const CHAT_CARD_OPEN = "translate-y-0 opacity-100";
+const CHAT_CARD_ENTER = "translate-y-2 opacity-0 motion-reduce:translate-y-0 motion-reduce:opacity-100";
+
 export function SkyChatPanel({ astronaut, onClose, onReply }: SkyChatPanelProps) {
   const c = useCopy().chat;
   const label = astronaut ? format(c.label, { name: firstName(astronaut.name) }) : c.title;
 
-  // Escape closes the overlay, as it does for the other HUD dialogs.
+  // A portal needs a DOM: render nothing until hydration has happened (same gate as the picker).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Entrance: two frames after mount flips the card out of the offset/faded state. One frame is not
+  // enough — the browser would paint the open state straight away and the transition would never run
+  // (reduced motion is exempt: the enter classes are neutralised under `motion-reduce`).
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, []);
+
+  // Escape closes the card, as it does for the other HUD dialogs.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -73,15 +114,28 @@ export function SkyChatPanel({ astronaut, onClose, onReply }: SkyChatPanelProps)
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
-    <div
-      role="dialog"
-      aria-label={label}
-      className="absolute inset-0 z-40 flex flex-col bg-[color-mix(in_srgb,var(--sky-bg)_94%,transparent)] text-foreground backdrop-blur-xl"
-    >
-      {/* Keyed by crew member: `useChat` reads its transport once, so a new astronaut needs a new chat. */}
-      <SkyChatThread key={astronaut?.id ?? "no-crew"} astronaut={astronaut} onClose={onClose} onReply={onReply} />
-    </div>
+  if (!mounted) return null;
+
+  return createPortal(
+    <>
+      <div
+        role="presentation"
+        className={CHAT_BACKDROP}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        className={`${CHAT_CARD} ${entered ? CHAT_CARD_OPEN : CHAT_CARD_ENTER}`}
+      >
+        {/* Keyed by crew member: `useChat` reads its transport once, so a new astronaut needs a new chat. */}
+        <SkyChatThread key={astronaut?.id ?? "no-crew"} astronaut={astronaut} onClose={onClose} onReply={onReply} />
+      </div>
+    </>,
+    document.body,
   );
 }
 
