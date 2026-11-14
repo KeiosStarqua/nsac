@@ -264,18 +264,24 @@ bun run build
 cd apps/web && PORT=3100 bun run .output/server/index.mjs
 ```
 
-Nix: `nix build .#web` / `nix run .#web` (chạy port 3100; `outputHash` của node_modules phải bump
-khi `bun.lock` đổi).
+Nix: `nix build .#web` / `nix run .#web` (port 3100) và `nix build .#backend` / `nix run .#backend`
+(backend API, port 3200 mặc định — `PORT`, `SKY_DB_PATH` override được; bind `127.0.0.1` mặc định,
+`HOST` override được). Cả hai package dùng chung một fixed-output derivation node_modules; `outputHash`
+phải bump khi `bun.lock` đổi.
 
 ### Backend (TS + Bun)
 
+`apps/backend` — HTTP API (astronauts + claims, SQLite qua drizzle), chạy bằng Bun trực tiếp từ TypeScript:
+
 ```bash
-cd apps
+cd apps/backend
 bun install
-bun run demo                   # CLI: generate → detect → score → draft → Confirm → report → queue
-bun run test                   # testpaths = ../tests
-bun run lint
+bun test                         # 12 tests
+PORT=3200 bun run src/server.ts  # bind 127.0.0.1 mặc định (HOST override)
 ```
+
+Nix: `nix build .#backend` / `nix run .#backend` (port 3200, `SKY_DB_PATH` mặc định
+`/home/ec2-user/nsac/var/sky.db`, GC-root/deploy do box quyết định).
 
 ### Kiểm tra kiến trúc khi thêm code
 

@@ -80,6 +80,40 @@ EOF
             '';
           };
 
+          # Backend: no build step — bun runs TypeScript directly. Reuses the same FOD
+          # (it already contains apps/backend's deps); only the runtime layout is assembled here.
+          backend = pkgs.stdenv.mkDerivation {
+            pname = "nsac-backend";
+            version = "0.0.1";
+            src = ./.;
+            nativeBuildInputs = [ pkgs.bun ];
+            dontFixup = true;
+            dontPatchShebangs = true;
+            installPhase = ''
+              mkdir -p $out/lib/nsac-backend/apps $out/bin
+              cp -a apps/backend $out/lib/nsac-backend/apps/backend
+              # Bỏ node_modules lẫn trong source (nix src copy cả file untracked) — bản trong FOD mới là chuẩn.
+              chmod -R u+w $out/lib/nsac-backend/apps/backend
+              rm -rf $out/lib/nsac-backend/apps/backend/node_modules
+              cp -a ${nodeModules}/node_modules $out/lib/nsac-backend/node_modules
+              for d in ${nodeModules}/apps/*/node_modules; do
+                [ -d "$d" ] || continue
+                rel="''${d#${nodeModules}/}"
+                mkdir -p "$out/lib/nsac-backend/$(dirname "$rel")"
+                cp -a "$d" "$out/lib/nsac-backend/$rel"
+              done
+              chmod -R u+w $out/lib/nsac-backend
+              cat > $out/bin/nsac-backend <<EOF
+#!${pkgs.runtimeShell}
+# Backend API. PORT defaults to 3200; SKY_DB_PATH defaults to the box's var dir.
+export PORT="\''${PORT:-3200}"
+export SKY_DB_PATH="\''${SKY_DB_PATH:-/home/ec2-user/nsac/var/sky.db}"
+exec ${pkgs.bun}/bin/bun $out/lib/nsac-backend/apps/backend/src/server.ts
+EOF
+              chmod +x $out/bin/nsac-backend
+            '';
+          };
+
           default = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.web;
         });
 
@@ -87,6 +121,10 @@ EOF
         web = {
           type = "app";
           program = "${inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.web}/bin/nsac-web";
+        };
+        backend = {
+          type = "app";
+          program = "${inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.backend}/bin/nsac-backend";
         };
         default = inputs.self.apps.${pkgs.stdenv.hostPlatform.system}.web;
       });

@@ -7,6 +7,8 @@ await astronautsRepo.seed();
 
 Bun.serve({
   port,
+  // Mặc định chỉ lắng nghe 127.0.0.1: route ẩn (/api/claims/reset) không được lộ ra LAN/public; dev override bằng HOST.
+  hostname: process.env.HOST ?? "127.0.0.1",
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === "/health") {
