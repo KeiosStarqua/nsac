@@ -27,12 +27,12 @@ Người/agent hoàn tất nhánh của mình: đặt `Status: ready` + điền 
 - Request: merge → origin/main + deploy + tag
 - Notes: Agent báo xong qua hc send sẽ đặt `ready`; deploy sau merge phải verify (a) gcroot `nsac-web-node-modules` resolve trực tiếp tới store path, (b) `DRY_RUN=1 nix-gc.sh` không gợi ý GC FOD, (c) `nix build .#web` trên box KHÔNG rebuild FOD.
 
-## holo-hud — active
-- Status: active — **KHÔNG merge** (agent đang chạy)
-- Worktree: /home/keios/repos/mein/nsac-holo-hud
-- Base: origin/main @ 00b8c1f (branch chưa có commit agent lúc ghi)
-- Owner: agent holo-hud (session khác) — Hologram 3D tối giản cho HUD staged (`/?gen=0`)
-- Task: HologramBody R3F tối giản tái dùng skin+skeleton spec từ body-map; script `scripts/holo-model.ts` sinh `anatomy-male-holo.glb` (≤ ~1.5MB); thay SVG vẽ tay trong SkyScreen; CC BY 4.0 attribution bắt buộc
-- Gates: chưa chạy — điền khi agent xong
+## holo-hud — ready
+- Status: ready
+- Worktree: removed (cleaned after ready)
+- Base: origin/main @ 00b8c1f
+- Owner: agent t84 (hc) — Hologram 3D tối giản cho HUD staged (`/?gen=0`)
+- Task: HologramBody R3F tối giản tái dùng skin+skeleton spec từ body-map; script `scripts/holo-model.ts` sinh `anatomy-male-holo.glb`; thay SVG vẽ tay trong SkyScreen; CC BY 4.0 attribution bắt buộc. Commit `b32b87a` "Show the HUD health card's body as a minimal 3D hologram" (branch `holo-hud`, chưa push)
+- Gates: build ✅ typecheck ✅ tests 225/225 (34 files) ✅ (worktree gốc agent); entry chunk 350.849 B, `WebGLRenderer` = 0 (chỉ có trong lazy GLTFLoader/three.core); browser: `/?gen=0` 1672×941 canvas 124×234 hiện skin+skeleton 0 console error, `/?gen=1` giữ SVG, `/body` 200, reduced-motion không quay, GLB 404 → SVG fallback, attribution render đúng (không chồng text)
 - Request: merge → origin/main + deploy + tag
-- Notes: Report dự định `/tmp/opencode/holo-hud-report.md`. Không đụng gen/OpenUI, /body, /watch.
+- Notes: Asset `anatomy-male-holo.glb` 898.972 B (14,6% gốc, 29 mesh, 124.566 tris, meshopt, 0 texture; sha256 d6d3169f…, idempotent script). Attribution `HoloCredit` (Open Anatomy ATTRIBUTION nguyên văn + link CC BY 4.0, ngoài Link). **Bug đã biết (pre-existing, ngoài scope):** WebGL tắt thì `/` đã crash sẵn từ orb CrystalizedBall — cả `/?gen=1`; fallback no-WebGL của thẻ chỉ verify được qua đường GLB-404. `hud-gen`/OpenUI giữ SVG theo quyết định user. Report: `/tmp/opencode/holo-hud-report.md`. Không đụng gen, /body, /watch, bun.lock, flake.nix.
