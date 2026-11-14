@@ -20,10 +20,14 @@ df_before=$(df -h / | tail -1)
 fail() { echo "nix-gc: REFUSING TO RUN: $*" >&2; exit 1; }
 
 check_gcroot() {
-  local name="$1" expect_substr="$2" link="$GCROOT_DIR/$1" target
+  local name="$1" expect_substr="$2" link="$GCROOT_DIR/$1" target text
   [ -L "$link" ] || fail "gcroot $link missing or not a symlink"
+  text=$(readlink "$link") || fail "gcroot $link unreadable"
+  # nix không đi qua symlink trung gian: gcroot phải TRỰC TIẾP là store path,
+  # không được là symlink trỏ tới ~/nsac/result[-backend] (2026-11-14: result-backend
+  # bị rsync xoá → gcroot "resolve" được nhưng nix GC vẫn xoá backend store path → 203/EXEC).
+  [[ "$text" == /nix/store/* ]] || fail "gcroot $link → '$text' is not a direct store path (pin with: ln -sfn \"\$(readlink -f ~/nsac/result[-backend])\" $GCROOT_DIR/$name)"
   target=$(readlink -f "$link") || fail "gcroot $link dangles"
-  [[ "$target" == /nix/store/* ]] || fail "gcroot $link → '$target' is not a store path"
   [ -e "$target" ] || fail "gcroot target $target does not exist"
   [[ "$target" == *"$expect_substr"* ]] || fail "gcroot $link → '$target' does not look like $expect_substr"
   echo "nix-gc: gcroot $name → $target (ok)"
@@ -32,18 +36,22 @@ check_gcroot() {
 check_gcroot nsac-web  -nsac-web-
 check_gcroot nsac-backend -nsac-backend-
 
-# Nếu systemd có unit nsac-web, ExecStart phải resolve đúng gcroot target
+# Nếu systemd có unit nsac-{web,backend}, ExecStart phải resolve đúng gcroot target
 # (bảo vệ trường hợp ai đó đổi result mà quên gcroot).
-if command -v systemctl >/dev/null && systemctl list-units --full -all --no-legend 'nsac-web.service' 2>/dev/null | grep -q nsac-web; then
-  exec_path=$(systemctl show -p ExecStart --value nsac-web.service | grep -oE '/nix/store/[^ ]*nsac-web[^ "]*' | head -1 || true)
-  if [ -n "$exec_path" ]; then
-    resolved=$(readlink -f "$exec_path")
-    web_root=$(readlink -f "$GCROOT_DIR/nsac-web")
-    # ExecStart trỏ tới ~/nsac/result/bin/nsac-web → resolve ra store path; prefix phải khớp gcroot
-    [[ "$resolved" == "$web_root"/* ]] || fail "nsac-web ExecStart resolves to $resolved, outside gcroot $web_root"
-    echo "nix-gc: nsac-web ExecStart under gcroot (ok)"
-  fi
-fi
+check_unit_execstart() {
+  local svc="$1" root_name="$2" glob="$3"
+  command -v systemctl >/dev/null && systemctl list-units --full -all --no-legend "$svc" 2>/dev/null | grep -q "${svc%.service}" || return 0
+  local exec_path resolved root
+  exec_path=$(systemctl show -p ExecStart --value "$svc" | grep -oE "/nix/store/[^ ]*${glob}[^ \"]*" | head -1 || true)
+  [ -n "$exec_path" ] || return 0
+  resolved=$(readlink -f "$exec_path")
+  root=$(readlink -f "$GCROOT_DIR/$root_name")
+  # ExecStart trỏ tới ~/nsac/result[-backend]/bin/* → resolve ra store path; prefix phải khớp gcroot
+  [[ "$resolved" == "$root"/* ]] || fail "$svc ExecStart resolves to $resolved, outside gcroot $root"
+  echo "nix-gc: $svc ExecStart under gcroot (ok)"
+}
+check_unit_execstart nsac-web.service nsac-web 'nsac-web'
+check_unit_execstart nsac-backend.service nsac-backend 'nsac-backend'
 
 echo "nix-gc: dead paths (before):"
 "$NIX_STORE" --gc --print-dead | wc -l
