@@ -52,6 +52,6 @@ From the repo root: `bun run typecheck`, `bun run test`, `bun run build` (Turbor
 
 | Path | Scope |
 |---|---|
-| `src/features/agent/` | Multi-agent layer on PI SDK: orchestrator `sky-orchestrator` (SOUL Sky), specialists `sky-generative-ui` and `sky-hud-composer` (per-astronaut HUD composer for `/?gen=1`). Server-only PI SDK wiring in `runtime/pi.server.ts`; registry extension point (one profile file + one registry line + one test row per agent); no secrets, no network in tests. |
+| `src/features/agent/` | Multi-agent layer on PI SDK: orchestrator `sky-orchestrator` (SOUL Sky), specialists `sky-generative-ui` and `sky-hud-composer` (per-astronaut HUD composer for `/?gen=1`). Server-only PI SDK wiring in `runtime/pi.server.ts`; registry extension point (one profile file + one registry line + one test row per agent); no secrets, no network in tests. How agents run/coordinate/tools+skills: root `HARNESSING.md`. |
 | `features/body-map/AGENTS.md` | Open Anatomy 3D hologram body map overlay for the HUD: lazy-loaded three.js scene (three must stay out of the entry chunk), CC BY 4.0 attribution, WebGL/GLB fallbacks. |
 | `features/spacecraft/AGENTS.md` | NASA ISS GLB test bench for `/spacecraft`: lazy three.js scene (three stays out of the entry chunk), draco decoder served locally from `public/draco/`, both NASA models switchable, bounding-box camera fit, WebGL/GLB fallbacks. |

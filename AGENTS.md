@@ -185,6 +185,7 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 - `UX_IMPLEMENTATION.md` ma trận traceability UX.md → code, trạng thái và hạn chế; cập nhật khi cover tăng.
 - `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md` spec pixel-matched màn hình HUD astronaut wellness (12 components, state machine voice, design tokens); `/` là màn hình này, `/console` giữ bản console cũ.
 - `ARCHITECTURE.md` mô tả cấu trúc code đang có: bản đồ repo, luồng dữ liệu backend, layer và chiều phụ thuộc, layout/SSR/server boundary của `apps/web`, nguồn dữ liệu, cách chạy và khoảng trống. Cập nhật khi cấu trúc hay ranh giới layer đổi.
+- `HARNESSING.md` cách các agent Pi SDK (`features/agent`) chạy và phối hợp: profile/registry, boundary `pi.server.ts`, per-astronaut sessions, dispatch deterministic không LLM routing, tools/skills hiện tắt cố ý, output gates, failure modes, env. Cập nhật khi harness hoặc cách phối hợp đổi.
 - `assets/models3d/` (mỗi model kèm license/nguồn) · `assets/fixtures/` · `scripts/` · `tests/` (phản chiếu `backend/`) · `var/` (gitignored, trạng thái runtime).
 - Chưa chốt: OpenUI (JS) cùng NiceGUI (Python) hay thay thế; nếu đổi, cập nhật mục này.
 
