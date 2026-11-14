@@ -135,6 +135,7 @@ Challenge: **Create Health Monitoring Software for Astronauts on Space Missions*
 ### Agent architecture (Sky)
 
 - Orchestrator `sky-orchestrator` carries the SOUL identity Sky; specialists such as `sky-generative-ui` (OpenUI spec generator) live alongside. Code: `apps/web/src/features/agent/` (deep module). Adding an agent is a profile file + one registry line + one test row. Server-only PI SDK boundary; no new dependencies.
+- Target architecture (vision, not built; see `docs/AGENT_BROADCAST.md`): per-astronaut pair — `sky-<id>-orchestrator` + `sky-<id>-composer` per crew member, the two talk via a bounded handoff; five hazard domain workers (NASA hazards) publish to one shared broadcast bus (`change_events` in `apps/backend`) which every agent subscribes to; broadcast carries facts/events only, never commands; deterministic detection, humans confirm actions.
 
 ### NASA research
 

@@ -297,6 +297,7 @@ Nix: `nix build .#backend` / `nix run .#backend` (port 3200, `SKY_DB_PATH` mặc
 
 ## 8. Khoảng trống đã biết
 
+- Kiến trúc agent mục tiêu (per-astronaut pair, 5 hazard workers, broadcast/shared memory) mới là vision — xem `docs/AGENT_BROADCAST.md`; chưa có gì của lớp này trong code.
 - Chưa có model mở cho orthostatic tolerance ở 3/8 G; readiness là công thức minh họa.
 - Không có ECG/echo liên tục công khai; tín hiệu tim là synthetic theo paper.
 - Web↔backend hiện chỉ nối ở picker `/` (roster từ backend với fixture fallback, pick claim-locked qua `/api/claims`); `/demo` vẫn dùng scenario minh họa, không phải dữ liệu pipeline.
@@ -317,3 +318,4 @@ Nix: `nix build .#backend` / `nix run .#backend` (port 3200, `SKY_DB_PATH` mặc
 | `README.md` | Tổng quan sản phẩm, demo 60 giây, tech stack |
 | `STORY.md` | Truyện "Sky" (nguồn duy nhất) |
 | `ARCHITECTURE.md` | File này: cấu trúc code và luồng dữ liệu |
+| `docs/AGENT_BROADCAST.md` | Vision kiến trúc agent: per-astronaut pair, 5 hazard workers, broadcast/shared memory |
