@@ -42,7 +42,7 @@
             # The FOD output differs per platform (optional native deps), so pin a hash per system.
             outputHash = {
               x86_64-linux = "sha256-nd836TCX2F5tLQpivk6MF78s/+o2ct+1a+uE89m4/lI=";
-              aarch64-linux = "sha256-S+yC8SbstDMmewgOZy4qgkheM+KZfYXGN09ge9s5tjw=";
+              aarch64-linux = "sha256-3gUEB+mcs870eyDWbEPv0g8Yeryi/DGX7ERy71rnM6E=";
             }.${pkgs.stdenv.hostPlatform.system};
           };
         in
