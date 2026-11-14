@@ -27,12 +27,12 @@ Người/agent hoàn tất nhánh của mình: đặt `Status: ready` + điền 
 - Request: merge → origin/main + deploy + tag
 - Notes: Agent báo xong qua hc send sẽ đặt `ready`; deploy sau merge phải verify (a) gcroot `nsac-web-node-modules` resolve trực tiếp tới store path, (b) `DRY_RUN=1 nix-gc.sh` không gợi ý GC FOD, (c) `nix build .#web` trên box KHÔNG rebuild FOD.
 
-## holo-hud — ready
-- Status: ready
-- Worktree: removed (cleaned after ready)
+## holo-hud — merged 7600781
+- Status: merged 7600781 (git-bot, 2026-11-15; branch `holo-hud` đã xoá)
+- Worktree: removed
 - Base: origin/main @ 00b8c1f
 - Owner: agent t84 (hc) — Hologram 3D tối giản cho HUD staged (`/?gen=0`)
 - Task: HologramBody R3F tối giản tái dùng skin+skeleton spec từ body-map; script `scripts/holo-model.ts` sinh `anatomy-male-holo.glb`; thay SVG vẽ tay trong SkyScreen; CC BY 4.0 attribution bắt buộc. Commit `b32b87a` "Show the HUD health card's body as a minimal 3D hologram" (branch `holo-hud`, chưa push)
-- Gates: build ✅ typecheck ✅ tests 225/225 (34 files) ✅ (worktree gốc agent); entry chunk 350.849 B, `WebGLRenderer` = 0 (chỉ có trong lazy GLTFLoader/three.core); browser: `/?gen=0` 1672×941 canvas 124×234 hiện skin+skeleton 0 console error, `/?gen=1` giữ SVG, `/body` 200, reduced-motion không quay, GLB 404 → SVG fallback, attribution render đúng (không chồng text)
-- Request: merge → origin/main + deploy + tag
-- Notes: Asset `anatomy-male-holo.glb` 898.972 B (14,6% gốc, 29 mesh, 124.566 tris, meshopt, 0 texture; sha256 d6d3169f…, idempotent script). Attribution `HoloCredit` (Open Anatomy ATTRIBUTION nguyên văn + link CC BY 4.0, ngoài Link). **Bug đã biết (pre-existing, ngoài scope):** WebGL tắt thì `/` đã crash sẵn từ orb CrystalizedBall — cả `/?gen=1`; fallback no-WebGL của thẻ chỉ verify được qua đường GLB-404. `hud-gen`/OpenUI giữ SVG theo quyết định user. Report: `/tmp/opencode/holo-hud-report.md`. Không đụng gen, /body, /watch, bun.lock, flake.nix.
+- Gates: worktree gốc: build ✅ typecheck ✅ tests 225/225 (34 files) ✅; merged tree `7600781`: `bun install --frozen-lockfile` ✅, `apps/web` build ✅ typecheck ✅ tests 231/231 (35 files) ✅; entry chunk 350.849 B, `WebGLRenderer` = 0 (chỉ có trong lazy GLTFLoader/three.core); browser: `/?gen=0` 1672×941 canvas 124×234 hiện skin+skeleton 0 console error, `/?gen=1` giữ SVG, `/body` 200, reduced-motion không quay, GLB 404 → SVG fallback, attribution render đúng (không chồng text)
+- Request: merge → origin/main ✅ (7600781). Deploy + tag **hoãn có chủ đích**: box không còn output FOD `nsac-web-node-modules` (deploy `1eed24c` GC xoá, chỉ còn `.drv`), deploy bây giờ sẽ rebuild FOD trên aarch64 → hash mismatch, đúng lỗi `fix/fod-gcroot` đang sửa. Deploy gộp một lần sau khi `fix/fod-gcroot` merge.
+- Notes: Merge `7600781` (`--no-ff`); conflict chỉ ở docs (`AGENTS.md`, `apps/web/AGENTS.md`) → hợp nhất union, không marker, `bun.lock`/`flake.nix`/`scripts/deploy.sh`/`scripts/nix-gc.sh` không đổi. Asset `anatomy-male-holo.glb` 898.972 B (14,6% gốc, 29 mesh, 124.566 tris, meshopt, 0 texture; sha256 d6d3169f…, idempotent script). Attribution `HoloCredit` (Open Anatomy ATTRIBUTION nguyên văn + link CC BY 4.0, ngoài Link). **Bug đã biết (pre-existing, ngoài scope):** WebGL tắt thì `/` đã crash sẵn từ orb CrystalizedBall — cả `/?gen=1`; fallback no-WebGL của thẻ chỉ verify được qua đường GLB-404. `hud-gen`/OpenUI giữ SVG theo quyết định user. Report: `/tmp/opencode/holo-hud-report.md`. Không đụng gen, /body, /watch, bun.lock, flake.nix.
