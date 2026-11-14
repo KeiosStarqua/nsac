@@ -12,7 +12,7 @@ import {
 } from "open-anatomy-3d";
 import * as THREE from "three";
 import styles from "./BodyScene.module.css";
-import { structureKeyForMesh, type LayerMap } from "../model/layers";
+import { structureKeyForMesh, type LayerState } from "../model/layers";
 import { materialSpec, selectedSpec, type MaterialSpec } from "../model/materials";
 import { OrganFocus } from "./OrganFocus";
 import { SceneBoundary } from "./SceneBoundary";
@@ -25,7 +25,7 @@ export interface BodySceneProps {
   readonly webglAvailable: boolean;
   readonly selected: string | null;
   readonly onSelect: (key: string) => void;
-  readonly layers: LayerMap;
+  readonly layers: LayerState;
   readonly reducedMotion: boolean;
   readonly paused: boolean;
 }
@@ -60,7 +60,7 @@ function toMaterial(spec: MaterialSpec): THREE.MeshStandardMaterial {
 function prepareModel(source: THREE.Group): PreparedModel {
   const object = source.clone(true);
   const entries: MeshEntry[] = [];
-  object.traverse((node) => {
+  object.traverse((node: THREE.Object3D) => {
     if (!(node instanceof THREE.Mesh)) return;
     const key = structureKeyForMesh(node.name);
     const structure = key ? getStructure(key) : undefined;

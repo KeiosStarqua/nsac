@@ -7,6 +7,9 @@ export type LayerKey = "skin" | "skeleton" | "muscles" | "organs" | "vessels" | 
 
 export type LayerState = Record<LayerKey, boolean>;
 
+/** Alias kept for call sites written against the first draft's name. */
+export type LayerMap = LayerState;
+
 export const LAYER_KEYS: readonly LayerKey[] = [
   "skin",
   "skeleton",
