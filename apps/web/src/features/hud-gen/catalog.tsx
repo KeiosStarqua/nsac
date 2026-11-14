@@ -18,7 +18,7 @@
 // region with exactly the utilities the staged SkyScreen uses, so both screens stay identical.
 import { createLibrary, createParser, defineAction, defineComponent } from "@openuidev/react-lang";
 import { Link } from "@tanstack/react-router";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import type { ReactNode } from "react";
 import { z } from "zod/v4";
 import BlurText from "~/shared/react-bits/BlurText/BlurText";
@@ -28,6 +28,7 @@ import DepthText from "~/shared/react-bits/DepthText/DepthText";
 import GradientText from "~/shared/react-bits/GradientText/GradientText";
 import ShinyText from "~/shared/react-bits/ShinyText/ShinyText";
 import VariableProximity from "~/shared/react-bits/VariableProximity/VariableProximity";
+import VoicePill from "~/shared/react-bits/VoicePill/VoicePill";
 // The vendored react-bits sources are @ts-nocheck; their inferred prop types demand props the
 // runtime never requires (e.g. dpr/style/fromColor/onAnimationComplete fall back to defaults).
 // Alias them to any at the boundary so the rest of this file stays type-checked.
@@ -52,7 +53,7 @@ import {
   HEALTH_SUMMARY, HOLOGRAM_LINK, HUMAN_HOLOGRAM, LENS_INNER, MISSION_TEXT, MISSION_TRIGGER,
   MISSION_UNDERLINE, ORB_FALLBACK, ORB_ZONE, ORB_ZONE_THINKING, SKY_HEADER, SKY_HEADER_ACTIONS,
   SPACECRAFT_LINK, STATION_ICON, TEXT_TRIGGER, VITAL_ICON, VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE,
-  VITALS_PROJECTION, VITALS_SHIELD, VOICE_CONTROL, VOICE_HINT, micButtonClass,
+  VITALS_PROJECTION, VITALS_SHIELD, VOICE_CONTROL, VOICE_HINT,
 } from "~/features/sky-hud/hud-classes";
 
 // ---- hud-gen-only classes (were catalog.module.css) --------------------------------------------
@@ -411,11 +412,30 @@ const MicButton = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
+    // VoicePill (React Bits) owns its own listening state and simulated bars — it never opens a
+    // MediaStream; `useSkyVoice` in the host keeps the real analyser for the orb/waveform. This
+    // mirror stops `disabled` from ending the pill's own session as the phase turns to
+    // `requesting_permission`.
+    const [pillOn, setPillOn] = useState(false);
     return (
       <>
-        <button id="micButton" className={micButtonClass(ctx.phase, "console")} type="button" aria-label={ctx.micAria} disabled={ctx.phase === "requesting_permission"} onClick={() => ctx.onAction?.({ type: "ToggleMic", params: {} })}>
-          <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="18" y="8" width="12" height="24" rx="6" fill="none" stroke="currentColor" strokeWidth="2.4" /><path d="M13 24c0 15 22 15 22 0M24 36v6m-7 0h14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
-        </button>
+        <VoicePill
+          size={84}
+          accentColor="#5eead4"
+          iconColor="#bfe6ef"
+          background="#0e2233"
+          className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
+          ariaLabel={ctx.micAria}
+          disabled={ctx.phase === "requesting_permission" && !pillOn}
+          onStart={() => {
+            setPillOn(true);
+            if (ctx.phase === "idle" || ctx.phase === "error") ctx.onAction?.({ type: "ToggleMic", params: {} });
+          }}
+          onStop={() => {
+            setPillOn(false);
+            if (ctx.phase === "listening" || ctx.phase === "requesting_permission") ctx.onAction?.({ type: "ToggleMic", params: {} });
+          }}
+        />
         <div id="voiceHint" className={VOICE_HINT} aria-live="polite">{ctx.hint}</div>
       </>
     );

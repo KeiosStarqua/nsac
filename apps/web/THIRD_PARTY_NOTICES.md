@@ -15,9 +15,10 @@
 
 - Licence: MIT + Commons Clause
 - Link: https://github.com/DavidHDev/react-bits
-- Components taken: all 59 (7 prior + 52 new; CrystalizedBall 2026-11-14, Topography 2026-11-15)
+- Components taken: all 60 (7 prior + 52 new; CrystalizedBall 2026-11-14, Topography 2026-11-15, VoicePill 2026-11-15)
 - CrystalizedBall: https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/CrystalizedBall/CrystalizedBall.jsx — orb for `/`
 - Topography: https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/Topography/Topography.jsx — backdrop for `/watch`
+- VoicePill: https://github.com/DavidHDev/react-bits (main), src/content/Micro/VoicePill/VoicePill.jsx — console mic on `/` (uses `@hugeicons/react` + `@hugeicons/core-free-icons`, both already direct deps)
 - Location: apps/web/src/shared/react-bits/
 - Licence file: apps/web/src/shared/react-bits/LICENSE.md
 - Date: 2026-11-14

@@ -10,7 +10,10 @@
 | VariableProximity | https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/VariableProximity/VariableProximity.jsx | MIT + Commons Clause |
 | DecryptedText | https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/DecryptedText/DecryptedText.jsx | MIT + Commons Clause |
 | Topography | https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/Topography/Topography.jsx | MIT + Commons Clause |
+| VoicePill | https://github.com/DavidHDev/react-bits (main), src/content/Micro/VoicePill/VoicePill.jsx | MIT + Commons Clause |
 
 Fetched 2026-11-14. Changes: JSX to TSX, `'use client'` removed, `@ts-nocheck` added.
+
+VoicePill fetched 2026-11-15, same changes; it needs `@hugeicons/react` + `@hugeicons/core-free-icons` (already direct dependencies of this package).
 
 MIT + Commons Clause. Vendored for this app only, never republished as a library.
