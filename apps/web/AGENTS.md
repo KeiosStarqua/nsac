@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. Single route `/`: the SKY HUD — the 1672×941 astronaut wellness interface from `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md` (SkyIdentity, MissionContext, VitalsProjection, AICoreOrb, ConversationLens, HealthProjection, OrganicInputSurface, MicrophoneOrb + one authoritative voice-phase state machine, fixture ‘Simulated data’, canvas/SVG only). The HUD's hologram button opens the body-map overlay (`features/body-map/`), the one WebGL surface, where three.js is lazy-loaded behind the click. It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI).
+Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. Routes: `/` — the SKY HUD (1672×941 astronaut wellness interface from `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md`: SkyIdentity, MissionContext, VitalsProjection, AICoreOrb, ConversationLens, HealthProjection, OrganicInputSurface, MicrophoneOrb + one authoritative voice-phase state machine, fixture ‘Simulated data’, canvas/SVG only) with the astronaut picker (`features/astronaut/`, localStorage `nsac.astronaut`, shown before the HUD on first visit) and the Orbkit orb in the orb zone; `/body` — the Open Anatomy 3D body map (`features/body-map/`, full-page route, three.js loaded only there, CC BY 4.0 attribution); `/health` — agent configuration readiness + roster, no secrets. The HUD's hologram button links to `/body`; three.js never loads on `/`. It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI).
 
 ## Ownership
 
