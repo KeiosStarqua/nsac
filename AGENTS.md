@@ -95,8 +95,8 @@ Challenge: **Create Health Monitoring Software for Astronauts on Space Missions*
 
 #### Hard rules (đọc trước khi code)
 
-1. Chạy **hoàn toàn offline** trên một laptop; demo có thể rút dây mạng trên sân khấu.
-2. **License:** mọi dependency phải OSI-approved (MIT/Apache/BSD). Không dùng PyMuPDF (AGPL), hrv-analysis (GPL), piper1-gpl (GPL), SDV/Copulas (BSL), CircAdapt, MedGemma, EmbeddingGemma. Repo: Apache-2.0 — https://www.spaceappschallenge.org/legal/
+1. ~~Chạy hoàn toàn offline~~ **Bỏ (Keios, 2026-11-14)** — mạng/cloud được phép trong demo và runtime; không còn yêu cầu rút dây mạng.
+2. ~~License OSI-approved bắt buộc~~ **Bỏ (Keios, 2026-11-14)** — dependency không còn bắt buộc OSI-approved; vẫn phải giữ attribution và tuân điều khoản từng thư viện (vd. React Bits MIT + Commons Clause, Orbkit phi thương mại). Repo vẫn Apache-2.0 — https://www.spaceappschallenge.org/legal/
 3. Mọi ngưỡng y khoa, trọng số và claim phải có **nguồn (URL)** trong comment code và trên UI.
 4. **AI không quyết định một mình:** phát hiện deterministic; LLM chỉ giải thích, trích checklist và soạn draft; phi hành gia xác nhận mọi hành động. Hiển thị disclaimer: "AI-generated, not a substitute for a physician".
 5. Không dữ liệu cá nhân; không ảnh hoặc hình ảnh trẻ vị thành niên trong bài nộp.
@@ -139,7 +139,7 @@ Challenge: **Create Health Monitoring Software for Astronauts on Space Missions*
 
 This repo maps NASA public data and APIs so future NASA hackathons and contests can start from checked sources.
 
-- Root `README.md` holds the living notes until a folder becomes its own boundary, including **HKT (Space Apps 2026)** and the **Tech stack (NSAC)** section (offline LLM, RAG, drift detection, NASA OSDR, UI, packaging).
+- Root `README.md` holds the living notes until a folder becomes its own boundary, including **HKT (Space Apps 2026)** and the **Tech stack (NSAC)** section (LLM, RAG, drift detection, NASA OSDR, UI, packaging).
 - Every factual claim needs a source URL and the date it was checked. Figures from the 2019 Open-Innovation Tour for Space Apps are historical; refresh them against the live site before a contest.
 - Harvest catalogs (`data.nasa.gov`, `api.nasa.gov`) suit name lookup. Domain archives (Planetary Data System, Earthdata, STI, and similar) suit discovery. Do not treat a harvest miss as proof a dataset does not exist.
 - Keep NASA API keys and tokens out of the repo.
@@ -190,7 +190,7 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 
 ### HKT Space Apps 2026
 
-- [ ] App chạy end-to-end khi rút mạng.
+- [ ] ~~App chạy end-to-end khi rút mạng.~~ Bỏ (2026-11-14) — offline không còn bắt buộc.
 - [ ] Demo scenario dưới 60 giây, không crash.
 - [ ] Mọi ngưỡng và trọng số hiển thị nguồn.
 - [ ] Bước xác nhận chặn mọi hành động nếu chưa confirm.
@@ -204,7 +204,7 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 |---|---|
 | `docs/references/AGENTS.md` | Catalog tham chiếu HKT (chỉ số theo hệ cơ quan, liên kết OSDR) |
 | `practice/AGENTS.md` | Monorepo luyện tay (bun + Turborepo: TanStack Start, Mastra, OpenUI, mô phỏng cúm); không thuộc bài nộp HKT, không chuyển vào thư mục dự án trước 14/11/2026 09:00 |
-| `apps/web/AGENTS.md` | Web app Sky (TanStack Start, bun, Turborepo): `/` console dựng bằng catalog OpenUI Arc (uiarc.dev, MIT, vendored trong `src/components/arc/`), `/concept` nội dung concept theo PRD (`NASA HACKATHON_Prd Description.pdf`), `/demo` demo tương tác, `/sky` living interface (Living Core canvas, scene IR, device embodiments, simulated data), `/story` truyện từ `STORY.md`; Sky bay trên mọi trang và dựng panel OpenUI — agent core là PI SDK (`@earendil-works/pi-coding-agent`) với model OpenRouter, key nhập qua dialog và lưu write-only trên máy (`var/sky-openrouter.json`); không có key/mạng thì hiện preset; page render được khi rút dây, song ngữ en/vi |
+| `apps/web/AGENTS.md` | Web app Sky (TanStack Start, bun, Turborepo): routes `/` (SKY HUD astronaut wellness — vitals fixture SIMULATED, voice mic-analyser, OrbCanvas, body-map 3D overlay) và `/health` (agent readiness + roster, không tiết lộ secret); Sky dựng panel OpenUI qua agent core PI SDK (`sky-orchestrator` + `sky-generative-ui`, model OpenRouter, key write-only trong `var/sky-openrouter.json`); không có key/mạng thì agent trả preset; React Bits vendored trong `src/shared/react-bits/` (55 components, MIT + Commons Clause, attribution, xem THIRD_PARTY_NOTICES.md); Open Anatomy model trong `public/models/` (CC BY 4.0); song ngữ en/vi (per apps/web/AGENTS.md) |
 
 Not indexed (not durable boundaries): `.agents/` (bot làm việc local, vd. `.agents/bot/ceo/` — CEO bot theo dõi agent hc; `HC-AGENTS.md` git-ignored), `.kiro/`, `.local/`.
 

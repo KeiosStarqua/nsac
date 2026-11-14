@@ -10,9 +10,9 @@ Quy tắc hackathon, hợp đồng schema, chia việc agent và checklist nộp
 
 ## Sản phẩm
 
-Một “bác sĩ tạm” onboard **offline** theo baseline từng phi hành gia, chỉ liều tập để phục hồi tim và chân, và **Mars landing readiness** (đứng được ở 3/8 G?), tự báo cáo về Trái Đất qua link trễ 20 phút.
+Một “bác sĩ tạm” trên tàu theo baseline từng phi hành gia, chỉ liều tập để phục hồi tim và chân, và **Mars landing readiness** (đứng được ở 3/8 G?), tự báo cáo về Trái Đất qua link trễ 20 phút.
 
-Khác dashboard sức khỏe: người dùng là phi hành gia (không phải bác sĩ mặt đất); không cần mạng; nói **việc làm tiếp**, không chỉ “sai chỗ nào”.
+Khác dashboard sức khỏe: người dùng là phi hành gia (không phải bác sĩ mặt đất); nói **việc làm tiếp**, không chỉ “sai chỗ nào”.
 
 **Câu chuyện Trái Đất:** người già nằm lâu và bệnh nhân sau phẫu thuật ở TP.HCM — cùng cơ chế mất thể lực.
 
@@ -38,7 +38,7 @@ flowchart LR
   H --> X[Readiness score + action]
   H --> O[Ground report PDF\nJinja2 + WeasyPrint]
   O --> Q[SQLite outbox\n20-min delay simulation]
-  X --> U[NiceGUI app, offline]
+  X --> U[NiceGUI app]
 ```
 
 ## Demo (60 giây)
@@ -150,7 +150,7 @@ Challenge: choose which Moon samples to return.
 
 Thứ tự và link dưới đây là stack dự kiến cho dự án; mỗi URL đã mở thử **2026-10-18**.
 
-### Chạy model offline
+### Model local
 
 | Thành phần | Link | Ghi chú |
 |---|---|---|
