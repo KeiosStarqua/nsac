@@ -17,6 +17,10 @@ export const en: Copy = {
     hint: "Press 1–6 to select · Enter to confirm",
     footer: "Simulated crew · Demonstration only · Not medical advice",
     close: "Close astronaut picker",
+    taken: "CHOSEN",
+    takenCta: "Already chosen — pick another",
+    claimTaken: "Someone just chose that crew member — pick another.",
+    claiming: "Claiming…",
   },
   chat: {
     label: "Message to Sky · {name}",

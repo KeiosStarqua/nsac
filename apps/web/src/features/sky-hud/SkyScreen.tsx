@@ -18,7 +18,8 @@ import { VoiceWaveform } from "./VoiceWaveform";
 import { InputSurface } from "./InputSurface";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
 import { Link } from "@tanstack/react-router";
-import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts } from "../astronaut";
+import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId } from "../astronaut";
+import type { ClaimEntry } from "../astronaut";
 import { ChatPanel } from "./components/ChatPanel";
 import { format, useCopy } from "../../shared/i18n";
 import type { VitalKind, VoicePhase } from "./types";
@@ -87,6 +88,11 @@ export function SkyScreen() {
   const [astronautId, setAstronautId] = useState<string | null>(null);
   const [roster, setRoster] = useState(() => [...ASTRONAUTS]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [claims, setClaims] = useState<ClaimEntry[]>([]);
+  const [claimsReachable, setClaimsReachable] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState(false);
+  const sessionIdRef = useRef<string | null>(null);
   const [greeting, setGreeting] = useState("Good morning.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
   const [announcer, setAnnouncer] = useState("");
@@ -123,6 +129,58 @@ export function SkyScreen() {
     };
   }, [mounted]);
 
+  // Crew claims (ai đã giữ astronaut nào). Backend unreachable → claims tắt, picker chạy y
+  // như trước (local pick, không enforce): demo không bao giờ bị chặn vì box lỗi. Unreachable
+  // ≠ enforced — chỉ là demo resilience, không phải chế độ bảo mật.
+  const refreshClaims = useCallback(async (sid: string) => {
+    try {
+      const res = await listClaims({ data: { sessionId: sid } });
+      setClaims(Array.isArray(res?.claims) ? res.claims : []);
+      setClaimsReachable(res?.reachable !== false);
+    } catch {
+      setClaimsReachable(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const sid = getOrCreateSessionId();
+    sessionIdRef.current = sid;
+    let alive = true;
+    void listClaims({ data: { sessionId: sid } })
+      .then((res) => {
+        if (!alive) return;
+        const list = Array.isArray(res?.claims) ? res.claims : [];
+        setClaims(list);
+        setClaimsReachable(res?.reachable !== false);
+        // Pre-HUD gate: localStorage giữ astronaut mà claims nói đã bị session KHÁC giữ
+        // (claim cũ từ session đã wipe) → xóa và mở picker, không khóa khung shell mãi.
+        // Claims unreachable → giữ nguyên hành vi cũ (tin localStorage).
+        if (res?.reachable) {
+          try {
+            const stored = window.localStorage.getItem(ASTRONAUT_STORAGE_KEY);
+            const normalized = normalizeAstronautId(stored);
+            const takenByOther =
+              normalized && list.some((c) => !c.mine && c.astronautId === normalized);
+            if (normalized && takenByOther) {
+              window.localStorage.removeItem(ASTRONAUT_STORAGE_KEY);
+              setAstronautId(null);
+              setGreeting("Good morning.");
+              setPickerOpen(true);
+            }
+          } catch {
+            /* storage unavailable → giữ nguyên */
+          }
+        }
+      })
+      .catch(() => {
+        if (alive) setClaimsReachable(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [mounted]);
+
   // One rAF loop feeds the waveform; orb/waveform read energyRef directly per frame.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -145,14 +203,46 @@ export function SkyScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readEnergy]);
 
-  const handleAstronautSelect = useCallback((id: string) => {
+  const persistLocalPick = useCallback((astroId: string) => {
+    try { window.localStorage.setItem(ASTRONAUT_STORAGE_KEY, astroId); } catch { /* ignore */ }
+  }, []);
+
+  const handleAstronautSelect = useCallback(async (id: string) => {
     const astro = findAstronaut(id, roster);
     if (!astro) return;
-    try { window.localStorage.setItem(ASTRONAUT_STORAGE_KEY, astro.id); } catch { /* ignore */ }
-    setAstronautId(astro.id);
-    setGreeting(format(copy.astronaut.greeting, { name: firstName(astro.name) }));
-    setPickerOpen(false);
-  }, [roster, copy]);
+    const sid = sessionIdRef.current ?? getOrCreateSessionId();
+    sessionIdRef.current = sid;
+    setClaiming(true);
+    setClaimError(false);
+    const localPick = () => {
+      persistLocalPick(astro.id);
+      setAstronautId(astro.id);
+      setGreeting(format(copy.astronaut.greeting, { name: firstName(astro.name) }));
+      setPickerOpen(false);
+    };
+    try {
+      const res = await claimAstronaut({ data: { sessionId: sid, astronautId: astro.id } });
+      if (res.ok) {
+        localPick();
+      } else if (res.reason === "taken") {
+        // Picker giữ nguyên, báo inline; claims refresh ở finally để card vừa mất hiện "CHOSEN".
+        setClaimError(true);
+      } else if (res.reason === "unavailable") {
+        // Backend không reach được → y như local pick trước đây (không enforce).
+        localPick();
+      } else {
+        // "error" — cùng đường đi như unavailable, nhưng log để debug.
+        console.warn("[sky] claim failed: unexpected backend response");
+        localPick();
+      }
+    } catch (err) {
+      console.warn("[sky] claim request failed", err);
+      localPick();
+    } finally {
+      setClaiming(false);
+      void refreshClaims(sid);
+    }
+  }, [roster, copy, persistLocalPick, refreshClaims]);
 
   const openDetail = useCallback(({ title, value, message, eyebrow = "SIMULATED DATA", footer = DEFAULT_FOOTER }: DetailDialogProps) => {
     previousFocus.current = document.activeElement;
@@ -217,6 +307,7 @@ export function SkyScreen() {
             label: copy.astronaut.change,
             onClick: () => {
               closeDetail();
+              setClaimError(false);
               setPickerOpen(true);
             },
           },
@@ -338,8 +429,12 @@ export function SkyScreen() {
           open
           roster={roster}
           initialId={astronautId}
+          takenIds={takenIdsOf(claims, astronautId)}
+          mineId={astronautId}
+          claiming={claiming}
+          error={claimError ? copy.astronaut.claimTaken : null}
           onSelect={handleAstronautSelect}
-          onClose={astronautId ? () => setPickerOpen(false) : undefined}
+          onClose={astronautId ? () => { setPickerOpen(false); setClaimError(false); } : undefined}
         />
       ) : null}
       <div className="sr-only" role="status" aria-live="polite">{announcer}</div>

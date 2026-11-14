@@ -18,6 +18,11 @@
 .card:focus-visible { outline: 2px solid #e7edf7; outline-offset: 2px; opacity: 1; }
 .cardSelected { border-color: #5eead4; box-shadow: inset 0 0 20px 0 rgba(94,234,212,.06), 0 0 32px -8px rgba(94,234,212,.35); opacity: 1; }
 .cardSelected:hover { border-color: #5eead4; }
+.cardTaken { opacity: .45; cursor: not-allowed; border-style: dashed; }
+.cardTaken:hover { transform: none; opacity: .45; border-color: #1e293b; }
+.cardTaken .callsign { color: #5f6c82; border-color: #1e293b; background: transparent; }
+.takenBadge { margin-top: auto; padding-top: 10px; border-top: 1px solid #1e293b; text-align: center; font-size: 10px; color: #fca5a5; font-family: monospace; letter-spacing: .12em; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.takenBadge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #fca5a5; flex: 0 0 auto; }
 .callsignRow { display: flex; justify-content: space-between; align-items: center; }
 .callsign { font-size: 11px; font-family: monospace; color: #5eead4; border: 1px solid rgba(94,234,212,.4); background: rgba(94,234,212,.1); padding: 2px 8px; border-radius: 4px; }
 .cardDim .callsign { color: #5f6c82; border-color: #1e293b; background: transparent; }
@@ -36,6 +41,9 @@
 .confirm { width: 100%; max-width: 360px; margin: 0 auto 8px; display: block; padding: 12px; border-radius: 4px; border: 0; background: #5eead4; color: #041018; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 0 24px 0 rgba(94,234,212,.35); }
 .confirm:hover { background: #7ff0dd; }
 .confirm:focus-visible { outline: 2px solid #e7edf7; outline-offset: 3px; }
+.confirm:disabled { opacity: .45; cursor: not-allowed; background: #334155; color: #94a3b8; box-shadow: none; }
+.confirm:disabled:hover { background: #334155; }
+.error { margin: 0 auto 10px; max-width: 420px; text-align: center; font-size: 12px; color: #fca5a5; border: 1px solid rgba(252,165,165,.35); background: rgba(252,165,165,.08); border-radius: 6px; padding: 8px 10px; }
 .hint { text-align: center; font-size: 11px; color: #5f6c82; font-family: monospace; margin: 0 0 8px; }
 .footer { text-align: center; font-size: 12px; color: rgba(95,108,130,.85); margin: 0; }
 @media (max-width: 720px) {
