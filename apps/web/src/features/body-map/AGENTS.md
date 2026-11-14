@@ -17,7 +17,8 @@ The SKY HUD's body hologram: a full-screen glass panel around the Open Anatomy 3
 - Readings come only from `VITAL_VALUES` in `features/sky-hud/vitals.ts`, mapped by structure key in `model/selection.ts`. Do not type a number into prose; the card always says the data is simulated.
 - three.js and the scene are lazy: `BodyMapOverlay` imports `scene/BodyScene` with `lazy()`. The entry chunk must not contain `WebGLRenderer`; check the built `assets/index-*.js`.
 - Fallbacks: no WebGL → readable message with `ATTRIBUTION`; a failed GLB (meshopt) load is caught by `scene/SceneBoundary` (R3F rethrows canvas errors into the DOM), shown with the same message plus retry. `ATTRIBUTION` stays in the overlay footer verbatim next to the CC BY 4.0 link.
-- Styling is CSS modules only (`BodyMapOverlay.module.css`, `scene/BodyScene.module.css`) on the tokens in `src/styles/global.css`. The catalog colour is the one data-driven value and travels as the `--swatch` custom property.
+- Styling is Tailwind v4 utilities in `className` (migrated 2026-11-14; `BodyMapOverlay.module.css` and `scene/BodyScene.module.css` are gone, no stylesheet left) on the tokens in `src/styles/global.css`, referenced as `bg-(--surface)`, `text-(--muted)`, `border-(--accent)/22`, `rounded-(--radius)`, `font-(family-name:--mono)`. The catalog colour is the one data-driven value and travels as the `--swatch` custom property, read by `[background-color:var(--swatch,var(--accent))]`.
+- The app reset in `src/styles/global.css` is **unlayered**, so it outranks the layered utilities; a utility whose property that reset also declares on the same element keeps the pre-migration rendering with the `!` suffix (`text-[13px]!` on a `<button>`, `tracking-[0.01em]!`/`leading-[1.25]!` on an `<h2>`/`<h3>`, `mt-[6px]!` on a `<p>`, `rounded-[999px]!` where `:focus-visible` would flatten it). `hover:text-(--text)!` is needed for the footer link, whose `a:hover` colour is unlayered.
 - Camera maths is pure (`model/framing.ts`); `scene/OrganFocus` eases camera position and the OrbitControls target over 600 ms and jumps instantly under `prefers-reduced-motion`.
 
 ## Work Guidance
@@ -25,6 +26,7 @@ The SKY HUD's body hologram: a full-screen glass panel around the Open Anatomy 3
 - Keep `model/` free of React, three.js and DOM so vitest can cover it.
 - New structures with a simulated reading go into `VITALS_BY_KEY` in `model/selection.ts`, keyed by catalog key, with the value built from `VITAL_VALUES`.
 - New scene behaviour belongs in `scene/`; keep the materials in `model/materials.ts` so the look stays one table.
+- Chrome styling is utilities only: no `@apply`, no new CSS files (the feature has none), and every colour/value comes from the `global.css` tokens. Check a styling change by dumping `getComputedStyle` (and `getBoundingClientRect`) per element before and after, at 1672×941 and 390×844; the 3D canvas itself is not deterministic enough to diff.
 
 ## Verification
 

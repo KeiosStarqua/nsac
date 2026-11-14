@@ -13,7 +13,6 @@ import {
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
-import styles from "./BodyScene.module.css";
 
 // The GLB now uses EXT_meshopt_compression (added in commit bcf45cb), which three's
 // GLTFLoader cannot decode unless a meshopt decoder is registered. Without this the
@@ -182,7 +181,10 @@ function ModelProgress() {
   const { active } = useProgress();
   if (!active) return null;
   return (
-    <p className={styles.loading} role="status">
+    <p
+      className="absolute bottom-[14px] left-[16px] m-0 rounded-[999px] border border-(--accent)/22 bg-(--bg)/72 px-[12px] py-[6px] font-(family-name:--mono) text-[10px] tracking-[0.16em] uppercase text-(--muted)"
+      role="status"
+    >
       Loading the anatomy model…
     </p>
   );
@@ -198,15 +200,19 @@ function SceneFallback({
   onRetry?: () => void;
 }) {
   return (
-    <div className={styles.fallback} role="status">
-      <h3 className={styles.fallbackTitle}>{title}</h3>
-      <p className={styles.fallbackDetail}>{detail}</p>
+    <div className="absolute inset-0 grid place-content-center justify-items-center gap-[10px] p-[28px] text-center" role="status">
+      <h3 className="m-0 text-[16px] font-normal text-(--text)">{title}</h3>
+      <p className="m-0 max-w-[44ch] text-[13px] leading-[1.55] text-(--muted)">{detail}</p>
       {onRetry ? (
-        <button type="button" className={styles.retry} onClick={onRetry}>
+        <button
+          type="button"
+          className="mt-[4px] cursor-pointer rounded-[999px]! border border-(--accent)/45 bg-transparent px-[16px] py-[7px] text-[12px]! text-(--accent) hover:bg-(--accent)/12"
+          onClick={onRetry}
+        >
           Try again
         </button>
       ) : null}
-      <p className={styles.credit}>{ATTRIBUTION}</p>
+      <p className="mt-[6px]! mb-0 max-w-[58ch] text-[10px] leading-[1.5] text-(--muted)">{ATTRIBUTION}</p>
     </div>
   );
 }
@@ -239,7 +245,7 @@ export default function BodyScene({ webglAvailable, ...props }: BodySceneProps) 
       )}
     >
       <Canvas
-        className={styles.canvas}
+        className="block size-full"
         dpr={[1, 1.75]}
         camera={{ position: DEFAULT_CAMERA, fov: 38, near: 0.05, far: 30 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}

@@ -1,6 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { ATTRIBUTION } from "open-anatomy-3d";
-import styles from "./BodyMapOverlay.module.css";
 import { LayerRail } from "./components/LayerRail";
 import { StructureCard } from "./components/StructureCard";
 import { DEFAULT_LAYERS, type LayerMap } from "./model/layers";
@@ -34,6 +33,12 @@ function webglAvailable(): boolean {
  * The body hologram: a full-screen glass panel around the Open Anatomy 3D male
  * model. Selecting a mesh shows its catalog facts and, for the heart, lungs and
  * brain, the simulated HUD readings. Nothing is measured; the panel says so.
+ *
+ * Styling note: the utilities here are Tailwind v4 and the app reset in
+ * `src/styles/global.css` is unlayered, so it wins over the layered utilities.
+ * A utility whose property that reset also declares on the same element (a
+ * heading's letter-spacing, a button's font-size, the focus-visible radius, a
+ * paragraph's margin) carries `!` to keep the pre-migration rendering.
  */
 export function BodyMapOverlay({ open, onClose }: BodyMapOverlayProps) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -72,34 +77,52 @@ export function BodyMapOverlay({ open, onClose }: BodyMapOverlayProps) {
   return (
     <div
       ref={dialogRef}
-      className={styles.backdrop}
+      className="fixed inset-0 z-[1000] flex flex-col gap-[clamp(12px,1.6vw,20px)] overflow-hidden p-[clamp(14px,2vw,28px)] text-(--text) [background:radial-gradient(115%_85%_at_50%_-10%,color-mix(in_srgb,var(--accent)_12%,transparent),transparent_62%),color-mix(in_srgb,var(--bg)_93%,transparent)] [backdrop-filter:blur(18px)_saturate(120%)] max-[900px]:overflow-y-auto motion-reduce:[backdrop-filter:none]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="body-map-title"
       tabIndex={-1}
     >
-      <header className={styles.header}>
-        <div className={styles.heading}>
-          <p className={styles.eyebrow}>SKY · living anatomy</p>
-          <h2 id="body-map-title" className={styles.title}>
+      <header className="flex items-start justify-between gap-[18px]">
+        <div className="flex min-w-0 flex-col gap-[6px]">
+          <p className="m-0 font-(family-name:--mono) text-[10px] tracking-[0.24em] uppercase text-(--accent)">
+            SKY · living anatomy
+          </p>
+          <h2
+            id="body-map-title"
+            className="m-0 font-(family-name:--font-display) text-[clamp(20px,2.2vw,30px)] font-light leading-[1.15]! tracking-[0.01em]!"
+          >
             Body hologram
           </h2>
-          <p className={styles.subtitle}>
+          <p className="m-0 max-w-[62ch] text-[13px] leading-[1.5] text-(--muted)">
             Open Anatomy 3D male model. Pick a structure to read its catalog facts and, where the
             HUD has one, its simulated value.
           </p>
         </div>
-        <button type="button" className={styles.closeButton} onClick={close} aria-label="Close body map">
+        <button
+          type="button"
+          className="flex-none cursor-pointer rounded-[999px]! border border-(--accent)/32 bg-(--surface)/62 px-[18px] py-[8px] text-[13px]! text-(--text) transition-[border-color,background-color] duration-200 ease-[ease] hover:border-(--accent) hover:bg-(--accent)/12 motion-reduce:transition-none"
+          onClick={close}
+          aria-label="Close body map"
+        >
           Close
         </button>
       </header>
 
-      <div className={styles.stage}>
-        <div className={styles.viewport}>
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_248px] gap-[clamp(12px,1.4vw,18px)] max-[900px]:grid-cols-[minmax(0,1fr)] max-[900px]:grid-rows-[minmax(0,1fr)_auto]">
+        <div className="relative min-h-0 overflow-hidden rounded-(--radius) border border-(--accent)/22 [background:radial-gradient(80%_70%_at_50%_18%,color-mix(in_srgb,var(--surface)_48%,transparent),transparent_70%),#050c16] [box-shadow:inset_0_0_90px_rgba(0,0,0,0.45)] max-[900px]:min-h-[54vh]">
           {supported === null ? (
-            <p className={styles.loading}>Preparing the hologram…</p>
+            <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
+              Preparing the hologram…
+            </p>
           ) : (
-            <Suspense fallback={<p className={styles.loading}>Preparing the hologram…</p>}>
+            <Suspense
+              fallback={
+                <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
+                  Preparing the hologram…
+                </p>
+              }
+            >
               <BodyScene
                 webglAvailable={supported}
                 selected={selected}
@@ -113,16 +136,21 @@ export function BodyMapOverlay({ open, onClose }: BodyMapOverlayProps) {
           {selected ? <StructureCard selected={selected} onClear={() => setSelected(null)} /> : null}
         </div>
 
-        <div className={styles.sidebar}>
+        <div className="flex min-h-0 flex-col gap-[14px] overflow-y-auto max-[900px]:overflow-visible">
           <LayerRail layers={layers} setLayers={setLayers} />
         </div>
       </div>
 
-      <footer className={styles.footer}>
-        <p>{ATTRIBUTION}</p>
-        <p>
+      <footer className="flex flex-wrap items-baseline gap-[4px_20px] border-t border-t-(--accent)/14 pt-[2px] text-[11px] leading-[1.5] text-(--muted)">
+        <p className="m-0 max-w-[92ch]">{ATTRIBUTION}</p>
+        <p className="m-0">
           Model licence:{" "}
-          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
+          <a
+            className="border-b border-b-(--accent)/40 text-(--accent) no-underline hover:text-(--text)!"
+            href="https://creativecommons.org/licenses/by/4.0/"
+            target="_blank"
+            rel="noreferrer"
+          >
             CC BY 4.0
           </a>
           . Simulated data, not for diagnosis.
