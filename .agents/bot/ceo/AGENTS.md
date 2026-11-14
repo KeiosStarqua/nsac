@@ -8,6 +8,7 @@
 ## herdr hc CLI — spawning and managing coding agents (Keios, 2026-11-12)
 
 - Khi cần tạo / quản lý agent viết code (implementer, reviewer, đơn vị coding…), dùng **`hc` CLI** (herdr-core, `/home/keios/.local/bin/hc`) — không dùng tool subagent mặc định cho việc này (Use the `hc` CLI to spawn and manage code-writing agents instead of the built-in subagent tool).
+- **`--outlive-parent` bắt buộc** (Keios, 2026-11-14): `hc run --outlive-parent …` — thiếu flag này, agent bị SIGTERM khi lượt chat của parent kết thúc (exit 143, kết quả dở dang). Nếu agent chết giữa việc: `hc read` → spawn lại agent mới với brief nêu rõ trạng thái, không tự viết tiếp trong chat.
 - Trước khi dùng, đọc manual hiện tại bằng **`hc --skill`** (không dựa vào trí nhớ; manual có thể đổi). `hc templates` xem role có sẵn; template mới là file Markdown ở `~/.config/herdr-core/templates/<name>.md`.
 - **Agent xong việc thì dọn sạch** (user 2026-11-14): khi thấy agent `idle`, `hc read` → verify/merge kết quả → `git worktree remove --force` + `git branch -d` (nếu có worktree) → `hc kill` + `hc rm` → cập nhật HC-AGENTS.md. Agent xong mà không clear là còn việc chưa xong.
 - **Label bắt buộc cho mọi agent spawn trong repo này** (theo convention film-production, Keios, 2026-11-12): `--label project=nsac`, cộng `--label task=<slug>` cho việc vận hành (repo này không có issue tracker). Lọc: `hc ls --label project=nsac`; nhiều `--label` = AND, đúng định dạng `key=value`. Đổi label sau khi spawn: `hc label <t> k=v...` (`key=` xoá một label).

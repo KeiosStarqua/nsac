@@ -48,4 +48,5 @@ From the repo root: `bun run typecheck`, `bun run test`, `bun run build` (Turbor
 
 | Path | Scope |
 |---|---|
+| `src/features/agent/` | Multi-agent layer on PI SDK: orchestrator `sky-orchestrator` (SOUL Sky) + specialist `sky-generative-ui`. Server-only PI SDK wiring in `runtime/pi.server.ts`; registry extension point (one profile file + one registry line + one test row per agent); no secrets, no network in tests. |
 | `features/body-map/AGENTS.md` | Open Anatomy 3D hologram body map overlay for the HUD: lazy-loaded three.js scene (three must stay out of the entry chunk), CC BY 4.0 attribution, WebGL/GLB fallbacks. |
