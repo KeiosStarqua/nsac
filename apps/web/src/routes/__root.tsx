@@ -8,17 +8,11 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { z } from "zod";
-import { SkyGuideProvider } from "~/features/sky-guide";
-import { LocaleSchema, getCopy, getRequestLocale, useCopy, type Locale } from "~/shared/i18n";
-import { Footer, Header } from "~/shared/layout";
+import { LocaleSchema, getCopy, getRequestLocale, type Locale } from "~/shared/i18n";
 import appCss from "~/styles/global.css?url";
-import arcCss from "~/components/arc/foundation.css?url";
 
 export const Route = createRootRoute({
-  // `?lang=` is the single source of truth for language. A malformed value falls back to detection.
   validateSearch: z.object({ lang: LocaleSchema.optional().catch(undefined) }),
-  // Runs on the server for the first request (so SSR HTML already has the right language)
-  // and on the client for later navigations. Accept-Language is only read when the URL has no `lang`.
   beforeLoad: async ({ search }): Promise<{ locale: Locale }> => ({
     locale: search.lang ?? (await getRequestLocale()),
   }),
@@ -34,8 +28,6 @@ export const Route = createRootRoute({
         { name: "description", content: copy.meta.description },
       ],
       links: [
-        // Arc's design tokens come first; the app stylesheet maps them onto Sky's palette.
-        { rel: "stylesheet", href: arcCss },
         { rel: "stylesheet", href: appCss },
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       ],
@@ -46,7 +38,6 @@ export const Route = createRootRoute({
   notFoundComponent: NotFound,
 });
 
-/** Always server-rendered: the `<html>` document that wraps every route, whatever its SSR mode. */
 function RootShell({ children }: { children: ReactNode }) {
   const rawLocale = useRouterState({ select: (state) => state.matches[0]?.context });
   const parsed = LocaleSchema.safeParse((rawLocale as { locale?: unknown } | undefined)?.locale);
@@ -64,20 +55,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootLayout() {
-  const copy = useCopy();
-  // Sky flies over every page: the provider hosts it and the stations each route places.
-  return (
-    <SkyGuideProvider>
-      <a className="skip-link" href="#main">
-        {copy.nav.skip}
-      </a>
-      <Header />
-      <main id="main">
-        <Outlet />
-      </main>
-      <Footer />
-    </SkyGuideProvider>
-  );
+  return <Outlet />;
 }
 
 function NotFound() {

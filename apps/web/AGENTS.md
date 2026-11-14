@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. Routes: `/` (the SKY HUD — the 1672×941 astronaut wellness interface from `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md`: SkyIdentity, MissionContext, VitalsProjection, AICoreOrb, ConversationLens, HealthProjection, OrganicInputSurface, MicrophoneOrb + one authoritative voice-phase state machine, fixture ‘Simulated data’, canvas/SVG only), `/console` (the former homepage: Sky's console — exactly one image, OpenUI-composed by the PI SDK agent), `/concept` (the product description: hero, the two core features, five hazards, data and standards, the detect → recommend → confirm → report loop, demo teaser, story teaser, modules, safety rules, sources), `/demo` (interactive Mars landing readiness), `/sky` (the living interface: Living Core canvas, the §4 state machine, OpenUI-style scene IR, 12 device embodiments, simulated mission data — all deterministic, no network needed), `/story` (the "Sky" story). It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI). On every page Sky (a static angel image) flies over the interface and, at each station it lands on, composes a panel with OpenUI.
+Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. Single route `/`: the SKY HUD — the 1672×941 astronaut wellness interface from `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md` (SkyIdentity, MissionContext, VitalsProjection, AICoreOrb, ConversationLens, HealthProjection, OrganicInputSurface, MicrophoneOrb + one authoritative voice-phase state machine, fixture ‘Simulated data’, canvas/SVG only). It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI).
 
 ## Ownership
 
