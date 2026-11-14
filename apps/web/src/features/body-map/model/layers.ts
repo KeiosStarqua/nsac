@@ -1,37 +1,51 @@
-import { getStructure } from "open-anatomy-3d";
+// Layer state and mesh-to-catalog mapping for the body map.
+// Pure data only: the scene reads `layers[system]` to decide what is drawn.
+import { SYSTEM_LABELS, getStructure, type AnatomySystem } from "open-anatomy-3d";
 
+/** Layers are the six meshed body systems. Joint hotspots are not layers. */
 export type LayerKey = "skin" | "skeleton" | "muscles" | "organs" | "vessels" | "nerves";
 
-export const LAYER_KEYS: readonly LayerKey[] = ["skin", "skeleton", "muscles", "organs", "vessels", "nerves"];
+export type LayerState = Record<LayerKey, boolean>;
 
-export function systemToLayer(system: string): LayerKey | null {
-  // joints are hotspots rendered with organs layer
-  if (system === "joints") return "organs";
-  if (LAYER_KEYS.includes(system as LayerKey)) return system as LayerKey;
-  return null;
+export const LAYER_KEYS: readonly LayerKey[] = [
+  "skin",
+  "skeleton",
+  "muscles",
+  "organs",
+  "vessels",
+  "nerves",
+];
+
+export const DEFAULT_LAYERS: LayerState = {
+  skin: true,
+  skeleton: true,
+  muscles: true,
+  organs: true,
+  vessels: true,
+  nerves: true,
+};
+
+export function layerLabel(key: LayerKey): string {
+  return SYSTEM_LABELS[key as AnatomySystem];
 }
 
-export function structureFor(key: string) {
-  return getStructure(key);
+export function atLeastOneLayer(layers: LayerState): boolean {
+  return LAYER_KEYS.some((key) => layers[key]);
 }
 
-export function structureLabel(key: string): string {
-  const s = getStructure(key);
-  return s ? s.label : key;
+export function toggleLayer(layers: LayerState, key: LayerKey): LayerState {
+  if (layers[key] && LAYER_KEYS.filter((other) => layers[other]).length <= 1) return layers;
+  return { ...layers, [key]: !layers[key] };
 }
 
-export function systemLabel(system: string): string {
-  // fallback
-  return system;
+const STRUCTURE_TO_MESH: Readonly<Record<string, string>> = { skin: "skin_1" };
+
+export function structureKeyForMesh(meshName: string): string | null {
+  const aliased = Object.entries(STRUCTURE_TO_MESH).find(([, mesh]) => mesh === meshName);
+  const key = aliased ? aliased[0] : meshName;
+  return getStructure(key) ? key : null;
 }
 
-export function atLeastOneLayer(layers: Record<LayerKey, boolean>): boolean {
-  return LAYER_KEYS.some((k) => layers[k]);
-}
-
-export function toggleLayer(layers: Record<LayerKey, boolean>, key: LayerKey): Record<LayerKey, boolean> {
-  const next = { ...layers };
-  if (next[key] && LAYER_KEYS.filter((k) => next[k]).length <= 1) return layers; // keep at least one
-  next[key] = !next[key];
-  return next;
+export function meshNameForStructure(key: string): string {
+  return STRUCTURE_TO_MESH[key] ?? key;
 }
