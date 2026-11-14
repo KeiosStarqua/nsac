@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { SPACE_ART } from "./hud-classes";
 
 /**
  * Original procedural space background: starfield, Earth horizon, vessel window, astronaut silhouette.
@@ -83,5 +84,5 @@ export function SpaceArt() {
     </svg>`;
   }, []);
   // Static, trusted SVG artwork authored in this repo; no user input reaches it.
-  return <div className="space-art" aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <div className={SPACE_ART} aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />;
 }

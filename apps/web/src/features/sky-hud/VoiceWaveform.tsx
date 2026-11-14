@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { VOICE_WAVEFORM } from "./hud-classes";
 import type { VoicePhase } from "./types";
 
 const WIDTH = 310;
@@ -57,7 +58,7 @@ export function VoiceWaveform({ phase, energyRef, reducedMotion }: { phase: Voic
   const staticPath = makeWave(0.6, 0.08, "idle");
 
   return (
-    <svg className="voice-waveform" viewBox="0 0 310 70" aria-hidden="true">
+    <svg className={VOICE_WAVEFORM} viewBox="0 0 310 70" aria-hidden="true">
       <defs>
         <linearGradient id="waveColor">
           <stop stopColor="#4d9afa" stopOpacity="0" />

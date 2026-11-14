@@ -1,10 +1,12 @@
+import { FLUID_SHEET, FLUID_WAVE, FLUID_WAVE_TWO, INPUT_PROJECTION } from "./hud-classes";
+
 /**
  * The organic fluid input surface — a full-width projected membrane below the orb. Purely decorative;
  * taps land on the actual Mic and hint controls. Ported verbatim from the demo SVG.
  */
 export function InputSurface() {
   return (
-    <div className="input-projection" aria-hidden="true">
+    <div className={INPUT_PROJECTION} aria-hidden="true">
       <svg id="surfaceSvg" viewBox="0 0 1040 200" preserveAspectRatio="none">
         <defs>
           <linearGradient id="surfaceFill" x1=".08" y1=".8" x2=".96" y2="0">
@@ -25,10 +27,10 @@ export function InputSurface() {
             <feGaussianBlur stdDeviation="12" />
           </filter>
         </defs>
-        <path className="fluid-blur" d="M20 75C170 100 172 20 330 45S570 90 710 38 870 36 1012 100L1032 130Q540 205 7 125Z" fill="url(#surfaceFill)" stroke="url(#surfaceEdge)" strokeWidth="12" filter="url(#surfaceBlur)" />
-        <path className="fluid-sheet" d="M20 75C170 100 172 20 330 45S570 90 710 38 870 36 1012 100L1032 130Q540 205 7 125Z" fill="url(#surfaceFill)" stroke="url(#surfaceEdge)" strokeWidth="1.6" />
-        <path className="fluid-wave wave-one" d="M25 88C140 114 230 46 324 71s196 19 307-11 260-2 375 48" fill="none" stroke="url(#surfaceEdge)" strokeWidth="1.8" opacity=".75" />
-        <path className="fluid-wave wave-two" d="M30 118C175 150 250 58 360 105S572 148 724 77s211-9 280 48" fill="none" stroke="#92daff" strokeWidth="1" opacity=".35" />
+        <path d="M20 75C170 100 172 20 330 45S570 90 710 38 870 36 1012 100L1032 130Q540 205 7 125Z" fill="url(#surfaceFill)" stroke="url(#surfaceEdge)" strokeWidth="12" filter="url(#surfaceBlur)" />
+        <path className={FLUID_SHEET} d="M20 75C170 100 172 20 330 45S570 90 710 38 870 36 1012 100L1032 130Q540 205 7 125Z" fill="url(#surfaceFill)" stroke="url(#surfaceEdge)" strokeWidth="1.6" />
+        <path className={FLUID_WAVE} d="M25 88C140 114 230 46 324 71s196 19 307-11 260-2 375 48" fill="none" stroke="url(#surfaceEdge)" strokeWidth="1.8" opacity=".75" />
+        <path className={`${FLUID_WAVE} ${FLUID_WAVE_TWO}`} d="M30 118C175 150 250 58 360 105S572 148 724 77s211-9 280 48" fill="none" stroke="#92daff" strokeWidth="1" opacity=".35" />
       </svg>
     </div>
   );
