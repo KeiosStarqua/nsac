@@ -84,6 +84,7 @@ export const en: Copy = {
     greetingFallback: "Good morning.",
     composeHint: "SKY composed this layout · tap to dismiss",
     composeHintDismissAria: "Dismiss composed layout hint",
+    chatOverrideBack: "Back to Sky's view",
   },
   admin: {
     title: "Admin",

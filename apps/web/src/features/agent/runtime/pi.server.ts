@@ -8,6 +8,7 @@ export function readOpenRouterKey(): string | null {
   if (typeof raw !== "string" || raw.trim() === "") return null;
   return raw.trim();
 }
+import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { AgentProfile } from "../agents/types";
 import { assistantText, isProviderError } from "../model/provider-result";
 import { currentAgentModel } from "./agent-model.server";
@@ -50,7 +51,17 @@ export type SessionFacade = {
   dispose: () => void;
 };
 
-export async function createSession(profile: AgentProfile, ctx?: { request?: string } & Record<string,unknown>, overrides?: { sessionManager?: unknown; promptSuffix?: string }): Promise<SessionFacade> {
+/**
+ * Per-turn side effects a tool may produce. `prompt()` clears them when the turn starts, so a turn
+ * can only report what its own tool calls did; the chat pipeline reads them once the reply settles.
+ */
+export type TurnArtifacts = { hudProgram?: string };
+
+export async function createSession(
+  profile: AgentProfile,
+  ctx?: { request?: string } & Record<string, unknown>,
+  overrides?: { sessionManager?: unknown; promptSuffix?: string; customTools?: ToolDefinition[]; artifacts?: TurnArtifacts },
+): Promise<SessionFacade> {
   const key = readOpenRouterKey();
   if (!key) throw new Error("missing_key");
   // Model resolution: backend setting (agent.model) → last good → SKY_OPENROUTER_MODEL → hardcoded default.
@@ -89,6 +100,9 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
   });
   await resourceLoader.reload();
 
+  // `tools` is an allowlist in the SDK, and custom tools are filtered against it too. The default
+  // stays empty (no tools at all); only the chat session registers one, and it is named here.
+  const customTools: ToolDefinition[] = overrides?.customTools ?? [];
   const { session } = await pi.createAgentSession({
     model: modelObj,
     modelRuntime,
@@ -96,8 +110,8 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
     sessionManager,
     settingsManager,
     cwd: process.cwd(),
-    tools: [],
-    customTools: [],
+    tools: customTools.map((tool) => tool.name),
+    customTools,
   });
 
   let disposed = false;
@@ -110,6 +124,9 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
   };
   return {
     async prompt(text, opts) {
+      // Turn artifacts belong to the turn that produces them: clearing at the start keeps a stale
+      // program from a previous turn out of this turn's reply.
+      if (overrides?.artifacts) delete overrides.artifacts.hudProgram;
       let total = "";
       let turnError: string | null = null;
       const unsub = session.subscribe((event: any) => {

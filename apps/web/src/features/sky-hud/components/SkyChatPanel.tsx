@@ -60,6 +60,8 @@ export type SkyChatPanelProps = {
   astronaut: { id: string; name: string } | null;
   onClose: () => void;
   onReply: (text: string) => void;
+  /** A HUD program `show_on_hud` produced this turn (already reviewed server-side). */
+  onUiProgram?: (program: string) => void;
 };
 
 // Floating card over the HUD: a dismissable backdrop below the card, card in the bottom-right corner
@@ -82,7 +84,7 @@ const CHAT_CARD = [
 const CHAT_CARD_OPEN = "translate-y-0 opacity-100";
 const CHAT_CARD_ENTER = "translate-y-2 opacity-0 motion-reduce:translate-y-0 motion-reduce:opacity-100";
 
-export function SkyChatPanel({ astronaut, onClose, onReply }: SkyChatPanelProps) {
+export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram }: SkyChatPanelProps) {
   const c = useCopy().chat;
   const label = astronaut ? format(c.label, { name: firstName(astronaut.name) }) : c.title;
 
@@ -132,22 +134,39 @@ export function SkyChatPanel({ astronaut, onClose, onReply }: SkyChatPanelProps)
         className={`${CHAT_CARD} ${entered ? CHAT_CARD_OPEN : CHAT_CARD_ENTER}`}
       >
         {/* Keyed by crew member: `useChat` reads its transport once, so a new astronaut needs a new chat. */}
-        <SkyChatThread key={astronaut?.id ?? "no-crew"} astronaut={astronaut} onClose={onClose} onReply={onReply} />
+        <SkyChatThread
+          key={astronaut?.id ?? "no-crew"}
+          astronaut={astronaut}
+          onClose={onClose}
+          onReply={onReply}
+          onUiProgram={onUiProgram}
+        />
       </div>
     </>,
     document.body,
   );
 }
 
-function SkyChatThread({ astronaut, onClose, onReply }: SkyChatPanelProps) {
+function SkyChatThread({ astronaut, onClose, onReply, onUiProgram }: SkyChatPanelProps) {
   const c = useCopy().chat;
   const astronautId = astronaut?.id ?? null;
   const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const onReplyRef = useRef(onReply);
   onReplyRef.current = onReply;
+  // The transport is memoised per astronaut; a ref keeps the program callback current without
+  // rebuilding the transport (and so without restarting `useChat`).
+  const onUiProgramRef = useRef(onUiProgram);
+  onUiProgramRef.current = onUiProgram;
 
-  const transport = useMemo(() => new SkyChatTransport({ astronautId }), [astronautId]);
+  const transport = useMemo(
+    () =>
+      new SkyChatTransport({
+        astronautId,
+        onUiProgram: (program) => onUiProgramRef.current?.(program),
+      }),
+    [astronautId],
+  );
 
   const { messages, sendMessage, setMessages, status, error } = useChat<SkyUIMessage>({
     transport,

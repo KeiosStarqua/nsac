@@ -4,8 +4,10 @@ import { streamChatTurn } from "~/features/agent/runtime/astro-chat.server";
 
 // Server-Sent Events endpoint for the `/` chat (SkyChatPanel). One request per turn: the handler
 // streams `data: {"type":"delta","text":"…"}` frames as the PI session produces text deltas, then
-// exactly one terminal frame — `{"type":"done"}` or `{"type":"error","code":…}`. `: ping` comments
-// keep intermediaries from closing an idle connection (the model can take a few seconds to start).
+// exactly one terminal frame — `{"type":"done"}` or `{"type":"error","code":…}`. When the turn's
+// `show_on_hud` tool produced a reviewed program, one `{"type":"ui","program":…}` frame precedes the
+// `done`. `: ping` comments keep intermediaries from closing an idle connection (the model can take a
+// few seconds to start).
 // The client parses this in `features/agent/runtime/chat-transport.ts` (sse.ts codec).
 //
 // No key, no stack trace and no server path ever reaches this stream; the turn itself keeps every
@@ -73,6 +75,10 @@ export const Route = createFileRoute("/api/chat-stream")({
                   onDelta: (text) => {
                     if (text.length === 0) return;
                     if (writeFrame({ type: "delta", text })) sentDelta = true;
+                  },
+                  // The `show_on_hud` result: one frame carrying only the validated program.
+                  onUiProgram: (program) => {
+                    writeFrame({ type: "ui", program });
                   },
                   signal: turnAbort.signal,
                 });

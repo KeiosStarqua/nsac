@@ -193,6 +193,64 @@ describe("sky chat transport (SSE)", () => {
     await expect(t.reconnectToStream()).resolves.toBeNull();
   });
 
+  it("hands a ui frame that arrives before the first delta to onUiProgram and still streams the text", async () => {
+    const programs: string[] = [];
+    const seen: { url: string }[] = [];
+    const fetchImpl = (async (url: string) => {
+      seen.push({ url });
+      return sseResponse([
+        frame({ type: "ui", program: "root = Surface([footer])" }),
+        frame({ type: "delta", text: "Stable. " }),
+        frame({ type: "delta", text: "Keep the dose." }),
+        frame({ type: "done" }),
+      ]);
+    }) as unknown as typeof fetch;
+
+    const t = new SkyChatTransport({ astronautId: "ayla-reyes", fetchImpl, onUiProgram: (p) => programs.push(p) });
+    const out = await readAll(await t.sendMessages({ messages: [user("u1", "Show my heart rate")] }));
+
+    expect(seen).toHaveLength(1);
+    expect(programs).toEqual(["root = Surface([footer])"]);
+    expect(out).toEqual([
+      { type: "text-start", id: "sky-reply" },
+      { type: "text-delta", id: "sky-reply", delta: "Stable. " },
+      { type: "text-delta", id: "sky-reply", delta: "Keep the dose." },
+      { type: "text-end", id: "sky-reply" },
+      { type: "finish" },
+    ]);
+  });
+
+  it("hands a ui frame that arrives mid-stream to onUiProgram without emitting a chunk", async () => {
+    const programs: string[] = [];
+    const fetchImpl = (async () =>
+      sseResponse([
+        frame({ type: "delta", text: "Stable. " }),
+        frame({ type: "ui", program: "root = Surface([footer])" }),
+        frame({ type: "delta", text: "Keep the dose." }),
+        frame({ type: "done" }),
+      ])) as unknown as typeof fetch;
+
+    const t = new SkyChatTransport({ astronautId: "ayla-reyes", fetchImpl, onUiProgram: (p) => programs.push(p) });
+    const out = await readAll(await t.sendMessages({ messages: [user("u1", "hi")] }));
+
+    expect(programs).toEqual(["root = Surface([footer])"]);
+    expect(out).toEqual([
+      { type: "text-start", id: "sky-reply" },
+      { type: "text-delta", id: "sky-reply", delta: "Stable. " },
+      { type: "text-delta", id: "sky-reply", delta: "Keep the dose." },
+      { type: "text-end", id: "sky-reply" },
+      { type: "finish" },
+    ]);
+  });
+
+  it("ignores a ui frame when no onUiProgram was supplied", async () => {
+    const { transport: t } = transport({
+      response: sseResponse([frame({ type: "ui", program: "root = Surface([footer])" }), frame({ type: "delta", text: "hi" }), frame({ type: "done" })]),
+    });
+    const out = await readAll(await t.sendMessages({ messages: [user("u1", "hi")] }));
+    expect(out.map((chunk) => chunk.type)).toEqual(["text-start", "text-delta", "text-end", "finish"]);
+  });
+
   it("unknown errors read as unavailable", () => {
     expect(chatErrorCode(new Error("boom"))).toBe("unavailable");
     expect(chatErrorCode(undefined)).toBe("unavailable");

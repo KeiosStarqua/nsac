@@ -2,6 +2,8 @@ import "@tanstack/react-start/server-only";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { readOpenRouterKey } from "./pi.server";
+import type { TurnArtifacts } from "./pi.server";
+import { createShowHudTool } from "./hud-show.server";
 import { currentAgentModel, modelChanged } from "./agent-model.server";
 import { getAgent } from "../agents/registry";
 import { findAstronaut } from "../../astronaut/model/astronauts";
@@ -39,7 +41,7 @@ export async function openOrCreateSessionManager(id: string, dir: string, cwd: s
   }
 }
 
-type Cached = { session: SessionFacade; lastUsed: number; model: string };
+type Cached = { session: SessionFacade; lastUsed: number; model: string; artifacts: TurnArtifacts };
 const cache = new Map<string, Cached>();
 const queues = new Map<string, Promise<unknown>>();
 
@@ -62,7 +64,10 @@ function evictOldest() {
   if (oldest) { cache.get(oldest)?.session.dispose(); cache.delete(oldest); }
 }
 
-async function getSession(id: string, astronaut: { name: string; role: string; callsign: string }): Promise<SessionFacade> {
+async function getSession(
+  id: string,
+  astronaut: { name: string; role: string; callsign: string },
+): Promise<{ session: SessionFacade; artifacts: TurnArtifacts }> {
   // Model gắn với session lúc tạo; admin đổi model → huỷ session cũ và tạo lại.
   // Lịch sử hội thoại vẫn nằm trong SessionManager files (var/sky-sessions).
   const model = await currentAgentModel();
@@ -72,7 +77,7 @@ async function getSession(id: string, astronaut: { name: string; role: string; c
     cache.delete(id);
   } else if (existing && Date.now() - existing.lastUsed < IDLE_TTL) {
     existing.lastUsed = Date.now();
-    return existing.session;
+    return { session: existing.session, artifacts: existing.artifacts };
   } else if (existing) {
     existing.session.dispose();
     cache.delete(id);
@@ -83,9 +88,16 @@ async function getSession(id: string, astronaut: { name: string; role: string; c
   const dir = sessionsDir();
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   const sessionManager = factory ? undefined : await openOrCreateSessionManager(id, dir);
-  const sess = await (sessFactory as any)(profile, { request: "", astronaut }, sessionManager ? { sessionManager } : undefined);
-  cache.set(id, { session: sess, lastUsed: Date.now(), model });
-  return sess;
+  // One tool, created once with this session: it writes the validated HUD program into `artifacts`,
+  // which the turn pipeline reads after the reply settles (and pi clears at each turn start).
+  const artifacts: TurnArtifacts = {};
+  const sess = await (sessFactory as any)(profile, { request: "", astronaut }, {
+    sessionManager,
+    artifacts,
+    customTools: [createShowHudTool(artifacts)],
+  });
+  cache.set(id, { session: sess, lastUsed: Date.now(), model, artifacts });
+  return { session: sess, artifacts };
 }
 
 function enqueue(id: string, fn: () => Promise<any>): Promise<any> {
@@ -129,17 +141,21 @@ export type ChatTurnResult = {
   status: ChatStatus;
   reply?: string;
   messages?: TranscriptMessage[];
+  /** The HUD program `show_on_hud` produced on this turn, once review passed. */
+  uiProgram?: string;
 };
 
 /**
  * Hooks for an in-flight turn. `onDelta` receives each text delta as the model produces it (the
  * blocking `sendChatTurn` passes none); `signal` aborts the turn from the caller's side — the SSE
  * route cancels it when the browser disconnects, so the PI session is disposed instead of running
- * on unwatched.
+ * on unwatched. `onUiProgram` fires once on the success path, before the turn resolves, carrying the
+ * validated HUD program from `show_on_hud`; failure paths never call it.
  */
 export type ChatTurnHooks = {
   onDelta?: (delta: string) => void;
   signal?: AbortSignal;
+  onUiProgram?: (program: string) => void;
 };
 
 /**
@@ -162,14 +178,15 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
   msgs.push({ role: "user", text: message, at: new Date().toISOString() });
   writeTranscript(id, msgs);
   return enqueue(id, async () => {
-    let session: SessionFacade;
+    let live: { session: SessionFacade; artifacts: TurnArtifacts };
     try {
-      session = await getSession(id, ctx);
+      live = await getSession(id, ctx);
     } catch {
       cache.delete(id);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", false);
       return { status: "unavailable" as ChatStatus };
     }
+    const session = live.session;
     // Shared context (v1 broadcast): events since this consumer's last turn, appended AFTER
     // the user message and clearly delimited. Any failure → null → message unchanged.
     const sharedBlock = await sharedEventsBlock(id, `${id}-orchestrator`);
@@ -200,8 +217,12 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
       current.push({ role: "assistant", text: trimmed, at: new Date().toISOString() });
       writeTranscript(id, current);
       if (cache.get(id)) cache.get(id)!.lastUsed = Date.now();
+      // The tool call already happened during `prompt()`; hand the validated program to the caller
+      // (the SSE route writes it as one `ui` frame before `done`).
+      const hudProgram = live.artifacts.hudProgram;
+      if (hudProgram) hooks.onUiProgram?.(hudProgram);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", true);
-      return { status: "ok" as ChatStatus, reply: trimmed, messages: readTranscript(id) };
+      return { status: "ok" as ChatStatus, reply: trimmed, messages: readTranscript(id), uiProgram: hudProgram };
     } catch (e) {
       const cached = cache.get(id); cached?.session.dispose(); cache.delete(id);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", false);

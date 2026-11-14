@@ -47,6 +47,7 @@ Ba quy tắc xuyên suốt:
 | `runtime/orchestrator.server.ts` | `askSky()` — dispatch 1 chiều orchestrator → specialist |
 | `runtime/astro-chat.server.ts` | Chat per-astronaut: transcript, session cache, queue |
 | `runtime/hud-compose.server.ts` | HUD composer: program cache, review pipeline |
+| `runtime/hud-show.server.ts` | Tool `show_on_hud` của chat: delegate `sky-generative-ui` → `extractProgram`/`reviewProgram` → `artifacts.hudProgram` |
 | `runtime/agent-model.server.ts` | Resolve model hiệu lực (backend → lastGood → env → default) |
 | `runtime/openui.server.ts` | `validateProgram()` — cổng validate OpenUI Lang |
 | `catalog/library.tsx` | React Bits catalog (REACT_BITS_NAMES — allow-list của generative-ui) |
@@ -82,9 +83,10 @@ sendChatTurn(astronautId, message)                   [api/chat.functions.ts]
     (OpenOrCreateSessionManager mở/tạo var/sky-sessions/<id>.jsonl)
   → prompt → trim 2000 ký tự → append assistant message → trả về transcript
 
-streamChatTurn(astronautId, message, { onDelta, signal })   [/api/chat-stream, SSE]
+streamChatTurn(astronautId, message, { onDelta, signal, onUiProgram })   [/api/chat-stream, SSE]
   → cùng pipeline runChatTurn (queue, session, timeout, trim, ghi transcript một lần)
   → onDelta mỗi text_delta → `data: {"type":"delta","text":…}` — kết thúc `done` | `error{code}`
+  → turn có show_on_hud (§3.4) ⇒ `data: {"type":"ui","program":…}` ngay trước `done`
 ```
 
 ### 3.3 Ask Sky / generative UI (one-shot)
@@ -98,7 +100,37 @@ askSky(request)                                      [runtime/orchestrator.serve
 ```
 
 Không có vòng lặp agent-gọi-agent. `maxSteps` trong profile là **metadata, không được code enforce** —
-mọi turn đều single-shot (`tools: []`, không function calling).
+`askSky` là single-shot. Ngoại lệ duy nhất là `show_on_hud` của chat (§3.4): model gọi một tool, tool
+delegate sang `sky-generative-ui`, output vẫn qua gate.
+
+### 3.4 Sky + show_on_hud (một tool có mục đích duy nhất)
+
+`sky-chat` được đăng ký đúng một custom tool, presentation-only. Không có side effect y tế nào: tool
+chỉ đổi cây OpenUI đang hiển thị, và chỉ sau khi program qua `reviewProgram`.
+
+```
+SkyChatPanel (useChat) ──POST /api/chat-stream──► streamChatTurn()
+  → pi.server createSession(sky-chat, { sessionManager, artifacts, customTools: [show_on_hud] })
+  → model stream delta (§3.2) …
+  → user hỏi visualize ⇒ model gọi show_on_hud({brief})  ── tool chạy server-side
+      ├─ runAgent("sky-generative-ui", brief, {surface:"SKY HUD", allowList: HUD_COMPONENT_NAMES, maxChars:4000})
+      ├─ extractProgram → reviewProgram(allowList HUD_COMPONENT_NAMES, parseHudProgram)
+      ├─ pass → artifacts.hudProgram = program đã review; tool trả "HUD updated." cho model
+      └─ fail → tool trả isError ("Could not update the HUD: <reason>"); artifacts rỗng; HUD không đổi
+  → model trả lời tiếp (≤3 câu) → turn ok
+  → hooks.onUiProgram?.(hudProgram) → route ghi `{"type":"ui","program":…}` rồi `{"type":"done"}`
+  → client: SkyChatTransport parse frame `ui` → onUiProgram(program) (không thành chunk AI SDK)
+  → SkyScreenGen: reviewProgram lần nữa → setOverrideProgram
+      program = overrideProgram ?? agentProgram ?? hudPreset(locale)
+      chip "Back to Sky's view" (bottom-left, z-30) / resetView / đổi astronaut / đổi locale → xoá override
+```
+
+- Tool: `name: "show_on_hud"`, `executionMode: "sequential"`, parameters là **JSON Schema thuần**
+  (pi-ai compile bằng `@earendil-works/pi-schema`, `coerce: true` — không cần typebox).
+- Một call mỗi turn do prompt enforce, không do code; parser + review chặn phần còn lại.
+- `artifacts` là state của một turn: `pi.server` xoá ở **đầu** mỗi `prompt()`; failure path của
+  `runChatTurn` không bao giờ gọi `onUiProgram`.
+- Frame `ui` chỉ mang program đã validate (≤4000 ký tự) — không transcript, không persistence.
 
 ## 4. Pi SDK boundary (`runtime/pi.server.ts`)
 
@@ -123,13 +155,17 @@ Những gì `createSession()` làm, theo thứ tự:
    `noExtensions, noSkills, noPromptTemplates, noThemes, noContextFiles: true`,
    `systemPromptOverride` trả về đúng `profile.systemPrompt(ctx)` (kèm `promptSuffix` nếu có),
    `appendSystemPromptOverride: () => []`.
-8. **`createAgentSession({ ..., tools: [], customTools: [] })`** — agent không có bất kỳ tool nào.
-9. **Turn loop**: `session.subscribe` bắt `message_update` (`text_delta` → stream cho client;
-   `error` → ghi nhận) và `message_end` (stopReason `error`/`aborted` → ghi nhận). Sau `prompt()`
-   resolve: có lỗi turn ⇒ throw; tổng text rỗng ⇒ thử phục hồi từ assistant message cuối cùng,
-   vẫn rỗng ⇒ throw `empty_reply`. **SDK resolve `prompt()` bình thường kể cả khi turn hỏng**
-   (ví dụ provider 402) — không được coi là thành công.
-10. `dispose()` idempotent; mọi caller đều `dispose()` trong `finally`-style path.
+8. **`createAgentSession({ ..., tools, customTools })`** — `customTools` do caller truyền qua
+   `overrides.customTools` (mặc định `[]`); `tools` là **allowlist** của SDK nên nó chính là tên các
+   custom tool đó (rỗng ⇒ không tool nào). Chỉ session `sky-chat` đăng ký `show_on_hud`.
+9. **Turn artifacts**: `overrides.artifacts` (hiện chỉ `hudProgram`) bị xoá ở đầu mỗi `prompt()`;
+   caller đọc sau khi turn resolve — dùng cho frame `ui` (§3.4).
+10. **Turn loop**: `session.subscribe` bắt `message_update` (`text_delta` → stream cho client;
+    `error` → ghi nhận) và `message_end` (stopReason `error`/`aborted` → ghi nhận). Sau `prompt()`
+    resolve: có lỗi turn ⇒ throw; tổng text rỗng ⇒ thử phục hồi từ assistant message cuối cùng,
+    vẫn rỗng ⇒ throw `empty_reply`. **SDK resolve `prompt()` bình thường kể cả khi turn hỏng**
+    (ví dụ provider 402) — không được coi là thành công.
+11. `dispose()` idempotent; mọi caller đều `dispose()` trong `finally`-style path.
 
 Constant: `SKY_MAX_TOKENS = 2048` (Sky trả lời vài câu ngắn; không kế thừa catalog default).
 
@@ -149,14 +185,14 @@ bằng đúng hàm này.
 
 ## 6. Profiles & registry
 
-| Id | Role | Output contract | maxChars | Timeout | Session |
-|---|---|---|---|---|---|
-| `sky-orchestrator` | orchestrator (SOUL Sky) | `text` | — | 45 s | one-shot, in-memory |
-| `sky-chat` | companion (Sky, voice) | `text` | — | 45 s | per-astronaut, `var/sky-sessions/<id>.jsonl` |
-| `sky-generative-ui` | openui spec generator | `openui-program` | 4000 | 30 s | one-shot |
-| `sky-hud-composer` | hud composer | `openui-program` | 4000 | 30 s | per-astronaut, `var/sky-sessions/<id>.hud.jsonl` |
+| Id | Role | Output contract | maxChars | Timeout | Session | Tools |
+|---|---|---|---|---|---|---|
+| `sky-orchestrator` | orchestrator (SOUL Sky) | `text` | — | 45 s | one-shot, in-memory | — |
+| `sky-chat` | companion (Sky, voice) | `text` | — | 45 s | per-astronaut, `var/sky-sessions/<id>.jsonl` | `show_on_hud` |
+| `sky-generative-ui` | openui spec generator | `openui-program` | 4000 | 30 s | one-shot | — |
+| `sky-hud-composer` | hud composer | `openui-program` | 4000 | 30 s | per-astronaut, `var/sky-sessions/<id>.hud.jsonl` | — |
 
-Mọi profile: `soul = skySoul`, `tools = []`, `handoff` = regex tĩnh (orchestrator) hoặc rỗng,
+Mọi profile: `soul = skySoul`, `handoff` = regex tĩnh (orchestrator) hoặc rỗng,
 model env `SKY_OPENROUTER_MODEL`. Constraints voice Sky (chat profile): tối đa 3 câu, một câu hỏi,
 không chẩn đoán, không bịa số/ngưỡng, không claim dữ liệu sensor live, nhắc "chưa actioned đến khi
 bạn xác nhận", không dùng chữ "AI".
@@ -170,6 +206,7 @@ runtime tự pick-up qua `getAgent(id)`. Không cần chạm `pi.server.ts`.
 | Cơ chế | Hiện trạng |
 |---|---|
 | LLM routing giữa agent | **Không có.** `routeRequest()` là regex trên request string |
+| LLM chọn tool call | Chỉ `sky-chat`: `show_on_hud` (1 tool, presentation-only) — delegate `sky-generative-ui` qua `runAgent`, output qua `reviewProgram` |
 | Orchestrator → specialist | Một chiều: orchestrator không nằm trên đường generative-ui/hud-composer; chat không dispatch |
 | Agent-gọi-agent / vòng lặp | Không. `maxSteps` là metadata, không enforce; không ai gọi lại ai |
 | Shared context giữa agents | Không. Mỗi session chỉ thấy system prompt của profile + message của chính nó |
@@ -181,29 +218,35 @@ State nằm ở **files trong `var/sky-sessions/`** (gitignored, mode 0600), kh�
 ⇒ session bị dispose và tạo lại (lịch sử vẫn nằm trong JSONL). Trên box production, thư mục làm
 việc là `~/nsac` (systemd `nsac-web.service`).
 
-## 8. Tools và Skills — **hiện không dùng, cố ý**
+## 8. Tools và Skills — một tool có mục đích duy nhất
 
-Trong code hiện tại, agent Pi SDK chạy với **zero tools**:
+Code hiện tại cho agent đúng **một** custom tool, và chỉ ở `sky-chat`:
 
-- `createAgentSession({ tools: [], customTools: [] })`
+- `createAgentSession({ tools: [<tên custom tool>], customTools: [show_on_hud] })` cho chat;
+  mọi session khác vẫn `tools: []`, `customTools: []`.
 - `DefaultResourceLoader({ noExtensions: true, noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true })`
+  cho tất cả.
 
-Lý do:
+`show_on_hud` không phá các lý do cũ vì nó **presentation-only**: nó không đọc/ghi file, không bash,
+không network tuỳ ý, không hành động y tế — nó chỉ delegate sang `sky-generative-ui` và trả về một
+program đã qua `reviewProgram` (§3.4, §9). Mọi lý do còn lại vẫn giữ nguyên:
 
 1. **Luật HKT số 4** — AI không quyết định một mình; phát hiện là deterministic (median/MAD, slope,
    ruptures trong backend TS), LLM chỉ giải thích/trích checklist/soạn draft; hành động chờ Confirm.
-2. **Không side effect** — agent không được đọc/ghi file, chạy bash, gọi network tuỳ ý; toàn bộ
-   giao tiếp với thế giới là một lượt text/program đầu ra, bị code validate sau đó.
+   `show_on_hud` chỉ vẽ lại HUD, không action gì; model bị prompt cấm claim "đã actioned".
+2. **Không side effect** — không agent nào đọc/ghi file, chạy bash hay gọi network ngoài provider model.
 3. **Prompt injection** — nội dung issue/transcript/fixture là data, không phải lệnh; tắt mọi
-   resource discovery giữ bề mặt tấn công bằng 0.
-4. **Deterministic + testable** — test inject `SessionFactory` giả, không cần network/model thật.
+   resource discovery giữ bề mặt tấn công bằng 0. Tool call đến từ model, tham số bị giới hạn
+   (`brief` ≤500 ký tự) và output vẫn qua gate.
+4. **Deterministic + testable** — test inject `SessionFactory` giả, không cần network/model thật;
+   `hud-show.server.ts` có seam `compose` để unit-test cả pass lẫn reject.
 
-Pi SDK **có** hỗ trợ đầy đủ (docs `sdk.md`, `skills.md`, `tools`/`extensions`) và chưa bật ở đây:
+Phần còn lại của SDK **vẫn chưa bật** ở đây:
 
 | Khả năng SDK | Cách bật | Ghi chú |
 |---|---|---|
 | Built-in tools (read/bash/edit…) | `createAgentSession({ tools: [...] })` / `noTools` | Chưa cần; nếu bật, mọi output vẫn qua gate |
-| Custom tools | `customTools: [tool…]` | Phải nằm sau Confirm; không cho tự hành động |
+| Custom tools | `customTools: [tool…]` | Đã dùng đúng một cái: `show_on_hud` (chat). Tool khác phải presentation-only hoặc chặn sau Confirm |
 | Skills (SKILL.md, agentskills.io spec) | `DefaultResourceLoader` với skills path, `noSkills: false`; `/skill:name` ép load | Skill chỉ là instructions — không thay đổi quyền |
 | Prompt templates | `noPromptTemplates: false` + templates dir | Như skill nhưng không đóng gói assets |
 | Extensions (codemode, tool_search, MCP) | `extensionFactories` trong loader; SDK **không** tự load MCP như CLI | MCP ⇒ tool từ ngoài; cần review allowlist |
@@ -227,6 +270,8 @@ Pi SDK **có** hỗ trợ đầy đủ (docs `sdk.md`, `skills.md`, `tools`/`ext
 - Vi phạm ⇒ `rejected`, không cache; HUD giữ preset (`HUD_PRESET_EN/VI`) làm đường render chính.
 - `SURFACES` (`agents/surfaces.ts`): allow-list theo surface — hiện chỉ `orbit-panel`; thêm surface
   là một dòng. Chat/HUD **không** render được nếu output không qua cổng này.
+- `show_on_hud` dùng **cùng** `reviewProgram` với hud-composer trước khi ghi `artifacts.hudProgram`;
+  client review lại lần nữa trước khi thay cây OpenUI (§3.4).
 
 ## 10. Failure modes
 
@@ -250,6 +295,8 @@ Không có retry tự động; lỗi log `console.warn("agent turn failed", …2
   `resetChatStateForTests()` / `resetHudComposeStateForTests()` xoá cache.
 - `agents/registry.test.ts` assert mọi profile đủ field + defaultModel non-empty.
 - `astro-chat.session.test.ts` cover persistent SessionManager path (tmp dir).
+- `hud-show.server.test.ts` cover tool `show_on_hud` qua seam `compose`: pass, reject, throw, brief rỗng.
+- `chat-transport.test.ts` cover frame `ui` (trước delta và giữa stream): callback chạy, không chunk lạ.
 
 ## 12. Environment & files
 
@@ -271,8 +318,9 @@ Không có retry tự động; lỗi log `console.warn("agent turn failed", …2
 - `AgentProfile.modelEnv` và `defaultModel` là **metadata**; model thực tế resolve toàn cục qua
   `currentAgentModel()` — profile không override được. `hud-composer.ts` đang ghi
   `anthropic/claude-sonnet-4.5` trong `defaultModel` nhưng **không có hiệu lực** (lỗi thời, cần dọn).
-- `maxSteps` / `tools` / `handoff` trong profile không được enforce — hành vi thực tế là single-shot,
-  không tool. Khi muốn agent nhiều bước thật, phải thêm vòng lặp + trần bước + gate.
+- `maxSteps` / `handoff` trong profile vẫn **không** được enforce; chỉ `sky-chat` có một tool thật
+  (`show_on_hud`, §3.4) — các agent còn lại là single-shot không tool. Khi muốn agent nhiều bước thật,
+  phải thêm vòng lặp + trần bước + gate.
 - `routeRequest()` chỉ match regex tiếng Anh compose-flow; mọi thứ khác rơi vào orchestrator.
 - Chat/composer sống per-astronaut trong cache `MAX_CACHED = 6`, TTL 20 phút; HUD program cache
   15 phút, tối đa 24 entry.
