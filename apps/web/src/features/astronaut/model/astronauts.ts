@@ -68,6 +68,37 @@ export function moveSelection(
   return roster[next] ?? null;
 }
 
+/**
+ * Like {@link moveSelection}, but cards whose id is in `takenIds` are skipped: keyboard
+ * navigation never lands on a crew member claimed by another session. Returns the card `|delta|`
+ * available-steps away, wrapping at both ends; `null` only when every card is taken.
+ */
+export function moveSelectionAvailable(
+  roster: readonly Astronaut[],
+  takenIds: ReadonlySet<string>,
+  currentId: string | null,
+  delta: number,
+): Astronaut | null {
+  const len = roster.length;
+  if (len === 0) return null;
+  const hasAvailable = roster.some((a) => !takenIds.has(a.id));
+  if (!hasAvailable) return null;
+  const step = delta >= 0 ? 1 : -1;
+  let index = Math.max(
+    0,
+    roster.findIndex((a) => a.id === normalizeAstronautId(currentId)),
+  );
+  let moves = Math.abs(Math.trunc(delta)) || 1;
+  let guard = len * (moves + 1) + len;
+  while (moves > 0 && guard > 0) {
+    guard -= 1;
+    index = (index + step + len) % len;
+    if (takenIds.has(roster[index]!.id)) continue;
+    moves -= 1;
+  }
+  return roster[index]!;
+}
+
 /** Greeting name: the first word of a full name ("Ayla Reyes" → "Ayla"). */
 export function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] ?? name;

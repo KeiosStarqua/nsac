@@ -150,6 +150,8 @@ Challenge: choose which Moon samples to return.
 
 TypeScript + Bun, SQLite (bun:sqlite), Drizzle ORM, Zod. Run: `cd apps/backend && bun run dev`. DB at `var/sky.db`.
 
+Endpoints: `GET /api/astronauts`, plus `GET /api/claims?sessionId=` and `POST /api/claims` — the Sky HUD astronaut picker is claim-locked so one browser session holds one crew member (anonymous `nsac.session` id, move semantics: claiming another releases the previous). There is also an unauthenticated demo reset endpoint (`POST /api/claims/reset`, demo/testing only — see code).
+
 ## Tech stack (NSAC)
 
 Thứ tự và link dưới đây là stack dự kiến cho dự án; mỗi URL đã mở thử **2026-10-18**.

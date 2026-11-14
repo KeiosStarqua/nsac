@@ -7,6 +7,7 @@ import {
   firstName,
   initials,
   moveSelection,
+  moveSelectionAvailable,
   normalizeAstronautId,
   parseAstronautRows,
 } from "./astronauts";
@@ -57,6 +58,26 @@ describe("keyboard selection", () => {
 
   test("unknown current id starts from the first card", () => {
     expect(moveSelection(ASTRONAUTS, null, 1)?.id).toBe(ASTRONAUTS[1]!.id);
+  });
+
+  test("skips taken cards, wraps at both ends", () => {
+    const taken = new Set(["dae-jung-park"]);
+    // ayla-reyes → next available is lena-fischer (dae taken)
+    expect(moveSelectionAvailable(ASTRONAUTS, taken, "ayla-reyes", 1)?.id).toBe("lena-fischer");
+    // lena-fischer → previous available is ayla-reyes (dae taken)
+    expect(moveSelectionAvailable(ASTRONAUTS, taken, "lena-fischer", -1)?.id).toBe("ayla-reyes");
+    // noor-abbasi → forward wraps to ayla-reyes
+    expect(moveSelectionAvailable(ASTRONAUTS, taken, "noor-abbasi", 1)?.id).toBe("ayla-reyes");
+  });
+
+  test("consistent behavior when everything is taken or current card is taken", () => {
+    const all = new Set(ASTRONAUTS.map((a) => a.id));
+    expect(moveSelectionAvailable(ASTRONAUTS, all, "ayla-reyes", 1)).toBeNull();
+    // current card taken but others available → lands on the next available card
+    const taken = new Set(["ayla-reyes"]);
+    expect(moveSelectionAvailable(ASTRONAUTS, taken, "ayla-reyes", 1)?.id).toBe("dae-jung-park");
+    // delta larger than one step moves that many available cards
+    expect(moveSelectionAvailable(ASTRONAUTS, new Set(["dae-jung-park"]), "ayla-reyes", 2)?.id).toBe("tomas-ortega");
   });
 });
 

@@ -293,7 +293,7 @@ bun run lint
 
 - Chưa có model mở cho orthostatic tolerance ở 3/8 G; readiness là công thức minh họa.
 - Không có ECG/echo liên tục công khai; tín hiệu tim là synthetic theo paper.
-- Web và backend chưa nối; `/demo` dùng scenario minh họa, không phải dữ liệu pipeline.
+- Web↔backend hiện chỉ nối ở picker `/` (roster từ backend với fixture fallback, pick claim-locked qua `/api/claims`); `/demo` vẫn dùng scenario minh họa, không phải dữ liệu pipeline.
 - `apps/onboard`, `apps/generative-ui`, `apps/website`, `scripts/`, `assets/fixtures/` mới là chỗ giữ.
 - RAG, LangGraph, checkpointer, PDF trên máy demo (WeasyPrint/Pango) chưa hoàn tất.
 - Panel Sky cần mạng + key OpenRouter để soạn; offline chỉ giữ preset (đúng thiết kế).

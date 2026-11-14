@@ -17,5 +17,9 @@ export const vi: Copy = {
     hint: "Nhấn 1–6 để chọn · Enter để xác nhận",
     footer: "Phi hành đoàn mô phỏng · Chỉ để trình diễn · Không phải lời khuyên y tế",
     close: "Đóng bảng chọn phi hành gia",
+    taken: "ĐÃ CÓ NGƯỜI CHỌN",
+    takenCta: "Đã có người chọn — hãy chọn người khác",
+    claimTaken: "Ai đó vừa chọn thành viên này — hãy chọn người khác.",
+    claiming: "Đang giữ chỗ…",
   },
 };

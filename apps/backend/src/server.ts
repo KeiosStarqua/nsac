@@ -1,4 +1,5 @@
 import { astronautsRepo } from "./db/repositories/astronauts";
+import { handleClaimsRequest } from "./claimsRoutes";
 
 const port = Number(process.env.PORT ?? 3200);
 
@@ -11,6 +12,8 @@ Bun.serve({
     if (url.pathname === "/health") {
       return Response.json({ ok: true });
     }
+    const claims = await handleClaimsRequest(req);
+    if (claims) return claims;
     if (url.pathname === "/api/astronauts") {
       const rows = await astronautsRepo.list();
       return Response.json(rows);

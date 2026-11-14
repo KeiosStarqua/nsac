@@ -4,7 +4,7 @@ import {
   ASTRONAUTS,
   astronautForKey,
   findAstronaut,
-  moveSelection,
+  moveSelectionAvailable,
   type Astronaut,
 } from "../model/astronauts";
 import styles from "./AstronautPicker.module.css";
@@ -16,6 +16,14 @@ interface Props {
   readonly roster?: readonly Astronaut[];
   /** Currently saved crew member, so reopening pre-selects it. */
   readonly initialId?: string | null;
+  /** Crew ids held by *other* sessions. My own claim must be in `mineId`, not here. */
+  readonly takenIds?: ReadonlySet<string>;
+  /** Crew id this session currently holds; stays selectable even when `takenIds` is stale. */
+  readonly mineId?: string | null;
+  /** A claim request is in flight — every confirm/double-click is locked out. */
+  readonly claiming?: boolean;
+  /** Inline error under the rail (e.g. someone else just took the selected card). */
+  readonly error?: string | null;
   readonly onSelect: (id: string) => void;
   /** Omitted on the first visit: there is no valid state to return to yet. */
   readonly onClose?: () => void;
@@ -28,9 +36,13 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
 }
 
-export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: Props) {
+export function AstronautPicker({ open, roster, initialId, takenIds, mineId, claiming = false, error, onSelect, onClose }: Props) {
   const copy = useCopy();
   const crew = roster && roster.length > 0 ? roster : ASTRONAUTS;
+  const isTaken = useCallback(
+    (id: string) => (takenIds?.has(id) ?? false) && id !== mineId,
+    [takenIds, mineId],
+  );
   const defaultId = useMemo(
     () => findAstronaut(initialId, crew)?.id ?? crew[0]?.id ?? "",
     [initialId, crew],
@@ -65,9 +77,23 @@ export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: 
     cardRefs.current.get(selected)?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [open, selected]);
 
-  const confirm = useCallback((id: string) => {
-    if (id) onSelect(id);
-  }, [onSelect]);
+  const taken = useMemo(() => {
+    const s = new Set(takenIds ?? []);
+    if (mineId) s.delete(mineId);
+    return s;
+  }, [takenIds, mineId]);
+  // Confirm is only legal for an available selection with no claim in flight.
+  const selectionTaken = isTaken(selected);
+  const canConfirm = !claiming && !selectionTaken && selected.length > 0;
+
+  const confirm = useCallback(
+    (id: string) => {
+      if (!id || claiming) return;
+      if (isTaken(id)) return;
+      onSelect(id);
+    },
+    [claiming, isTaken, onSelect],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -91,12 +117,12 @@ export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: 
       const byDigit = astronautForKey(event.key, crew);
       if (byDigit) {
         event.preventDefault();
-        setSelected(byDigit.id);
+        if (!isTaken(byDigit.id)) setSelected(byDigit.id);
         return;
       }
 
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-        const next = moveSelection(crew, selected, event.key === "ArrowLeft" ? -1 : 1);
+        const next = moveSelectionAvailable(crew, taken, selected, event.key === "ArrowLeft" ? -1 : 1);
         if (next) {
           event.preventDefault();
           setSelected(next.id);
@@ -104,7 +130,8 @@ export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: 
         return;
       }
       if (event.key === "Home" || event.key === "End") {
-        const next = event.key === "Home" ? crew[0] : crew[crew.length - 1];
+        const available = crew.filter((a) => !isTaken(a.id));
+        const next = event.key === "Home" ? available[0] : available[available.length - 1];
         if (next) {
           event.preventDefault();
           setSelected(next.id);
@@ -113,7 +140,7 @@ export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: 
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, selected, crew, confirm, onClose]);
+  }, [open, selected, crew, taken, isTaken, confirm, onClose]);
 
   if (!open) return null;
 
@@ -152,14 +179,17 @@ export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: 
         <div className={styles.rail} role="radiogroup" aria-labelledby="astronaut-picker-title">
           {crew.map((a, index) => {
             const isSelected = selected === a.id;
+            const cardTaken = isTaken(a.id);
             return (
               <button
                 key={a.id}
                 type="button"
                 role="radio"
                 aria-checked={isSelected}
-                className={`${styles.card} ${isSelected ? styles.cardSelected : styles.cardDim}`}
-                onClick={() => setSelected(a.id)}
+                aria-disabled={cardTaken || undefined}
+                disabled={cardTaken}
+                className={`${styles.card} ${isSelected ? styles.cardSelected : styles.cardDim}${cardTaken ? ` ${styles.cardTaken}` : ""}`}
+                onClick={() => { if (!cardTaken) setSelected(a.id); }}
                 onDoubleClick={() => confirm(a.id)}
                 ref={(node) => {
                   if (node) cardRefs.current.set(a.id, node);
@@ -168,7 +198,7 @@ export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: 
               >
                 <span className={styles.callsignRow}>
                   <span className={styles.callsign}>{a.callsign}</span>
-                  <kbd className={styles.key} aria-hidden="true">{index + 1}</kbd>
+                  {cardTaken ? null : <kbd className={styles.key} aria-hidden="true">{index + 1}</kbd>}
                 </span>
                 <span className={styles.avatarRing}>
                   <span className={styles.initial}>{a.initial}</span>
@@ -176,14 +206,30 @@ export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: 
                 </span>
                 <span className={styles.name}>{a.name}</span>
                 <span className={styles.role}>{a.role}</span>
-                <span className={styles.status}>{copy.astronaut.status}</span>
+                {cardTaken ? (
+                  <span className={styles.takenBadge}>{copy.astronaut.taken}</span>
+                ) : (
+                  <span className={styles.status}>{copy.astronaut.status}</span>
+                )}
               </button>
             );
           })}
         </div>
 
-        <button type="button" className={styles.confirm} onClick={() => confirm(chosen.id)}>
-          {format(copy.astronaut.confirm, { name: chosen.name })}
+        {error ? (
+          <p className={styles.error} role="alert">{error}</p>
+        ) : null}
+        <button
+          type="button"
+          className={styles.confirm}
+          disabled={!canConfirm}
+          onClick={() => confirm(chosen.id)}
+        >
+          {claiming
+            ? copy.astronaut.claiming
+            : selectionTaken
+              ? copy.astronaut.takenCta
+              : format(copy.astronaut.confirm, { name: chosen.name })}
         </button>
         <p className={styles.hint}>{copy.astronaut.hint}</p>
         <p className={styles.footer}>{copy.astronaut.footer}</p>
