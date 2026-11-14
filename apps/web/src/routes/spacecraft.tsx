@@ -9,6 +9,7 @@ export const Route = createFileRoute("/spacecraft")({
 });
 
 function SpacecraftPageRoute() {
-  // No chrome: browser back/URL or Escape (handled in SpacecraftPage) leaves the page.
+  // One deliberate exception to "no chrome" (the crew presence overlay ships inside
+  // SpacecraftPage); browser back/URL or Escape (handled in SpacecraftPage) leaves the page.
   return <SpacecraftPage />;
 }

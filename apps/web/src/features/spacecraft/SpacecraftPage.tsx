@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 // The nebula drift keyframes (the one bit of motion Tailwind cannot inline).
 import "./nebula-drift.css";
+import { CrewPresence } from "./components/CrewPresence";
 import { DEFAULT_MODEL_ID, SPACECRAFT_MODELS } from "./model/models";
 import { usePausedWhenHidden, useReducedMotion } from "./model/preferences";
 
@@ -25,9 +26,9 @@ function webglAvailable(): boolean {
 }
 
 /**
- * Full-screen cinematic viewer for the NASA ISS. No panels,
- * no controls: just the station adrift over a Webb nebula backdrop. Orbit and
- * zoom stay available; Escape returns to the HUD.
+ * Full-screen cinematic viewer for the NASA ISS. One piece of chrome only — the crew presence
+ * overlay in the bottom-left — otherwise just the station adrift over a Webb nebula backdrop.
+ * Orbit and zoom stay available; Escape returns to the HUD.
  */
 export function SpacecraftPage() {
   const [supported, setSupported] = useState<boolean | null>(null);
@@ -102,6 +103,8 @@ export function SpacecraftPage() {
         className="pointer-events-none absolute inset-0 [box-shadow:inset_0_0_18vmax_rgba(0,0,0,0.72)]"
         aria-hidden="true"
       />
+      {/* The one piece of chrome: crew presence, above the vignette so it stays legible. */}
+      <CrewPresence />
     </main>
   );
 }
