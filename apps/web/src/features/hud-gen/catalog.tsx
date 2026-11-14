@@ -43,7 +43,6 @@ const VariableProximityAny = VariableProximity as any;
 import { hasDigit, type ParseProgram } from "./model/review";
 import { HUD_FACT_IDS, HUD_VITAL_KINDS } from "./model/names";
 import { FIXTURE_LABEL } from "~/features/sky-hud/vitals";
-import { InputSurface } from "~/features/sky-hud/InputSurface";
 import { DeviceSwitcher } from "~/features/sky-hud/components/DeviceSwitcher";
 import { useHudScope } from "./scope";
 import {
@@ -106,7 +105,7 @@ const safeText = (text: string | undefined) => (text && !hasDigit(text) ? text :
 
 const ALERT_TONES = ["info", "caution", "success", "danger"] as const;
 
-const SECTION_AREAS = ["header", "vitals", "conversation", "health", "voice", "input"] as const;
+const SECTION_AREAS = ["header", "vitals", "conversation", "health", "voice"] as const;
 type SectionArea = (typeof SECTION_AREAS)[number];
 
 const VITAL_ICON_SVGS: Record<(typeof HUD_VITAL_KINDS)[number], ReactNode> = {
@@ -538,7 +537,7 @@ const LEAF_REFS = [
 
 const Section = defineComponent({
   name: "Section",
-  description: "One region of the HUD. Areas: header, vitals, conversation, health, voice, input.",
+  description: "One region of the HUD. Areas: header, vitals, conversation, health, voice.",
   props: z.object({
     area: z.enum(SECTION_AREAS).describe("Which HUD region this is"),
     children: z.array(z.union(LEAF_REFS)).optional().describe("Parts inside the region"),
@@ -587,8 +586,6 @@ const Section = defineComponent({
             {renderNode(children)}
           </section>
         );
-      case "input":
-        return <InputSurface />;
       case "voice":
         return <div className={VOICE_CONTROL}>{renderNode(children)}</div>;
       case "conversation": {

@@ -21,7 +21,7 @@ export const hudComposer: AgentProfile = {
       "Output only the program. No fences. No commentary. No digits in any text.",
       "Only components from the supplied allow-list. Stay under maxChars.",
       "Numbers reach the HUD only through MetricTile fact ids (heartRate, respiration, spo2, sleep) or Fact ids (missionDay). Never write a digit or a metric value into the program.",
-      "Reproduce the reference layout: Surface > Sections for header, vitals, conversation, health, voice and input, plus FooterNote.",
+      "Reproduce the reference layout: Surface > Sections for header, vitals, conversation, health and voice, plus FooterNote.",
       `Allow-list: ${allow}`,
       `maxChars: ${max}`,
       `Context: ${ctx.surface ?? ""}`,

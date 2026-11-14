@@ -28,7 +28,6 @@ import { useSkyVoice } from "./useSkyVoice";
 import { PHASE_TEXT, MIC_ARIA } from "./voiceCopy";
 import { SkyOrb } from "./SkyOrb";
 import { VoiceWaveform } from "./VoiceWaveform";
-import { InputSurface } from "./InputSurface";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId } from "../astronaut";
@@ -555,8 +554,7 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
         </button>
       </section>
 
-      {/* Fluid surface + mic */}
-      <InputSurface />
+      {/* Voice control */}
       <div className={VOICE_CONTROL}>
         {/* VoicePill (React Bits) replaces the old mic orb. Its own audio is simulated — it never
             opens a MediaStream; `useSkyVoice` keeps the real analyser for the orb/waveform. */}
