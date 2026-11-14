@@ -7,7 +7,14 @@ import { DEFAULT_LAYERS, type LayerMap } from "./model/layers";
 import { usePausedWhenHidden, useReducedMotion } from "./model/preferences";
 
 // three.js and the model sit behind this import, so the HUD entry chunk stays light.
-const BodyScene = lazy(() => import("./scene/BodyScene"));
+import { recoverFromChunkError } from "~/shared/chunk-recovery";
+
+const BodyScene = lazy(() =>
+  import("./scene/BodyScene").catch((error) => {
+    recoverFromChunkError();
+    throw error;
+  }),
+);
 
 export interface BodyMapOverlayProps {
   readonly open: boolean;

@@ -6,8 +6,10 @@ import {
   createRootRoute,
   useRouterState,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { z } from "zod";
+import { installChunkRecovery } from "~/shared/chunk-recovery";
 import { LocaleSchema, getCopy, getRequestLocale, type Locale } from "~/shared/i18n";
 import appCss from "~/styles/global.css?url";
 
@@ -55,6 +57,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootLayout() {
+  useEffect(() => installChunkRecovery(), []);
   return <Outlet />;
 }
 
