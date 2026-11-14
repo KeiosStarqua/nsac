@@ -1,40 +1,25 @@
-import { useEffect, useState, type RefObject } from "react";
-import { Shdr11 } from "../../shared/orbkit";
+import type { RefObject } from "react";
+import { CrystalizedBall } from "../../shared/react-bits";
 import type { VoicePhase } from "./types";
 
-function phaseToOrbState(phase: VoicePhase) {
-  if (phase === "transcribing" || phase === "thinking") return "thinking";
-  if (phase === "speaking") return "speaking";
-  return "idle";
-}
-
 /**
- * State-driven Orbkit orb for the HUD. Replaces the hand-rolled WebGL OrbCanvas.
- * Mic energy is sampled into `volumes.input` only while listening/transcribing,
- * so the orb's GL context is never remounted.
+ * Ambient Crystalized Ball (React Bits) for the HUD orb zone.
+ * The component is cursor-reactive, not mic-reactive, so the old mic-energy
+ * sampling was dropped — `energyRef` is accepted (unused) to keep the
+ * SkyScreen / SkyScreenGen call sites untouched.
  */
 export function SkyOrb({ phase, energyRef }: { phase: VoicePhase; energyRef: RefObject<number> }) {
-  const [inputVol, setInputVol] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    const listening = phase === "listening" || phase === "transcribing";
-    if (!listening) {
-      setInputVol(undefined);
-      return;
-    }
-    const id = window.setInterval(() => {
-      setInputVol(energyRef.current);
-    }, 33);
-    return () => window.clearInterval(id);
-  }, [phase, energyRef]);
-
-  const volumes = inputVol === undefined ? undefined : { input: inputVol };
+  void phase;
+  void energyRef;
 
   return (
-    <Shdr11
-      size={340}
-      state={phaseToOrbState(phase)}
-      volumes={volumes}
+    <CrystalizedBall
+      theme="dark"
+      preset="aurora"
+      size={0.94}
+      interactive
+      hoverStrength={0.6}
+      intro
       style={{ width: "100%", height: "100%" }}
     />
   );

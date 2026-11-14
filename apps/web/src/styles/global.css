@@ -1,4 +1,8 @@
 /* System fonts only: the page must render with the network unplugged. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Sky's palette. The --sky-* names hold the raw values and the short names below are what the app
      stylesheets use. Arc's token bridge needs the raw values: Arc also defines --surface, --border

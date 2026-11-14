@@ -2,6 +2,8 @@ export { default as BlurText } from "./BlurText/BlurText";
 export * from "./BlurText/BlurText";
 export { default as CountUp } from "./CountUp/CountUp";
 export * from "./CountUp/CountUp";
+export { default as CrystalizedBall } from "./CrystalizedBall/CrystalizedBall";
+export * from "./CrystalizedBall/CrystalizedBall";
 export { default as DecryptedText } from "./DecryptedText/DecryptedText";
 export * from "./DecryptedText/DecryptedText";
 export { default as DepthText } from "./DepthText/DepthText";

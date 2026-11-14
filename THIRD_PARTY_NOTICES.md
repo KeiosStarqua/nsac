@@ -4,7 +4,7 @@
 
 - Licence: MIT + Commons Clause
 - Link: https://github.com/DavidHDev/react-bits
-- Components taken: all 57 (7 prior + 50 new)
+- Components taken: all 58 (7 prior + 51 new, incl. CrystalizedBall 2026-11-14)
 - Location: apps/web/src/shared/react-bits/
 - Licence file: apps/web/src/shared/react-bits/LICENSE.md
 - Date: 2026-11-14
@@ -21,6 +21,14 @@
 
 - Licence: MIT
 - Location: apps/web (body-map scene)
+- Date: 2026-11-14
+
+## ogl
+
+- Licence: Unlicense (public domain)
+- Link: https://github.com/oframe/ogl
+- Version: 1.0.11
+- Used by: the vendored React Bits CrystalizedBall (`apps/web/src/shared/react-bits/CrystalizedBall/`)
 - Date: 2026-11-14
 
 ## Orbkit
