@@ -44,7 +44,18 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
 3. Doc conflicts → hợp nhất theo kiểu union (giữ cả hai ý, không xoá nội dung nào có nguồn); sau merge **LUÔN** `grep -n -F '<<<<<<<'` trên mọi file đã đụng — không marker nào được phép ở commit. Code conflicts ngoài docs/scripts → `rejected` (trả lại owner), không tự ý sáng tạo.
 4. Chạy gates trong merge worktree: `bun install --frozen-lockfile` (root), `cd apps/web && bun run build && bun run typecheck && bun run test` (backend `readings` fail là pre-existing). Fail → `rejected` với log, không push.
 5. Push `origin/main`. Nếu `Request` yêu cầu deploy: chạy `scripts/deploy.sh` (một deploy tại một thời điểm máy; không deploy khi có deploy khác đang chạy — nếu đang có, bỏ qua deploy, ghi chú). Tag sinh tự động bởi script.
-6. Cập nhật entry `merged <sha>`; worktree/branch dọn; HC-AGENTS.md (ceo) một dòng nếu có deploy.
+6. Cập nhật entry `merged <sha>`; rồi **dọn sạch nhánh ngay trong cùng lượt** (xem "Clear sau merge"); HC-AGENTS.md (ceo) một dòng nếu có deploy.
+
+## Clear sau merge — bắt buộc (Keios, 2026-11-15)
+
+- Merge đã push lên `origin/main` xong thì nhánh đó không còn lý do tồn tại — xoá cùng lượt, không để lại "rác nhánh":
+  1. `git worktree remove --force <path>` (worktree của agent, thường `/tmp/opencode/*` hoặc `/home/keios/repos/mein/nsac-*`) → `git worktree prune`.
+  2. `git branch -d <branch>` (chỉ `-d`; từ chối xoá nghĩa là chưa merge — dừng, điều tra, không dùng `-D`).
+  3. Nếu nhánh có trên remote: `git push origin --delete <branch>` (chỉ sau khi merge commit đã nằm trong `origin/main`; không xoá remote branch chưa merge).
+  4. Verify: `git branch -a | grep -F <branch>` và `git worktree list` không còn nhánh/worktree đó; `git status --short` sạch.
+- Registry `BRANCHES.md`: entry chuyển `merged <sha>`, `Worktree: removed`, `Notes` ghi nhánh đã xoá — commit cùng lượt.
+- Không xoá nhánh `active`/`rejected`/chưa merge, không xoá `main`, không đụng nhánh của agent đang chạy.
+- Nếu xoá thất bại (branch chưa merge đúng, worktree còn lock): ghi `Notes` lý do, báo Keios, không ép `-D`, không bỏ qua im lặng.
 
 ## Background watch — luôn có một shell chờ thay đổi `BRANCHES.md` (Keios, 2026-11-15)
 
