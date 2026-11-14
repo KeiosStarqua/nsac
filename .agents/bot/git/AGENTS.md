@@ -55,6 +55,7 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
   4. Verify: `git branch -a | grep -F <branch>` và `git worktree list` không còn nhánh/worktree đó; `git status --short` sạch.
 - Registry `BRANCHES.md`: entry chuyển `merged <sha>`, `Worktree: removed`, `Notes` ghi nhánh đã xoá — commit cùng lượt.
 - Không xoá nhánh `active`/`rejected`/chưa merge, không xoá `main`, không đụng nhánh của agent đang chạy.
+- **Không bao giờ xoá worktree `deploy-*`** (`/home/keios/nsac.worktrees/deploy-<sha>`) — chúng thuộc `scripts/deploy.sh`, có thể đang là nguồn rsync của một deploy đang chạy. Trước khi xoá bất kỳ worktree/branch nào: `pgrep -af 'deploy\.sh|nix build'` phải trống (bài học 2026-11-15: xoá nhầm worktree deploy đang chạy, phải dựng lại cùng sha ngay).
 - Nếu xoá thất bại (branch chưa merge đúng, worktree còn lock): ghi `Notes` lý do, báo Keios, không ép `-D`, không bỏ qua im lặng.
 
 ## Background watch — luôn có một shell chờ thay đổi `BRANCHES.md` (Keios, 2026-11-15)
