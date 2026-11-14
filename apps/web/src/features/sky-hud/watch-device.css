@@ -35,7 +35,7 @@
 
 /* ---------- Embedded WatchHud (same live component, sized for the face) ----------
    1cqw ≈ 6.6px, 1cqh ≈ 7.3px at the measured hole. Fits without scrolling at 733px height. */
-.watch-screen .watch-hud{height:100%;min-height:0;gap:1.6cqh;padding:5.2cqh 4.6cqw;z-index:1;overflow:hidden;justify-content:space-evenly}
+.watch-screen .watch-hud{height:100%;min-height:0;gap:1.3cqh;padding:5cqh 4.6cqw;z-index:1;overflow:hidden;justify-content:flex-start}
 /* The bezel's corner arc dips ~50 image px into the face at the extreme left/right; the top strip
    sits in the center (not space-between) and the chips keep max-widths so nothing hides under the rim. */
 .watch-screen .watch-top{min-height:4.8cqh;gap:2cqw;justify-content:center}
@@ -43,19 +43,27 @@
 .watch-screen .watch-crew-dot{width:1.5cqw;height:1.5cqw}
 .watch-screen .watch-tag{font-size:1.45cqw;letter-spacing:.2em;padding:.55cqh 1.1cqw;border-radius:.7cqw}
 .watch-screen .watch-mission{font-size:1.55cqw;padding:.55cqh 1.4cqw}
-.watch-screen .watch-vitals{gap:1.3cqh}
-.watch-screen .watch-vital{min-height:11.6cqh;padding:1.5cqh 2.1cqw;gap:.6cqh;border-radius:2.1cqw}
-.watch-screen .watch-vital-label{font-size:1.45cqw;letter-spacing:.18em}
-.watch-screen .watch-vital-value{font-size:4.9cqw;column-gap:.8cqw}
-.watch-screen .watch-vital-value small{font-size:1.6cqw}
-.watch-screen .watch-wellness{min-height:7.2cqh;padding:.7cqh 2.3cqw;gap:2cqw}
-.watch-screen .watch-wellness-label{font-size:1.75cqw}
-.watch-screen .watch-wellness-status{font-size:2.5cqw}
-.watch-screen .watch-voice{flex:1;gap:1.1cqh;padding:0;min-height:0}
-.watch-screen .watch-mic{width:14.5cqw;height:14.5cqw;min-width:0;min-height:0}
+/* Pager inside the face — chevrons and page padding clear the bezel rim */
+.watch-screen .watch-pager{min-height:0}
+.watch-screen .watch-page{padding-inline:7.6cqw}
+.watch-screen .watch-chevron{width:6.8cqw;height:6.8cqw;min-width:44px;min-height:44px}
+.watch-screen .watch-chevron svg{width:3.4cqw;height:3.4cqw}
+.watch-screen .watch-vitals{gap:1.6cqh}
+.watch-screen .watch-vital{min-height:21cqh;padding:2cqh 2.6cqw;gap:1cqh;border-radius:2.6cqw}
+.watch-screen .watch-vital-label{font-size:1.7cqw;letter-spacing:.18em}
+.watch-screen .watch-vital-value{font-size:8.8cqw;column-gap:1.4cqw}
+.watch-screen .watch-vital-value small{font-size:2.6cqw}
+.watch-screen .watch-page-wellness{gap:.8cqh}
+.watch-screen .watch-wellness-caption{font-size:1.9cqw;letter-spacing:.22em}
+.watch-screen .watch-wellness-status{font-size:9cqw}
+.watch-screen .watch-wellness-line{font-size:1.8cqw}
+.watch-screen .watch-view-details{min-height:8.8cqh;font-size:2.6cqw;border-radius:2.6cqw;letter-spacing:.05em;padding:0 3cqw}
+.watch-screen .watch-mic{width:30cqw;height:30cqw;min-width:0;min-height:0}
 .watch-screen .watch-mic svg{width:45%;height:45%}
-.watch-screen .watch-hint{margin:0;font-size:1.95cqw;line-height:1.35;max-width:100%}
-.watch-screen .watch-type{font-size:1.65cqw;padding:.7cqh 2.5cqw;min-height:4.6cqh}
+.watch-screen .watch-hint{margin:0;font-size:2.1cqw;line-height:1.35;max-width:100%}
+.watch-screen .watch-dots{padding:.4cqh 0}
+.watch-screen .watch-dot{width:4.2cqh;height:4.2cqh;min-width:28px;min-height:28px}
+.watch-screen .watch-dot-mark{width:1.7cqw;height:1.7cqw}
 .watch-screen .watch-footer{font-size:1.32cqw;line-height:1.45;padding:0 1cqw}
 
 /* ---------- Overlays clipped to the face (desktop watch preview only) ---------- */

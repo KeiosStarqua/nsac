@@ -46,6 +46,12 @@ export const en: Copy = {
     vitalSleep: "SLEEP",
     typeInstead: "Type instead",
     demonstrationOnly: "Demonstration only",
+    screenVitals: "Vitals",
+    screenWellness: "Wellness",
+    screenSky: "Sky",
+    screenPrevious: "Previous screen",
+    screenNext: "Next screen",
+    viewDetails: "View details",
   },
   hud: {
     tagline: "Astronaut Wellness",

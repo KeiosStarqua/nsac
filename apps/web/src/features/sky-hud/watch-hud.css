@@ -1,64 +1,89 @@
-/* Watch Mode — ≤480px glanceable layout. Sky-app palette: deep-space navy + cyan accents. */
-.watch-hud{box-sizing:border-box;position:relative;z-index:5;display:flex;flex-direction:column;gap:10px;height:100dvh;min-height:100dvh;overflow-x:hidden;overflow-y:auto;padding:calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 8px) calc(env(safe-area-inset-left, 0px) + 10px);color:var(--text)}
+/* Watch Mode — ≤480px glanceable layout. Sky-app palette: deep-space navy + cyan accents.
+   Three swipeable screens (Vitals · Wellness · Sky) behind horizontal scroll-snap paging. */
+.watch-hud{box-sizing:border-box;position:relative;z-index:5;display:flex;flex-direction:column;gap:8px;height:100dvh;min-height:100dvh;overflow-x:hidden;overflow-y:auto;padding:calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 6px) calc(env(safe-area-inset-left, 0px) + 10px);color:var(--text)}
 .watch-hud *{box-sizing:border-box}
 
 /* Top strip */
-.watch-top{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:36px}
+.watch-top{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:36px;flex:0 0 auto}
 .watch-crew{display:inline-flex;align-items:center;gap:6px;min-height:34px;max-width:56%;padding:3px 12px;border-radius:999px;border:1px solid rgba(120,234,255,.35);background:rgba(8,34,66,.6);color:#d9f4ff;font-size:12px;letter-spacing:.02em;white-space:nowrap}
 .watch-crew-dot{flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:#60efc0;box-shadow:0 0 6px rgba(96,239,192,.8)}
 .watch-crew-name{overflow:hidden;text-overflow:ellipsis}
 .watch-tag{flex:0 0 auto;font-size:9px;letter-spacing:.2em;color:#88e1f6;border:1px solid rgba(120,234,255,.32);border-radius:4px;padding:3px 6px;white-space:nowrap}
 .watch-mission{flex:0 0 auto;font-size:10px;color:#a8bbce;border:1px solid rgba(168,187,206,.28);border-radius:999px;padding:3px 8px;white-space:nowrap}
 
-/* Vitals glance grid — 2×2, generous tap targets */
-.watch-vitals{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-.watch-vital{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;min-height:56px;padding:9px 12px;border-radius:14px;border:1px solid rgba(120,234,255,.22);background:linear-gradient(160deg,rgba(14,42,72,.72),rgba(6,19,33,.88));color:var(--text);text-align:left;box-shadow:inset 0 0 18px rgba(88,225,255,.06)}
+/* Paged area — horizontal scroll-snap pager; dots and chevrons sit on it */
+.watch-pager{position:relative;flex:1 1 auto;min-height:0;display:flex}
+.watch-pages{flex:1 1 auto;min-width:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-radius:18px}
+.watch-pages::-webkit-scrollbar{display:none}
+.watch-page{flex:0 0 100%;min-width:0;scroll-snap-align:center;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding-inline:46px}
+
+/* Page chevrons — ≥44px, translucent cyan, dim until hover/focus */
+.watch-chevron{position:absolute;top:50%;z-index:2;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:999px;border:1px solid rgba(120,234,255,.32);background:rgba(9,28,48,.55);color:rgba(140,231,255,.65);cursor:pointer;opacity:.55;transition:opacity .18s,color .18s,border-color .18s;backdrop-filter:blur(2px)}
+.watch-chevron svg{width:22px;height:22px}
+.watch-chevron:hover{opacity:1;color:#d9f6ff;border-color:rgba(140,231,255,.6)}
+.watch-chevron:focus-visible{opacity:1;color:#eafdff;outline:2px solid #d9f6ff;outline-offset:2px}
+.watch-chevron-prev{left:1px}
+.watch-chevron-next{right:1px}
+
+/* Screen 1 — Vitals: 2×2 grid filling the page, big tiles, ≥88px tap targets */
+.watch-page-vitals{padding-block:6px}
+.watch-vitals{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:10px;height:100%}
+.watch-vital{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;min-height:88px;padding:14px 16px;border-radius:18px;border:1px solid rgba(120,234,255,.22);background:linear-gradient(160deg,rgba(14,42,72,.72),rgba(6,19,33,.88));color:var(--text);text-align:left;box-shadow:inset 0 0 18px rgba(88,225,255,.06)}
 .watch-vital:active{border-color:rgba(120,234,255,.55)}
-.watch-vital-label{font-size:9px;letter-spacing:.2em;color:#88e1f6}
-.watch-vital-value{font-size:26px;font-weight:300;line-height:1.05;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:4px;row-gap:0;white-space:nowrap}
-.watch-vital-value small{font-size:10px;color:#a8bbce;letter-spacing:.05em}
+.watch-vital-label{font-size:10px;letter-spacing:.2em;color:#88e1f6}
+.watch-vital-value{font-size:47px;font-weight:300;line-height:1.02;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;row-gap:0;white-space:nowrap}
+.watch-vital-value small{font-size:15px;color:#a8bbce;letter-spacing:.05em}
 
-/* Wellness strip */
-.watch-wellness{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:8px 14px;border-radius:999px;border:1px solid rgba(96,239,192,.35);background:linear-gradient(120deg,rgba(14,58,58,.55),rgba(6,19,33,.88));color:var(--text);text-align:left;box-shadow:inset 0 0 18px rgba(96,239,192,.05)}
-.watch-wellness-label{font-size:11px;color:#a8bbce;letter-spacing:.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.watch-wellness-status{flex:0 0 auto;font-size:15px;color:#60efc0;font-weight:400;letter-spacing:.03em}
+/* Screen 2 — Wellness: ultra-sparse, one big full-width button */
+.watch-page-wellness{align-items:center;justify-content:center;gap:4px;text-align:center;padding-block:12px}
+.watch-wellness-caption{margin:0;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#88e1f6}
+.watch-wellness-status{margin:0;font-size:clamp(40px,13vw,60px);font-weight:200;line-height:1;letter-spacing:.01em;color:#60efc0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.watch-wellness-line{margin:0;font-size:11px;line-height:1.4;color:#a8bbce;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.watch-view-details{margin-top:auto;width:100%;min-height:56px;border-radius:16px;border:1px solid rgba(120,234,255,.38);background:linear-gradient(160deg,rgba(18,56,88,.85),rgba(8,26,44,.92));color:#d9f4ff;font-size:14px;letter-spacing:.06em;cursor:pointer;box-shadow:inset 0 0 18px rgba(88,225,255,.08)}
+.watch-view-details:hover{border-color:rgba(140,231,255,.6);color:#eafdff}
+.watch-view-details:focus-visible{outline:2px solid #d9f6ff;outline-offset:2px}
 
-/* Voice action */
-.watch-voice{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:4px 0;min-height:96px}
-.watch-mic{width:72px;height:72px;min-width:64px;min-height:64px}
-.watch-mic svg{width:34px;height:34px}
-.watch-hint{margin:0;font-size:13px;white-space:normal;text-align:center;max-width:100%}
-.watch-type{background:none;border:0;color:rgba(177,224,247,.78);font-size:11px;letter-spacing:.08em;padding:8px 14px;min-height:34px;text-decoration:underline;text-underline-offset:3px}
-.watch-type:hover{color:#d4faff}
+/* Screen 3 — Sky: mic-first and nothing else */
+.watch-page-sky{align-items:center;justify-content:center;gap:12px;padding-block:12px}
+.watch-mic{width:30vw;height:30vw;min-width:104px;min-height:104px}
+.watch-mic svg{width:45%;height:45%}
+.watch-hint{margin:0;font-size:14px;white-space:normal;text-align:center;max-width:100%}
+
+/* Dots — 28px hit areas, active screen marked */
+.watch-dots{display:flex;align-items:center;justify-content:center;gap:4px;flex:0 0 auto;padding:1px 0}
+.watch-dot{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;background:none;cursor:pointer;border-radius:999px}
+.watch-dot:focus-visible{outline:2px solid #d9f6ff;outline-offset:1px}
+.watch-dot-mark{width:8px;height:8px;border-radius:50%;background:rgba(120,234,255,.32);transition:background .2s,box-shadow .2s,transform .2s}
+.watch-dot[aria-current="true"] .watch-dot-mark{background:#78eaff;box-shadow:0 0 8px rgba(120,234,255,.7);transform:scale(1.35)}
 
 /* Footer — tiny print */
-.watch-footer{font-size:8.5px;line-height:1.45;text-align:center;color:#8ba9be;padding:2px 6px;letter-spacing:.02em}
+.watch-footer{font-size:8.5px;line-height:1.45;text-align:center;color:#8ba9be;padding:2px 6px;letter-spacing:.02em;flex:0 0 auto}
 
 /* Compact pass — short viewports (e.g. 160×240 watch). Landscape adds a single-row glance grid. */
 @media (max-height: 560px){
-  .watch-hud{gap:5px;padding-top:calc(env(safe-area-inset-top, 0px) + 4px);padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 4px)}
+  .watch-hud{gap:4px;padding-top:calc(env(safe-area-inset-top, 0px) + 4px);padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 4px)}
   .watch-top{min-height:26px}
   .watch-crew{min-height:28px;font-size:10.5px;padding:2px 9px}
   .watch-tag{font-size:8px;padding:2px 5px}
   .watch-mission{font-size:9px;padding:2px 6px}
+  .watch-pager{min-height:0}
+  .watch-page{padding-inline:44px}
   .watch-vitals{gap:5px}
-  .watch-vital{min-height:44px;padding:5px 9px;gap:2px}
+  .watch-vital{min-height:56px;padding:6px 10px;gap:2px;border-radius:12px}
   .watch-vital-label{font-size:7.5px;letter-spacing:.09em}
   .watch-vital-value{font-size:22px}
-  .watch-vital-value small{font-size:8px}
-  .watch-wellness{min-height:34px;padding:4px 11px}
-  .watch-wellness-label{font-size:10px}
-  .watch-wellness-status{font-size:13px}
-  /* min-height must fit the mic+hint+type column (48+13+26+gaps) — 0 squeezed the voice row and the mic painted over the wellness strip. Anything that does not fit scrolls (.watch-hud has overflow-y:auto) instead of overlapping. */
-  .watch-voice{min-height:92px;gap:2px;padding:0}
-  .watch-mic{width:52px;height:52px;min-width:48px;min-height:48px}
-  .watch-mic svg{width:26px;height:26px}
+  .watch-vital-value small{font-size:9px}
+  .watch-wellness-caption{font-size:8px;letter-spacing:.14em}
+  .watch-wellness-status{font-size:clamp(26px,11vw,40px)}
+  .watch-wellness-line{font-size:9px}
+  .watch-view-details{min-height:44px;font-size:12px}
+  .watch-mic{min-width:72px;min-height:72px}
   .watch-hint{font-size:10.5px}
-  .watch-type{min-height:26px;padding:3px 8px;font-size:9.5px}
+  .watch-dots{padding:0}
   .watch-footer{font-size:6.5px;line-height:1.25}
 }
 @media (max-height: 560px) and (orientation: landscape){
-  .watch-vitals{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .watch-vitals{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr)}
   .watch-vital{min-height:42px;align-items:center;text-align:center}
 }
 

@@ -36,7 +36,7 @@ export interface Copy {
     unavailable: string;
     footer: string;
   };
-  /** ≤480px watch layout: crew chip, tile labels, tiny print. */
+  /** ≤480px watch layout: crew chip, tile labels, pager screens, tiny print. */
   watch: {
     simulated: string;
     selectCrew: string;
@@ -46,6 +46,15 @@ export interface Copy {
     vitalSleep: string;
     typeInstead: string;
     demonstrationOnly: string;
+    /** Swipe pager — aria labels for the three pages (also the dot labels). */
+    screenVitals: string;
+    screenWellness: string;
+    screenSky: string;
+    /** Swipe pager — chevron buttons paging backwards/forwards. */
+    screenPrevious: string;
+    screenNext: string;
+    /** Wellness screen — full-width button opening the shared health detail dialog. */
+    viewDetails: string;
   };
   /** `/?gen=1` — the declarative OpenUI HUD. Every string the HUD shows lives here. */
   hud: {
