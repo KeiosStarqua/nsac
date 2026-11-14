@@ -12,6 +12,7 @@ import ShinyText from "../../shared/react-bits/ShinyText/ShinyText";
 import GradientText from "../../shared/react-bits/GradientText/GradientText";
 import VariableProximity from "../../shared/react-bits/VariableProximity/VariableProximity";
 import DecryptedText from "../../shared/react-bits/DecryptedText/DecryptedText";
+import VoicePill from "../../shared/react-bits/VoicePill/VoicePill";
 import {
   BRAND, BRAND_COPY, BRAND_NAME, BRAND_RING, BRAND_TAGLINE, CAPTIONS, CHEST_GLOW, CONVERSATION,
   CONVERSATION_COPY, CONVERSATION_LENS, CONVERSATION_LENS_LISTENING, DEMO_INDICATOR, DETAIL_ACTION,
@@ -21,7 +22,7 @@ import {
   MISSION_TRIGGER, MISSION_UNDERLINE, ORB_ZONE, ORB_ZONE_THINKING, SKY_APP, SKY_HEADER,
   SKY_HEADER_ACTIONS, SPACE_VIGNETTE, SPACECRAFT_LINK, STATION_ICON, TEXT_TRIGGER, VITAL_ICON,
   VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE, VITALS_PROJECTION, VITALS_SHIELD, VOICE_CONTROL,
-  VOICE_HINT, WATCH_CAPTION, WATCH_DEVICE, WATCH_FRAME, WATCH_SCREEN, WATCH_STAGE, micButtonClass,
+  VOICE_HINT, WATCH_CAPTION, WATCH_DEVICE, WATCH_FRAME, WATCH_SCREEN, WATCH_STAGE,
 } from "./hud-classes";
 import { useSkyVoice } from "./useSkyVoice";
 import { PHASE_TEXT, MIC_ARIA } from "./voiceCopy";
@@ -59,6 +60,9 @@ interface DetailDialogProps {
 export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
   const copy = useCopy();
   const [hint, setHint] = useState(PHASE_TEXT.idle);
+  // VoicePill owns its own listening state; this mirrors it so `disabled` never ends the pill's own
+  // session the moment `useSkyVoice` moves to `requesting_permission`.
+  const [pillOn, setPillOn] = useState(false);
   const mounted = useMounted();
   useEffect(() => {
     if (!mounted) return;
@@ -562,9 +566,25 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
       {/* Fluid surface + mic */}
       <InputSurface />
       <div className={VOICE_CONTROL}>
-        <button id="micButton" className={micButtonClass(phase, "console")} type="button" aria-label={MIC_ARIA[phase]} disabled={phase === "requesting_permission"} onClick={() => void toggle()}>
-          <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="18" y="8" width="12" height="24" rx="6" fill="none" stroke="currentColor" strokeWidth="2.4" /><path d="M13 24c0 15 22 15 22 0M24 36v6m-7 0h14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
-        </button>
+        {/* VoicePill (React Bits) replaces the old mic orb. Its own audio is simulated — it never
+            opens a MediaStream; `useSkyVoice` keeps the real analyser for the orb/waveform. */}
+        <VoicePill
+          size={84}
+          accentColor="#5eead4"
+          iconColor="#bfe6ef"
+          background="#0e2233"
+          className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
+          ariaLabel={MIC_ARIA[phase]}
+          disabled={phase === "requesting_permission" && !pillOn}
+          onStart={() => {
+            setPillOn(true);
+            if (phase === "idle" || phase === "error") void toggle();
+          }}
+          onStop={() => {
+            setPillOn(false);
+            if (phase === "listening" || phase === "requesting_permission") void toggle();
+          }}
+        />
         <div id="voiceHint" className={VOICE_HINT} aria-live="polite">{hint}</div>
         <button type="button" className={TEXT_TRIGGER} id="textButton" aria-label="Type a message to SKY" onClick={() => setChatOpen(true)}>Type instead</button>
       </div>

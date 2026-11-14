@@ -199,7 +199,7 @@ Keep a `prefers-reduced-motion` fallback and an entirely readable DOM-only fallb
 
 ### UI08 — `MicrophoneOrb`
 
-**Visual:** Compact luminous circular microphone control centered above fluid sheet, at approximately `(835,661)` with ~82px outer diameter; fine bright cyan ring and simple white line microphone icon. This is the **primary, explicitly identifiable action**.
+**Visual:** Compact luminous microphone control centered above fluid sheet, at approximately `(835,661)` with ~82px outer diameter. **Implemented 2026-11-15 as the vendored React Bits `VoicePill`** (`apps/web/src/shared/react-bits/VoicePill/`): an 84px navy circle with a cyan mic glyph that swells leftward into a capsule of simulated equalizer bars, a `m:ss` timer and a stop square while listening; slide left past the cancel distance to cancel. The bars are simulated (`reactive="simulated"`) — they are decoration, the authoritative capture analyser stays in `useSkyVoice`, and the textual phase hint (UI09) remains below the control. This is the **primary, explicitly identifiable action**.
 
 **Behavior:**
 - First press: request microphone permission through the platform and begin user-controlled listening only on grant.

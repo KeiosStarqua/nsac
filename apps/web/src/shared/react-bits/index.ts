@@ -116,3 +116,5 @@ export { default as Stepper } from "./Stepper/Stepper";
 export * from "./Stepper/Stepper";
 export { default as BounceCards } from "./BounceCards/BounceCards";
 export * from "./BounceCards/BounceCards";
+export { default as VoicePill } from "./VoicePill/VoicePill";
+export * from "./VoicePill/VoicePill";
