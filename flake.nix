@@ -127,6 +127,14 @@ EOF
           program = "${inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.backend}/bin/nsac-backend";
         };
         default = inputs.self.apps.${pkgs.stdenv.hostPlatform.system}.web;
+        # gc dọn store path mồ côi của các bản deploy cũ (bảo vệ bằng gcroots
+        # /nix/var/nix/gcroots/nsac-{web,backend}). Pure build không xóa được store,
+        # nên đây là app (impure, cần chạy với sudo trên box). Khi disk gần đầy tới
+        # mức nix không unpack nổi nixpkgs, chạy thẳng: sudo bash scripts/nix-gc.sh
+        gc = {
+          type = "app";
+          program = ./scripts/nix-gc.sh;
+        };
       });
     };
 }
