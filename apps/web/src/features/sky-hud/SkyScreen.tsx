@@ -13,11 +13,11 @@ import GradientText from "../../shared/react-bits/GradientText/GradientText";
 import VariableProximity from "../../shared/react-bits/VariableProximity/VariableProximity";
 import DecryptedText from "../../shared/react-bits/DecryptedText/DecryptedText";
 import {
-  BRAND, BRAND_COPY, BRAND_NAME, BRAND_RING, BRAND_TAGLINE, CAPTIONS, CHEST_GLOW, CONVERSATION,
+  BRAND, BRAND_COPY, BRAND_NAME, BRAND_RING, BRAND_TAGLINE, CAPTIONS, CONVERSATION,
   CONVERSATION_COPY, CONVERSATION_LENS, CONVERSATION_LENS_LISTENING, DEMO_INDICATOR, DETAIL_ACTION,
   DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY,
   DETAIL_VALUE, DEVICE_SWITCHER_FLOAT, HEALTH_DEMO, HEALTH_GUIDANCE, HEALTH_LABEL, HEALTH_PROJECTION,
-  HEALTH_SHIELD, HEALTH_STATUS, HEALTH_SUMMARY, HOLOGRAM_LINK, HUMAN_HOLOGRAM, LENS_INNER, MISSION_TEXT,
+  HEALTH_SHIELD, HEALTH_STATUS, HEALTH_SUMMARY, HOLOGRAM_LINK, LENS_INNER, MISSION_TEXT,
   MISSION_TRIGGER, MISSION_UNDERLINE, ORB_ZONE, ORB_ZONE_THINKING, SKY_APP, SKY_HEADER,
   SKY_HEADER_ACTIONS, SPACE_VIGNETTE, SPACECRAFT_LINK, STATION_ICON, TEXT_TRIGGER, VITAL_ICON,
   VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE, VITALS_PROJECTION, VITALS_SHIELD, VOICE_CONTROL,
@@ -37,6 +37,7 @@ import { ChatPanel } from "./components/ChatPanel";
 import { SkyChatPanel } from "./components/SkyChatPanel";
 import { WatchHud } from "./components/WatchHud";
 import { DeviceSwitcher } from "./components/DeviceSwitcher";
+import { HologramBody, HoloCredit } from "./components";
 import { useWatchViewport } from "../../shared/hooks/useWatchViewport";
 import { format, useCopy } from "../../shared/i18n";
 
@@ -536,21 +537,11 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
       <section className={HEALTH_PROJECTION} aria-label="Health summary, simulated data">
         <div className={HEALTH_SHIELD} aria-hidden="true" />
         <Link id="hologramButton" to="/body" className={HOLOGRAM_LINK} aria-label="View simulated body health details">
-          <svg className={HUMAN_HOLOGRAM} viewBox="0 0 130 236" role="img" aria-label="Glowing holographic human silhouette">
-            <defs>
-              <linearGradient id="bodyFill" x1="0" x2="1"><stop stopColor="#80e9ff" stopOpacity=".16" /><stop offset=".48" stopColor="#e5ffff" stopOpacity=".24" /><stop offset="1" stopColor="#65c9ff" stopOpacity=".12" /></linearGradient>
-              <linearGradient id="bodyStroke" x1="0" y1="0" x2=".8" y2="1"><stop stopColor="#d5faff" /><stop offset=".5" stopColor="#67d9ff" /><stop offset="1" stopColor="#71b8ff" /></linearGradient>
-              <radialGradient id="chestPulse"><stop stopColor="#ffe0a0" stopOpacity=".9" /><stop offset=".3" stopColor="#ffc27f" stopOpacity=".4" /><stop offset="1" stopColor="#ffbe8f" stopOpacity="0" /></radialGradient>
-              <filter id="bodyGlow"><feGaussianBlur stdDeviation="3" /></filter>
-            </defs>
-            <g>
-              <path id="humanShape" d="M66 17c-9 0-13 8-11 18 1 7 3 10 6 12v10c-9 3-20 5-26 13-4 6-7 23-11 43l-7 29c-3 11-1 17 3 18 4 1 6-5 7-13l10-29 5-26-1 39c0 14 1 25 4 37l4 44 2 30c1 6 5 8 9 6l5-43 5-46 6 46 3 43c5 3 9 0 9-7l4-33 3-40 2-39-1-39 6 25 9 29c2 10 5 16 9 13 4-2 3-10 0-19l-8-31c-5-22-6-34-11-39-7-8-17-10-26-13V47c4-4 6-10 6-16 0-10-5-14-15-14Z" fill="url(#bodyFill)" stroke="url(#bodyStroke)" strokeWidth="1.6" strokeLinejoin="round" />
-              <path d="M65 57 65 103m-25-11c6 6 16 10 25 9 11 1 21-3 27-9M50 154c8 2 23 2 32 0m-16-51v52" stroke="#a8f7ff" opacity=".4" fill="none" />
-              <ellipse cx="66" cy="96" rx="29" ry="38" fill="url(#chestPulse)" className={CHEST_GLOW} />
-            </g>
-            <use href="#humanShape" fill="none" stroke="#a0eeff" strokeWidth="3.5" opacity=".65" filter="url(#bodyGlow)" />
-          </svg>
+          {/* Skin shell + skeleton in 3D when the browser can draw it; the drawn figure otherwise. */}
+          <HologramBody reducedMotion={reduce} />
         </Link>
+        {/* CC BY 4.0: the Open Anatomy model's credit stays on the card that shows it. */}
+        <HoloCredit />
         <button type="button" id="healthButton" className={HEALTH_SUMMARY} aria-label="View simulated overall health assessment" onClick={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}>
           <span className={HEALTH_LABEL}>Overall</span>
           <strong className={HEALTH_STATUS}><GradientText colors={["#7fe9c9","#5ee6ff","#7fe9c9"]} animationSpeed={3} pointerEvents="none">Stable</GradientText></strong>
