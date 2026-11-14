@@ -43,7 +43,7 @@ export type SessionFacade = {
   dispose: () => void;
 };
 
-export async function createSession(profile: AgentProfile, ctx?: { request?: string } & Record<string,unknown>): Promise<SessionFacade> {
+export async function createSession(profile: AgentProfile, ctx?: { request?: string } & Record<string,unknown>, overrides?: { sessionManager?: unknown; promptSuffix?: string }): Promise<SessionFacade> {
   const key = readOpenRouterKey();
   if (!key) throw new Error("missing_key");
   const model = process.env[profile.modelEnv]?.trim() || profile.defaultModel;
@@ -58,7 +58,7 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
   await modelRuntime.setRuntimeApiKey("openrouter", key);
 
   const settingsManager = pi.SettingsManager.inMemory({ retry: { enabled: false }, cacheWarming: "off" });
-  const sessionManager = pi.SessionManager.inMemory();
+  const sessionManager = (overrides?.sessionManager as any) ?? pi.SessionManager.inMemory();
   const resourceLoader = new pi.DefaultResourceLoader({
     cwd: process.cwd(),
     agentDir: piCacheDir(),
@@ -68,7 +68,10 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
     noPromptTemplates: true,
     noThemes: true,
     noContextFiles: true,
-    systemPromptOverride: () => profile.systemPrompt({ request: (ctx?.request as string) ?? "", ...(ctx ?? {}) } as any),
+    systemPromptOverride: () => {
+      const base = profile.systemPrompt({ request: (ctx?.request as string) ?? "", ...(ctx ?? {}) } as any);
+      return overrides?.promptSuffix ? `${base}\n${overrides.promptSuffix}` : base;
+    },
     appendSystemPromptOverride: () => [],
   });
   await resourceLoader.reload();
