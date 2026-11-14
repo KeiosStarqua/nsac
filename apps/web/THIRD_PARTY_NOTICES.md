@@ -19,3 +19,12 @@
 - Location: apps/web/src/shared/react-bits/
 - Licence file: apps/web/src/shared/react-bits/LICENSE.md
 - Date: 2026-11-14
+
+## glTF Transform (@gltf-transform/*)
+
+- Licence: MIT
+- Link: https://github.com/donmccurdy/glTF-Transform
+- Packages taken: `@gltf-transform/core` 4.5.1, `@gltf-transform/functions` 4.5.1, `@gltf-transform/extensions` 4.5.1 (pinned, root `devDependencies`)
+- Used by: the offline ISS asset pipeline (`scripts/iss/split-iss.ts`, `scripts/iss/verify-iss.ts`) only — never shipped to the browser; the streamed parts keep NASA content only
+- Licence file: `node_modules/@gltf-transform/core/LICENSE.md`
+- Date: 2026-11-14
