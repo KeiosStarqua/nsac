@@ -5,7 +5,7 @@ import { overallLabel } from "../model/health";
 import type { Snapshot } from "../api/health.functions";
 
 function Badge({ state }: { state: string }) {
-  return <span className="badge" data-state={state}>{state}</span>;
+  return <span data-state={state}>{state}</span>;
 }
 
 export function HealthPage({ initial }: { initial: Snapshot }) {
@@ -34,17 +34,17 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
   }
 
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: 24, color: "var(--text)" }}>
-      <header style={{ marginBottom: 16 }}>
+    <main className="mx-auto max-w-[900px] p-6 text-(--text)">
+      <header className="mb-4">
         <h1>Health</h1>
         <div aria-live="polite">
           <Badge state={snap.overall} /> <strong>{overallLabel(snap.overall)}</strong>
-          <span style={{ marginLeft: 12, color: "var(--text-muted)" }}>checked at {snap.checkedAt}</span>
+          <span className="ml-3 text-(--text-muted)">checked at {snap.checkedAt}</span>
         </div>
-        <p style={{ color: "var(--text-muted)" }}>Agent configuration readiness snapshot.</p>
+        <p className="text-(--text-muted)">Agent configuration readiness snapshot.</p>
       </header>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table className="w-full border-collapse">
         <thead>
           <tr><th>Check</th><th>Status</th><th>Detail</th><th>Hint</th></tr>
         </thead>
@@ -61,7 +61,7 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
       </table>
 
       {live && (
-        <section aria-live="polite" style={{ marginTop: 16 }}>
+        <section aria-live="polite" className="mt-4">
           <h2>Live checks</h2>
           <p>OpenRouter key: {live.status} (HTTP {live.httpStatus ?? "n/a"})</p>
           {live.credit != null && <p>Credits: {live.credit}</p>}
@@ -70,15 +70,15 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
         </section>
       )}
 
-      <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+      <div className="mt-4 flex gap-2">
         <button onClick={runLive} disabled={running}>{running ? "Running…" : "Run live checks"}</button>
         <button onClick={copyDiag}>Copy diagnostics</button>
       </div>
 
       {roster && (
-        <section style={{ marginTop: 24 }}>
+        <section className="mt-6">
           <h2>Agent roster</h2>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="w-full border-collapse">
             <thead><tr><th>Id</th><th>Name</th><th>Role</th><th>Model</th><th>Key</th></tr></thead>
             <tbody>
               {roster.map((r: any) => (
@@ -89,7 +89,7 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
         </section>
       )}
 
-      <section style={{ marginTop: 24 }}>
+      <section className="mt-6">
         <h2>How to fix</h2>
         <p>On the box: edit <code>/etc/nsac-web/env</code> (SKY_OPENROUTER_API_KEY=...), then <code>systemctl restart nsac-web</code>.</p>
         <p>Locally: create <code>.env</code> with SKY_OPENROUTER_API_KEY.</p>
