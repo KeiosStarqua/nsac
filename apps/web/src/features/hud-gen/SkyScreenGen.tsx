@@ -9,7 +9,6 @@ const ParticlesAny = Particles as any;
 const LightTunnelAny = LightTunnel as any;
 import { useSkyVoice } from "../sky-hud/useSkyVoice";
 import { PHASE_TEXT, MIC_ARIA } from "../sky-hud/voiceCopy";
-import { SpaceArt } from "../sky-hud/SpaceArt";
 import { SkyOrb } from "../sky-hud/SkyOrb";
 import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
 import { DETAILS, VITAL_DETAILS } from "../sky-hud/vitals";
@@ -102,9 +101,13 @@ export function SkyScreenGen() {
       const params = new URLSearchParams(window.location.search);
       const fromUrl = params.get("bg");
       const fromStorage = window.localStorage.getItem("nsac.bg");
-      const chosen = fromUrl ?? fromStorage ?? "particles";
+      const raw = fromUrl ?? fromStorage;
+      // Only two backdrops remain (particles default, light-tunnel). A stale `bg` from an older
+      // build ("space", "stars", …) normalizes to particles and the stored value is cleaned up.
+      const chosen = raw === "light-tunnel" ? "light-tunnel" : "particles";
       setBg(chosen);
       if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
+      else if (raw !== null && raw !== chosen) window.localStorage.setItem("nsac.bg", chosen);
     } catch { /* ignore */ }
   }, [mounted]);
   const detailRef = useRef<HTMLDivElement | null>(null);
@@ -386,7 +389,11 @@ export function SkyScreenGen() {
 
   return (
     <main className={SKY_APP} data-phase={phase} aria-label="SKY astronaut wellness overview">
-      {bg === "particles" ? (
+      {bg === "light-tunnel" ? (
+        <div className="absolute inset-0 z-0" aria-hidden="true">
+          <LightTunnelAny cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
+        </div>
+      ) : (
         <div className="absolute inset-0 z-0" aria-hidden="true">
           <ParticlesAny
             particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}
@@ -409,12 +416,6 @@ export function SkyScreenGen() {
             opacity={0.9}
           />
         </div>
-      ) : bg === "light-tunnel" ? (
-        <div className="absolute inset-0 z-0" aria-hidden="true">
-          <LightTunnelAny cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
-        </div>
-      ) : (
-        <SpaceArt />
       )}
       <div className={SPACE_VIGNETTE} aria-hidden="true" />
 
