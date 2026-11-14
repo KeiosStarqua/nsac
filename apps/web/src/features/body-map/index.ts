@@ -1,1 +1,2 @@
-export { default as BodyMapOverlay } from "./BodyMapOverlay";
+export { BodyMapOverlay } from "./BodyMapOverlay";
+export type { BodyMapOverlayProps } from "./BodyMapOverlay";

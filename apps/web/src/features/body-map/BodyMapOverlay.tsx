@@ -1,49 +1,125 @@
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { ATTRIBUTION } from "open-anatomy-3d";
+import styles from "./BodyMapOverlay.module.css";
+import { LayerRail } from "./components/LayerRail";
+import { StructureCard } from "./components/StructureCard";
+import { DEFAULT_LAYERS, type LayerMap } from "./model/layers";
+import { usePausedWhenHidden, useReducedMotion } from "./model/preferences";
 
-const BodyScene = React.lazy(() => import("./scene/BodyScene"));
+// three.js and the model sit behind this import, so the HUD entry chunk stays light.
+const BodyScene = lazy(() => import("./scene/BodyScene"));
 
-interface Props { open: boolean; onClose: () => void; }
+export interface BodyMapOverlayProps {
+  readonly open: boolean;
+  readonly onClose: () => void;
+}
 
-export default function BodyMapOverlay({ open, onClose }: Props) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const prevFocus = useRef<HTMLElement | null>(null);
+function webglAvailable(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The body hologram: a full-screen glass panel around the Open Anatomy 3D male
+ * model. Selecting a mesh shows its catalog facts and, for the heart, lungs and
+ * brain, the simulated HUD readings. Nothing is measured; the panel says so.
+ */
+export function BodyMapOverlay({ open, onClose }: BodyMapOverlayProps) {
   const [selected, setSelected] = useState<string | null>(null);
-  const [layers, setLayers] = useState<Record<string, boolean>>({
-    skin: true, skeleton: true, muscles: true, organs: true, vessels: true, nerves: true,
-  });
+  const [layers, setLayers] = useState<LayerMap>(DEFAULT_LAYERS);
+  const [supported, setSupported] = useState<boolean | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const reducedMotion = useReducedMotion();
+  const paused = usePausedWhenHidden();
+
+  const close = useCallback(() => {
+    setSelected(null);
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
-    prevFocus.current = document.activeElement as HTMLElement;
+    openerRef.current = document.activeElement as HTMLElement | null;
+    setSupported(webglAvailable());
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    setTimeout(() => dialogRef.current?.focus(), 0);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-      prevFocus.current?.focus();
+    dialogRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
     };
-  }, [open, onClose]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+      openerRef.current?.focus();
+    };
+  }, [open, close]);
 
   if (!open) return null;
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="bodymap-title" ref={dialogRef} tabIndex={-1}
-      style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.85)", display: "flex", flexDirection: "column" }}>
-      <header style={{ padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 id="bodymap-title" style={{ color: "#cfe", margin: 0 }}>Body hologram</h2>
-        <button type="button" onClick={onClose} aria-label="Close body map">Close</button>
+    <div
+      ref={dialogRef}
+      className={styles.backdrop}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="body-map-title"
+      tabIndex={-1}
+    >
+      <header className={styles.header}>
+        <div className={styles.heading}>
+          <p className={styles.eyebrow}>SKY · living anatomy</p>
+          <h2 id="body-map-title" className={styles.title}>
+            Body hologram
+          </h2>
+          <p className={styles.subtitle}>
+            Open Anatomy 3D male model. Pick a structure to read its catalog facts and, where the
+            HUD has one, its simulated value.
+          </p>
+        </div>
+        <button type="button" className={styles.closeButton} onClick={close} aria-label="Close body map">
+          Close
+        </button>
       </header>
-      <main style={{ flex: 1, position: "relative" }}>
-        <Suspense fallback={<div style={{ color: "#9bb", padding: 24 }}>Loading hologram…</div>}>
-          <BodyScene selected={selected} onSelect={setSelected} layers={layers} setLayers={setLayers} />
-        </Suspense>
-      </main>
-      <footer style={{ padding: 12, color: "#9bb", fontSize: 12 }}>
+
+      <div className={styles.stage}>
+        <div className={styles.viewport}>
+          {supported === null ? (
+            <p className={styles.loading}>Preparing the hologram…</p>
+          ) : (
+            <Suspense fallback={<p className={styles.loading}>Preparing the hologram…</p>}>
+              <BodyScene
+                webglAvailable={supported}
+                selected={selected}
+                onSelect={setSelected}
+                layers={layers}
+                reducedMotion={reducedMotion}
+                paused={paused}
+              />
+            </Suspense>
+          )}
+          {selected ? <StructureCard selected={selected} onClear={() => setSelected(null)} /> : null}
+        </div>
+
+        <div className={styles.sidebar}>
+          <LayerRail layers={layers} setLayers={setLayers} />
+        </div>
+      </div>
+
+      <footer className={styles.footer}>
         <p>{ATTRIBUTION}</p>
-        <a href="https://github.com/MervinR07/open-anatomy-3d" target="_blank" rel="noreferrer">Licence (CC BY 4.0)</a>
+        <p>
+          Model licence:{" "}
+          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
+            CC BY 4.0
+          </a>
+          . Simulated data, not for diagnosis.
+        </p>
       </footer>
     </div>
   );
