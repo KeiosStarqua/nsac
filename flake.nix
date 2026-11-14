@@ -15,7 +15,7 @@
         let
           # Fixed-output derivation: bun install needs network, so the dependency
           # tree is fetched here with a pinned hash. Bump outputHash when bun.lock changes
-          # (build once with lib.fakeHash to read the real one from the error).
+          # (build once with inputs.nixpkgs.lib.fakeHash to read the real one from the error).
           nodeModules = pkgs.stdenv.mkDerivation {
             pname = "nsac-web-node-modules";
             version = "0.0.0";
@@ -41,8 +41,8 @@
             outputHashMode = "recursive";
             # The FOD output differs per platform (optional native deps), so pin a hash per system.
             outputHash = {
-              x86_64-linux = "sha256-6+XOqDciSKAB8EkJrkPKrOwle7Hxn4kBTqDB5lVoGmM=";
-              aarch64-linux = "sha256-qWI+g00SAXssHRnCWwcIxpS+8qNwhWg2rHIMigjlhOw=";
+              x86_64-linux = "sha256-VwsQBUsjG9SBEUeq5KVvPbZ4Qk7P9ZOkPD5nVOy3nBo=";
+              aarch64-linux = "sha256-uZ/MS7sLyNU/tYEKNjBa+uBVD8giE7v5a9Bv62Y49bU=";
             }.${pkgs.stdenv.hostPlatform.system};
           };
         in
