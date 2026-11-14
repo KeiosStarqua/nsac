@@ -15,7 +15,8 @@
 
 - Licence: MIT + Commons Clause
 - Link: https://github.com/DavidHDev/react-bits
-- Components taken: all 57 (7 prior + 50 new)
+- Components taken: all 58 (7 prior + 51 new; Topography added 2026-11-15)
+- Topography: https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/Topography/Topography.jsx — backdrop for `/watch`
 - Location: apps/web/src/shared/react-bits/
 - Licence file: apps/web/src/shared/react-bits/LICENSE.md
 - Date: 2026-11-14
