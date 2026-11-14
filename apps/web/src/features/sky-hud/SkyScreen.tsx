@@ -7,6 +7,7 @@ import { useReducedMotion } from "motion/react";
 import BlurText from "../../shared/react-bits/BlurText/BlurText";
 import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import Particles from "../../shared/react-bits/Particles/Particles";
+import Topography from "../../shared/react-bits/Topography/Topography";
 import CountUp from "../../shared/react-bits/CountUp/CountUp";
 import DepthText from "../../shared/react-bits/DepthText/DepthText";
 import ShinyText from "../../shared/react-bits/ShinyText/ShinyText";
@@ -342,7 +343,25 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
 
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
-      {bg === "particles" ? (
+      {/* /watch always renders the vendored Topography behind the watch device (not the
+          console's ?bg= path): deep-navy page, dim cyan topographic lines, low speed,
+          opacity <= 0.9 — the watch frame + caption stay the focal point. */}
+      {variant === "watch" ? (
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
+          <Topography
+            color="#5eead4"
+            lineCount={18}
+            lineWidth={1.1}
+            speed={0.15}
+            glow={0.35}
+            depthOfField={0.5}
+            fog={0.45}
+            brightness={0.85}
+            opacity={0.8}
+            intro={fx}
+          />
+        </div>
+      ) : bg === "particles" ? (
         <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
           <Particles
             particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}

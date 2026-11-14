@@ -9,6 +9,7 @@
 | GradientText | https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/GradientText/GradientText.jsx | MIT + Commons Clause |
 | VariableProximity | https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/VariableProximity/VariableProximity.jsx | MIT + Commons Clause |
 | DecryptedText | https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/DecryptedText/DecryptedText.jsx | MIT + Commons Clause |
+| Topography | https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/Topography/Topography.jsx | MIT + Commons Clause |
 
 Fetched 2026-11-14. Changes: JSX to TSX, `'use client'` removed, `@ts-nocheck` added.
 
