@@ -4,15 +4,19 @@
 //   - components are thin and read ALL data from HudScopeContext (facts, copy, phase, nodes);
 //     no string or digit reaches a program;
 //   - values reach the screen only through Fact/MetricTile, resolved from the HUD facts builder;
-//   - buttons fire host-provided actions through useTriggerAction (see HUD_ACTION_NAMES); the host
-//     validates the payload and maps each action to a behavior; actions carry no state, the crew
-//     confirms every action.
+//   - buttons fire host-provided actions by calling `useHudScope().onAction` directly (see
+//     HUD_ACTION_NAMES); the host validates the payload and maps each action to a behavior; actions
+//     carry no state, the crew confirms every action. The action types stay registered with
+//     `defineAction` because the LLM program schema needs them, but they are NOT fired through
+//     OpenUI's `useTriggerAction`: `@openuidev/react-lang` 1.1.0 swallows any action type present in
+//     `schema.actions` (it returns before calling the renderer's `onAction`), so routing through the
+//     scope is the only path that reaches the host.
 //
 // `Section` is the only layout component: the HUD is absolutely positioned by the shared Tailwind
 // class strings in `features/sky-hud/hud-classes.ts`, and the section wrappers are what anchors it.
 // It partitions its children for the conversation area (orb and waveform slots) and renders each
 // region with exactly the utilities the staged SkyScreen uses, so both screens stay identical.
-import { createLibrary, createParser, defineAction, defineComponent, useTriggerAction } from "@openuidev/react-lang";
+import { createLibrary, createParser, defineAction, defineComponent } from "@openuidev/react-lang";
 import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
 import type { ReactNode } from "react";
@@ -197,9 +201,8 @@ const MissionButton = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    const trigger = useTriggerAction();
     return (
-      <button className={MISSION_TRIGGER} type="button" aria-label={ctx.copy.hud.missionAria} onClick={() => void trigger("Mission context", undefined, { type: "OpenMission", params: {} })}>
+      <button className={MISSION_TRIGGER} type="button" aria-label={ctx.copy.hud.missionAria} onClick={() => ctx.onAction?.({ type: "OpenMission", params: {} })}>
         <span className={STATION_ICON} aria-hidden="true">
           <svg viewBox="0 0 44 36" fill="none">
             <path d="m18 16 8-2M18 21l8-2M15 8l5 10-5 10M28 6l-5 11 5 11M3 12l11-5 4 6-12 5zM31 14l10-5-3 12-9 4z" stroke="currentColor" strokeWidth="1.5" />
@@ -277,14 +280,13 @@ const MetricTile = defineComponent({
   }),
   component: ({ props }) => {
     const ctx = useHudScope();
-    const trigger = useTriggerAction();
     const fact = ctx.facts[props.fact];
     return (
       <button
         type="button"
         className={props.tone === "violet" ? `${VITAL_TILE} ${VITAL_VIOLET}` : VITAL_TILE}
         aria-label={fact.aria}
-        onClick={() => void trigger("Vital details", undefined, { type: "OpenVital", params: { kind: props.fact } })}
+        onClick={() => ctx.onAction?.({ type: "OpenVital", params: { kind: props.fact } })}
       >
         <span className={props.fact === "spo2" ? `${VITAL_ICON} ${VITAL_ICON_OXYGEN}` : VITAL_ICON} aria-hidden="true">
           {VITAL_ICON_SVGS[props.fact]}
@@ -331,10 +333,9 @@ const WellnessCard = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    const trigger = useTriggerAction();
     const h = ctx.copy.hud;
     return (
-      <button type="button" id="healthButton" className={HEALTH_SUMMARY} aria-label={h.wellnessAria} onClick={() => void trigger("Wellness details", undefined, { type: "OpenWellness", params: {} })}>
+      <button type="button" id="healthButton" className={HEALTH_SUMMARY} aria-label={h.wellnessAria} onClick={() => ctx.onAction?.({ type: "OpenWellness", params: {} })}>
         <span className={HEALTH_LABEL}>{h.wellnessLabel}</span>
         <strong className={HEALTH_STATUS}><GradientTextAny colors={["#7fe9c9", "#5ee6ff", "#7fe9c9"]} animationSpeed={3} pointerEvents="none">{h.wellnessStatus}</GradientTextAny></strong>
         <span className={HEALTH_GUIDANCE}>{h.wellnessGuidance}</span>
@@ -410,10 +411,9 @@ const MicButton = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    const trigger = useTriggerAction();
     return (
       <>
-        <button id="micButton" className={micButtonClass(ctx.phase, "console")} type="button" aria-label={ctx.micAria} disabled={ctx.phase === "requesting_permission"} onClick={() => void trigger("Toggle microphone", undefined, { type: "ToggleMic", params: {} })}>
+        <button id="micButton" className={micButtonClass(ctx.phase, "console")} type="button" aria-label={ctx.micAria} disabled={ctx.phase === "requesting_permission"} onClick={() => ctx.onAction?.({ type: "ToggleMic", params: {} })}>
           <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="18" y="8" width="12" height="24" rx="6" fill="none" stroke="currentColor" strokeWidth="2.4" /><path d="M13 24c0 15 22 15 22 0M24 36v6m-7 0h14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
         </button>
         <div id="voiceHint" className={VOICE_HINT} aria-live="polite">{ctx.hint}</div>
@@ -428,9 +428,8 @@ const ChatButton = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    const trigger = useTriggerAction();
     return (
-      <button type="button" className={TEXT_TRIGGER} id="textButton" aria-label={ctx.copy.hud.typeInsteadAria} aria-pressed={ctx.chatOpen} onClick={() => void trigger("Type instead", undefined, { type: "ToggleChat", params: {} })}>
+      <button type="button" className={TEXT_TRIGGER} id="textButton" aria-label={ctx.copy.hud.typeInsteadAria} aria-pressed={ctx.chatOpen} onClick={() => ctx.onAction?.({ type: "ToggleChat", params: {} })}>
         {ctx.copy.watch.typeInstead}
       </button>
     );
@@ -443,9 +442,8 @@ const ChangeAstronautButton = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    const trigger = useTriggerAction();
     return (
-      <button type="button" id="changeAstronautButton" className={DETAIL_ACTION} onClick={() => void trigger("Change astronaut", undefined, { type: "ChangeAstronaut", params: {} })}>
+      <button type="button" id="changeAstronautButton" className={DETAIL_ACTION} onClick={() => ctx.onAction?.({ type: "ChangeAstronaut", params: {} })}>
         {ctx.copy.astronaut.change}
       </button>
     );
@@ -458,11 +456,10 @@ const FooterNote = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    const trigger = useTriggerAction();
     return (
       <>
         {ctx.composeOrigin === "agent" && !ctx.composeHintDismissed ? (
-          <button type="button" className={HUD_GEN_COMPOSE_HINT} aria-label={ctx.copy.hud.composeHintDismissAria} onClick={() => void trigger("Dismiss", undefined, { type: "DismissComposeHint", params: {} })}>
+          <button type="button" className={HUD_GEN_COMPOSE_HINT} aria-label={ctx.copy.hud.composeHintDismissAria} onClick={() => ctx.onAction?.({ type: "DismissComposeHint", params: {} })}>
             <span>{ctx.composeHint}</span>
             <span aria-hidden="true">×</span>
           </button>
