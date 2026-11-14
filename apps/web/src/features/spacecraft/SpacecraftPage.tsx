@@ -24,18 +24,26 @@ function webglAvailable(): boolean {
 }
 
 /**
- * Full-screen cinematic viewer for the NASA ISS full-detail GLB. No panels,
+ * Full-screen cinematic viewer for the NASA ISS. No panels,
  * no controls: just the station adrift over a Webb nebula backdrop. Orbit and
  * zoom stay available; Escape returns to the HUD.
  */
 export function SpacecraftPage() {
   const [supported, setSupported] = useState<boolean | null>(null);
+  // ?stream=0 → one-shot full-detail GLB (the pre-streaming behaviour).
+  // ?part=<id>  → dev-only: stream just one part of the streamed model.
+  const [stream, setStream] = useState(true);
+  const [onlyPart, setOnlyPart] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
   const paused = usePausedWhenHidden();
   const navigate = useNavigate();
 
   useEffect(() => {
     setSupported(webglAvailable());
+    const params = new URLSearchParams(window.location.search);
+    setStream(params.get("stream") !== "0");
+    const part = params.get("part");
+    setOnlyPart(part && /^[a-z0-9-]{1,40}$/i.test(part) ? part : null);
   }, []);
 
   // Escape is the only deliberate way back — there is no chrome on the page.
@@ -47,8 +55,9 @@ export function SpacecraftPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [navigate]);
 
-  // The full-detail model is the only one rendered. Both GLBs remain in the
-  // catalog and loader path (see model/models.ts); there is no picker.
+  // Default data path: ISS-B paints first, the full-detail model streams in
+  // around the camera, then crossfades. ?stream=0 loads the full-detail GLB in
+  // one shot instead (pre-streaming behaviour). There is no UI toggle.
   const modelUrl =
     SPACECRAFT_MODELS.find((candidate) => candidate.id === DEFAULT_MODEL_ID)?.url ??
     SPACECRAFT_MODELS[0]!.url;
@@ -68,6 +77,8 @@ export function SpacecraftPage() {
         <Suspense fallback={null}>
           <SpacecraftScene
             modelUrl={modelUrl}
+            stream={stream}
+            onlyPart={onlyPart}
             autoRotate
             reducedMotion={reducedMotion}
             paused={paused}
