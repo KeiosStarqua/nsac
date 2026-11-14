@@ -1,4 +1,4 @@
-export type AgentId = "sky-orchestrator" | "sky-generative-ui";
+export type AgentId = "sky-orchestrator" | "sky-generative-ui" | "sky-chat";
 
 export type OutputContract =
   | { readonly kind: "text" }
@@ -11,6 +11,7 @@ export type AgentContext = {
   readonly surface?: string;
   readonly allowList?: readonly string[];
   readonly maxChars?: number;
+  readonly astronaut?: { readonly name: string; readonly role: string; readonly callsign: string };
 };
 
 export type AgentProfile = {

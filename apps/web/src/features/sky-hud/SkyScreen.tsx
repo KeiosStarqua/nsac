@@ -19,6 +19,7 @@ import { InputSurface } from "./InputSurface";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
 import { Link } from "@tanstack/react-router";
 import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts } from "../astronaut";
+import { ChatPanel } from "./components/ChatPanel";
 import { format, useCopy } from "../../shared/i18n";
 import type { VitalKind, VoicePhase } from "./types";
 
@@ -173,14 +174,7 @@ export function SkyScreen() {
     return () => window.removeEventListener("keydown", onKey);
   }, [detail, closeDetail]);
 
-  const chatReply = (text: string) => {
-    setPrompt(/sleep|tired|rest/i.test(text)
-      ? "Recovery is important. How did you sleep?"
-      : /oxygen|heart|pulse|health/i.test(text)
-        ? "The readings shown here are sample data only."
-        : "Your message is received in this local UI demo.");
-    setAnnouncer("Local demo response displayed.");
-  };
+  // chat handled by ChatPanel
 
   const selectedAstronaut = findAstronaut(astronautId, roster);
   const greetingFor = (astro: typeof selectedAstronaut) =>
@@ -319,15 +313,7 @@ export function SkyScreen() {
 
       {/* Text chat */}
       {chatOpen ? (
-        <form className="text-chat" aria-label="Text interaction" onSubmit={(event) => { event.preventDefault(); const form = event.currentTarget; const input = form.elements.namedItem("message") as HTMLInputElement; const value = input.value.trim(); if (!value) return; chatReply(value); input.value = ""; setChatOpen(false); }}>
-          <label htmlFor="chatInput">Message to SKY (local demo)</label>
-          <div className="chat-line">
-            <input id="chatInput" name="message" autoComplete="off" maxLength={300} placeholder="How are you feeling today?" autoFocus />
-            <button type="submit">Send</button>
-            <button type="button" id="chatClose" aria-label="Close text input" onClick={() => setChatOpen(false)}>×</button>
-          </div>
-          <span>No external service is connected; replies are local demonstration responses.</span>
-        </form>
+        <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => setPrompt(t)} />
       ) : null}
 
       {mounted && pickerOpen ? (
