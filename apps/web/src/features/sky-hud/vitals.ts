@@ -14,7 +14,7 @@ export const VITAL_DETAILS: Record<VitalKind, VitalDetail> = {
   heartRate: {
     title: "Heart rate",
     value: "62 bpm",
-    message: "Illustrative resting heart-rate reading. Source: screenshot fixture. No live sensor is connected.",
+    message: "Illustrative resting heart-rate reading. No live sensor is connected.",
     eyebrow: "SIMULATED SENSOR",
   },
   respiration: {
@@ -49,8 +49,8 @@ export const DETAILS = {
   health: {
     title: "Overall wellness",
     value: "Stable (demo)",
-    message: "This status reproduces the reference artwork. It is not a clinical finding and is not computed from these four sample metrics.",
-    eyebrow: "REFERENCE SCREEN FIXTURE",
+    message: "An illustrative wellness status for this demonstration. It is not a clinical finding and is not computed from live measurements.",
+    eyebrow: "DEMO STATUS",
   },
   hologram: {
     title: "Body hologram",
@@ -61,8 +61,8 @@ export const DETAILS = {
   mission: {
     title: "Mission context",
     value: "ISS · Day 170",
-    message: "The mission identifier and day are copied from the concept design. No actual ISS tracking, spacecraft connection or time synchronization is available.",
-    eyebrow: "REFERENCE MISSION",
+    message: "The mission name and mission day are demo values. No ISS tracking, spacecraft connection or time synchronization is connected.",
+    eyebrow: "DEMO MISSION",
   },
 } as const;
 
