@@ -11,7 +11,7 @@
 //     (0,2,0) reproduces the old `.watch-screen …` descendant selectors — including winning over
 //     the ≤480px and short-viewport media variants, exactly as the old files did.
 //
-// Keyframes (orbBreath, chestGlow, fluidFlow, fluidFloat, micPulse) stay in `hud-keyframes.css`.
+// Keyframes (chestGlow, fluidFlow, fluidFloat, micPulse) stay in `hud-keyframes.css`.
 import type { VoicePhase } from "./types";
 
 /** Console-wide focus ring (was `button:focus-visible,input:focus-visible` in hud-screen.css). */
@@ -149,24 +149,17 @@ export const LENS_INNER = [
 ].join(" ");
 
 export const ORB_ZONE = [
-  "absolute left-[50.6%] top-[26.3%] aspect-square w-[min(26vw,355px)]",
+  "absolute left-[50.6%] top-[26.3%] aspect-square w-[min(34vw,465px)]",
   "[filter:drop-shadow(0_0_26px_rgba(68,172,255,.24))] [transform:translate(-50%,-50%)]",
   "[&_canvas]:relative [&_canvas]:z-[2] [&_canvas]:block [&_canvas]:h-full [&_canvas]:w-full",
   "max-[1300px]:top-[27.5%]",
-  "max-[1000px]:top-[31%] max-[1000px]:w-[310px]",
-  "max-[720px]:left-1/2 max-[720px]:top-[35%] max-[720px]:w-[min(68vw,290px)]",
+  "max-[1000px]:top-[31%] max-[1000px]:w-[404px]",
+  "max-[720px]:left-1/2 max-[720px]:top-[35%] max-[720px]:w-[min(88vw,378px)]",
   "max-[420px]:top-[35%]",
 ].join(" ");
 
 /** `thinking` deepens the orb halo (was `.sky-app[data-phase="thinking"] .orb-zone`). */
 export const ORB_ZONE_THINKING = "[filter:drop-shadow(0_0_34px_rgba(171,142,255,.33))]";
-
-export const ORB_FALLBACK = [
-  "absolute inset-[18%] rounded-full",
-  "bg-[radial-gradient(circle_at_65%_60%,transparent_20%,rgba(59,174,238,.1)_40%,rgba(120,225,255,.42)_70%,rgba(170,156,252,.2)_79%,transparent_90%)]",
-  "shadow-[0_0_30px_rgba(83,200,248,.2),inset_-9px_4px_20px_rgba(133,178,255,.45)]",
-  "[animation:orbBreath_6s_ease-in-out_infinite] motion-reduce:animate-none!",
-].join(" ");
 
 export const CONVERSATION_COPY = [
   "absolute left-[23%] top-[40%] w-[56%] text-center [text-shadow:0_2px_23px_rgba(10,25,62,.6)]",

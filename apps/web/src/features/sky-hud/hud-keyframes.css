@@ -1,4 +1,4 @@
-/* The only residual CSS of the HUD feature: the five decorative keyframes the utilities in
+/* The only residual CSS of the HUD feature: the four decorative keyframes the utilities in
    `hud-classes.ts` / `watch-hud.ts` reference through `[animation:…]`. Everything else — sizes,
    positions, colours, glows, media rules — is Tailwind utilities in `className`.
    Reduced motion is handled by `motion-reduce:animate-none!` on each animated element. */
@@ -7,14 +7,6 @@
 @keyframes micPulse {
   50% {
     box-shadow: 0 0 18px #67efff, 0 0 45px rgba(69, 156, 253, 0.7), inset 0 0 30px rgba(87, 232, 255, 0.46);
-  }
-}
-
-/* CSS orb fallback breathing behind the WebGL ball. */
-@keyframes orbBreath {
-  50% {
-    transform: scale(1.04);
-    opacity: 0.84;
   }
 }
 

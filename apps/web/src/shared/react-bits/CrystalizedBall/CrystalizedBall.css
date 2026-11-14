@@ -2,5 +2,8 @@
   position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  /* Sky fork (2026-11-15): the canvas' own bounds already clip the shader's
+     halo; `overflow: visible` keeps the wrapper box from clipping anything else
+     (the intro, the hover flare). Upstream ships `overflow: hidden`. */
+  overflow: visible;
 }
