@@ -13,8 +13,10 @@
 - Nhận diện tab của mình: env `HERDR_TAB_ID` (vd. `wS:tM`), `HERDR_WORKSPACE_ID` (workspace), `HERDR_PANE_ID` (pane). Xem label hiện tại: `herdr tab get "$HERDR_TAB_ID"` (hoặc `herdr tab list` rồi match `tab_id`). Đổi tên: `herdr tab rename "$HERDR_TAB_ID" "<label mới>"`.
 - **Prefix luôn là `ceo-{index}-`** — `index` là số ổn định sẵn có trong label của tab (identity của tab đó trong danh sách Tab), giữ NGUYÊN khi đổi tên, không tự chế index mới. Phần sau là slug ngắn (2–4 từ, kebab-case, không dấu) mô tả việc đang làm, vd. `ceo-2-tailwind-migration`, `ceo-3-iss-streaming`.
 - Chỉ đổi khi không khớp; không đổi liên tục trong lúc đang làm dở một việc chỉ vì chi tiết phụ thay đổi. Không đổi prefix, không đổi tab của người khác.
+- **State symbol đứng đầu label** (chốt 2026-11-15): `●` = working (đang chạy/đang làm), `○` = idle (xong việc/đã báo cáo, chờ Keios), `◆` = blocked (cần Keios quyết định). Label dạng `● ceo-2-tailwind-migration` — symbol trước, rồi `ceo-{index}-<slug>`; prefix `ceo-{index}-` giữ nguyên.
+- Đổi symbol **chỉ ở biên nhiệm vụ**: `●` khi bắt đầu lượt làm việc thật, `○` khi kết thúc lượt và dừng chờ Keios, `◆` khi bị chặn cần quyết định. KHÔNG đổi mỗi tool call / mỗi tin nhắn. Nếu crash giữa lượt, symbol có thể kẹt ở `●` — coi `herdr tab list` (`agent_status`) là nguồn sự thật, symbol chỉ là chỉ báo thô.
 - Áp dụng cho các tab herdr đang chạy CEO bot session (opencode), không áp dụng cho terminal do `hc` spawn (chúng không có herdr tab riêng; báo cáo qua `hc send`).
-- Ví dụ: thấy tab label `ceo-2` nhưng session này đang quản Tailwind migration → rename `wS:tM` thành `ceo-2-tailwind-migration`.
+- Ví dụ: thấy tab label `ceo-2` nhưng session này đang quản Tailwind migration → rename `wS:tM` thành `● ceo-2-tailwind-migration`.
 
 ## herdr hc CLI — spawning and managing coding agents (Keios, 2026-11-12)
 
