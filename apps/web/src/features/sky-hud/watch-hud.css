@@ -1,0 +1,67 @@
+/* Watch Mode — ≤480px glanceable layout. Sky-app palette: deep-space navy + cyan accents. */
+.watch-hud{box-sizing:border-box;position:relative;z-index:5;display:flex;flex-direction:column;gap:10px;height:100dvh;min-height:100dvh;overflow-x:hidden;overflow-y:auto;padding:calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 8px) calc(env(safe-area-inset-left, 0px) + 10px);color:var(--text)}
+.watch-hud *{box-sizing:border-box}
+
+/* Top strip */
+.watch-top{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:36px}
+.watch-crew{display:inline-flex;align-items:center;gap:6px;min-height:34px;max-width:56%;padding:3px 12px;border-radius:999px;border:1px solid rgba(120,234,255,.35);background:rgba(8,34,66,.6);color:#d9f4ff;font-size:12px;letter-spacing:.02em;white-space:nowrap}
+.watch-crew-dot{flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:#60efc0;box-shadow:0 0 6px rgba(96,239,192,.8)}
+.watch-crew-name{overflow:hidden;text-overflow:ellipsis}
+.watch-tag{flex:0 0 auto;font-size:9px;letter-spacing:.2em;color:#88e1f6;border:1px solid rgba(120,234,255,.32);border-radius:4px;padding:3px 6px;white-space:nowrap}
+.watch-mission{flex:0 0 auto;font-size:10px;color:#a8bbce;border:1px solid rgba(168,187,206,.28);border-radius:999px;padding:3px 8px;white-space:nowrap}
+
+/* Vitals glance grid — 2×2, generous tap targets */
+.watch-vitals{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.watch-vital{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;min-height:56px;padding:9px 12px;border-radius:14px;border:1px solid rgba(120,234,255,.22);background:linear-gradient(160deg,rgba(14,42,72,.72),rgba(6,19,33,.88));color:var(--text);text-align:left;box-shadow:inset 0 0 18px rgba(88,225,255,.06)}
+.watch-vital:active{border-color:rgba(120,234,255,.55)}
+.watch-vital-label{font-size:9px;letter-spacing:.2em;color:#88e1f6}
+.watch-vital-value{font-size:26px;font-weight:300;line-height:1.05;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:4px;row-gap:0;white-space:nowrap}
+.watch-vital-value small{font-size:10px;color:#a8bbce;letter-spacing:.05em}
+
+/* Wellness strip */
+.watch-wellness{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:8px 14px;border-radius:999px;border:1px solid rgba(96,239,192,.35);background:linear-gradient(120deg,rgba(14,58,58,.55),rgba(6,19,33,.88));color:var(--text);text-align:left;box-shadow:inset 0 0 18px rgba(96,239,192,.05)}
+.watch-wellness-label{font-size:11px;color:#a8bbce;letter-spacing:.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.watch-wellness-status{flex:0 0 auto;font-size:15px;color:#60efc0;font-weight:400;letter-spacing:.03em}
+
+/* Voice action */
+.watch-voice{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:4px 0;min-height:96px}
+.watch-mic{width:72px;height:72px;min-width:64px;min-height:64px}
+.watch-mic svg{width:34px;height:34px}
+.watch-hint{margin:0;font-size:13px;white-space:normal;text-align:center;max-width:100%}
+.watch-type{background:none;border:0;color:rgba(177,224,247,.78);font-size:11px;letter-spacing:.08em;padding:8px 14px;min-height:34px;text-decoration:underline;text-underline-offset:3px}
+.watch-type:hover{color:#d4faff}
+
+/* Footer — tiny print */
+.watch-footer{font-size:8.5px;line-height:1.45;text-align:center;color:#8ba9be;padding:2px 6px;letter-spacing:.02em}
+
+/* Compact pass — short viewports (e.g. 160×240 watch). Landscape adds a single-row glance grid. */
+@media (max-height: 560px){
+  .watch-hud{gap:5px;padding-top:calc(env(safe-area-inset-top, 0px) + 4px);padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 4px)}
+  .watch-top{min-height:26px}
+  .watch-crew{min-height:28px;font-size:10.5px;padding:2px 9px}
+  .watch-tag{font-size:8px;padding:2px 5px}
+  .watch-mission{font-size:9px;padding:2px 6px}
+  .watch-vitals{gap:5px}
+  .watch-vital{min-height:44px;padding:5px 9px;gap:2px}
+  .watch-vital-label{font-size:7.5px;letter-spacing:.09em}
+  .watch-vital-value{font-size:22px}
+  .watch-vital-value small{font-size:8px}
+  .watch-wellness{min-height:34px;padding:4px 11px}
+  .watch-wellness-label{font-size:10px}
+  .watch-wellness-status{font-size:13px}
+  /* min-height must fit the mic+hint+type column (48+13+26+gaps) — 0 squeezed the voice row and the mic painted over the wellness strip. Anything that does not fit scrolls (.watch-hud has overflow-y:auto) instead of overlapping. */
+  .watch-voice{min-height:92px;gap:2px;padding:0}
+  .watch-mic{width:52px;height:52px;min-width:48px;min-height:48px}
+  .watch-mic svg{width:26px;height:26px}
+  .watch-hint{font-size:10.5px}
+  .watch-type{min-height:26px;padding:3px 8px;font-size:9.5px}
+  .watch-footer{font-size:6.5px;line-height:1.25}
+}
+@media (max-height: 560px) and (orientation: landscape){
+  .watch-vitals{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .watch-vital{min-height:42px;align-items:center;text-align:center}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .watch-hud,.watch-hud *{animation:none !important;transition:none !important}
+}

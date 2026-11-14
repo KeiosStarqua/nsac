@@ -12,6 +12,7 @@ import GradientText from "../../shared/react-bits/GradientText/GradientText";
 import VariableProximity from "../../shared/react-bits/VariableProximity/VariableProximity";
 import DecryptedText from "../../shared/react-bits/DecryptedText/DecryptedText";
 import { useSkyVoice } from "./useSkyVoice";
+import { PHASE_TEXT, MIC_ARIA } from "./voiceCopy";
 import { SpaceArt } from "./SpaceArt";
 import { SkyOrb } from "./SkyOrb";
 import { VoiceWaveform } from "./VoiceWaveform";
@@ -21,30 +22,11 @@ import { Link } from "@tanstack/react-router";
 import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
 import { ChatPanel } from "./components/ChatPanel";
+import { WatchHud } from "./components/WatchHud";
+import { useWatchViewport } from "../../shared/hooks/useWatchViewport";
 import { format, useCopy } from "../../shared/i18n";
-import type { VitalKind, VoicePhase } from "./types";
 
-const PHASE_TEXT: Record<VoicePhase, string> = {
-  idle: "Just talk to me...",
-  requesting_permission: "Requesting microphone access…",
-  listening: "Listening… Tap to stop",
-  transcribing: "SKY is processing…",
-  thinking: "SKY is processing…",
-  speaking: "SKY is speaking…",
-  offline: "SKY is offline — the UI keeps working",
-  error: "Mic unavailable — type instead",
-};
-
-const MIC_ARIA: Record<VoicePhase, string> = {
-  idle: "Activate microphone",
-  requesting_permission: "Requesting microphone permission",
-  listening: "Stop microphone capture",
-  transcribing: "SKY is processing",
-  thinking: "SKY is thinking",
-  speaking: "SKY is speaking",
-  offline: "Microphone unavailable",
-  error: "Microphone unavailable — type instead",
-};
+const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
 interface DetailDialogProps {
   title: string;
@@ -54,8 +36,6 @@ interface DetailDialogProps {
   footer: string;
   action?: { label: string; onClick: () => void };
 }
-
-const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
 /**
  * SKY — Astronaut Wellness. React port of the original single-file demo: an original procedural
@@ -83,6 +63,7 @@ export function SkyScreen() {
   }, [mounted]);
   const reduce = useReducedMotion();
   const fx = mounted && !reduce;
+  const isWatch = useWatchViewport();
   const [detail, setDetail] = useState<DetailDialogProps | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [astronautId, setAstronautId] = useState<string | null>(null);
@@ -281,6 +262,23 @@ export function SkyScreen() {
       )}
       <div className="space-vignette" aria-hidden="true" />
 
+      {isWatch ? (
+        <WatchHud
+          phase={phase}
+          hint={hint}
+          micDisabled={phase === "requesting_permission"}
+          astronautName={selectedAstronaut ? firstName(selectedAstronaut.name) : null}
+          onToggleMic={() => void toggle()}
+          onSelectCrew={() => {
+            setClaimError(false);
+            setPickerOpen(true);
+          }}
+          onVital={(kind) => openDetail({ ...VITAL_DETAILS[kind], footer: DEFAULT_FOOTER })}
+          onHealth={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}
+          onTypeInstead={() => setChatOpen(true)}
+        />
+      ) : (
+        <>
       {/* Header */}
       <header className="sky-header">
         <button
@@ -401,6 +399,8 @@ export function SkyScreen() {
         <div id="voiceHint" className="voice-hint" aria-live="polite">{hint}</div>
         <button type="button" className="text-trigger" id="textButton" aria-label="Type a message to SKY" onClick={() => setChatOpen(true)}>Type instead</button>
       </div>
+        </>
+      )}
 
       {/* Detail overlay */}
       {detail ? (

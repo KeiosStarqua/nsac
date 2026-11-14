@@ -36,4 +36,15 @@ export interface Copy {
     unavailable: string;
     footer: string;
   };
+  /** ≤480px watch layout: crew chip, tile labels, tiny print. */
+  watch: {
+    simulated: string;
+    selectCrew: string;
+    vitalHeart: string;
+    vitalSpo2: string;
+    vitalResp: string;
+    vitalSleep: string;
+    typeInstead: string;
+    demonstrationOnly: string;
+  };
 }

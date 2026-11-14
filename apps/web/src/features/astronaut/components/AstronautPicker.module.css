@@ -51,6 +51,32 @@
   .panel { padding: 22px 16px 18px; }
   .card { flex-basis: 150px; min-height: 220px; }
 }
+@media (max-width: 480px) {
+  .backdrop { padding: 0; }
+  .panel { width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px calc(env(safe-area-inset-bottom, 0px) + 10px); overflow-y: auto; display: flex; flex-direction: column; background: rgba(9,15,27,.97); }
+  .header { margin-bottom: 12px; }
+  .title { font-size: 19px; }
+  .subtitle { font-size: 12px; }
+  .rail { flex-direction: column; flex-wrap: nowrap; overflow-x: visible; scroll-snap-type: none; margin: 0 0 12px; padding: 0; gap: 8px; scrollbar-width: none; }
+  .rail::-webkit-scrollbar { display: none; }
+  .card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "avatar name badge" "avatar role badge"; column-gap: 12px; align-items: center; flex: none; width: 100%; max-width: none; min-height: 56px; padding: 8px 12px; scroll-snap-align: none; }
+  .card:hover { transform: none; }
+  .avatarRing { grid-area: avatar; width: 44px; height: 44px; margin: 0; }
+  .initial { font-size: 15px; }
+  .check { width: 20px; height: 20px; font-size: 12px; }
+  .callsignRow { display: none; }
+  .name { grid-area: name; align-self: end; font-size: 17px; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .role { grid-area: role; align-self: start; font-size: 11px; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* The status pill is identical on every card ("Mission day 170 · …") — drop it to keep the name/role column readable. */
+  .status { display: none; }
+  .takenBadge { grid-area: badge; margin: 0; padding: 4px 8px; border: 1px solid rgba(252,165,165,.45); border-radius: 999px; font-size: 8px; letter-spacing: .1em; white-space: nowrap; max-width: 128px; overflow: hidden; text-overflow: ellipsis; }
+  .takenBadge::before { width: 5px; height: 5px; }
+  .confirm { position: sticky; bottom: 0; margin-top: auto; max-width: none; min-height: 48px; padding: 13px; font-size: 15px; }
+  .error { margin: 0 0 8px; max-width: none; }
+  .hint { font-size: 10px; margin-bottom: 6px; }
+  .footer { font-size: 10px; }
+  .close { width: 44px; height: 44px; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .card { transition: none; }
   .card:hover { transform: none; }
