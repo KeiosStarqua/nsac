@@ -8,6 +8,7 @@
 # đang sống, không xóa gì cả).
 #
 # DRY_RUN=1 ./scripts/nix-gc.sh  — chỉ liệt kê path dead, không xóa.
+# (qua sudo phải dùng env: sudo -n env DRY_RUN=1 bash scripts/nix-gc.sh — sudo env_reset sẽ bỏ DRY_RUN)
 set -euo pipefail
 
 GCROOT_DIR="${GCROOT_DIR:-/nix/var/nix/gcroots}"
