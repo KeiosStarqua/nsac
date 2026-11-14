@@ -65,7 +65,7 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
 - Mở bằng tool `shell` với `background: true`, chạy từ repo root:
 
   ```bash
-  .agents/bot/git/watch-branches.sh 7200
+  .opencode/plugins/watch-branches.sh 7200
   ```
 
 - Harness báo khi watcher kết thúc — đó là tín hiệu làm việc, không phải lỗi:

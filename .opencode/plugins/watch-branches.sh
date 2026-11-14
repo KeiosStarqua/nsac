@@ -7,9 +7,10 @@
 #
 # Usage: ./watch-branches.sh [timeout_seconds]   (default 7200)
 set -u
-DIR="$(cd "$(dirname "$0")" && pwd)"
-FILE="$DIR/BRANCHES.md"
-STATE="$DIR/.watch-state"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+TARGET="$REPO_ROOT/.agents/bot/git"
+FILE="$TARGET/BRANCHES.md"
+STATE="$TARGET/.watch-state"
 TIMEOUT="${1:-7200}"
 INTERVAL="${WATCH_INTERVAL:-5}"
 
