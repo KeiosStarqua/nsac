@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SkyStation } from "~/features/sky-guide";
+import { SkyScreen } from "~/features/sky-hud";
 
 export const Route = createFileRoute("/")({
-  // The homepage is Sky's console: the interface is composed with OpenUI, the only image is Sky itself.
-  // No marketing sections here; the product concept lives on /concept.
+  // The homepage is the SKY HUD: the astronaut wellness interface pixel-matched to the reference
+  // frame (see SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md). Interactive canvas/voice experience; the page
+  // still renders its essentials with the network unplugged. The former console lives at /console.
   ssr: true,
-  component: Home,
+  component: SkyScreenPage,
 });
 
-function Home() {
-  return <SkyStation id="console" placement="top" headingLevel="one" variant="console" />;
+function SkyScreenPage() {
+  return <SkyScreen />;
 }
