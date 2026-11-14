@@ -46,3 +46,19 @@
 @media(max-width:1000px){.sky-header-actions{gap:8px}.spacecraft-link{padding:6px 9px;gap:6px;font-size:9px;margin-top:2px}.spacecraft-link svg{width:21px;height:11px}}
 @media(max-width:720px){.spacecraft-link{margin-top:1px;padding:5px 8px;letter-spacing:.14em;text-indent:.14em}.spacecraft-link svg{width:17px;height:9px}}
 @media(max-width:480px){.spacecraft-link{display:none}}
+/* Console | Watch chrome chip — segmented navigation between `/` (console) and `/watch`.
+   Same visual language as the SPACECRAFT chip. Hidden ≤480px (phone is watch-only). */
+.device-switcher{display:inline-flex;align-items:center;gap:2px;margin-top:3px;padding:3px;border:1px solid rgba(122,222,255,.35);border-radius:999px;background:rgba(11,36,58,.5);backdrop-filter:blur(6px)}
+.device-option{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border:0;border-radius:999px;background:transparent;color:#8fb8d4;font-size:10px;font-weight:500;letter-spacing:.2em;text-indent:.2em;text-transform:uppercase;white-space:nowrap;text-decoration:none;transition:background .18s,color .18s,box-shadow .18s}
+.device-option svg{width:14px;height:14px;display:block}
+.device-option:hover{color:#d4f4ff}
+.device-option[aria-pressed="true"]{background:rgba(120,234,255,.16);color:#d9f6ff;box-shadow:inset 0 0 0 1px rgba(140,231,255,.45),0 0 14px rgba(105,214,255,.18)}
+.device-option:focus-visible{outline:2px solid #f5fcff;outline-offset:2px}
+@media(max-width:1000px){.device-option{padding:6px 9px;gap:6px;font-size:9px;letter-spacing:.14em;text-indent:.14em}.device-option svg{width:12px;height:12px}}
+@media(max-width:720px){.device-switcher{margin-top:1px;padding:2px}.device-option{padding:5px 8px}.device-option svg{width:11px;height:11px}}
+@media(max-width:480px){.device-switcher{display:none}}
+/* `/watch`: the chip floats over the backdrop, under the detail overlay (z 35) and chat panel (z 40) */
+.device-switcher-float{position:absolute;z-index:20;top:calc(env(safe-area-inset-top, 0px) + 10px);right:14px;margin-top:0}
+/* `/watch` (≥481px): right gutter on the watch top strip so the floating chip never covers the
+   mission chip. ≤480px the chip is hidden and the strip keeps its full-width layout. */
+@media(min-width:481px){.watch-hud .watch-top{padding-right:240px}}

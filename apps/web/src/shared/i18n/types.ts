@@ -71,12 +71,10 @@ export interface Copy {
     wellnessGuidance: string;
     wellnessDemo: string;
     typeInsteadAria: string;
-    /** Header chrome chip switching the main HUD between the staged console and the watch preview. */
+    /** Chrome chip — navigates between the console (`/`) and watch (`/watch`) views. */
     deviceSwitcher: string;
     deviceConsole: string;
     deviceWatch: string;
-    /** Caption under the watch device preview — labels it as a live demonstration. */
-    watchCaption: string;
     /** Header chrome chip linking to the `/spacecraft` cinematic ISS 3D view. */
     spacecraftButton: string;
     spacecraftButtonAria: string;

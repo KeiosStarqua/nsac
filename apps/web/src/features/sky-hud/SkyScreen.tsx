@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./hud-screen.css";
-import "./watch-device.css";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import BlurText from "../../shared/react-bits/BlurText/BlurText";
@@ -20,12 +19,12 @@ import { SkyOrb } from "./SkyOrb";
 import { VoiceWaveform } from "./VoiceWaveform";
 import { InputSurface } from "./InputSurface";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
 import { ChatPanel } from "./components/ChatPanel";
 import { WatchHud } from "./components/WatchHud";
-import { DeviceSwitcher, type Device } from "./components/DeviceSwitcher";
+import { DeviceSwitcher } from "./components/DeviceSwitcher";
 import { useWatchViewport } from "../../shared/hooks/useWatchViewport";
 import { format, useCopy } from "../../shared/i18n";
 
@@ -45,7 +44,7 @@ interface DetailDialogProps {
  * scene, a transparent WebGL orb, local Web Audio microphone analysis, SVG waveform and fixture data.
  * No network, no storage, no medical services. See SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md.
  */
-export function SkyScreen() {
+export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
   const copy = useCopy();
   const [hint, setHint] = useState(PHASE_TEXT.idle);
   const mounted = useMounted();
@@ -66,7 +65,10 @@ export function SkyScreen() {
   }, [mounted]);
   const reduce = useReducedMotion();
   const fx = mounted && !reduce;
-  const isWatch = useWatchViewport();
+  // Console redirect probe: raw `?device=watch`, a stored `nsac.device === "watch"`, or any ≤480px
+  // viewport bounces `/` to `/watch` (client-side, replace). SSR never renders the watch here.
+  const isSmall = useWatchViewport();
+  const navigate = useNavigate();
   const [detail, setDetail] = useState<DetailDialogProps | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [astronautId, setAstronautId] = useState<string | null>(null);
@@ -92,29 +94,24 @@ export function SkyScreen() {
       if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
     } catch { /* ignore */ }
   }, [mounted]);
-  // Console | Watch device switcher — read client-side like ?bg= (SSR renders console; a bad
-  // value falls back to console). ?device=watch|console wins over localStorage and persists.
-  const [device, setDevice] = useState<Device>("console");
+  // Device views live at dedicated routes: `/` renders the console, `/watch` the full-screen watch.
+  // Legacy entries bounce to `/watch`: a raw `?device=watch` in the URL or a stored `nsac.device
+  // === "watch"` from before the split, and any ≤480px viewport (phone is watch-only). The legacy
+  // key is dropped either way; `?gen=` is console's own param and does not apply to `/watch`.
+  const [legacyWatch, setLegacyWatch] = useState(false);
   useEffect(() => {
-    if (!mounted) return;
+    if (variant !== "console" || !mounted) return;
     try {
       const params = new URLSearchParams(window.location.search);
-      const fromUrl = params.get("device");
-      const fromStorage = window.localStorage.getItem("nsac.device");
-      const chosen = fromUrl ?? fromStorage ?? "console";
-      const normalized: Device = chosen === "watch" ? "watch" : "console";
-      setDevice(normalized);
-      if (fromUrl) window.localStorage.setItem("nsac.device", normalized);
+      const stored = window.localStorage.getItem("nsac.device");
+      if (params.get("device") === "watch" || stored === "watch") setLegacyWatch(true);
+      window.localStorage.removeItem("nsac.device");
     } catch { /* ignore */ }
-  }, [mounted]);
-  const handleDeviceChange = useCallback((next: Device) => {
-    setDevice(next);
-    try { window.localStorage.setItem("nsac.device", next); } catch { /* ignore */ }
-  }, []);
-  // Watch device preview: adult viewports only, opt-in via the header switcher / ?device=watch.
-  // ≤480px keeps the forced full-screen watch layout (see isWatch below) and never shows the switcher.
-  // NOTE: declared after the device state — it references it.
-  const watchPreview = !isWatch && device === "watch";
+  }, [variant, mounted]);
+  const redirectToWatch = variant === "console" && (isSmall || legacyWatch);
+  useEffect(() => {
+    if (redirectToWatch) void navigate({ to: "/watch", replace: true });
+  }, [redirectToWatch, navigate]);
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
@@ -277,8 +274,7 @@ export function SkyScreen() {
   const greetingFor = (astro: typeof selectedAstronaut) =>
     astro ? format(copy.astronaut.greeting, { name: firstName(astro.name) }) : "Good morning.";
 
-  // One live WatchHud element shared by the ≤480px full-screen mode and the >480px device preview —
-  // same mic button, vitals, claim flow, picker/chat/detail wiring; never both at once.
+  // One live WatchHud element shared by the `/watch` route and the hud-gen ≤480px fallback.
   const watchHud = (
     <WatchHud
       phase={phase}
@@ -295,8 +291,7 @@ export function SkyScreen() {
     />
   );
 
-  // Detail overlay / chat panel / astronaut picker — moved inside `.watch-screen` in the device
-  // preview so they clip to the watch face; rendered at the root otherwise (unchanged behaviour).
+  // Detail overlay / chat panel / astronaut picker — always at the root.
   const detailOverlay = detail ? (
     <div className="detail-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className="detail-glass" tabIndex={-1} ref={detailRef}>
@@ -339,6 +334,10 @@ export function SkyScreen() {
     </>
   );
 
+  // Redirecting `/` → `/watch` (legacy device entries or ≤480px): render nothing so the console
+  // HUD never flashes under the navigation. SSR always renders the console (effects don't run there).
+  if (redirectToWatch) return null;
+
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
       {bg === "particles" ? (
@@ -373,7 +372,13 @@ export function SkyScreen() {
       )}
       <div className="space-vignette" aria-hidden="true" />
 
-      {isWatch ? watchHud : (
+      {variant === "watch" ? (
+        <>
+          {watchHud}
+          {/* Floating Console | Watch chip — pinned top-right; hidden ≤480px (phone is watch-only). */}
+          <DeviceSwitcher current="watch" className="device-switcher-float" />
+        </>
+      ) : (
         <>
       {/* Header */}
       <header className="sky-header">
@@ -416,7 +421,7 @@ export function SkyScreen() {
           <span className="mission-text">ISS&nbsp; · &nbsp;Day 170</span>
           <span className="mission-underline" aria-hidden="true" />
         </button>
-        <DeviceSwitcher device={device} onChange={handleDeviceChange} />
+        <DeviceSwitcher current="console" />
         <Link
           id="spacecraftLink"
           to="/spacecraft"
@@ -437,19 +442,6 @@ export function SkyScreen() {
         </div>
       </header>
 
-      {watchPreview ? (
-        <div className="watch-stage">
-          <div className="watch-device" role="group" aria-label={copy.hud.watchCaption}>
-            <div className="watch-screen">
-              {watchHud}
-              {overlays}
-            </div>
-            <img className="watch-frame" src="/watch/mockup-futuristic-space-gray.png" alt="" aria-hidden="true" draggable={false} />
-          </div>
-          <p className="watch-caption">{copy.hud.watchCaption}</p>
-        </div>
-      ) : (
-      <>
       {/* Vitals projection */}
       <section className="vitals-projection" aria-label="Sample physiological readings">
         <div className="vitals-shield" aria-hidden="true" />
@@ -528,13 +520,11 @@ export function SkyScreen() {
         <div id="voiceHint" className="voice-hint" aria-live="polite">{hint}</div>
         <button type="button" className="text-trigger" id="textButton" aria-label="Type a message to SKY" onClick={() => setChatOpen(true)}>Type instead</button>
       </div>
-      </>
-      )}
         </>
       )}
 
-      {/* Overlays at the root — inside the watch face in the device preview */}
-      {watchPreview ? null : overlays}
+      {/* Overlays always at the root */}
+      {overlays}
       <div className="sr-only" role="status" aria-live="polite">{announcer}</div>
     </main>
   );

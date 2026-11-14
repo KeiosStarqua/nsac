@@ -1,35 +1,42 @@
-// Header chip: segmented Console | Watch control for the main HUD. Same visual language as the
-// neighbouring SPACECRAFT chip (chrome pill, letterspaced caps, blur backdrop). Renders only when
-// the watch layout is not forced by a ≤480px viewport — small screens always get the watch.
+// Segmented Console | Watch chrome chip — route-aware navigation between `/` (console HUD)
+// and `/watch` (full-screen watch HUD). Same visual language as the neighbouring SPACECRAFT
+// chip (chrome pill, letterspaced caps, blur backdrop). The parent decides viewport hiding
+// (both parents hide it ≤480px — small screens are watch-only).
 import { Monitor, Watch } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useCopy } from "../../../shared/i18n";
 
 export type Device = "console" | "watch";
 
 export interface DeviceSwitcherProps {
-  readonly device: Device;
-  readonly onChange: (device: Device) => void;
+  readonly current: Device;
+  /** Extra class on the root chip — `/watch` passes `device-switcher-float` to pin it top-right. */
+  readonly className?: string;
 }
 
-export function DeviceSwitcher({ device, onChange }: DeviceSwitcherProps) {
+const OPTIONS = [
+  { id: "console", to: "/", Icon: Monitor },
+  { id: "watch", to: "/watch", Icon: Watch },
+] as const;
+
+export function DeviceSwitcher({ current, className }: DeviceSwitcherProps) {
   const copy = useCopy();
-  const options: ReadonlyArray<{ id: Device; label: string; Icon: typeof Monitor }> = [
-    { id: "console", label: copy.hud.deviceConsole, Icon: Monitor },
-    { id: "watch", label: copy.hud.deviceWatch, Icon: Watch },
-  ];
+  const labels: Record<Device, string> = {
+    console: copy.hud.deviceConsole,
+    watch: copy.hud.deviceWatch,
+  };
   return (
-    <div className="device-switcher" role="group" aria-label={copy.hud.deviceSwitcher}>
-      {options.map(({ id, label, Icon }) => (
-        <button
+    <div className={className ? `device-switcher ${className}` : "device-switcher"} role="group" aria-label={copy.hud.deviceSwitcher}>
+      {OPTIONS.map(({ id, to, Icon }) => (
+        <Link
           key={id}
-          type="button"
+          to={to}
           className="device-option"
-          aria-pressed={device === id}
-          onClick={() => onChange(id)}
+          aria-pressed={current === id}
         >
           <Icon aria-hidden="true" strokeWidth={1.7} />
-          <span>{label}</span>
-        </button>
+          <span>{labels[id]}</span>
+        </Link>
       ))}
     </div>
   );

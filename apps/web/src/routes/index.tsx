@@ -43,5 +43,5 @@ function SkyScreenPage() {
       if (fromUrl !== null) window.localStorage.setItem("nsac.gen", chosen);
     } catch { /* ignore */ }
   }, []);
-  return gen ? <SkyScreenGen /> : <SkyScreen />;
+  return gen ? <SkyScreenGen /> : <SkyScreen variant="console" />;
 }
