@@ -6,6 +6,17 @@ Người/agent hoàn tất nhánh của mình: đặt `Status: ready` + điền 
 
 ---
 
+## remove-space-art — merged 1eed24c
+- Status: merged 1eed24c (merge Thủ công bởi CEO bot #2 **trước khi** luật git-bot 2026-11-15 có hiệu lực; nhánh đã xoá)
+- Worktree: removed
+- Base: origin/main @ 82e2ae9
+- Owner: agent t86 (hc) — remove legacy SpaceArt background
+- Task: xoá `features/sky-hud/SpaceArt.tsx` + nhánh fallback ở `SkyScreen`/`SkyScreenGen`; background chỉ còn `particles` (mặc định) + `light-tunnel`; `?bg=`/`nsac.bg` lạ → `particles` (ghi đè localStorage)
+- Gates: build --force ✅ typecheck ✅ tests 231/231 ✅ (merged tree 1eed24c)
+- Report: agent report inline qua hc (không có file)
+- Request: đã merge + push + deploy (deploy chạy bởi CEO trước luật git-bot)
+- Notes: commit gốc `70329cd`, merge `1eed24c`. Không sửa backend/flake/bun.lock.
+
 ## fix/fod-gcroot — active
 - Status: active — **KHÔNG merge** (agent đang chạy, branch đã có commit đầu `a7a282b`)
 - Worktree: /tmp/opencode/nsac-fod-gcroot
