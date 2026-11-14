@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import "../sky-hud/hud-screen.css";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import Particles from "../../shared/react-bits/Particles/Particles";
+import { DETAIL_ACTION, DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY, DETAIL_VALUE, SKY_APP, SPACE_VIGNETTE } from "../sky-hud/hud-classes";
 const ParticlesAny = Particles as any;
 // react-bits sources are @ts-nocheck; their inferred prop types demand props with runtime defaults.
 const LightTunnelAny = LightTunnel as any;
@@ -384,9 +384,9 @@ export function SkyScreenGen() {
   );
 
   return (
-    <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
+    <main className={SKY_APP} data-phase={phase} aria-label="SKY astronaut wellness overview">
       {bg === "particles" ? (
-        <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
+        <div className="absolute inset-0 z-0" aria-hidden="true">
           <ParticlesAny
             particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}
             particleCount={220}
@@ -409,13 +409,13 @@ export function SkyScreenGen() {
           />
         </div>
       ) : bg === "light-tunnel" ? (
-        <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
+        <div className="absolute inset-0 z-0" aria-hidden="true">
           <LightTunnelAny cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
         </div>
       ) : (
         <SpaceArt />
       )}
-      <div className="space-vignette" aria-hidden="true" />
+      <div className={SPACE_VIGNETTE} aria-hidden="true" />
 
       {isWatch ? (
         <WatchHud
@@ -441,17 +441,17 @@ export function SkyScreenGen() {
 
       {/* Detail overlay */}
       {detail ? (
-        <div className="detail-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className="detail-glass" tabIndex={-1} ref={detailRef}>
-            <button type="button" id="detailClose" className="detail-close" aria-label="Close details" onClick={closeDetail}>×</button>
-            <div id="detailEyebrow" className="detail-eyebrow">{detail.eyebrow}</div>
+        <div className={DETAIL_OVERLAY} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className={DETAIL_GLASS} tabIndex={-1} ref={detailRef}>
+            <button type="button" id="detailClose" className={DETAIL_CLOSE} aria-label="Close details" onClick={closeDetail}>×</button>
+            <div id="detailEyebrow" className={DETAIL_EYEBROW}>{detail.eyebrow}</div>
             <h2 id="detailTitle">{detail.title}</h2>
-            {detail.value ? <p id="detailValue" className="detail-value">{detail.value}</p> : null}
-            <p id="detailMessage" className="detail-message">{detail.message}</p>
+            {detail.value ? <p id="detailValue" className={DETAIL_VALUE}>{detail.value}</p> : null}
+            <p id="detailMessage" className={DETAIL_MESSAGE}>{detail.message}</p>
             {detail.action ? (
-              <button type="button" className="detail-action" onClick={detail.action.onClick}>{detail.action.label}</button>
+              <button type="button" className={DETAIL_ACTION} onClick={detail.action.onClick}>{detail.action.label}</button>
             ) : null}
-            <p id="detailFooter" className="detail-footer">{detail.footer}</p>
+            <p id="detailFooter" className={DETAIL_FOOTER}>{detail.footer}</p>
           </section>
         </div>
       ) : null}
