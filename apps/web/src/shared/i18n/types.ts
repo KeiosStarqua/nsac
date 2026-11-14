@@ -62,6 +62,9 @@ export interface Copy {
     wellnessGuidance: string;
     wellnessDemo: string;
     typeInsteadAria: string;
+    /** Header chrome chip linking to the `/spacecraft` NASA ISS 3D test bench. */
+    spacecraftButton: string;
+    spacecraftButtonAria: string;
     captionsListening: string;
     captionsError: string;
     greetingFallback: string;

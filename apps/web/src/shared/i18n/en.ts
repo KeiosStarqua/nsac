@@ -61,6 +61,8 @@ export const en: Copy = {
     wellnessGuidance: "Maintain recovery and readiness",
     wellnessDemo: "DEMO STATUS",
     typeInsteadAria: "Type a message to SKY",
+    spacecraftButton: "SPACECRAFT",
+    spacecraftButtonAria: "Open the ISS 3D model test bench",
     captionsListening: "Microphone active · audio analysed locally",
     captionsError: "Microphone unavailable — type instead",
     greetingFallback: "Good morning.",

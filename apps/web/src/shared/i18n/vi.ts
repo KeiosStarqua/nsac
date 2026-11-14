@@ -61,6 +61,8 @@ export const vi: Copy = {
     wellnessGuidance: "Duy trì hồi phục và sẵn sàng",
     wellnessDemo: "TRẠNG THÁI DEMO",
     typeInsteadAria: "Nhập tin nhắn cho SKY",
+    spacecraftButton: "TÀU VŨ TRỤ",
+    spacecraftButtonAria: "Mở trang thử nghiệm mô hình trạm ISS 3D",
     captionsListening: "Mic đang bật · âm thanh phân tích cục bộ",
     captionsError: "Mic không khả dụng — hãy nhập thay",
     greetingFallback: "Chào buổi sáng.",

@@ -322,6 +322,7 @@ export function SkyScreen() {
             <span className="brand-tagline"><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12} intensity={0.4}>Astronaut Wellness</ShinyText></span>
           </span>
         </button>
+        <div className="sky-header-actions">
         <button className="mission-trigger" type="button" aria-label="Mission information" onClick={() => openDetail({
           ...DETAILS.mission,
           footer: DEFAULT_FOOTER,
@@ -343,6 +344,24 @@ export function SkyScreen() {
           <span className="mission-text">ISS&nbsp; · &nbsp;Day 170</span>
           <span className="mission-underline" aria-hidden="true" />
         </button>
+        <Link
+          id="spacecraftLink"
+          to="/spacecraft"
+          className="spacecraft-link"
+          aria-label={copy.hud.spacecraftButtonAria}
+        >
+          <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="1.3" y="8" width="13" height="8" rx="1.2" />
+            <path d="M5.6 8v8M9.9 8v8" />
+            <rect x="33.7" y="8" width="13" height="8" rx="1.2" />
+            <path d="M38.1 8v8M42.4 8v8" />
+            <rect x="19" y="6" width="10" height="12" rx="1.6" />
+            <path d="M24 6V2.6M21.6 2.6h4.8" />
+            <circle cx="24" cy="12" r="1.5" />
+          </svg>
+          <span className="spacecraft-text">{copy.hud.spacecraftButton}</span>
+        </Link>
+        </div>
       </header>
 
       {/* Vitals projection */}
