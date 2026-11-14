@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useEffect, useRef } from 'react';
-import './LightTunnel.css'
+import './LightTunnel.css';
 
 const INTRO_SECONDS = 1.8;
 
