@@ -81,3 +81,31 @@
   .card { transition: none; }
   .card:hover { transform: none; }
 }
+
+/* Inside the watch device preview (`/?device=watch`, viewport > 480px) the picker sheet is
+   rendered inside `.watch-screen`, where `transform: translateZ(0)` makes its `position: fixed`
+   backdrop fill the watch face. Mirrors the ≤480px full-screen sheet below, scoped to the face. */
+:global(.watch-screen) .backdrop { padding: 0; background: rgba(4, 13, 24, .72); backdrop-filter: blur(3px); }
+:global(.watch-screen) .panel { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; padding: 10px 10px 8px; overflow-y: auto; display: flex; flex-direction: column; background: rgba(9, 15, 27, .96); }
+:global(.watch-screen) .header { margin-bottom: 6px; }
+:global(.watch-screen) .pill { font-size: 7px; padding: 1px 7px; }
+:global(.watch-screen) .title { font-size: 15px; margin: 4px 0 2px; }
+:global(.watch-screen) .subtitle { font-size: 9.5px; }
+:global(.watch-screen) .rail { flex-direction: column; flex-wrap: nowrap; overflow-x: visible; scroll-snap-type: none; margin: 0 0 8px; padding: 0; gap: 6px; scrollbar-width: none; }
+:global(.watch-screen) .rail::-webkit-scrollbar { display: none; }
+:global(.watch-screen) .card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "avatar name badge" "avatar role badge"; column-gap: 10px; align-items: center; flex: none; width: 100%; max-width: none; min-height: 40px; padding: 5px 8px; scroll-snap-align: none; }
+:global(.watch-screen) .card:hover { transform: none; }
+:global(.watch-screen) .avatarRing { grid-area: avatar; width: 30px; height: 30px; margin: 0; }
+:global(.watch-screen) .initial { font-size: 11px; }
+:global(.watch-screen) .check { width: 16px; height: 16px; font-size: 10px; top: -5px; right: -5px; }
+:global(.watch-screen) .callsignRow { display: none; }
+:global(.watch-screen) .name { grid-area: name; align-self: end; font-size: 12px; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:global(.watch-screen) .role { grid-area: role; align-self: start; font-size: 8.5px; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:global(.watch-screen) .status { display: none; }
+:global(.watch-screen) .takenBadge { grid-area: badge; margin: 0; padding: 3px 6px; border: 1px solid rgba(252,165,165,.45); border-radius: 999px; font-size: 7px; letter-spacing: .08em; white-space: nowrap; max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+:global(.watch-screen) .takenBadge::before { width: 4px; height: 4px; }
+:global(.watch-screen) .confirm { position: sticky; bottom: 0; margin-top: auto; max-width: none; min-height: 36px; padding: 8px; font-size: 11px; }
+:global(.watch-screen) .error { margin: 0 0 6px; max-width: none; font-size: 9px; padding: 5px 8px; }
+:global(.watch-screen) .hint { font-size: 8px; margin-bottom: 4px; }
+:global(.watch-screen) .footer { font-size: 8px; }
+:global(.watch-screen) .close { width: 30px; height: 30px; font-size: 14px; top: 6px; right: 6px; }

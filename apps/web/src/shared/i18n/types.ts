@@ -62,6 +62,12 @@ export interface Copy {
     wellnessGuidance: string;
     wellnessDemo: string;
     typeInsteadAria: string;
+    /** Header chrome chip switching the main HUD between the staged console and the watch preview. */
+    deviceSwitcher: string;
+    deviceConsole: string;
+    deviceWatch: string;
+    /** Caption under the watch device preview — labels it as a live demonstration. */
+    watchCaption: string;
     /** Header chrome chip linking to the `/spacecraft` NASA ISS 3D test bench. */
     spacecraftButton: string;
     spacecraftButtonAria: string;

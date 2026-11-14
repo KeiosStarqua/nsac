@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./hud-screen.css";
+import "./watch-device.css";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import BlurText from "../../shared/react-bits/BlurText/BlurText";
@@ -24,6 +25,7 @@ import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firs
 import type { ClaimEntry } from "../astronaut";
 import { ChatPanel } from "./components/ChatPanel";
 import { WatchHud } from "./components/WatchHud";
+import { DeviceSwitcher, type Device } from "./components/DeviceSwitcher";
 import { useWatchViewport } from "../../shared/hooks/useWatchViewport";
 import { format, useCopy } from "../../shared/i18n";
 
@@ -90,6 +92,29 @@ export function SkyScreen() {
       if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
     } catch { /* ignore */ }
   }, [mounted]);
+  // Console | Watch device switcher — read client-side like ?bg= (SSR renders console; a bad
+  // value falls back to console). ?device=watch|console wins over localStorage and persists.
+  const [device, setDevice] = useState<Device>("console");
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get("device");
+      const fromStorage = window.localStorage.getItem("nsac.device");
+      const chosen = fromUrl ?? fromStorage ?? "console";
+      const normalized: Device = chosen === "watch" ? "watch" : "console";
+      setDevice(normalized);
+      if (fromUrl) window.localStorage.setItem("nsac.device", normalized);
+    } catch { /* ignore */ }
+  }, [mounted]);
+  const handleDeviceChange = useCallback((next: Device) => {
+    setDevice(next);
+    try { window.localStorage.setItem("nsac.device", next); } catch { /* ignore */ }
+  }, []);
+  // Watch device preview: adult viewports only, opt-in via the header switcher / ?device=watch.
+  // ≤480px keeps the forced full-screen watch layout (see isWatch below) and never shows the switcher.
+  // NOTE: declared after the device state — it references it.
+  const watchPreview = !isWatch && device === "watch";
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
@@ -252,6 +277,69 @@ export function SkyScreen() {
   const greetingFor = (astro: typeof selectedAstronaut) =>
     astro ? format(copy.astronaut.greeting, { name: firstName(astro.name) }) : "Good morning.";
 
+  // One live WatchHud element shared by the ≤480px full-screen mode and the >480px device preview —
+  // same mic button, vitals, claim flow, picker/chat/detail wiring; never both at once.
+  const watchHud = (
+    <WatchHud
+      phase={phase}
+      hint={hint}
+      micDisabled={phase === "requesting_permission"}
+      astronautName={selectedAstronaut ? firstName(selectedAstronaut.name) : null}
+      onToggleMic={() => void toggle()}
+      onSelectCrew={() => {
+        setClaimError(false);
+        setPickerOpen(true);
+      }}
+      onVital={(kind) => openDetail({ ...VITAL_DETAILS[kind], footer: DEFAULT_FOOTER })}
+      onHealth={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}
+      onTypeInstead={() => setChatOpen(true)}
+    />
+  );
+
+  // Detail overlay / chat panel / astronaut picker — moved inside `.watch-screen` in the device
+  // preview so they clip to the watch face; rendered at the root otherwise (unchanged behaviour).
+  const detailOverlay = detail ? (
+    <div className="detail-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className="detail-glass" tabIndex={-1} ref={detailRef}>
+        <button type="button" id="detailClose" className="detail-close" aria-label="Close details" onClick={closeDetail}>×</button>
+        <div id="detailEyebrow" className="detail-eyebrow">{detail.eyebrow}</div>
+        <h2 id="detailTitle">{detail.title}</h2>
+        {detail.value ? <p id="detailValue" className="detail-value">{detail.value}</p> : null}
+        <p id="detailMessage" className="detail-message">{detail.message}</p>
+        {detail.action ? (
+          <button type="button" className="detail-action" onClick={detail.action.onClick}>{detail.action.label}</button>
+        ) : null}
+        <p id="detailFooter" className="detail-footer">{detail.footer}</p>
+      </section>
+    </div>
+  ) : null;
+
+  const chatPanel = chatOpen ? (
+    <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
+  ) : null;
+
+  const picker = mounted && pickerOpen ? (
+    <AstronautPicker
+      open
+      roster={roster}
+      initialId={astronautId}
+      takenIds={takenIdsOf(claims, astronautId)}
+      mineId={astronautId}
+      claiming={claiming}
+      error={claimError ? copy.astronaut.claimTaken : null}
+      onSelect={handleAstronautSelect}
+      onClose={astronautId ? () => { setPickerOpen(false); setClaimError(false); } : undefined}
+    />
+  ) : null;
+
+  const overlays = (
+    <>
+      {detailOverlay}
+      {chatPanel}
+      {picker}
+    </>
+  );
+
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
       {bg === "particles" ? (
@@ -286,22 +374,7 @@ export function SkyScreen() {
       )}
       <div className="space-vignette" aria-hidden="true" />
 
-      {isWatch ? (
-        <WatchHud
-          phase={phase}
-          hint={hint}
-          micDisabled={phase === "requesting_permission"}
-          astronautName={selectedAstronaut ? firstName(selectedAstronaut.name) : null}
-          onToggleMic={() => void toggle()}
-          onSelectCrew={() => {
-            setClaimError(false);
-            setPickerOpen(true);
-          }}
-          onVital={(kind) => openDetail({ ...VITAL_DETAILS[kind], footer: DEFAULT_FOOTER })}
-          onHealth={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}
-          onTypeInstead={() => setChatOpen(true)}
-        />
-      ) : (
+      {isWatch ? watchHud : (
         <>
       {/* Header */}
       <header className="sky-header">
@@ -344,6 +417,7 @@ export function SkyScreen() {
           <span className="mission-text">ISS&nbsp; · &nbsp;Day 170</span>
           <span className="mission-underline" aria-hidden="true" />
         </button>
+        <DeviceSwitcher device={device} onChange={handleDeviceChange} />
         <Link
           id="spacecraftLink"
           to="/spacecraft"
@@ -364,6 +438,19 @@ export function SkyScreen() {
         </div>
       </header>
 
+      {watchPreview ? (
+        <div className="watch-stage">
+          <div className="watch-device" role="group" aria-label={copy.hud.watchCaption}>
+            <div className="watch-screen">
+              {watchHud}
+              {overlays}
+            </div>
+            <img className="watch-frame" src="/watch/mockup-futuristic-space-gray.png" alt="" aria-hidden="true" draggable={false} />
+          </div>
+          <p className="watch-caption">{copy.hud.watchCaption}</p>
+        </div>
+      ) : (
+      <>
       {/* Vitals projection */}
       <section className="vitals-projection" aria-label="Sample physiological readings">
         <div className="vitals-shield" aria-hidden="true" />
@@ -442,44 +529,13 @@ export function SkyScreen() {
         <div id="voiceHint" className="voice-hint" aria-live="polite">{hint}</div>
         <button type="button" className="text-trigger" id="textButton" aria-label="Type a message to SKY" onClick={() => setChatOpen(true)}>Type instead</button>
       </div>
+      </>
+      )}
         </>
       )}
 
-      {/* Detail overlay */}
-      {detail ? (
-        <div className="detail-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className="detail-glass" tabIndex={-1} ref={detailRef}>
-            <button type="button" id="detailClose" className="detail-close" aria-label="Close details" onClick={closeDetail}>×</button>
-            <div id="detailEyebrow" className="detail-eyebrow">{detail.eyebrow}</div>
-            <h2 id="detailTitle">{detail.title}</h2>
-            {detail.value ? <p id="detailValue" className="detail-value">{detail.value}</p> : null}
-            <p id="detailMessage" className="detail-message">{detail.message}</p>
-            {detail.action ? (
-              <button type="button" className="detail-action" onClick={detail.action.onClick}>{detail.action.label}</button>
-            ) : null}
-            <p id="detailFooter" className="detail-footer">{detail.footer}</p>
-          </section>
-        </div>
-      ) : null}
-
-      {/* Text chat */}
-      {chatOpen ? (
-        <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
-      ) : null}
-
-      {mounted && pickerOpen ? (
-        <AstronautPicker
-          open
-          roster={roster}
-          initialId={astronautId}
-          takenIds={takenIdsOf(claims, astronautId)}
-          mineId={astronautId}
-          claiming={claiming}
-          error={claimError ? copy.astronaut.claimTaken : null}
-          onSelect={handleAstronautSelect}
-          onClose={astronautId ? () => { setPickerOpen(false); setClaimError(false); } : undefined}
-        />
-      ) : null}
+      {/* Overlays at the root — inside the watch face in the device preview */}
+      {watchPreview ? null : overlays}
       <div className="sr-only" role="status" aria-live="polite">{announcer}</div>
     </main>
   );
