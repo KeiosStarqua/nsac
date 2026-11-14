@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getSnapshot, validateOpenRouterKey, checkModel } from "../api/health.functions";
+import { listAgentRoster } from "../../agent/api/agent.functions";
 import { overallLabel } from "../model/health";
 import type { Snapshot } from "../api/health.functions";
 
@@ -12,6 +13,8 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
   const [live, setLive] = useState<any>(null);
   const [running, setRunning] = useState(false);
   const [modelResult, setModelResult] = useState<string | null>(null);
+  const [roster, setRoster] = useState<any[] | null>(null);
+  useState(() => { listAgentRoster().then(setRoster).catch(() => setRoster([])); return null; });
 
   async function runLive() {
     setRunning(true);
@@ -71,6 +74,20 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
         <button onClick={runLive} disabled={running}>{running ? "Running…" : "Run live checks"}</button>
         <button onClick={copyDiag}>Copy diagnostics</button>
       </div>
+
+      {roster && (
+        <section style={{ marginTop: 24 }}>
+          <h2>Agent roster</h2>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th>Id</th><th>Name</th><th>Role</th><th>Model</th><th>Key</th></tr></thead>
+            <tbody>
+              {roster.map((r: any) => (
+                <tr key={r.id}><td>{r.id}</td><td>{r.name}</td><td>{r.role}</td><td>{r.effectiveModel}</td><td>{r.keyConfigured ? "configured" : "missing"}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       <section style={{ marginTop: 24 }}>
         <h2>How to fix</h2>

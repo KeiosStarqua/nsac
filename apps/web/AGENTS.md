@@ -46,4 +46,6 @@ From the repo root: `bun run typecheck`, `bun run test`, `bun run build` (Turbor
 
 ## Child DOX Index
 
-None.
+| Path | Scope |
+|---|---|
+| `src/features/agent/` | Multi-agent layer on PI SDK: orchestrator `sky-orchestrator` (SOUL Sky) + specialist `sky-generative-ui`. Server-only PI SDK wiring in `runtime/pi.server.ts`; registry extension point (one profile file + one registry line + one test row per agent); no secrets, no network in tests. |
