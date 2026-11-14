@@ -47,4 +47,25 @@ export interface Copy {
     typeInstead: string;
     demonstrationOnly: string;
   };
+  /** `/?gen=1` — the declarative OpenUI HUD. Every string the HUD shows lives here. */
+  hud: {
+    tagline: string;
+    brandAria: string;
+    missionAria: string;
+    vitalsAria: string;
+    conversationAria: string;
+    healthAria: string;
+    hologramAria: string;
+    wellnessAria: string;
+    wellnessLabel: string;
+    wellnessStatus: string;
+    wellnessGuidance: string;
+    wellnessDemo: string;
+    typeInsteadAria: string;
+    captionsListening: string;
+    captionsError: string;
+    greetingFallback: string;
+    composeHint: string;
+    composeHintDismissAria: string;
+  };
 }

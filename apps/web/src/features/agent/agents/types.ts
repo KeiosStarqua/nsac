@@ -1,4 +1,4 @@
-export type AgentId = "sky-orchestrator" | "sky-generative-ui" | "sky-chat";
+export type AgentId = "sky-orchestrator" | "sky-generative-ui" | "sky-chat" | "sky-hud-composer";
 
 export type OutputContract =
   | { readonly kind: "text" }

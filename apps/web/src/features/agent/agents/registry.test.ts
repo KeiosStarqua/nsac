@@ -22,4 +22,13 @@ describe("registry", () => {
     expect(routeRequest("compose a panel")).toBe("sky-generative-ui");
     expect(routeRequest("hello")).toBeNull();
   });
+  it("hud composer registered", () => {
+    const profile = getAgent("sky-hud-composer");
+    expect(profile.role).toBe("hud composer");
+    const output = profile.output;
+    if (output.kind !== "openui-program") throw new Error("expected an openui-program output contract");
+    expect(output.maxChars).toBe(4000);
+    expect(output.allowList).toContain("Surface");
+    expect(profile.timeoutMs).toBe(30000);
+  });
 });
