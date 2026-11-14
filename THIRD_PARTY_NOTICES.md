@@ -22,3 +22,12 @@
 - Licence: MIT
 - Location: apps/web (body-map scene)
 - Date: 2026-11-14
+
+## Orbkit
+
+- Licence: MIT (runtime and original orbs); non-commercial with attribution for XorDev-ported orbs (shdr-11 is an original Orbkit orb, MIT)
+- Link: https://orbkit.zzzzshawn.cloud
+- Components taken: orbkit-core (runtime) + shdr-11 (Shdr11)
+- Location: apps/web/src/shared/orbkit/
+- Licence file: apps/web/src/shared/orbkit/LICENSE.md
+- Date: 2026-11-14

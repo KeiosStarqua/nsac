@@ -12,7 +12,7 @@ import VariableProximity from "../../shared/react-bits/VariableProximity/Variabl
 import DecryptedText from "../../shared/react-bits/DecryptedText/DecryptedText";
 import { useSkyVoice } from "./useSkyVoice";
 import { SpaceArt } from "./SpaceArt";
-import { OrbCanvas } from "./OrbCanvas";
+import { SkyOrb } from "./SkyOrb";
 import { VoiceWaveform } from "./VoiceWaveform";
 import { InputSurface } from "./InputSurface";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
@@ -62,7 +62,7 @@ export function SkyScreen() {
   const reduce = useReducedMotion();
   const fx = mounted && !reduce;
   const [detail, setDetail] = useState<DetailDialogProps | null>(null);
-  const [bodyMapOpen, setBodyMapOpen] = useState(false);
+  const [bodyMapOpen, setBodyMapOpen] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [greeting, setGreeting] = useState("Good morning, Minh.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
@@ -192,7 +192,7 @@ export function SkyScreen() {
       {/* Conversation */}
       <section className="conversation" aria-label="SKY conversation">
         <div className="conversation-lens" aria-hidden="true"><div className="lens-inner" /></div>
-        <div className="orb-zone" aria-hidden="true"><div className="orb-css-fallback" /><OrbCanvas phase={phase} energyRef={energyRef} reducedMotion={false} /></div>
+        <div className="orb-zone" aria-hidden="true"><div className="orb-css-fallback" /><SkyOrb phase={phase} energyRef={energyRef} /></div>
         <div className="conversation-copy" ref={conversationCopyRef}>
           <h1 id="greeting">{fx ? <BlurText text={greeting} animationFrom={{filter:"blur(10px)",opacity:0}} animationTo={[{filter:"blur(0px)",opacity:1}]} color="#ecf7ff" easing="easeOut" /> : greeting}</h1>
           <p id="prompt"><VariableProximity label={prompt} containerRef={conversationCopyRef} radius={60} /></p>
