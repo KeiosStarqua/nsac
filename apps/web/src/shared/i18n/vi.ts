@@ -46,6 +46,12 @@ export const vi: Copy = {
     vitalSleep: "NGỦ",
     typeInstead: "Nhập thay vì nói",
     demonstrationOnly: "Chỉ để trình diễn",
+    screenVitals: "Chỉ số",
+    screenWellness: "Sức khỏe",
+    screenSky: "Sky",
+    screenPrevious: "Màn hình trước",
+    screenNext: "Màn hình sau",
+    viewDetails: "Xem chi tiết",
   },
   hud: {
     tagline: "Sức khỏe phi hành gia",

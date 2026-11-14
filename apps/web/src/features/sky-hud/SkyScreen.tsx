@@ -292,7 +292,6 @@ export function SkyScreen() {
       }}
       onVital={(kind) => openDetail({ ...VITAL_DETAILS[kind], footer: DEFAULT_FOOTER })}
       onHealth={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}
-      onTypeInstead={() => setChatOpen(true)}
     />
   );
 
