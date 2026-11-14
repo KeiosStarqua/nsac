@@ -51,8 +51,6 @@ export * from "./ReflectiveCard/ReflectiveCard";
 export { default as CardNav } from "./CardNav/CardNav";
 export * from "./CardNav/CardNav";
 export { default as Stack } from "./Stack/Stack";
-export { default as LightTunnel } from "./LightTunnel/LightTunnel";
-export * from "./LightTunnel/LightTunnel";
 export * from "./Stack/Stack";
 export { default as FluidGlass } from "./FluidGlass/FluidGlass";
 export * from "./FluidGlass/FluidGlass";
