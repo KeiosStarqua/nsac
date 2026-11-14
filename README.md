@@ -146,6 +146,10 @@ Challenge: choose which Moon samples to return.
 - STI paper: *GeoLab Concept: The Importance of Sample Selection During Long Duration Human Exploration Mission*
 - data.nasa.gov report: *SAND-E: Semi-Autonomous Navigation for Detrital Environments*
 
+## Backend (apps/backend)
+
+TypeScript + Bun, SQLite (bun:sqlite), Drizzle ORM, Zod. Run: `cd apps/backend && bun run dev`. DB at `var/sky.db`.
+
 ## Tech stack (NSAC)
 
 Thứ tự và link dưới đây là stack dự kiến cho dự án; mỗi URL đã mở thử **2026-10-18**.

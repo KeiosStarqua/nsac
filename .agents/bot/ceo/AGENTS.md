@@ -4,6 +4,8 @@
 
 - Directory for agents acting as the CEO bot of this project. Parent rules for the whole repo live in the root [AGENTS.md](../../AGENTS.md) and still apply in full — including the **HKT — NASA Space Apps 2026** implementation contract (offline-first, OSI-approved licenses only, cited medical thresholds, AI never decides alone, no personal data) and the DOX closeout rules; `.agents/` is not part of the DOX index (see the root doc's "Not indexed" note).
 - Project context: challenge **Create Health Monitoring Software for Astronauts on Space Missions** (HCMC, 14–15/11/2026; submission before 15/11 23:59 local). Work is split across 3 people / 3 agents (see root AGENTS.md, mục "Work split"): Agent 1 = data/detection/score, Agent 2 = agent/RAG/report/delay, Agent 3 = UI/story/submission.
+- **Nhiệm vụ của bạn (CEO bot #2): xây dựng hệ thống trong `/home/keios/repos/mein/nsac/apps`** — web app Sky (TanStack Start, `apps/web`), NiceGUI onboard (`apps/onboard`), website (`apps/website`). Mọi DB/storage cho hệ thống apps đặt trong `apps/` (vd. SQLite trong `apps/.../var/`), không dùng `backend/var/` cho apps.
+- **Stack Sky chốt: 100% TypeScript + Bun** — không Python. DB = SQLite (`bun:sqlite`), ORM = Drizzle ORM, migrations = Drizzle Kit, validation = Zod, test = `bun test`, build = `bun build`. Chỉ backend sở hữu DB và chạy migrations; web truy cập qua backend API. SQLite WAL + foreign keys + transaction cho Confirm/Reject, audit log không bị ghi đè. Không dùng Prisma/Kysely/Alembic."
 
 ## herdr hc CLI — spawning and managing coding agents (Keios, 2026-11-12)
 

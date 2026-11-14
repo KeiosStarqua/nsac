@@ -11,18 +11,18 @@ ràng buộc kiến trúc. Hợp đồng sản phẩm (phạm vi, luật hackath
 **HKT** là bài dự thi NASA Space Apps 2026: phần mềm theo dõi sức khỏe phi hành gia chạy **offline**
 trên một laptop. Hệ thống lấy baseline riêng của từng người, phát hiện lệch bằng luật deterministic,
 chỉ liều tập / hành động an toàn, để phi hành gia **xác nhận**, rồi gửi báo cáo về Trái Đất qua link
-trễ 20 phút. Điểm 0–100 “Mars landing readiness” có công thức minh bạch, mỗi trọng số có nguồn.
+trễ 20 phút. Điểm 0–100 “Mars landing readiness” có công thức minh blanco, mỗi trọng số có nguồn.
 
 Repo chứa hai sản phẩm phần mềm tách biệt:
 
 | Thành phần | Vai trò | Trạng thái |
 |---|---|---|
 | `apps/web` | Web app **Sky**: console + trang concept/demo/story, dựng panel bằng OpenUI | Đang chạy |
-| `backend/` | Pipeline sức khỏe Python: sinh dữ liệu → phát hiện lệch → readiness → draft → confirm → báo cáo | Đang chạy (CLI + test) |
+| `apps/` | Pipeline sức khỏe TypeScript (Bun): sinh dữ liệu → phát hiện lệch → readiness → draft → confirm → báo cáo | Đang chạy (CLI + test) |
 | `apps/onboard` | App phi hành gia (NiceGUI), dự kiến | Chưa có code (chỉ `.gitkeep`) |
 
 `practice/` là monorepo luyện tay riêng, **không** thuộc bài nộp và không chia sẻ code với
-`backend/` hay `apps/`.
+`apps/`.
 
 ---
 
@@ -35,9 +35,9 @@ nsac/
 │   ├── onboard/             (dự kiến) NiceGUI — chưa có code
 │   ├── generative-ui/       (chỗ giữ) catalog/renderer/presets — chưa dùng
 │   └── website/             (chỗ giữ) — chưa dùng
-├── backend/                 Python package `nsac` (uv, pyproject.toml)
+├── apps/                     TypeScript package `nsac` (bun)
 │   └── src/nsac/
-├── tests/                   pytest, phản chiếu backend/
+├── tests/                   bun test, phản chiếu apps/
 ├── docs/references/         Catalog chỉ số, ghi chú đề bài, NASA-STD-3001 tách mục
 ├── assets/                  fixtures/, models3d/ (kèm license/nguồn)
 ├── scripts/                 (chỗ giữ)
@@ -47,7 +47,7 @@ nsac/
 ```
 
 Workspace JS ở root: `package.json` (bun, `workspaces: ["apps/*"]`), `turbo.json`, `tsconfig.base.json`.
-Chỉ `apps/web` hiện là package JS (`@nsac/web`). App Python và `practice/` nằm ngoài workspace.
+Chỉ `apps/web` hiện là package JS (`@nsac/web`). App TS và `practice/` nằm ngoài workspace.
 
 ---
 
@@ -55,7 +55,7 @@ Chỉ `apps/web` hiện là package JS (`@nsac/web`). App Python và `practice/`
 
 ```mermaid
 flowchart LR
-  subgraph Python["backend/ — pipeline deterministic"]
+  subgraph TS["apps/ — pipeline deterministic (TS + Bun)"]
     GEN[Sinh dữ liệu 180 ngày<br/>OSDR spread] --> DET[Phát hiện lệch<br/>median/MAD, slope]
     DONKI[DONKI adapter] -.-> GEN
     DET --> MOD[Module tim mạch / cơ xương<br/>contract + triage]
@@ -72,31 +72,31 @@ flowchart LR
     FEAT -->|server fn| COMPOSE[PI SDK + OpenRouter<br/>soạn panel OpenUI]
   end
 
-  COMPOSE -. seam tích hợp dự kiến .-> Python
+  COMPOSE -. seam tích hợp dự kiến .-> TS
 ```
 
 Hai phần hiện **chưa nối trực tiếp**: web app dùng một scenario minh họa trong
 `features/readiness-demo/api/scenario.server.ts`, còn backend chạy qua `MissionPipeline`.
-Điểm nối dự kiến là server function của web gọi API Python (hoặc thay scenario bằng dữ liệu thật).
+Điểm nối dự kiến là server function của web gọi API TS (hoặc thay scenario bằng dữ liệu thật).
 
 ---
 
-## 4. Backend Python — pipeline sức khỏe
+## 4. Backend TS — pipeline sức khỏe
 
 ### 4.1 Luồng dữ liệu
 
 ```text
 Reading[] (baseline)  ─┐
 Reading[] (current)   ─┴─► detect() ──► Deviation[] ──► recommend() ──► Recommendation?
-                                                                          │
-                                                     phi hành gia confirm │
-                                                                          ▼
-                                                                    ActionTaken
-                                                                          │
+                                                                           │
+                                                      phi hành gia confirm │
+                                                                           ▼
+                                                                     ActionTaken
+                                                                           │
 Deviation[] + ActionTaken[] + ReadinessScore ──► GroundReport ──► Outbox (deliver_at = +20 phút)
 ```
 
-Các bước được điều phối bởi `MissionPipeline` (`backend/src/nsac/api/pipeline.py`):
+Các bước được điều phối bởi `MissionPipeline` (`apps/src/nsac/api/pipeline.ts`):
 
 | Method | Việc làm |
 |---|---|
@@ -115,28 +115,28 @@ api/  ──►  harness/ | agent/ | modules/  ──►  domain/  ──►  co
               └────────── adapters/ ─────────────┘   (cài đặt interface, IO)
 ```
 
-- `contracts/` — Pydantic schema dùng chung (`Reading`, `Deviation`, `Recommendation`,
+- `contracts/` — schema TypeScript (zod) dùng chung (`Reading`, `Deviation`, `Recommendation`,
   `ReadinessScore`, `GroundReport`, …), không IO, không import layer khác.
-- `domain/` — entity + luật thuần: `detection.py` (modified z-score, MAD, slope, phân loại
-  green/yellow/red), `readiness.py` (trọng số + citation).
-- `modules/` — contract `HealthModule` (Protocol) cho module cắm được: `cardio`,
+- `domain/` — entity + luật thuần: `detection.ts` (modified z-score, MAD, slope, phân loại
+  green/yellow/red), `readiness.ts` (trọng số + citation).
+- `modules/` — contract `HealthModule` (interface) cho module cắm được: `cardio`,
   `musculoskeletal`, `space_weather`, `epidemic`, `stubs`. Hiện chủ yếu là `.gitkeep` + contract.
-- `harness/` — điều phối deterministic: `triage/policy.py` chọn **một** hành động theo thứ tự
+- `harness/` — điều phối deterministic: `triage/policy.ts` chọn **một** hành động theo thứ tự
   red → gần hạ cánh → cơ xương → giấc ngủ.
-- `agent/` — `AgentSession` (dataclass) giữ hành động đang chờ và cổng confirm; `rag/` mới là chỗ giữ.
-- `reporting/` — Jinja2 render HTML, PDF qua WeasyPrint (optional), template trong `templates/`.
-- `adapters/` — IO cụ thể: `sqlite/outbox.py` (hàng đợi trễ), `donki/flares.py` (space weather,
-  trả rỗng khi offline), `ollama/narrate.py` (diễn giải tuỳ chọn), `osdr/crew.py` (stub).
+- `agent/` — `AgentSession` (class) giữ hành động đang chờ và cổng confirm; `rag/` mới là chỗ giữ.
+- `reporting/` — template HTML/PDF (Bun), template trong `templates/`.
+- `adapters/` — IO cụ thể: `sqlite/outbox.ts` (hàng đợi trễ), `donki/flares.ts` (space weather,
+  trả rỗng khi offline), `ollama/narrate.ts` (diễn giải tuỳ chọn), `osdr/crew.ts` (stub).
 - `simulation/` — generator 180 ngày theo spread OSDR, inject kịch bản, chuyển `Trajectory` →
   `Reading`.
 - `api/` — lớp mỏng cho UI (`MissionPipeline`), không chứa UI concern.
-- `demo.py` — CLI smoke test chạy toàn bộ pipeline có bước `[Confirm]`.
+- `demo.ts` — CLI smoke test chạy toàn bộ pipeline có bước `[Confirm]`.
 
 ### 4.3 Bất biến quan trọng
 
-- **AI không quyết định**: `detect` và `recommend` thuần deterministic; Ollama chỉ viết lại
+- **AI không quyết định**: `detect` và `recommend` thuần deterministic; LLM chỉ viết lại
   `rationale`, không đổi action/dose/checklist.
-- **Không áp dụng gì trước confirm**: `AgentSession.confirm()` trả `None` khi chưa có draft hoặc
+- **Không áp dụng gì trước confirm**: `AgentSession.confirm()` trả `null` khi chưa có draft hoặc
   draft đã confirm; `report` chỉ ghi `actions_taken` đã confirm.
 - **Mọi ngưỡng/trọng số có nguồn**: `Deviation.threshold_source_url`, `ScoreComponent.source_url`,
   `Recommendation.checklist_ref` là field bắt buộc.
@@ -150,7 +150,7 @@ api/  ──►  harness/ | agent/ | modules/  ──►  domain/  ──►  co
 | Hạng mục | Hiện tại |
 |---|---|
 | Generator + detection + readiness + triage + outbox + report | Đã có, có test |
-| Agent LangGraph, SQLite checkpointer, `interrupt()` | Chưa; thay bằng `AgentSession` dataclass |
+| Agent LangGraph, SQLite checkpointer, `interrupt()` | Chưa; thay bằng `AgentSession` class |
 | RAG ISS Medical Checklist / NASA docs (Docling + Chroma) | Chưa; `agent/rag/` là chỗ giữ |
 | OSDR pull thật (httpx) | Stub trả `[]` |
 | NiceGUI (`apps/onboard`) | Chưa có code |
@@ -267,14 +267,14 @@ cd apps/web && PORT=3100 bun run .output/server/index.mjs
 Nix: `nix build .#web` / `nix run .#web` (chạy port 3100; `outputHash` của node_modules phải bump
 khi `bun.lock` đổi).
 
-### Backend
+### Backend (TS + Bun)
 
 ```bash
-cd backend
-uv sync
-uv run python -m nsac.demo     # CLI: generate → detect → score → draft → Confirm → report → queue
-uv run pytest                  # testpaths = ../tests
-uv run ruff check
+cd apps
+bun install
+bun run demo                   # CLI: generate → detect → score → draft → Confirm → report → queue
+bun run test                   # testpaths = ../tests
+bun run lint
 ```
 
 ### Kiểm tra kiến trúc khi thêm code
