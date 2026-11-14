@@ -8,7 +8,7 @@ export type Check = {
   hint?: string;
 };
 
-export const DEFAULT_MODEL = "anthropic/claude-sonnet-4.5";
+export const DEFAULT_MODEL = "thinkingmachines/inkling-2-small:free";
 
 export function redactEnv(value: string | undefined): { configured: boolean; length: number } {
   const v = value ?? "";

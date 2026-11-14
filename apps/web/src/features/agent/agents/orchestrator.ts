@@ -10,7 +10,7 @@ export const orchestrator: AgentProfile = {
   name: "Sky",
   role: "orchestrator",
   modelEnv: "SKY_OPENROUTER_MODEL",
-  defaultModel: "anthropic/claude-sonnet-4.5",
+  defaultModel: "thinkingmachines/inkling-2-small:free",
   soul: skySoul,
   systemPrompt: (ctx: AgentContext) => [
     skySoul,

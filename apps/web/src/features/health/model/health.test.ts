@@ -22,7 +22,7 @@ describe("resolveModel", () => {
     expect(resolveModel("foo/bar")).toBe("foo/bar");
   });
   it("default when empty", () => {
-    expect(resolveModel(undefined)).toBe("anthropic/claude-sonnet-4.5");
+    expect(resolveModel(undefined)).toBe("thinkingmachines/inkling-2-small:free");
   });
 });
 
