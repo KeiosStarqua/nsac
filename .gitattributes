@@ -1,0 +1,4 @@
+# Streamed ISS parts: binaries in Git LFS (parts are large; .gltf/manifest stay text)
+apps/web/public/models/iss/streamed/**/*.bin filter=lfs diff=lfs merge=lfs -text
+apps/web/public/models/iss/streamed/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+apps/web/public/models/iss/streamed/**/*.png filter=lfs diff=lfs merge=lfs -text
