@@ -3,7 +3,7 @@ import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import Particles from "../../shared/react-bits/Particles/Particles";
-import { DETAIL_ACTION, DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY, DETAIL_VALUE, SKY_APP, SPACE_VIGNETTE } from "../sky-hud/hud-classes";
+import { DETAIL_ACTION, DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY, DETAIL_VALUE, CHAT_OVERRIDE_CHIP, SKY_APP, SPACE_VIGNETTE } from "../sky-hud/hud-classes";
 const ParticlesAny = Particles as any;
 // react-bits sources are @ts-nocheck; their inferred prop types demand props with runtime defaults.
 const LightTunnelAny = LightTunnel as any;
@@ -94,6 +94,9 @@ export function SkyScreenGen() {
   const [bg, setBg] = useState("particles");
   // Agent enhancement: the composed program, once accepted by review. Preset stays until then.
   const [agentProgram, setAgentProgram] = useState<string | null>(null);
+  // Chat override: the program `show_on_hud` delivered on this screen. Replaces the WHOLE tree
+  // (`overrideProgram ?? agentProgram ?? preset`); the chip clears it.
+  const [overrideProgram, setOverrideProgram] = useState<string | null>(null);
   const [composeHintDismissed, setComposeHintDismissed] = useState(false);
   useEffect(() => {
     if (!mounted) return;
@@ -271,6 +274,7 @@ export function SkyScreenGen() {
     if (!astronautId) return;
     let alive = true;
     setAgentProgram(null);
+    setOverrideProgram(null);
     setComposeHintDismissed(false);
     void composeHud({ data: { astronautId, locale } })
       .then((res) => {
@@ -298,9 +302,26 @@ export function SkyScreenGen() {
   const resetView = useCallback(() => {
     setDetail(null);
     setChatOpen(false);
+    setOverrideProgram(null);
     setGreeting(greetingFor(findAstronaut(astronautId, roster)));
     setPrompt(copy.chat.placeholder);
   }, [astronautId, roster, greetingFor, copy]);
+
+  // Chat → HUD: `show_on_hud` delivered a program the server already reviewed; review again on the
+  // client (cheap, and the gate must hold wherever a program lands) and swap the whole tree.
+  const handleChatProgram = useCallback((program: string) => {
+    const review = reviewProgram(program, { allowList: HUD_COMPONENT_NAMES, maxChars: MAX_PROGRAM_CHARS }, parseHudProgram);
+    if (!review.ok) {
+      console.info("[sky] chat HUD program rejected", review.reasons);
+      return;
+    }
+    setOverrideProgram(review.program);
+    setAnnouncer(copy.hud.chatOverrideBack);
+  }, [copy]);
+
+  const clearChatOverride = useCallback(() => {
+    setOverrideProgram(null);
+  }, []);
 
   const facts = useMemo(buildHudFacts, []);
   const orbNode = useMemo(() => <SkyOrb phase={phase} energyRef={energyRef} />, [phase, energyRef]);
@@ -385,7 +406,7 @@ export function SkyScreenGen() {
     [copy, locale, facts, fx, phase, hint, captions, greeting, prompt, chatOpen, pickerOpen, agentProgram, composeHintDismissed, orbNode, waveNode, resetView, handleAction],
   );
 
-  const program = agentProgram ?? hudPreset(locale);
+  const program = overrideProgram ?? agentProgram ?? hudPreset(locale);
 
   return (
     <main className={SKY_APP} data-phase={phase} aria-label="SKY astronaut wellness overview">
@@ -460,7 +481,14 @@ export function SkyScreenGen() {
 
       {/* Text chat — the same AI Elements overlay as the staged `/` console. */}
       {chatOpen ? (
-        <SkyChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
+        <SkyChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} onUiProgram={handleChatProgram} />
+      ) : null}
+
+      {/* Chat-composed HUD: one chip back to Sky's own view (never rendered in the watch layout). */}
+      {overrideProgram && !isWatch ? (
+        <button type="button" className={CHAT_OVERRIDE_CHIP} aria-label={copy.hud.chatOverrideBack} onClick={clearChatOverride}>
+          {copy.hud.chatOverrideBack}
+        </button>
       ) : null}
 
       {mounted && pickerOpen ? (

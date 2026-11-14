@@ -280,6 +280,21 @@ export const SPACECRAFT_LINK = [
 export const DEVICE_SWITCHER =
   "mt-[3px] inline-flex items-center gap-[2px] rounded-full border border-[rgba(122,222,255,.35)] bg-[rgba(11,36,58,.5)] p-[3px] backdrop-blur-[6px] max-[720px]:mt-[1px] max-[720px]:p-[2px] max-[480px]:hidden";
 
+/**
+ * Declarative `/` HUD: shown only while a chat-composed program is on screen. Sits in the HUD gutter
+ * above the footer zone, under the chat card (z 45) and above the HUD (z 15); clears the override and
+ * returns to Sky's own view.
+ */
+export const CHAT_OVERRIDE_CHIP = [
+  "fixed bottom-[5%] left-[2.2%] z-[30] inline-flex cursor-pointer items-center gap-[9px] rounded-full! border",
+  "border-[rgba(122,222,255,.35)] bg-[rgba(11,36,58,.5)] px-[13px] py-[8px] backdrop-blur-[6px]",
+  "text-[10px] font-medium tracking-[.22em] indent-[.22em] whitespace-nowrap text-[#aee6ff]!",
+  "[transition:border-color_.18s,background_.18s,box-shadow_.18s,color_.18s]",
+  "hover:border-[#8ce7ff] hover:bg-[rgba(20,62,94,.55)] hover:text-[#e6fbff]! hover:shadow-[0_0_16px_rgba(105,214,255,.28)]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!",
+  "max-[1000px]:px-[9px] max-[1000px]:py-[6px] max-[1000px]:text-[9px]",
+].join(" ");
+
 /** `/watch`: the chip floats over the backdrop, under the detail overlay (z 35) and chat panel (z 40). */
 export const DEVICE_SWITCHER_FLOAT =
   "absolute right-[14px] top-[calc(env(safe-area-inset-top,0px)_+_10px)] z-[20] mt-0!";

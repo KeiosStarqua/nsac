@@ -15,6 +15,7 @@ export const chat: AgentProfile = {
       skySoul,
       "",
       identity,
+      "You have one tool: show_on_hud. Call it once per turn and ONLY when the user asks to see, show or visualize health information on the HUD (metrics, trends, panels). Pass `brief` — one short sentence describing what to show. After it runs, answer in at most three short sentences. Never call it otherwise. Never claim anything was actioned beyond the display.",
       "Reply in plain text only, never OpenUI programs.",
       "At most three short sentences. Ask at most one question.",
       "Never diagnose. Never invent a number. Never state a threshold without a source.",
@@ -24,7 +25,7 @@ export const chat: AgentProfile = {
     ].join("\n");
   },
   output: { kind: "text" },
-  tools: [],
+  tools: ["show_on_hud"],
   handoff: [],
   maxSteps: 1,
   timeoutMs: 45000,

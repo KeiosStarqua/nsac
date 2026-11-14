@@ -84,6 +84,7 @@ export const vi: Copy = {
     greetingFallback: "Chào buổi sáng.",
     composeHint: "SKY đã dựng bố cục này · chạm để đóng",
     composeHintDismissAria: "Đóng gợi ý bố cục",
+    chatOverrideBack: "Quay lại giao diện Sky",
   },
   admin: {
     title: "Admin",

@@ -95,6 +95,8 @@ export interface Copy {
     greetingFallback: string;
     composeHint: string;
     composeHintDismissAria: string;
+    /** Chat-composed program on the declarative `/` HUD: chip that restores Sky's own view. */
+    chatOverrideBack: string;
   };
   /** Hidden /admin page — operator-only model switch. */
   admin: {
