@@ -38,7 +38,7 @@ Ba quy tắc xuyên suốt:
 | `agents/registry.ts` | `AGENT_REGISTRY`, `getAgent`, `listAgents`, `specialists` |
 | `agents/orchestrator.ts` | Profile `sky-orchestrator` + `routeRequest()` (regex handoff) |
 | `agents/generative-ui.ts` | Profile `sky-generative-ui` — sinh OpenUI Lang cho panel |
-| `agents/hud-composer.ts` | Profile `sky-hud-composer` — composer riêng cho HUD `/?gen=1` |
+| `agents/hud-composer.ts` | Profile `sky-hud-composer` — composer riêng cho HUD declarative của `/` (mặc định; `?gen=0` opt-out) |
 | `agents/chat.ts` | Profile `sky-chat` — trả lời plain text, voice của Sky |
 | `soul/sky.md` + `soul/index.ts` | SOUL dùng chung cho mọi profile (`skySoul`) |
 | `agents/surfaces.ts` | `SURFACES` — allow-list component theo từng surface (hiện có `orbit-panel`) |
@@ -55,7 +55,7 @@ Ba quy tắc xuyên suốt:
 
 ## 3. Vòng đời một request
 
-### 3.1 HUD composer (`/?gen=1`, hiện dùng tích cực nhất)
+### 3.1 HUD composer (`/`, mặc định từ 2026-11-14 — hiện dùng tích cực nhất)
 
 ```
 composeHud(astronautId, locale)                     [api/hud-compose.functions.ts]

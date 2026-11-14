@@ -49,14 +49,14 @@ Theo 5 mối nguy của NASA (radiation, reduced-gravity/xương-cơ, isolation 
 
 | Mục tiêu | Hiện có (verify 2026-11-14) | Cần làm |
 |---|---|---|
-| Per-astronaut orchestrator pair | Chat per-astronaut OK; `sky-orchestrator`/`sky-generative-ui` là profile global | Profile theo từng astronaut + per-astronaut composer session (`var/sky-sessions/<id>.hud.jsonl`) — đang triển khai trong `?gen=1` hud-gen |
+| Per-astronaut orchestrator pair | Chat per-astronaut OK; `sky-orchestrator`/`sky-generative-ui` là profile global | Profile theo từng astronaut + per-astronaut composer session (`var/sky-sessions/<id>.hud.jsonl`) — đang triển khai trong hud-gen (`/`) |
 | Hai agent nói chuyện | `askSky()` dispatch 1 chiều (regex `routeRequest` → composer → validate) | Hội thoại có giới hạn: orchestrator hỏi composer, nhận program, tiếp tục (maxSteps) — bước sau hud-gen |
 | Composer per-astronaut | Compose cache theo locale, session dùng chung | Session riêng từng astronaut (đang triển khai) |
 | Broadcast / shared memory | v1 đã build 2026-11-14 (xem mục "Trạng thái 2026-11-14") | Workers, broker, push — sau submission |
 | 5 hazard workers | Không có | Sau hackathon; chỉ dựng interface + một worker mẫu trước |
 
 ## Ngoài phạm vi / thứ tự đề xuất
-1. `?gen=1` HUD OpenUI (đang làm) — dựng nền: per-astronaut composer, preset deterministic, validate + fallback.
+1. `/` HUD OpenUI (mặc định từ 2026-11-14) — dựng nền: per-astronaut composer, preset deterministic, validate + fallback.
 2. Chat orchestrator ↔ composer nói chuyện thật (orchestrator quyết định gọi composer trong một lượt, có giới hạn).
 3. Bảng `change_events` + `processed_events` trong `apps/backend`; `EventBus` interface; demo một topic end-to-end (vd fixture vitals đổi → Sky panel tự compose lại).
 4. Một hazard worker thật (cardio hoặc radiation) trên pipeline hiện có; sau đó copy ra 5.

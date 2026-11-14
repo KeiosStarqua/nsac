@@ -56,7 +56,7 @@ export interface Copy {
     /** Wellness screen — full-width button opening the shared health detail dialog. */
     viewDetails: string;
   };
-  /** `/?gen=1` — the declarative OpenUI HUD. Every string the HUD shows lives here. */
+  /** `/` — the declarative OpenUI HUD (default; `?gen=0` opts out to the staged HUD). Every string the HUD shows lives here. */
   hud: {
     tagline: string;
     brandAria: string;
