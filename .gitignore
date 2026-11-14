@@ -26,3 +26,7 @@ apps/web/src/routeTree.gen.ts
 # Local env files (may hold secrets)
 .env
 .env.*
+
+# node_modules symlinks created by worktree tooling must never be committed
+node_modules
+apps/*/node_modules

@@ -175,6 +175,7 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 - `STORY.md` truyện hư cấu "Sky" (thiên thần theo phi hành gia, dịch từ khu vườn trên tàu) cho phần kể chuyện/demo; bảng cuối map truyện sang module, cập nhật khi module đổi.
 - `UX.md` bản đặc tả UX/UI của Sky (SKY — Living Symbiotic Healthcare Interface): vision, ngôn ngữ visual, design tokens, không phải code; cập nhật khi hướng thiết kế đổi.
 - `UX_IMPLEMENTATION.md` ma trận traceability UX.md → code, trạng thái và hạn chế; cập nhật khi cover tăng.
+- `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md` spec pixel-matched màn hình HUD astronaut wellness (12 components, state machine voice, design tokens); `/` là màn hình này, `/console` giữ bản console cũ.
 - `ARCHITECTURE.md` mô tả cấu trúc code đang có: bản đồ repo, luồng dữ liệu backend, layer và chiều phụ thuộc, layout/SSR/server boundary của `apps/web`, nguồn dữ liệu, cách chạy và khoảng trống. Cập nhật khi cấu trúc hay ranh giới layer đổi.
 - `assets/models3d/` (mỗi model kèm license/nguồn) · `assets/fixtures/` · `scripts/` · `tests/` (phản chiếu `backend/`) · `var/` (gitignored, trạng thái runtime).
 - Chưa chốt: OpenUI (JS) cùng NiceGUI (Python) hay thay thế; nếu đổi, cập nhật mục này.
