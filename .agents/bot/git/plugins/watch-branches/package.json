@@ -1,0 +1,12 @@
+{
+  "name": "nsac-git-bot-watch-branches",
+  "version": "0.1.0",
+  "description": "git-bot helper: watch BRANCHES.md and wake the latest session when a ready branch appears.",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts"
+  ]
+}
