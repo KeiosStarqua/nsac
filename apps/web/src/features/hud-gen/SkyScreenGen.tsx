@@ -15,7 +15,7 @@ import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
 import { DETAILS, VITAL_DETAILS } from "../sky-hud/vitals";
 import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
-import { ChatPanel } from "../sky-hud/components/ChatPanel";
+import { SkyChatPanel } from "../sky-hud/components/SkyChatPanel";
 import { WatchHud } from "../sky-hud/components/WatchHud";
 import { useWatchViewport } from "../../shared/hooks/useWatchViewport";
 import { Renderer } from "@openuidev/react-lang";
@@ -456,9 +456,9 @@ export function SkyScreenGen() {
         </div>
       ) : null}
 
-      {/* Text chat */}
+      {/* Text chat — the same AI Elements overlay as the staged `/` console. */}
       {chatOpen ? (
-        <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
+        <SkyChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
       ) : null}
 
       {mounted && pickerOpen ? (

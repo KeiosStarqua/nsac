@@ -36,6 +36,12 @@ export const vi: Copy = {
     timeout: "Sky không trả lời kịp. Thử lại.",
     unavailable: "Sky không thể trả lời. Thử lại.",
     footer: "Chỉ để trình diễn · Không phải lời khuyên y tế",
+    title: "Nhắn Sky",
+    subtitle: "Hỏi về cảm giác của bạn, giấc ngủ, luyện tập, hoặc các chỉ số mô phỏng.",
+    reset: "Xóa hội thoại này",
+    emptyTitle: "Ta nên xem điều gì?",
+    emptyDescription: "Sky trả lời ngắn gọn để bạn có thể hành động. Không có gì được gửi về mặt đất ở đây.",
+    thinkingDetail: "Đang đối chiếu tin nhắn với các chỉ số mô phỏng của phi hành đoàn.",
   },
   watch: {
     simulated: "MÔ PHỎNG",

@@ -25,6 +25,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
 import { ChatPanel } from "./components/ChatPanel";
+import { SkyChatPanel } from "./components/SkyChatPanel";
 import { WatchHud } from "./components/WatchHud";
 import { DeviceSwitcher } from "./components/DeviceSwitcher";
 import { useWatchViewport } from "../../shared/hooks/useWatchViewport";
@@ -311,8 +312,14 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
     </div>
   ) : null;
 
+  // `/` renders the AI Elements chat overlay; `/watch` keeps the compact legacy ChatPanel inside the
+  // watch face (it is sized for the glass, see watch-device.css).
   const chatPanel = chatOpen ? (
-    <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
+    variant === "watch" ? (
+      <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
+    ) : (
+      <SkyChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
+    )
   ) : null;
 
   const picker = mounted && pickerOpen ? (
