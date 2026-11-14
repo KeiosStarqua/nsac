@@ -16,6 +16,7 @@ import { OrbCanvas } from "./OrbCanvas";
 import { VoiceWaveform } from "./VoiceWaveform";
 import { InputSurface } from "./InputSurface";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
+import { BodyMapOverlay } from "../body-map";
 import type { VitalKind, VoicePhase } from "./types";
 
 const PHASE_TEXT: Record<VoicePhase, string> = {
@@ -61,6 +62,7 @@ export function SkyScreen() {
   const reduce = useReducedMotion();
   const fx = mounted && !reduce;
   const [detail, setDetail] = useState<DetailDialogProps | null>(null);
+  const [bodyMapOpen, setBodyMapOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [greeting, setGreeting] = useState("Good morning, Minh.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
@@ -204,7 +206,7 @@ export function SkyScreen() {
       {/* Health projection */}
       <section className="health-projection" aria-label="Health summary, simulated data">
         <div className="health-shield" aria-hidden="true" />
-        <button id="hologramButton" className="hologram-button" type="button" aria-label="View simulated body health details" onClick={() => openDetail({ ...DETAILS.hologram, footer: DEFAULT_FOOTER })}>
+        <button id="hologramButton" className="hologram-button" type="button" aria-label="View simulated body health details" onClick={() => setBodyMapOpen(true)}>
           <svg className="human-hologram" viewBox="0 0 130 236" role="img" aria-label="Glowing holographic human silhouette">
             <defs>
               <linearGradient id="bodyFill" x1="0" x2="1"><stop stopColor="#80e9ff" stopOpacity=".16" /><stop offset=".48" stopColor="#e5ffff" stopOpacity=".24" /><stop offset="1" stopColor="#65c9ff" stopOpacity=".12" /></linearGradient>
@@ -265,6 +267,7 @@ export function SkyScreen() {
         </form>
       ) : null}
 
+      <BodyMapOverlay open={bodyMapOpen} onClose={() => setBodyMapOpen(false)} />
       <div className="sr-only" role="status" aria-live="polite">{announcer}</div>
     </main>
   );
