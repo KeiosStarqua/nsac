@@ -14,11 +14,10 @@ describe("spacecraft model catalog", () => {
     expect(new Set(SPACECRAFT_MODELS.map((m) => m.url)).size).toBe(2);
   });
 
-  it("defaults to the lightweight model", () => {
-    const fallback = SPACECRAFT_MODELS[0]!;
-    expect(DEFAULT_MODEL_ID).toBe(fallback.id);
-    expect(fallback.url).toBe(ISS_LIGHT_URL);
-    expect(SPACECRAFT_MODELS.map((m) => m.url)).toContain(ISS_FULL_URL);
+  it("defaults to the full-detail model", () => {
+    const fallback = SPACECRAFT_MODELS.find((m) => m.id === DEFAULT_MODEL_ID)!;
+    expect(fallback.url).toBe(ISS_FULL_URL);
+    expect(SPACECRAFT_MODELS.map((m) => m.url)).toContain(ISS_LIGHT_URL);
   });
 
   it("serves the draco decoder locally, not from a CDN", () => {

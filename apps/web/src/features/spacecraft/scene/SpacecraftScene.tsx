@@ -1,6 +1,6 @@
-import { Suspense, useEffect, useMemo } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, useProgress } from "@react-three/drei";
+import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { OrbitControls, Stars, useGLTF, useProgress } from "@react-three/drei";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import styles from "./SpacecraftScene.module.css";
@@ -11,6 +11,8 @@ import { SceneBoundary } from "./SceneBoundary";
 const FOV = 38;
 // Slightly above and to the side, like a tracking camera on the truss.
 const VIEW_DIRECTION: [number, number, number] = [0.85, 0.42, 1];
+// Bounding-box fit with a little headroom: the station fills roughly 70–85% of the frame.
+const FIT_PADDING = 1.18;
 
 export interface SpacecraftSceneProps {
   readonly modelUrl: string;
@@ -30,7 +32,31 @@ function boxToLike(box: THREE.Box3): Box3Like {
   };
 }
 
-/** Studio-like lighting from three's example RoomEnvironment — no network fetch, so PBR/metal materials are not black. */
+/**
+ * Two sparse star layers that drift very slowly around the view axis —
+ * cheap parallax without post-processing. Motion stops under reduced motion.
+ */
+function DriftingStars({ reducedMotion }: { reducedMotion: boolean }) {
+  const group = useRef<THREE.Group>(null);
+  useFrame((_, delta) => {
+    if (reducedMotion || !group.current) return;
+    group.current.rotation.y += delta * 0.0042;
+    group.current.rotation.x += delta * 0.0016;
+  });
+  return (
+    <group ref={group}>
+      {/* Distant, fine grain */}
+      <Stars radius={140} depth={70} count={2400} factor={2.1} saturation={0} fade speed={reducedMotion ? 0 : 0.35} />
+      {/* Nearer, slightly brighter sparse layer */}
+      <Stars radius={70} depth={45} count={650} factor={3.4} saturation={0} fade speed={reducedMotion ? 0 : 0.5} />
+    </group>
+  );
+}
+
+/**
+ * Studio-like PBR environment, dimmed low so it separates the metal from the
+ * black backdrop without lifting the scene into "studio grey". No network fetch.
+ */
 function RoomLighting() {
   const gl = useThree((state) => state.gl);
   const scene = useThree((state) => state.scene);
@@ -38,8 +64,7 @@ function RoomLighting() {
     const pmrem = new THREE.PMREMGenerator(gl);
     const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = envMap;
-    // Keep NASA's light materials from blowing out to pure white.
-    scene.environmentIntensity = 0.55;
+    scene.environmentIntensity = 0.38;
     return () => {
       scene.environment = null;
       scene.environmentIntensity = 1;
@@ -50,7 +75,7 @@ function RoomLighting() {
   return null;
 }
 
-/** Moves the camera onto the bounding-sphere fit whenever the model or the viewport changes. */
+/** Moves the camera onto the projected-box fit whenever the model or the viewport changes. */
 function FitCamera({ framing }: { framing: Framing }) {
   const camera = useThree((state) => state.camera);
   useEffect(() => {
@@ -69,6 +94,7 @@ function FitCamera({ framing }: { framing: Framing }) {
 
 function StationModel({ modelUrl, autoRotate, reducedMotion, paused }: SpacecraftSceneProps) {
   // ISS-B.glb needs KHR_draco_mesh_compression; the decoder is served from /draco/.
+  // ISS-stationary.glb is uncompressed; the decoder path is simply unused for it.
   const gltf = useGLTF(modelUrl, DRACO_DECODER_PATH);
   const size = useThree((state) => state.size);
   const aspect = size.height > 0 ? size.width / size.height : 1;
@@ -77,7 +103,7 @@ function StationModel({ modelUrl, autoRotate, reducedMotion, paused }: Spacecraf
     return frameBox(boxToLike(box), {
       fovDeg: FOV,
       aspect,
-      padding: 1.25,
+      padding: FIT_PADDING,
       direction: VIEW_DIRECTION,
     });
   }, [gltf.scene, aspect]);
@@ -95,48 +121,45 @@ function StationModel({ modelUrl, autoRotate, reducedMotion, paused }: Spacecraf
         minDistance={framing.distance * 0.15}
         maxDistance={framing.distance * 6}
         autoRotate={autoRotate && !reducedMotion && !paused}
-        autoRotateSpeed={0.6}
+        autoRotateSpeed={0.35}
       />
     </>
   );
 }
 
+/** Bare percent in the corner — feedback for the 42 MB load, deliberately not a panel. */
 function ModelProgress() {
   const { active, progress } = useProgress();
   if (!active) return null;
   return (
-    <p className={styles.progress} role="status">
-      Loading model <strong>{Math.floor(progress)}%</strong>
+    <p className={styles.progress} role="status" aria-label={`Loading model: ${Math.floor(progress)} percent`}>
+      {Math.floor(progress)}%
     </p>
   );
 }
 
 function SceneFallback({
-  title,
-  detail,
   onRetry,
 }: {
-  title: string;
-  detail: string;
   onRetry?: () => void;
 }) {
   return (
     <div className={styles.fallback} role="status">
-      <h3 className={styles.fallbackTitle}>{title}</h3>
-      <p className={styles.fallbackDetail}>{detail}</p>
+      <p className={styles.fallbackTitle}>Spacecraft unavailable</p>
       {onRetry ? (
         <button type="button" className={styles.retry} onClick={onRetry}>
           Try again
         </button>
       ) : null}
-      <p className={styles.credit}>NASA — NASA 3D Resources / NASA VTAD</p>
     </div>
   );
 }
 
 /**
- * The canvas and the GLB loader. Mounted only from the page, behind a lazy
- * import, so three.js never reaches the HUD entry chunk.
+ * The canvas, lights and GLB loader. Mounted only from the page, behind a lazy
+ * import, so three.js never reaches the HUD entry chunk. The canvas is
+ * transparent: the nebula/stars live in CSS layers behind it and drei <Stars/>
+ * inside the scene.
  */
 export default function SpacecraftScene({
   modelUrl,
@@ -148,8 +171,6 @@ export default function SpacecraftScene({
     <SceneBoundary
       fallback={(retry) => (
         <SceneFallback
-          title="The ISS model did not load"
-          detail="The 3D model could not be opened. It may be too large for this connection, or the file may be missing. Check the network, then try again — the lightweight model is the default."
           onRetry={() => {
             useGLTF.clear(modelUrl);
             retry();
@@ -161,14 +182,21 @@ export default function SpacecraftScene({
         className={styles.canvas}
         dpr={[1, 1.75]}
         camera={{ position: [0, 0, 100], fov: FOV, near: 0.1, far: 10000 }}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
       >
-        <color attach="background" args={["#050b14"]} />
-        <ambientLight intensity={0.35} />
-        <hemisphereLight args={["#cfe8ff", "#0a1220", 0.9]} />
-        <directionalLight position={[60, 80, 40]} intensity={1.1} color="#f4fbff" />
-        <directionalLight position={[-50, -30, -60]} intensity={0.4} color="#7dd3fc" />
+        {/* Cinematic split lighting: cool cyan-white rim from behind/above to
+            separate the truss from the black, a dim violet fill from the front,
+            and a faint blue underlight. No bloom pass — @react-three/postprocessing
+            is not a dependency; separation is done with lights and a CSS glow. */}
+        <ambientLight intensity={0.12} />
+        <hemisphereLight args={["#182038", "#02040a", 0.5]} />
+        <directionalLight position={[-55, 70, -85]} intensity={2.4} color="#dceeff" />
+        <directionalLight position={[46, 18, 60]} intensity={0.55} color="#8f7cf0" />
+        <directionalLight position={[20, -60, 30]} intensity={0.35} color="#3d6fb4" />
+        <pointLight position={[0, 8, -40]} intensity={3000} color="#9fd8ff" distance={260} decay={2} />
         <RoomLighting />
+        <DriftingStars reducedMotion={reducedMotion} />
         <Suspense fallback={null}>
           <StationModel
             modelUrl={modelUrl}
