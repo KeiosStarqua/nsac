@@ -37,4 +37,14 @@ export const vi: Copy = {
     unavailable: "Sky không thể trả lời. Thử lại.",
     footer: "Chỉ để trình diễn · Không phải lời khuyên y tế",
   },
+  watch: {
+    simulated: "MÔ PHỎNG",
+    selectCrew: "Chọn phi hành đoàn",
+    vitalHeart: "TIM",
+    vitalSpo2: "SPO₂",
+    vitalResp: "THỞ",
+    vitalSleep: "NGỦ",
+    typeInstead: "Nhập thay vì nói",
+    demonstrationOnly: "Chỉ để trình diễn",
+  },
 };

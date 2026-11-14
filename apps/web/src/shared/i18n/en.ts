@@ -37,4 +37,14 @@ export const en: Copy = {
     unavailable: "Sky could not answer. Try again.",
     footer: "Demonstration only · Not medical advice",
   },
+  watch: {
+    simulated: "SIMULATED",
+    selectCrew: "Select crew",
+    vitalHeart: "HEART",
+    vitalSpo2: "SPO₂",
+    vitalResp: "RESP",
+    vitalSleep: "SLEEP",
+    typeInstead: "Type instead",
+    demonstrationOnly: "Demonstration only",
+  },
 };

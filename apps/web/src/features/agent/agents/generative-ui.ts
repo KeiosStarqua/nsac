@@ -7,7 +7,7 @@ export const generativeUi: AgentProfile = {
   name: "Generative UI",
   role: "openui spec generator",
   modelEnv: "SKY_OPENROUTER_MODEL",
-  defaultModel: "anthropic/claude-sonnet-4.5",
+  defaultModel: "thinkingmachines/inkling-2-small:free",
   soul: skySoul,
   systemPrompt: (ctx: AgentContext) => {
     const allow = (ctx.allowList ?? []).join(", ");

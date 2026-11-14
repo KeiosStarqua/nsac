@@ -27,7 +27,7 @@ function piCacheDir(): string {
 }
 
 // A Sky chat reply is at most a few short sentences; cap generation instead of
-// inheriting the catalog default (64000 for claude-sonnet-4.5).
+// inheriting the catalog default max output tokens.
 const SKY_MAX_TOKENS = 2048;
 
 function ensureModelsFile(parts: { model: string; withModelEntry: boolean; maxTokens?: number; baseUrl?: string }): string {
