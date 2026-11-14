@@ -24,7 +24,7 @@
 - Khi cần tạo / quản lý agent viết code (implementer, reviewer, đơn vị coding…), dùng **`hc` CLI** (herdr-core, `/home/keios/.local/bin/hc`) — không dùng tool subagent mặc định cho việc này (Use the `hc` CLI to spawn and manage code-writing agents instead of the built-in subagent tool).
 - **`--outlive-parent` bắt buộc** (Keios, 2026-11-14): `hc run --outlive-parent …` — thiếu flag này, agent bị SIGTERM khi lượt chat của parent kết thúc (exit 143, kết quả dở dang). Nếu agent chết giữa việc: `hc read` → spawn lại agent mới với brief nêu rõ trạng thái, không tự viết tiếp trong chat.
 - Trước khi dùng, đọc manual hiện tại bằng **`hc --skill`** (không dựa vào trí nhớ; manual có thể đổi). `hc templates` xem role có sẵn; template mới là file Markdown ở `~/.config/herdr-core/templates/<name>.md`.
-- **Agent xong việc thì dọn sạch** (user 2026-11-14): khi thấy agent `idle`, `hc read` → verify/merge kết quả → `git worktree remove --force` + `git branch -d` (nếu có worktree) → `hc kill` + `hc rm` → cập nhật HC-AGENTS.md. Agent xong mà không clear là còn việc chưa xong.
+- **Agent xong việc thì KHÔNG bao giờ tự merge nhánh** (Keios, 2026-11-15, thay rule 2026-11-14): khi thấy agent `idle`, `hc read` → verify kết quả → nhánh OK thì đăng ký `Status: ready` vào `.agents/bot/git/BRANCHES.md` (git-bot đọc registry này và merge từng nhánh một) → dọn worktree của agent → `hc kill` + `hc rm` → cập nhật HC-AGENTS.md. Agent xong mà không đăng ký/clear là còn việc chưa xong.
 - **Label bắt buộc cho mọi agent spawn trong repo này** (theo convention film-production, Keios, 2026-11-12): `--label project=nsac`, cộng `--label task=<slug>` cho việc vận hành (repo này không có issue tracker). Lọc: `hc ls --label project=nsac`; nhiều `--label` = AND, đúng định dạng `key=value`. Đổi label sau khi spawn: `hc label <t> k=v...` (`key=` xoá một label).
 - **Đặt tên `--name`: slug mô tả task** (Keios, 2026-11-12): dự án này không có issue tracker — dùng `nsac-<slug>` kebab-case, vd. `nsac-cardio-deviation-engine`, `nsac-readiness-score`, `nsac-nicegui-timeline`. Tên phản ánh đúng việc để `hc ls` đọc là hiểu ngay; giữ ngắn, không dấu. hc không có lệnh rename — đặt đúng ngay từ `hc run`.
 - Luật vận hành theo manual: luôn `--bg` + `--name` + `--cwd`; task đầu tiên đặt ngay trong `hc run`; chạy interactive, **không** one-shot print mode (`pi -p`…); scope chặt trong task (file/việc được sửa, "no subagents" trừ khi được phép); spawn không tự cho agent con spawn thêm agent.
@@ -39,10 +39,10 @@
 ## Heartbeat — xử lý agent idle (Keios, 2026-11-12)
 
 - Heartbeat (và mọi lượt theo dõi `hc ls`) **không chỉ báo cáo**: khi thấy agent `idle`, phải `hc read <t>` để xem nó xong/bị chặn, rồi hành động:
-  - **Việc đã xong** (đạt yêu cầu, commit sạch): review/verify kết quả, merge nhánh của agent vào `main`, rồi dọn đầy đủ — `git worktree remove --force`, `git branch -d` (chỉ nhánh đã merge), `git worktree prune`, `hc kill` + `hc rm` bản ghi. Khi gần/đã qua 14–15/11, verify theo checklist HKT trong root AGENTS.md (Verification): chạy end-to-end khi rút mạng, demo < 60 giây không crash, mọi ngưỡng/trọng số hiển thị nguồn, Confirm chặn mọi hành động, PDF báo cáo queue với delay 20 phút.
+  - **Việc đã xong** (đạt yêu cầu, commit sạch): review/verify kết quả, đăng ký nhánh `Status: ready` trong `.agents/bot/git/BRANCHES.md` (điền gates + report path), rồi dọn worktree — `git worktree remove --force`, **không `git branch -d`** (nhánh chỉ xoá sau khi git-bot đã merge và cập nhật registry), `git worktree prune`, `hc kill` + `hc rm` bản ghi. Khi gần/đã qua 14–15/11, verify theo checklist HKT trong root AGENTS.md (Verification): chạy end-to-end khi rút mạng, demo < 60 giây không crash, mọi ngưỡng/trọng số hiển thị nguồn, Confirm chặn mọi hành động, PDF báo cáo queue với delay 20 phút.
   - **Chưa xong / rõ ràng thiếu bước** (chưa commit, chưa verify, đang chờ): gửi `hc send <t> "<prompt thích hợp>"` — ví dụ yêu cầu chạy test/typecheck (`bun run typecheck|test`, `pytest`), commit, hoặc hoàn tất phần còn lại; chờ lượt sau kiểm tra lại.
   - **Bị chặn / cần quyết định của Keios** (thiếu key, chọn trade-off, lỗi ngoài phạm vi): báo cáo ngắn gọn, không tự ý làm liều.
-- Không merge nhánh chưa hoàn chỉnh hoặc còn thay đổi chưa commit; không `-D` nhánh chưa merge.
+- Không đăng ký `ready` nhánh chưa hoàn chỉnh hoặc còn thay đổi chưa commit; không merge nhánh tay (không bao giờ); không `-D` nhánh chưa qua git-bot.
 - **Deploy là tự động sau mỗi lần đổi code** (user 2026-11-14, xem root AGENTS.md mục User Preferences): rsync → `sudo nix build .#web` trên box → `sudo systemctl restart nsac-web` → verify 4 route 200. Commit trước deploy. **Luôn push `origin` sau mỗi commit** (Keios, 2026-11-14): heartbeat push `main` ngay sau khi commit/deploy, không cần hỏi; không force-push, không push nhánh dở hay nhánh chưa verify, không push tag trừ khi được yêu cầu.
 - Ghi kết quả xử lý vào HC-AGENTS.md (git-ignored, local only — không commit; schedule `hc-agents-update` cũng làm việc này).
 
@@ -51,7 +51,7 @@
 - **Luôn giữ một background shell `hc wait <t> --timeout 7200` cho mỗi agent đang chạy trong hc**, mở ngay khi spawn/resume agent (và sau mỗi lần `hc wait` kết thúc mà agent còn `working`). Khi waiter kết thúc (agent hết lượt hoặc báo xong/blocked) harness sẽ báo ngay — không chờ heartbeat polling.
 - `hc wait --children all` **không dùng được từ shell ngoài hc** (cần biết parent; `$HC_TERMINAL_ID` trống khi mình không ở trong terminal hc) — luôn chờ **theo từng terminal**: `hc wait <t> --timeout 7200`.
 - `--timeout 7200` (2h) để waiter không rơi ra hết lượt sớm; `reason: "timeout"` nghĩa là vẫn đang chạy — mở waiter mới, không tưởng fail.
-- Khi waiter báo (hoặc message tới với `reason: message`): xử lý theo "Heartbeat — xử lý agent idle" — đọc kết quả thật rồi merge/dọn hoặc send tiếp. Một waiter mỗi agent; khi agent đã kill/rm thì waiter kết thúc theo.
+- Khi waiter báo (hoặc message tới với `reason: message`): xử lý theo "Heartbeat — xử lý agent idle" — đọc kết quả thật rồi đăng ký `ready`/dọn hoặc send tiếp. Một waiter mỗi agent; khi agent đã kill/rm thì waiter kết thúc theo.
 
 ## hc — vận hành hằng ngày (verified 2026-11-12)
 
