@@ -27,8 +27,6 @@ export const SKY_APP = [
   "bg-[radial-gradient(ellipse_90%_95%_at_52%_48%,#0c3159_0%,#091c32_49%,#04111f_76%,#010812_100%)]",
 ].join(" ");
 
-export const SPACE_ART = "pointer-events-none absolute inset-0 [&_svg]:block [&_svg]:h-full [&_svg]:w-full";
-
 export const SPACE_VIGNETTE =
   "pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_70%_80%_at_53%_41%,transparent_48%,rgba(2,7,18,.3)_84%,rgba(1,5,15,.65)_100%)]";
 
