@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#061322" />
+  <title>SKY · Astronaut Wellness AI</title>
+  <style>
+:root{color-scheme:dark;--space:#061321;--cyan:#78eaff;--blue:#5dbafa;--violet:#c8aaff;--text:#edf8ff;--muted:#a8bbce;--mint:#60efc0;font-family:Inter,Manrope,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-synthesis:none}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#020914}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #f5fcff;outline-offset:5px}button:disabled{cursor:wait}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sky-app{width:100%;height:100vh;height:100dvh;min-height:560px;position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse 90% 95% at 52% 48%,#0c3159 0%,#091c32 49%,#04111f 76%,#010812 100%);color:var(--text)}
+.space-art,.space-vignette{position:absolute;inset:0;pointer-events:none}.space-art svg{display:block;width:100%;height:100%}.space-vignette{background:radial-gradient(ellipse 70% 80% at 53% 41%,transparent 48%,rgba(2,7,18,.3) 84%,rgba(1,5,15,.65) 100%);z-index:1}
+.sky-header{position:absolute;z-index:15;inset:2.2% 2.7% auto 3.1%;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}.sky-header button{pointer-events:auto;background:none;border:0;color:inherit}.brand{display:flex;gap:22px;text-align:left;align-items:center;padding:0}.brand-ring{display:block;width:57px;height:57px;border-radius:50%;position:relative;border:3px solid transparent;background:linear-gradient(#09192c,#09192c) padding-box,conic-gradient(from 55deg,transparent 8%,#8defff 28%,#a4aaff 50%,#fff 70%,#8ca6ff 82%,transparent 100%) border-box;box-shadow:0 0 18px rgba(105,192,255,.26),inset 0 0 9px rgba(108,156,255,.16)}.brand-copy{display:flex;flex-direction:column;gap:3px}.brand-name{font-size:29px;font-weight:300;letter-spacing:.14em;line-height:1.14}.brand-tagline{font-size:17px;color:#9bb0c8;font-weight:300;white-space:nowrap}.mission-trigger{position:relative;display:flex;align-items:center;gap:12px;padding:5px 0 24px 12px;min-width:226px;justify-content:flex-end}.station-icon{width:48px;height:35px;color:#c0d5f0;display:block;transform:rotate(-10deg)}.station-icon svg{width:100%;height:100%}.mission-text{font-size:16px;font-weight:300;white-space:nowrap}.mission-underline{position:absolute;bottom:2px;right:2px;width:235px;height:17px;border-top:1px solid transparent;border-radius:50%;transform:rotate(-5deg);background:linear-gradient(95deg,#65deff,transparent) top/100% 1px no-repeat;opacity:.8}
+.vitals-projection{position:absolute;z-index:8;left:5.1%;top:12.1%;width:310px;height:322px}.vitals-shield{position:absolute;z-index:-1;left:0;top:0;width:295px;height:315px;border-radius:64% 40% 40% 55%/47% 55% 40% 50%;background:radial-gradient(ellipse at 28% 65%,rgba(41,207,246,.12),rgba(27,84,137,.055) 53%,transparent 73%);border-left:2px solid rgba(88,230,255,.64);border-top:1px solid rgba(99,217,255,.25);box-shadow:inset 22px 3px 55px rgba(16,163,216,.075),-6px 0 23px rgba(72,195,242,.13);transform:rotate(9deg)}.vital{border:0;background:transparent;color:var(--text);display:flex;align-items:center;gap:16px;width:max-content;height:67px;padding:0 9px;text-align:left;transition:transform .2s,filter .2s}.vital:hover{transform:translateX(7px);filter:brightness(1.3)}.vital:nth-of-type(1){margin-left:86px;margin-top:28px}.vital:nth-of-type(2){margin-left:56px}.vital:nth-of-type(3){margin-left:39px}.vital:nth-of-type(4){margin-left:55px}.vital-icon{flex:none;display:flex;align-items:center;justify-content:center;position:relative;width:58px;height:58px;color:#b2efff;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(76,207,255,.12),rgba(38,90,146,.04) 75%);box-shadow:inset 0 0 20px rgba(126,216,255,.08)}.vital-icon:after{content:"";position:absolute;bottom:2px;left:12px;width:35px;height:14px;border-bottom:3px solid #5eeaff;border-radius:0 0 50% 50%;filter:drop-shadow(0 0 6px #31cbff)}.vital:last-of-type .vital-icon{color:#f0d1ff}.vital:last-of-type .vital-icon:after{border-color:#c19dfd;filter:drop-shadow(0 0 5px #af8dff)}.vital-icon svg{width:44px;height:44px}.vital-icon.oxygen{font-size:25px;font-weight:300;letter-spacing:-.06em}.oxygen sub{font-size:12px;align-self:center;margin-top:15px}.vital-value{font-size:25px;font-weight:300;white-space:nowrap;letter-spacing:-.02em}.vital-value small{font-size:14px;font-weight:300;margin-left:1px}.demo-indicator{position:absolute;left:50px;top:313px;letter-spacing:.16em;font-size:9px;color:rgba(184,229,245,.5)}
+.conversation{position:absolute;inset:0;z-index:7;pointer-events:none}.conversation-lens{position:absolute;left:24.4%;top:28%;width:50%;height:35%;border-radius:53% 47% 49% 51%/56% 50% 50% 44%;transform:rotate(-4deg);background:linear-gradient(120deg,rgba(45,104,231,.1),rgba(53,188,242,.058) 54%,rgba(197,124,248,.09));border-left:1px solid rgba(87,141,255,.5);border-right:1px solid rgba(186,162,255,.38);border-bottom:1px solid rgba(66,163,236,.18);box-shadow:inset 22px 13px 48px rgba(30,79,146,.07),inset -15px -16px 30px rgba(179,100,245,.055),0 0 50px rgba(61,113,229,.045)}.lens-inner{position:absolute;inset:13% 0 5%;border-radius:60% 45% 50% 50%;border-bottom:1px solid rgba(87,177,242,.08);background:radial-gradient(ellipse at 50% 66%,rgba(77,191,247,.035),transparent 65%)}.orb-zone{position:absolute;left:50.6%;top:26.3%;width:min(26vw,355px);aspect-ratio:1;transform:translate(-50%,-50%);filter:drop-shadow(0 0 26px rgba(68,172,255,.24))}.orb-zone canvas{width:100%;height:100%;display:block;position:relative;z-index:2}.orb-css-fallback{position:absolute;inset:18%;border-radius:50%;background:radial-gradient(circle at 65% 60%,transparent 20%,rgba(59,174,238,.1) 40%,rgba(120,225,255,.42) 70%,rgba(170,156,252,.2) 79%,transparent 90%);box-shadow:0 0 30px rgba(83,200,248,.2),inset -9px 4px 20px rgba(133,178,255,.45);animation:orbBreath 6s ease-in-out infinite}.conversation-copy{position:absolute;left:23%;width:56%;top:40%;text-align:center;text-shadow:0 2px 23px rgba(10,25,62,.6)}.conversation-copy h1{font-size:clamp(25px,2.7vw,44px);letter-spacing:.013em;font-weight:300;line-height:1.25;margin:0 0 8px;white-space:normal}.conversation-copy p{font-size:clamp(17px,1.65vw,28px);font-weight:300;letter-spacing:.008em;color:#b7c6db;margin:0}.voice-waveform{position:absolute;left:50.6%;top:52.2%;transform:translate(-50%,0);width:min(23vw,310px);height:74px;overflow:visible}.captions{position:absolute;top:60%;left:25%;width:52%;text-align:center;color:#caecff;font-size:14px;text-shadow:0 0 16px rgba(44,194,245,.4)}
+.health-projection{position:absolute;z-index:8;right:5%;top:13.1%;width:335px;height:272px}.health-shield{position:absolute;inset:0 2px 0 0;border-radius:57% 43% 51% 49%/49% 50% 50% 51%;background:radial-gradient(ellipse at 29% 42%,rgba(54,177,229,.14),rgba(24,70,121,.09) 55%,rgba(23,64,98,.02) 80%);border-top:1px solid rgba(129,207,255,.35);border-left:1px solid rgba(89,173,244,.18);border-bottom:1px solid rgba(113,219,255,.39);box-shadow:inset 0 5px 36px rgba(104,184,242,.09)}.hologram-button{position:absolute;left:11%;top:13%;width:37%;height:86%;border:0;background:transparent;padding:0}.hologram-button:hover{filter:brightness(1.5)}.human-hologram{width:100%;height:100%;filter:drop-shadow(0 0 7px rgba(83,198,255,.7))}.chest-glow{transform-origin:center;animation:chestGlow 5s ease-in-out infinite}.health-summary{position:absolute;top:29%;left:53%;display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:none;border:0;color:var(--text);text-align:left;padding:0}.health-label{font-size:17px;font-weight:300}.health-summary strong{font-weight:300;color:var(--mint);font-size:35px;line-height:1.1;text-shadow:0 0 23px rgba(72,244,198,.24)}.health-guidance{font-size:14px;font-weight:300;line-height:1.5;margin-top:8px;white-space:nowrap}.health-demo{font-size:9px;color:#a6d9d4;opacity:.62;letter-spacing:.12em;margin-top:7px}
+.input-projection{position:absolute;z-index:6;left:21.5%;width:62%;height:23.5%;top:66.5%;filter:drop-shadow(0 12px 30px rgba(70,155,255,.15));pointer-events:none}.input-projection svg{width:100%;height:100%;overflow:visible}.fluid-wave{transform-origin:center;animation:fluidFlow 8s ease-in-out infinite alternate}.wave-two{animation-delay:-3s}.fluid-sheet{transform-origin:center;animation:fluidFloat 9s ease-in-out infinite alternate}.voice-control{position:absolute;z-index:12;left:50%;top:65.5%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:0;min-width:250px}.mic-button{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;color:#ebfaff;border:1px solid rgba(153,248,255,.95);background:radial-gradient(circle at 50% 47%,rgba(42,175,251,.47),rgba(38,124,235,.17) 50%,rgba(14,51,125,.15) 74%,rgba(93,226,255,.16));box-shadow:inset 0 0 16px rgba(92,218,255,.47),0 0 10px rgba(129,227,255,.8),0 0 34px rgba(64,144,253,.53);transition:transform .2s,box-shadow .3s}.mic-button svg{width:39px;height:39px;filter:drop-shadow(0 0 6px rgba(255,255,255,.6))}.mic-button:hover{transform:scale(1.06);box-shadow:inset 0 0 20px rgba(88,224,255,.55),0 0 24px rgba(99,230,255,.9),0 0 48px rgba(52,128,253,.5)}.voice-hint{margin-top:40px;color:#f0f7ff;font-size:20px;font-weight:300;text-shadow:0 0 12px rgba(80,183,255,.2);white-space:nowrap}.text-trigger{background:none;border:0;color:rgba(177,224,247,.55);font-size:11px;letter-spacing:.08em;margin-top:13px;padding:6px 12px}.text-trigger:hover{color:#d4faff}
+.sky-app[data-phase="listening"] .mic-button{animation:micPulse 1.8s ease-in-out infinite}.sky-app[data-phase="listening"] .conversation-lens{border-color:rgba(86,229,255,.44)}.sky-app[data-phase="thinking"] .orb-zone{filter:drop-shadow(0 0 34px rgba(171,142,255,.33))}.sky-app[data-phase="error"] .mic-button{border-color:#f8b89d}
+.detail-overlay{position:absolute;z-index:35;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,12,28,.4);backdrop-filter:blur(7px)}[hidden]{display:none!important}.detail-glass{width:min(490px,calc(100vw - 36px));min-height:290px;position:relative;padding:34px 40px;border-radius:49% 48% 46% 51%/20% 26% 18% 23%;background:radial-gradient(ellipse at 28% 12%,rgba(38,129,184,.24),rgba(9,36,68,.91) 85%);border:1px solid rgba(115,219,255,.34);box-shadow:0 0 70px rgba(33,118,202,.22),inset 0 0 45px rgba(76,186,242,.07)}.detail-close{position:absolute;right:24px;top:20px;border:0;background:none;color:#eaffff;font-size:32px}.detail-eyebrow{font-size:10px;letter-spacing:.2em;color:#88e1f6}.detail-glass h2{font-weight:300;font-size:30px;margin:18px 0 5px}.detail-value{font-size:37px;color:#74edff;margin:0 0 16px;font-weight:300}.detail-message{font-size:15px;color:#c0d1e2;line-height:1.55}.detail-footer{font-size:11px;color:#8ba9be;margin-top:24px}
+.text-chat{position:absolute;z-index:26;bottom:5%;left:50%;transform:translateX(-50%);width:min(540px,94vw);padding:17px 22px 14px;border-radius:28px;background:rgba(8,34,66,.94);border:1px solid rgba(123,225,255,.44);box-shadow:0 0 55px rgba(75,151,244,.2)}.text-chat label{font-size:13px;color:#aee9fc}.chat-line{display:flex;align-items:center;gap:9px;margin:10px 0}.chat-line input{min-width:0;flex:1;height:40px;border:1px solid rgba(147,220,255,.25);border-radius:20px;background:rgba(10,32,54,.9);color:#fff;padding:0 14px}.chat-line button{border:1px solid rgba(147,220,255,.35);color:#eaffff;background:rgba(59,131,174,.2);border-radius:18px;padding:9px 13px}.text-chat span{font-size:10px;color:#8aa9c2}
+@keyframes micPulse{50%{box-shadow:0 0 18px #67efff,0 0 45px rgba(69,156,253,.7),inset 0 0 30px rgba(87,232,255,.46)}}@keyframes orbBreath{50%{transform:scale(1.04);opacity:.84}}@keyframes chestGlow{50%{opacity:.56}}@keyframes fluidFlow{50%{transform:translateY(-9px) scaleY(1.11)}}@keyframes fluidFloat{50%{transform:translateY(5px) scaleX(1.025)}}
+@media(max-width:1300px){.vitals-projection{transform:scale(.86);transform-origin:top left}.health-projection{transform:scale(.88);transform-origin:top right;right:3%}.conversation-copy{top:41.5%}.conversation-lens{width:54%;left:22%}.orb-zone{top:27.5%}}
+@media(max-width:1000px){.sky-header{inset:3% 4% auto}.brand-ring{width:45px;height:45px}.brand-name{font-size:24px}.brand-tagline{font-size:12px}.vitals-projection{left:2%;top:15%;transform:scale(.69)}.health-projection{right:1%;top:14%;transform:scale(.7)}.conversation-copy{top:46%;left:20%;width:60%}.conversation-copy h1{font-size:30px}.orb-zone{width:310px;top:31%}.conversation-lens{top:34%;height:31%;width:65%;left:17%}.voice-waveform{top:57%;width:235px}.input-projection{top:72%;left:13%;width:74%}.voice-control{top:71%}.voice-hint{margin-top:25px}}
+@media(max-width:720px){.sky-app{min-height:640px}.sky-header{inset:18px 19px auto}.brand{gap:10px}.brand-ring{width:37px;height:37px;border-width:2px}.brand-name{font-size:20px}.brand-tagline{font-size:10px}.mission-trigger{min-width:0;gap:3px;padding:1px 0 12px}.mission-text{font-size:11px}.station-icon{width:28px;height:25px}.mission-underline{width:128px}.vitals-projection{top:14%;left:4%;transform:scale(.52)}.vital{height:67px}.health-projection{right:-13%;top:15%;transform:scale(.48)}.orb-zone{top:35%;left:50%;width:min(68vw,290px)}.conversation-lens{top:31%;left:5%;width:90%;height:36%}.conversation-copy{left:5%;width:90%;top:52%}.conversation-copy h1{font-size:clamp(22px,6vw,31px)}.conversation-copy p{font-size:16px}.voice-waveform{top:61%;width:220px}.input-projection{top:75%;left:1%;width:98%;height:18%}.voice-control{top:75%}.mic-button{width:70px;height:70px}.voice-hint{margin-top:15px;font-size:16px}.captions{top:67%}.demo-indicator{display:none}}
+@media(max-width:420px){.vitals-projection{top:12%;left:-4%;transform:scale(.44)}.health-projection{top:12%;right:-24%;transform:scale(.43)}.orb-zone{top:35%}.conversation-copy{top:51%}.conversation-copy h1{font-size:23px}.mission-text{font-size:10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+
+</style>
+</head>
+<body>
+  <main class="sky-app" id="skyApp" data-phase="idle" aria-label="SKY astronaut wellness overview">
+    <div class="space-art" id="spaceArt" aria-hidden="true"></div>
+    <div class="space-vignette" aria-hidden="true"></div>
+
+    <header class="sky-header">
+      <button class="brand home-trigger" id="homeButton" type="button" aria-label="Return to SKY overview">
+        <span class="brand-ring" aria-hidden="true"></span>
+        <span class="brand-copy"><span class="brand-name">S K Y</span><span class="brand-tagline">Astronaut Wellness AI</span></span>
+      </button>
+      <button class="mission-trigger" id="missionButton" type="button" aria-label="Mission information">
+        <span class="station-icon" aria-hidden="true"><svg viewBox="0 0 44 36" fill="none"><path d="m18 16 8-2M18 21l8-2M15 8l5 10-5 10M28 6l-5 11 5 11M3 12l11-5 4 6-12 5zM31 14l10-5-3 12-9 4z" stroke="currentColor" stroke-width="1.5"/><path d="M11 8 5 23m31-13-7 17M4 6l7 25m28-24-7 25" stroke="currentColor" stroke-width="1"/></svg></span>
+        <span class="mission-text">ISS&nbsp; · &nbsp;Day 170</span>
+        <span class="mission-underline" aria-hidden="true"></span>
+      </button>
+    </header>
+
+    <section class="vitals-projection" aria-label="Sample physiological readings">
+      <div class="vitals-shield" aria-hidden="true"></div>
+      <button class="vital" type="button" data-kind="heartRate" aria-label="Heart rate, demo value 62 beats per minute">
+        <span class="vital-icon" aria-hidden="true"><svg viewBox="0 0 56 56" fill="none"><path d="M28 43 15.5 30.7C5.5 20.6 20.3 9.2 28 21c7.7-11.8 22.5-.4 12.5 9.7L28 43Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></svg></span>
+        <span class="vital-value">62 <small>bpm</small></span>
+      </button>
+      <button class="vital" type="button" data-kind="respiration" aria-label="Respiration, demo value 16 breaths per minute">
+        <span class="vital-icon" aria-hidden="true"><svg viewBox="0 0 56 56" fill="none"><path d="M27.5 13v21m1-18 5-4m-5 12 5-6m-7 1-4-6M24 28c-2-5-3-7-5-6-6 1-11 14-8 21 2 5 10 4 14-1l1-11m5-3c2-5 3-7 5-6 6 1 11 14 8 21-2 5-10 4-14-1l-1-11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="vital-value">16 <small>br/min</small></span>
+      </button>
+      <button class="vital" type="button" data-kind="spo2" aria-label="Oxygen saturation, demo value 98 percent">
+        <span class="vital-icon oxygen" aria-hidden="true">O<sub>2</sub></span>
+        <span class="vital-value">98 <small>%</small></span>
+      </button>
+      <button class="vital" type="button" data-kind="sleep" aria-label="Sleep, demo value seven hours and forty-two minutes">
+        <span class="vital-icon" aria-hidden="true"><svg viewBox="0 0 56 56" fill="none"><path d="M39.8 39.2C29.2 45.6 15.5 39 13.6 26.5c-1-7.1 2.4-13.6 8.4-17.4-1.4 13.2 6.4 22.5 19.1 19-1.1 4.8-5 8.5-1.3 11.1Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg></span>
+        <span class="vital-value">7 <small>h</small> 42 <small>m</small></span>
+      </button>
+      <span class="demo-indicator">SIMULATED TELEMETRY</span>
+    </section>
+
+    <section class="conversation" aria-label="SKY AI conversation">
+      <div class="conversation-lens" aria-hidden="true"><div class="lens-inner"></div></div>
+      <div class="orb-zone" aria-hidden="true"><div class="orb-css-fallback"></div><canvas id="orbCanvas" width="440" height="440"></canvas></div>
+      <div class="conversation-copy">
+        <h1 id="greeting">Good morning, Minh.</h1>
+        <p id="prompt">How are you feeling today?</p>
+      </div>
+      <svg id="waveform" class="voice-waveform" viewBox="0 0 310 70" aria-hidden="true"><defs><linearGradient id="waveColor"><stop stop-color="#4d9afa" stop-opacity="0"/><stop offset=".23" stop-color="#65c5ff"/><stop offset=".5" stop-color="#9bffff"/><stop offset=".8" stop-color="#64e5f8"/><stop offset="1" stop-color="#64e5f8" stop-opacity="0"/></linearGradient><filter id="waveGlow"><feGaussianBlur stdDeviation="4"/></filter></defs><path id="waveGlowPath" stroke="url(#waveColor)" stroke-width="5" fill="none" filter="url(#waveGlow)"/><path id="wavePath" stroke="url(#waveColor)" stroke-width="2" fill="none"/></svg>
+      <p id="captions" class="captions" aria-live="polite"></p>
+    </section>
+
+    <section class="health-projection" aria-label="Health summary, simulated data">
+      <div class="health-shield" aria-hidden="true"></div>
+      <button id="hologramButton" class="hologram-button" type="button" aria-label="View simulated body health details">
+        <svg class="human-hologram" viewBox="0 0 130 236" role="img" aria-label="Glowing holographic human silhouette">
+          <defs>
+            <linearGradient id="bodyFill" x1="0" x2="1"><stop stop-color="#80e9ff" stop-opacity=".16"/><stop offset=".48" stop-color="#e5ffff" stop-opacity=".24"/><stop offset="1" stop-color="#65c9ff" stop-opacity=".12"/></linearGradient>
+            <linearGradient id="bodyStroke" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#d5faff"/><stop offset=".5" stop-color="#67d9ff"/><stop offset="1" stop-color="#71b8ff"/></linearGradient>
+            <radialGradient id="chestPulse"><stop stop-color="#ffe0a0" stop-opacity=".9"/><stop offset=".3" stop-color="#ffc27f" stop-opacity=".4"/><stop offset="1" stop-color="#ffbe8f" stop-opacity="0"/></radialGradient>
+            <filter id="bodyGlow"><feGaussianBlur stdDeviation="3"/></filter>
+          </defs>
+          <g class="human-figure">
+            <path id="humanShape" d="M66 17c-9 0-13 8-11 18 1 7 3 10 6 12v10c-9 3-20 5-26 13-4 6-7 23-11 43l-7 29c-3 11-1 17 3 18 4 1 6-5 7-13l10-29 5-26-1 39c0 14 1 25 4 37l4 44 2 30c1 6 5 8 9 6l5-43 5-46 6 46 3 43c5 3 9 0 9-7l4-33 3-40 2-39-1-39 6 25 9 29c2 10 5 16 9 13 4-2 3-10 0-19l-8-31c-5-22-6-34-11-39-7-8-17-10-26-13V47c4-4 6-10 6-16 0-10-5-14-15-14Z" fill="url(#bodyFill)" stroke="url(#bodyStroke)" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M65 57 65 103m-25-11c6 6 16 10 25 9 11 1 21-3 27-9M50 154c8 2 23 2 32 0m-16-51v52" stroke="#a8f7ff" opacity=".4" fill="none"/>
+            <ellipse cx="66" cy="96" rx="29" ry="38" fill="url(#chestPulse)" class="chest-glow"/>
+          </g>
+          <use href="#humanShape" fill="none" stroke="#a0eeff" stroke-width="3.5" opacity=".65" filter="url(#bodyGlow)"/>
+        </svg>
+      </button>
+      <button type="button" id="healthButton" class="health-summary" aria-label="View simulated overall health assessment">
+        <span class="health-label">Overall</span>
+        <strong>Stable</strong>
+        <span class="health-guidance">Maintain recovery<br/>and readiness</span>
+        <span class="health-demo">DEMO STATUS</span>
+      </button>
+    </section>
+
+    <div class="input-projection" aria-hidden="true"><svg id="surfaceSvg" viewBox="0 0 1040 200" preserveAspectRatio="none"><defs><linearGradient id="surfaceFill" x1=".08" y1=".8" x2=".96" y2="0"><stop stop-color="#76eaff" stop-opacity=".04"/><stop offset=".25" stop-color="#42c6ed" stop-opacity=".23"/><stop offset=".55" stop-color="#84a9ff" stop-opacity=".15"/><stop offset=".82" stop-color="#c6a4ff" stop-opacity=".19"/><stop offset="1" stop-color="#8af8ff" stop-opacity=".05"/></linearGradient><linearGradient id="surfaceEdge"><stop stop-color="#97f1ff" stop-opacity="0"/><stop offset=".23" stop-color="#78f1ff" stop-opacity=".8"/><stop offset=".57" stop-color="#aab6ff" stop-opacity=".7"/><stop offset=".83" stop-color="#cca8ff" stop-opacity=".8"/><stop offset="1" stop-color="#8efaff" stop-opacity="0"/></linearGradient><filter id="surfaceBlur"><feGaussianBlur stdDeviation="12"/></filter></defs>
+        <path class="fluid-blur" d="M20 75C170 100 172 20 330 45S570 90 710 38 870 36 1012 100L1032 130Q540 205 7 125Z" fill="url(#surfaceFill)" stroke="url(#surfaceEdge)" stroke-width="12" filter="url(#surfaceBlur)"/>
+        <path class="fluid-sheet" d="M20 75C170 100 172 20 330 45S570 90 710 38 870 36 1012 100L1032 130Q540 205 7 125Z" fill="url(#surfaceFill)" stroke="url(#surfaceEdge)" stroke-width="1.6"/>
+        <path class="fluid-wave wave-one" d="M25 88C140 114 230 46 324 71s196 19 307-11 260-2 375 48" fill="none" stroke="url(#surfaceEdge)" stroke-width="1.8" opacity=".75"/>
+        <path class="fluid-wave wave-two" d="M30 118C175 150 250 58 360 105S572 148 724 77s211-9 280 48" fill="none" stroke="#92daff" stroke-width="1" opacity=".35"/>
+      </svg></div>
+
+    <div class="voice-control">
+      <button id="micButton" class="mic-button" type="button" aria-label="Activate microphone"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="18" y="8" width="12" height="24" rx="6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M13 24c0 15 22 15 22 0M24 36v6m-7 0h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+      <div id="voiceHint" class="voice-hint">Just talk to me...</div>
+      <button type="button" class="text-trigger" id="textButton" aria-label="Type a message to SKY">Type instead</button>
+    </div>
+
+    <div id="detailOverlay" class="detail-overlay" hidden>
+      <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" class="detail-glass" tabindex="-1">
+        <button type="button" id="detailClose" class="detail-close" aria-label="Close details">×</button>
+        <div id="detailEyebrow" class="detail-eyebrow">SIMULATED SENSOR</div>
+        <h2 id="detailTitle">Heart rate</h2>
+        <p id="detailValue" class="detail-value">62 bpm</p>
+        <p id="detailMessage" class="detail-message"></p>
+        <p id="detailFooter" class="detail-footer">Demonstration only · Not medical advice</p>
+      </section>
+    </div>
+
+    <form id="chatForm" class="text-chat" hidden aria-label="Text interaction">
+      <label for="chatInput">Message to SKY (local demo)</label>
+      <div class="chat-line"><input id="chatInput" autocomplete="off" maxlength="300" placeholder="How are you feeling today?"/><button type="submit">Send</button><button type="button" id="chatClose" aria-label="Close text input">×</button></div>
+      <span>No AI backend is connected; replies are local demonstration responses.</span>
+    </form>
+    <div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
+  </main>
+<script>
+/* Original procedural space background; no external images, fonts, or network required. */
+(() => {
+  const Sky = window.Sky ||= {};
+  const seeded = (() => { let s = 422117; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })();
+  Sky.createSpaceArt = function createSpaceArt() {
+    const stars = Array.from({length: 235}, () => {
+      const x=180+seeded()*1340, y=5+seeded()*625, r=.3+seeded()*.9, a=.22+seeded()*.72;
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="#b9dcff" opacity="${a.toFixed(2)}"/>`;
+    }).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1672 941" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="void" x2=".7" y2="1"><stop stop-color="#030b16"/><stop offset=".43" stop-color="#071a2e"/><stop offset=".8" stop-color="#0a2445"/><stop offset="1" stop-color="#10263d"/></linearGradient>
+        <radialGradient id="skyHalo"><stop stop-color="#1b5284" stop-opacity=".45"/><stop offset=".6" stop-color="#0a2245" stop-opacity=".17"/><stop offset="1" stop-color="#0a1930" stop-opacity="0"/></radialGradient>
+        <linearGradient id="earthWater" x1=".05" y1="1" x2=".8" y2=".1"><stop stop-color="#11385b"/><stop offset=".28" stop-color="#154c7a"/><stop offset=".64" stop-color="#266b9b"/><stop offset=".92" stop-color="#4e94bd"/><stop offset="1" stop-color="#b6e2ff"/></linearGradient>
+        <linearGradient id="earthLight" x1="0" y1="1" x2=".8" y2="0"><stop stop-color="#1a496f"/><stop offset=".6" stop-color="#286fa8"/><stop offset="1" stop-color="#abddff"/></linearGradient>
+        <radialGradient id="earthSun"><stop stop-color="#fff6db"/><stop offset=".055" stop-color="#b9f4ff" stop-opacity=".95"/><stop offset=".22" stop-color="#86b9ff" stop-opacity=".27"/><stop offset="1" stop-color="#4aabfa" stop-opacity="0"/></radialGradient>
+        <linearGradient id="vessel" x1="0" y1="0" x2="1" y2=".7"><stop stop-color="#050e1b"/><stop offset=".5" stop-color="#233952"/><stop offset=".8" stop-color="#0e2036"/><stop offset="1" stop-color="#071323"/></linearGradient>
+        <linearGradient id="rail" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#18334f"/><stop offset=".4" stop-color="#547497"/><stop offset=".6" stop-color="#132d4b"/><stop offset="1" stop-color="#061626"/></linearGradient>
+        <linearGradient id="desk" x1="0" y1="0" x2=".8" y2=".9"><stop stop-color="#071a2d"/><stop offset=".45" stop-color="#385476"/><stop offset=".78" stop-color="#0e2849"/><stop offset="1" stop-color="#04101e"/></linearGradient>
+        <linearGradient id="suited" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#091622"/><stop offset=".42" stop-color="#3f5b78"/><stop offset=".72" stop-color="#9eb4c8"/><stop offset="1" stop-color="#15253c"/></linearGradient>
+        <filter id="blueGlow"><feGaussianBlur stdDeviation="7"/></filter>
+        <filter id="clouds"><feTurbulence type="fractalNoise" baseFrequency=".016 .033" numOctaves="4" seed="27" result="noise"/><feColorMatrix in="noise" type="matrix" values=".4 0 0 0 .10  0 .5 0 0 .27  0 0 .6 0 .45  0 0 0 1 0"/></filter>
+        <filter id="subtleBlur"><feGaussianBlur stdDeviation="2.8"/></filter>
+        <clipPath id="earthClip"><path d="M685 698C925 537 1229 384 1672 374V941H680Z"/></clipPath>
+        <radialGradient id="portTint"><stop stop-color="#1f5181" stop-opacity=".05"/><stop offset=".75" stop-color="#0d3561" stop-opacity=".1"/><stop offset="1" stop-color="#04142b" stop-opacity=".27"/></radialGradient>
+      </defs>
+      <rect width="1672" height="941" fill="url(#void)"/><ellipse cx="835" cy="419" rx="1070" ry="600" fill="url(#skyHalo)"/>
+      ${stars}
+      <circle cx="515" cy="168" r="23" fill="#7795ad" opacity=".38"/><path d="M507 147a23 23 0 0 1 0 42 23 23 0 1 0 0-42" fill="#06152a"/>
+      <g clip-path="url(#earthClip)">
+        <rect x="650" y="370" width="1040" height="600" fill="url(#earthWater)"/>
+        <ellipse cx="1220" cy="740" rx="570" ry="300" fill="#3e92c1" opacity=".18"/>
+        <rect x="680" y="380" width="1020" height="600" filter="url(#clouds)" opacity=".2"/>
+        <g fill="#bdeaff" opacity=".18" filter="url(#subtleBlur)">
+          <path d="M805 645q121-55 238-64t173 3q-90 18-114 45-122-11-297 16m177 11q156-66 338-67 92 4 149 23-126-11-228 39z"/>
+          <path d="M1180 482q100-30 190-16t175-14q-49 29-124 26-99 4-145 24z"/>
+          <path d="M916 717q95-40 172-32t131 0q-120 43-303 32m209 45q107-27 203-10l120-8q-121 44-323 18z"/>
+        </g>
+        <path d="M685 698C925 537 1229 384 1672 374" fill="none" stroke="#9ce6ff" stroke-width="9" opacity=".62" filter="url(#blueGlow)"/>
+        <path d="M685 698C925 537 1229 384 1672 374" fill="none" stroke="#9cdeff" stroke-width="2.7" opacity=".84"/>
+      </g>
+      <ellipse cx="1589" cy="392" rx="235" ry="178" fill="url(#earthSun)"/>
+      <path d="M1600 1Q1750 250 1630 592" fill="none" stroke="#0a1a2b" stroke-width="100" opacity=".66"/>
+      <path d="M0 0H425Q264 127 224 286 183 447 248 596L306 665 1672 653V941H0Z" fill="url(#portTint)" opacity=".56"/>
+      <!-- Structure: deep ship window surround -->
+      <path d="M0 0H410Q178 151 174 340 165 528 268 645L347 671Q179 632 126 467 61 267 144 120L215 0Z" fill="url(#vessel)" opacity=".94"/>
+      <path d="M0 0H95Q-23 174 0 312V0M1672 0h-100q120 181 100 342z" fill="#07111e"/>
+      <path d="M2 0 100 0Q6 166 1 257" stroke="#26394e" stroke-width="26" fill="none" opacity=".83"/>
+      <path d="M1651 4Q1722 192 1630 477L1599 599" stroke="#2a435c" stroke-width="49" fill="none" opacity=".62"/>
+      <path d="M78 34q-82 107-74 196" fill="none" stroke="#ffcc94" stroke-width="4" filter="url(#blueGlow)" opacity=".9"/>
+      <path d="M81 38q-81 103-73 189" fill="none" stroke="#ffb56c" stroke-width="2.8"/>
+      <path d="M1610 103q57 116 22 187m-16 218-21 75" stroke="#ffba77" stroke-width="3" fill="none" filter="url(#blueGlow)"/>
+      <path d="M1610 103q57 116 22 187m-16 218-21 75" stroke="#f8b273" stroke-width="1.6" fill="none"/>
+      <path d="M258 628Q262 661 339 666H1447Q1511 675 1560 626" stroke="#a6e5ff" stroke-width="4" opacity=".55" fill="none"/>
+      <path d="M0 632Q250 652 354 659L1458 668Q1560 679 1672 595V941H0Z" fill="url(#desk)"/>
+      <path d="M0 732Q180 708 388 743 550 776 870 814 1247 854 1672 784V941H0Z" fill="#091a2f" opacity=".77"/>
+      <path d="M2 735Q330 691 498 745T931 816Q1305 852 1670 749" fill="none" stroke="#749abd" stroke-width="1.5" opacity=".34"/>
+      <path d="M1310 734Q1437 756 1566 796" stroke="#fecf94" stroke-width="2" opacity=".85"/>
+      <!-- Astronaut silhouette + seat: foreground left -->
+      <g>
+        <path d="M-55 560Q-35 509 37 501 101 497 125 567L139 941H-50Z" fill="#06101e"/>
+        <path d="M-22 593Q-3 549 43 555q58 0 76 58l18 194L15 830Z" fill="#2c455e" opacity=".73"/>
+        <path d="M84 613q-34-12-43-54l-6-52q0-37 30-52c32-12 57 3 62 45l-5 55-10 35 50 51-37 73-69-40Z" fill="#172638"/>
+        <path d="M65 464q24-30 54-9c18 19 13 40 6 56L96 499Z" fill="#06101c"/>
+        <path d="M81 506q13 7 32 3l-2 47-23 8-10-25Z" fill="#b97f64" opacity=".7"/>
+        <path d="M59 567q32-18 66 8l44 48-9 67-67 25-52-70Z" fill="url(#suited)"/>
+        <path d="M153 637q40 2 83 37l52 50 54 22q44 14 72 43l75 45-21 57-93-31-93-33-110-63-55-62Z" fill="url(#suited)"/>
+        <path d="M141 679q33 11 64 39m2-42q20 25 35 47m-5 11q20 12 39 23" fill="none" stroke="#c7d7dc" stroke-width="7" opacity=".2"/>
+        <path d="M430 807q66-43 112-12 49 28 72 66l75 46-34 49H382l-48-66q30-51 96-83Z" fill="url(#suited)"/>
+        <path d="M402 822q61-11 103 39l22 52m34-76q41 8 78 74" fill="none" stroke="#c1d3e6" stroke-width="7" opacity=".2"/>
+        <path d="M136 587q41 2 58 36l-24 44q-29 5-42-29Z" fill="#213f61" stroke="#859cb1" stroke-width="2"/>
+        <path d="M145 596q25-1 37 24l-17 31-25-14Z" fill="#091d32" stroke="#6284a6"/>
+        <path d="M22 673Q93 663 114 735V941H-50V742Q-44 677 22 673Z" fill="#061222"/>
+        <path d="M-6 684Q74 684 82 773" stroke="#6b879f" opacity=".35" stroke-width="9" fill="none"/>
+      </g>
+      <path d="M285 663Q1064 664 1498 668" stroke="#6e9fc0" stroke-width="2" opacity=".38"/>
+    </svg>`;
+  };
+})();
+
+/* WebGL 1-compatible transparent procedural orb. Uses no dependencies. */
+(() => {
+  const Sky = window.Sky ||= {};
+  const vertex = `attribute vec2 p; varying vec2 v; void main(){v=p;gl_Position=vec4(p,0.,1.);}`;
+  const fragment = `precision highp float;
+  varying vec2 v;
+  uniform float uTime, uEnergy, uMode;
+  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
+  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+  float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p=p*2.03+13.7;a*=.5;}return v;}
+  void main(){
+    vec2 p=v*1.05;float r=length(p),t=uTime*(.24+uMode*.11);float angle=atan(p.y,p.x);
+    vec2 q=p+vec2(.075*sin(t*.6),.06*cos(t*.51));
+    float war=fbm(q*4.1+vec2(t,-t*.4));
+    float inner = .33+.15*sin(angle*3.5+t*2.+war*6.)+.10*sin(angle*7.-t*.7);
+    float ringA=exp(-pow((r-(.78+.075*sin(angle*2.1+t*.7+war*2.)))*24.,2.));
+    float ringB=exp(-pow((r-(.61+.18*sin(angle*2.5-t*.68)+.05*war))*21.,2.));
+    float ringC=exp(-pow((r-(.43+.29*sin(angle*1.4+t*.5+war)))*22.,2.));
+    float filament=exp(-pow((p.y-(.31*sin(2.7*p.x+t+war*3.)-.15*cos(p.x*5.-t*.55)))*17.,2.));
+    float filament2=exp(-pow((p.x-(.30*sin(2.9*p.y-t*.8)+.2*cos(p.y*4.+t*.4)))*14.,2.));
+    float shell=1.-smoothstep(.76,.98,r);float fresnel=pow(clamp(r/.97,0.,1.),5.);
+    float irregular=fbm(p*3.3+vec2(t*.3,t*.13));
+    vec3 deep=vec3(.02,.12,.34);
+    vec3 cyan=vec3(.22,.93,1.);
+    vec3 blue=vec3(.17,.53,1.);
+    vec3 lilac=vec3(.76,.54,1.);
+    vec3 col=mix(deep,blue,.34+.22*war);
+    col+=cyan*ringA*1.15+blue*ringB*.95+lilac*ringC*.92;
+    col+=cyan*filament*.48+mix(cyan,lilac,.5+.5*sin(angle*2.+t))*filament2*.52;
+    col+=mix(blue,lilac,smoothstep(-.2,.9,p.x))*fresnel*(.42+.43*irregular);
+    col+=vec3(1.,.70,.5)*exp(-length(p-vec2(.49,-.34))*8.)*.47;
+    col+=vec3(.32,.95,1.)*exp(-length(p-vec2(-.25,-.77))*8.)*.31;
+    col*=.81+uEnergy*.34;
+    float rim=exp(-pow((r-.9)*15.,2.));col+=mix(cyan,lilac,smoothstep(-.7,.75,p.x)) *rim*.56;
+    float halo=exp(-pow((r-1.)*8.,2.))*.15+exp(-r*r*6.)*.035;
+    float alpha=shell*(.37+.18*war+ringA*.45+ringB*.25+ringC*.27+filament*.22)+rim*.43+halo;
+    alpha*=1.-smoothstep(.97,1.22,r);
+    vec3 glow=col+vec3(.13,.27,.52)*halo;
+    gl_FragColor=vec4(glow,clamp(alpha,0.,1.));
+  }`;
+  function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
+  class OrbRenderer {
+    constructor(canvas){this.canvas=canvas;this.time=0;this.energy=0;this.phase='idle';this.reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this.gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false,preserveDrawingBuffer:false});if(!this.gl)throw Error('WebGL unavailable');
+      const gl=this.gl,prog=gl.createProgram();gl.attachShader(prog,compile(gl,gl.VERTEX_SHADER,vertex));gl.attachShader(prog,compile(gl,gl.FRAGMENT_SHADER,fragment));gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(prog));this.program=prog;gl.useProgram(prog);
+      const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);const loc=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+      this.uniforms={time:gl.getUniformLocation(prog,'uTime'),energy:gl.getUniformLocation(prog,'uEnergy'),mode:gl.getUniformLocation(prog,'uMode')};gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);this.render();
+    }
+    render(){const gl=this.gl,canvas=this.canvas;const quality=Math.min(devicePixelRatio||1,1.5),w=Math.round(canvas.clientWidth*quality),h=Math.round(canvas.clientHeight*quality);if(w<1||h<1)return;if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.useProgram(this.program);gl.uniform1f(this.uniforms.time,this.time);gl.uniform1f(this.uniforms.energy,this.energy);gl.uniform1f(this.uniforms.mode, this.phase==='thinking'?1.3:this.phase==='listening'?1:this.phase==='speaking'?1.4:.2);gl.drawArrays(gl.TRIANGLES,0,6);}
+    update(delta,energy,phase){this.phase=phase;this.energy+=(energy-this.energy)*.13;if(!this.reducedMotion)this.time+=Math.min(delta,.06);this.render();}
+  }
+  Sky.OrbRenderer=OrbRenderer;
+})();
+
+/* Microphone session. Audio remains local; demo does not upload or transcribe speech. */
+(() => {
+  const Sky = window.Sky ||= {};
+  class VoiceSession {
+    constructor(onPhase){this.phase='idle';this.onPhase=onPhase;this.stream=null;this.context=null;this.analyser=null;this.samples=null;this.energy=0;this.pending=false;}
+    setPhase(phase){this.phase=phase;this.onPhase(phase);}
+    async toggle(){if(this.phase==='listening'){await this.stop();return;}if(this.pending)return;this.pending=true;this.setPhase('requesting_permission');
+      try{
+        if(!navigator.mediaDevices?.getUserMedia)throw Error('Microphone API unavailable. Use localhost or HTTPS and a supported browser.');
+        const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});this.stream=stream;
+        if(this.phase!=='requesting_permission'){stream.getTracks().forEach(t=>t.stop());return;}
+        const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw Error('Web Audio not supported.');
+        this.context=new Ctx();this.analyser=this.context.createAnalyser();this.analyser.fftSize=512;this.analyser.smoothingTimeConstant=.6;this.samples=new Uint8Array(this.analyser.fftSize);const source=this.context.createMediaStreamSource(stream);source.connect(this.analyser);
+        stream.getAudioTracks()[0].onended=()=>{if(this.phase==='listening')this.stop();};this.setPhase('listening');
+      }catch(err){this.errorMessage=err?.message||'Microphone permission denied';await this.stop(false);this.setPhase('error');}
+      finally{this.pending=false;}
+    }
+    readEnergy(){if(this.phase!=='listening'||!this.analyser)return 0;this.analyser.getByteTimeDomainData(this.samples);let sum=0;for(let i=0;i<this.samples.length;i++){const n=(this.samples[i]-128)/128;sum+=n*n;}const rms=Math.sqrt(sum/this.samples.length);this.energy+=(Math.min(rms*6,1)-this.energy)*.24;return this.energy;}
+    async stop(reset=true){this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.analyser=null;this.samples=null;this.energy=0;if(this.context){await this.context.close().catch(()=>{});this.context=null;}if(reset)this.setPhase('idle');}
+  }
+  Sky.VoiceSession=VoiceSession;
+})();
+
+/* SKY demo coordinator. Fixture health values are demonstration data, not medical assessment. */
+(() => {
+  const $=(id)=>document.getElementById(id), app=$('skyApp');
+  $('spaceArt').innerHTML=window.Sky.createSpaceArt();
+  let orb=null;try{orb=new window.Sky.OrbRenderer($('orbCanvas'));}catch(e){console.warn('Orb using CSS fallback:',e.message);$('orbCanvas').hidden=true;}
+  const vitals={
+    heartRate:{title:'Heart rate',value:'62 bpm',message:'Illustrative resting heart-rate reading. Source: screenshot fixture. No live sensor connected.'},
+    respiration:{title:'Respiration',value:'16 br/min',message:'Illustrative breathing-rate reading. Connect a validated sensor for live monitoring.'},
+    spo2:{title:'Oxygen saturation',value:'98 %',message:'Illustrative SpO₂ reading from the design reference. This is not an actual oxygen measurement.'},
+    sleep:{title:'Sleep duration',value:'7 h 42 m',message:'Illustrative sleep-duration summary. No sleep tracking service is connected.'}
+  };
+  const phaseText={idle:'Just talk to me...',requesting_permission:'Requesting microphone access…',listening:'Listening… Tap to stop',thinking:'SKY is processing…',speaking:'SKY is speaking…',error:'Mic unavailable — type instead'};
+  let previousFocus=null;
+  const session=new window.Sky.VoiceSession((phase)=>{
+    app.dataset.phase=phase;$('voiceHint').textContent=phaseText[phase]||'Just talk to me...';
+    $('micButton').setAttribute('aria-label',phase==='listening'?'Stop microphone capture':phase==='requesting_permission'?'Requesting microphone permission':'Activate microphone');
+    $('micButton').disabled=phase==='requesting_permission';
+    $('captions').textContent=phase==='listening'?'Microphone active · audio analyzed locally':phase==='error'?(session.errorMessage||'Microphone unavailable'):'';
+    $('announcer').textContent=$('voiceHint').textContent;
+  });
+  function openDetail({title,value='',message,eyebrow='SIMULATED DATA',footer='Demonstration only · Not medical advice'}){
+    previousFocus=document.activeElement;$('detailTitle').textContent=title;$('detailValue').textContent=value;$('detailMessage').textContent=message;$('detailEyebrow').textContent=eyebrow;$('detailFooter').textContent=footer;
+    $('detailOverlay').hidden=false;document.querySelector('.detail-glass').focus();
+  }
+  function closeDetail(){$('detailOverlay').hidden=true;previousFocus?.focus();}
+  document.querySelectorAll('[data-kind]').forEach(el=>el.addEventListener('click',()=>openDetail(vitals[el.dataset.kind])));
+  $('healthButton').addEventListener('click',()=>openDetail({title:'Overall wellness',value:'Stable (demo)',message:'This status reproduces the reference artwork. It is not a clinical finding and is not computed from these four sample metrics.',eyebrow:'REFERENCE SCREEN FIXTURE'}));
+  $('hologramButton').addEventListener('click',()=>openDetail({title:'Body hologram',value:'Illustrative scan',message:'The anatomical figure is a decorative projection. No body-region diagnosis or sensor map is connected.',eyebrow:'VISUAL MODEL'}));
+  $('missionButton').addEventListener('click',()=>openDetail({title:'Mission context',value:'ISS · Day 170',message:'Mission identifier and day are copied from the concept design. No actual ISS tracking, spacecraft connection or time synchronization is available.',eyebrow:'REFERENCE MISSION'}));
+  $('homeButton').addEventListener('click',()=>{closeDetail();$('chatForm').hidden=true;$('greeting').textContent='Good morning, Minh.';$('prompt').textContent='How are you feeling today?';});
+  $('detailClose').addEventListener('click',closeDetail);
+  $('detailOverlay').addEventListener('click',event=>{if(event.target===$('detailOverlay'))closeDetail();});
+  $('micButton').addEventListener('click',()=>session.toggle());
+  $('textButton').addEventListener('click',()=>{$('chatForm').hidden=false;$('chatInput').focus();});
+  $('chatClose').addEventListener('click',()=>{$('chatForm').hidden=true;$('textButton').focus();});
+  $('chatForm').addEventListener('submit',(e)=>{e.preventDefault();const query=$('chatInput').value.trim();if(!query)return;
+    $('greeting').textContent='I hear you, Minh.';
+    $('prompt').textContent=/sleep|tired|rest/i.test(query)?'Recovery is important. How did you sleep?':/oxygen|heart|pulse|health/i.test(query)?'The readings shown here are sample data only.':'Your message is received in this local UI demo.';
+    $('chatInput').value='';$('chatForm').hidden=true;$('announcer').textContent='Local demo response displayed.';
+  });
+  window.addEventListener('keydown',(e)=>{if(e.key==='Escape'){if(!$('detailOverlay').hidden)closeDetail();else if(!$('chatForm').hidden){$('chatForm').hidden=true;$('textButton').focus();}}});
+  window.addEventListener('pagehide',()=>session.stop());
+  let last=0,elapsed=0,energy=0;
+  function frame(now){if(document.hidden){requestAnimationFrame(frame);return;}if(now-last<33){requestAnimationFrame(frame);return;}const delta=last?Math.min((now-last)/1000,.06):.033;last=now;elapsed+=delta;
+    const active=session.phase==='listening';energy=active?session.readEnergy():energy*.92;
+    orb?.update(delta,energy,session.phase);
+    const wave=makeWave(elapsed,active?energy:.08,session.phase);
+    $('wavePath').setAttribute('d',wave);$('waveGlowPath').setAttribute('d',wave);
+    requestAnimationFrame(frame);
+  }
+  function makeWave(time,loudness,phase){const center=35,n=150;let str='';const amp=phase==='listening'?Math.min(loudness*47,28):phase==='thinking'?13:10;
+    for(let i=0;i<=n;i++){const x=i*310/n,dist=Math.abs(x-155)/155,envelope=Math.exp(-Math.pow(dist*5.2,2));
+      const pulse=Math.sin((x-155)/12-time*3.5)*Math.cos((x-155)/19+time*1.1);
+      const rest=Math.sin((x-155)*.16-time*1.7)*Math.exp(-Math.pow((x-155)/30,2));
+      const y=center-(phase==='listening'?pulse*amp*envelope:rest*amp*1.2);
+      str+=(i?'L':'M')+x.toFixed(1)+','+y.toFixed(1)+' ';
+    }return str;
+  }
+  requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>

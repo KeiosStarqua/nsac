@@ -1,170 +1,257 @@
-import { useEffect, useMemo, useState } from "react";
-import { useSkySceneModel } from "./hooks";
-import { SkyIdentity, MissionContext, VitalsProjection, MetricProjection, HealthProjection, GreetingPrompt, MicrophoneOrb, VoiceHint, Captions, CriticalAlertLayer } from "./components";
-import { SpaceSceneBackground, ViewportFrameFX, AICoreOrb, OrganicInputSurface, ConversationLens, LiveVoiceWaveform } from "./graphics";
-import { FIXTURE_LABEL } from "./domain";
-import type { VitalKind } from "./domain";
-import styles from "./hud-screen.module.css";
+import { useCallback, useEffect, useRef, useState } from "react";
+import "./hud-screen.css";
+import { useSkyVoice } from "./useSkyVoice";
+import { SpaceArt } from "./SpaceArt";
+import { OrbCanvas } from "./OrbCanvas";
+import { VoiceWaveform } from "./VoiceWaveform";
+import { InputSurface } from "./InputSurface";
+import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS } from "./vitals";
+import type { VitalKind, VoicePhase } from "./types";
 
-const STAGE_W = 1672;
-const STAGE_H = 941;
+const PHASE_TEXT: Record<VoicePhase, string> = {
+  idle: "Just talk to me...",
+  requesting_permission: "Requesting microphone access…",
+  listening: "Listening… Tap to stop",
+  transcribing: "SKY is processing…",
+  thinking: "SKY is processing…",
+  speaking: "SKY is speaking…",
+  offline: "SKY is offline — the UI keeps working",
+  error: "Mic unavailable — type instead",
+};
+
+const MIC_ARIA: Record<VoicePhase, string> = {
+  idle: "Activate microphone",
+  requesting_permission: "Requesting microphone permission",
+  listening: "Stop microphone capture",
+  transcribing: "SKY is processing",
+  thinking: "SKY is thinking",
+  speaking: "SKY is speaking",
+  offline: "Microphone unavailable",
+  error: "Microphone unavailable — type instead",
+};
+
+interface DetailDialogProps {
+  title: string;
+  value?: string;
+  message: string;
+  eyebrow: string;
+  footer: string;
+}
+
+const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
 /**
- * The SKY HUD, pixel-matched to the 1672×941 reference frame (see SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md
- * §1). Deep-space window, left vitals cluster, center orb + voice, right health projection, fluid
- * input surface along the bottom — no chrome, no dashboards. All telemetry is the labeled fixture.
+ * SKY — Astronaut Wellness AI. React port of the original single-file demo: an original procedural
+ * scene, a transparent WebGL orb, local Web Audio microphone analysis, SVG waveform and fixture data.
+ * No network, no storage, no medical services. See SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md.
  */
 export function SkyScreen() {
-  const { model, greeting, toggleVoice, submitTyped, retry, clock } = useSkySceneModel();
-  const [scale, setScale] = useState(1);
-  const [metric, setMetric] = useState<VitalKind | null>(null);
-  const [alert, setAlert] = useState<string | null>(null);
-  const [alertAcknowledged, setAlertAcknowledged] = useState(false);
+  const [hint, setHint] = useState(PHASE_TEXT.idle);
+  const [detail, setDetail] = useState<DetailDialogProps | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [greeting, setGreeting] = useState("Good morning, Minh.");
+  const [prompt, setPrompt] = useState("How are you feeling today?");
+  const [announcer, setAnnouncer] = useState("");
+  const detailRef = useRef<HTMLDivElement | null>(null);
+  const previousFocus = useRef<Element | null>(null);
 
-  // Fit the 1672×941 stage to the window without shrinking text to unreadable sizes.
+  const { phase, energyRef, toggle, readEnergy, stop } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
+
+  // One rAF loop feeds the waveform; orb/waveform read energyRef directly per frame.
   useEffect(() => {
-    const update = () => setScale(Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H, 1));
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    if (typeof window === "undefined") return;
+    let frame = 0;
+    let last = 0;
+    let elapsed = 0;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const tick = (now: number) => {
+      frame = requestAnimationFrame(tick);
+      if (document.hidden) return;
+      if (now - last < 33) return;
+      const delta = last ? Math.min((now - last) / 1000, 0.06) : 0.033;
+      last = now;
+      elapsed += delta;
+      readEnergy();
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readEnergy]);
+
+  const openDetail = useCallback(({ title, value, message, eyebrow = "SIMULATED DATA", footer = DEFAULT_FOOTER }: DetailDialogProps) => {
+    previousFocus.current = document.activeElement;
+    setDetail({ title, value, message, eyebrow, footer });
+    setAnnouncer(title);
+  }, []);
+  const closeDetail = useCallback(() => {
+    setDetail(null);
+    (previousFocus.current as HTMLElement | null)?.focus();
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!detail) return;
+    detailRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMetric(null);
-        setAlert(null);
-      }
+      if (event.key === "Escape") closeDetail();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [detail, closeDetail]);
 
-  // A typed/spoken command raises the safety layer above everything; it can never be acknowledged by a gesture.
-  const transcript = model.currentTranscript ?? "";
-  useEffect(() => {
-    if (/emergenc|khẩn cấp|cứu/.test(transcript)) {
-      setAlert("Safety command received. Aspects are within certified thresholds; no suit or clinical action was taken.");
-      setAlertAcknowledged(false);
-    }
-  }, [transcript]);
-
-  const orbitingMission = useMemo(
-    () => ({ stationLabel: model.mission.stationLabel, missionDay: model.mission.missionDay, spacecraftTimeIso: clock.timeLabel, online: model.mission.online }),
-    [model.mission, clock.timeLabel],
-  );
-
-  const emergencyMentioned = /emergenc|khẩn cấp/.test(model.responseText ?? "");
-  const showCaptions = model.voicePhase !== "idle" && Boolean(model.currentTranscript || model.responseText);
-
-  return (
-    <div className={styles.viewport} aria-label="SKY — astronaut wellness">
-      <div className={styles.stage} style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
-        <SpaceSceneBackground />
-
-        <ViewportFrameFX />
-
-        <div className={styles.posIdentity}>
-          <SkyIdentity />
-        </div>
-        <div className={styles.posMission}>
-          <MissionContext mission={orbitingMission} />
-        </div>
-
-        <div className={styles.posVitals}>
-          <VitalsProjection vitals={model.vitals} onSelect={setMetric} />
-        </div>
-
-        <div className={styles.lensLayer}>
-          <ConversationLens energy={model.voiceEnergy} reducedMotion={model.reducedMotion} />
-        </div>
-        <div className={styles.orbLayer}>
-          <AICoreOrb phase={model.voicePhase} audioEnergy={model.voiceEnergy} qualityTier={model.performanceTier} reducedMotion={model.reducedMotion} />
-        </div>
-        <div className={styles.greetingLayer}>
-          <GreetingPrompt displayName={model.astronautDisplayName} timeOfDay={new Date().getHours()} />
-        </div>
-        <div className={styles.waveformLayer}>
-          <LiveVoiceWaveform energy={model.voiceEnergy} amplitude={model.voiceEnergy * 10} phase={model.voicePhase} reducedMotion={model.reducedMotion} />
-        </div>
-        {showCaptions ? (
-          <div className={styles.captionsLayer}>
-            <Captions transcript={model.currentTranscript} responseText={model.responseText} visible />
-          </div>
-        ) : null}
-
-        <div className={styles.healthLayer}>
-          <HealthProjection health={model.health} onOpenHealthSummary={() => {}} />
-        </div>
-
-        <div className={styles.surfaceLayer}>
-          <OrganicInputSurface phase={model.voicePhase} energy={model.voiceEnergy} reducedMotion={model.reducedMotion} />
-        </div>
-        <div className={styles.micLayer}>
-          <MicrophoneOrb phase={model.voicePhase} isMicActive={model.voicePhase === "listening"} onToggle={toggleVoice} onInterrupt={toggleVoice} />
-        </div>
-        <div className={styles.hintLayer}>
-          <VoiceHint phase={model.voicePhase} />
-        </div>
-
-        {/* Context projections — open on demand, anchored, never full-screen navigation */}
-        <MetricProjection reading={metric ? model.vitals[metric] : null} open={metric !== null} onClose={() => setMetric(null)} />
-
-        {/* Safety-priority layer: works even if shaders, mic, and the model all fail */}
-        <CriticalAlertLayer
-          visible={alert !== null && !alertAcknowledged}
-          message={alert ?? ""}
-          onAcknowledge={() => setAlertAcknowledged(true)}
-          onHandover={() => setAlertAcknowledged(true)}
-        />
-        {emergencyMentioned && !alert ? (
-          <CriticalAlertLayer
-            visible
-            message="SKY did not act. Life support is certified and unchanged."
-            onAcknowledge={() => setAlertAcknowledged(true)}
-            onHandover={() => setAlertAcknowledged(true)}
-          />
-        ) : null}
-
-        <span className={`${styles.fixtureBadge}`} aria-hidden="true">{FIXTURE_LABEL}</span>
-        <div role="status" className={styles.srOnly}>{model.voicePhase}</div>
-      </div>
-      <TypedFallback submitTyped={submitTyped} onRetry={retry} />
-    </div>
-  );
-}
-
-/** Always-visible typed fallback (spec: typed input is a first-class input, not a debugger). */
-function TypedFallback({ submitTyped, onRetry }: { submitTyped: (text: string) => void; onRetry: () => void }) {
-  const [text, setText] = useState("");
-  const submit = () => {
-    const value = text.trim();
-    if (!value) return;
-    submitTyped(value);
-    setText("");
+  const chatReply = (text: string) => {
+    setGreeting("I hear you, Minh.");
+    setPrompt(/sleep|tired|rest/i.test(text)
+      ? "Recovery is important. How did you sleep?"
+      : /oxygen|heart|pulse|health/i.test(text)
+        ? "The readings shown here are sample data only."
+        : "Your message is received in this local UI demo.");
+    setAnnouncer("Local demo response displayed.");
   };
+
   return (
-    <form
-      className={styles.typedRow}
-      onSubmit={(event) => {
-        event.preventDefault();
-        submit();
-      }}
-    >
-      <label className={styles.srOnly} htmlFor="sky-hud-typed">Type to SKY</label>
-      <input
-        id="sky-hud-typed"
-        className={styles.typedField}
-        type="text"
-        autoComplete="off"
-        maxLength={280}
-        value={text}
-        placeholder="type to SKY…"
-        onChange={(event) => setText(event.target.value)}
-      />
-      <button type="submit" className={styles.typedSend}>→</button>
-      <button type="button" className={styles.typedSend} onClick={onRetry} aria-label="Retry voice">↻</button>
-    </form>
+    <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
+      <SpaceArt />
+      <div className="space-vignette" aria-hidden="true" />
+
+      {/* Header */}
+      <header className="sky-header">
+        <button
+          className="brand home-trigger"
+          type="button"
+          aria-label="Return to SKY overview"
+          onClick={() => {
+            setDetail(null);
+            setChatOpen(false);
+            setGreeting("Good morning, Minh.");
+            setPrompt("How are you feeling today?");
+          }}
+        >
+          <span className="brand-ring" aria-hidden="true" />
+          <span className="brand-copy">
+            <span className="brand-name">S K Y</span>
+            <span className="brand-tagline">Astronaut Wellness AI</span>
+          </span>
+        </button>
+        <button className="mission-trigger" type="button" aria-label="Mission information" onClick={() => openDetail({ ...DETAILS.mission, footer: DEFAULT_FOOTER })}>
+          <span className="station-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 36" fill="none">
+              <path d="m18 16 8-2M18 21l8-2M15 8l5 10-5 10M28 6l-5 11 5 11M3 12l11-5 4 6-12 5zM31 14l10-5-3 12-9 4z" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M11 8 5 23m31-13-7 17M4 6l7 25m28-24-7 25" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </span>
+          <span className="mission-text">ISS&nbsp; · &nbsp;Day 170</span>
+          <span className="mission-underline" aria-hidden="true" />
+        </button>
+      </header>
+
+      {/* Vitals projection */}
+      <section className="vitals-projection" aria-label="Sample physiological readings">
+        <div className="vitals-shield" aria-hidden="true" />
+        <button className="vital" type="button" aria-label="Heart rate, demo value 62 beats per minute" onClick={() => openDetail({ ...VITAL_DETAILS.heartRate, footer: DEFAULT_FOOTER })}>
+          <span className="vital-icon" aria-hidden="true">
+            <svg viewBox="0 0 56 56" fill="none"><path d="M28 43 15.5 30.7C5.5 20.6 20.3 9.2 28 21c7.7-11.8 22.5-.4 12.5 9.7L28 43Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" /></svg>
+          </span>
+          <span className="vital-value">62 <small>bpm</small></span>
+        </button>
+        <button className="vital" type="button" aria-label="Respiration, demo value 16 breaths per minute" onClick={() => openDetail({ ...VITAL_DETAILS.respiration, footer: DEFAULT_FOOTER })}>
+          <span className="vital-icon" aria-hidden="true">
+            <svg viewBox="0 0 56 56" fill="none"><path d="M27.5 13v21m1-18 5-4m-5 12 5-6m-7 1-4-6M24 28c-2-5-3-7-5-6-6 1-11 14-8 21 2 5 10 4 14-1l1-11m5-3c2-5 3-7 5-6 6 1 11 14 8 21-2 5-10 4-14-1l-1-11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </span>
+          <span className="vital-value">16 <small>br/min</small></span>
+        </button>
+        <button className="vital" type="button" aria-label="Oxygen saturation, demo value 98 percent" onClick={() => openDetail({ ...VITAL_DETAILS.spo2, footer: DEFAULT_FOOTER })}>
+          <span className="vital-icon oxygen" aria-hidden="true">O<sub>2</sub></span>
+          <span className="vital-value">98 <small>%</small></span>
+        </button>
+        <button className="vital" type="button" aria-label="Sleep, demo value seven hours and forty-two minutes" onClick={() => openDetail({ ...VITAL_DETAILS.sleep, footer: DEFAULT_FOOTER })}>
+          <span className="vital-icon" aria-hidden="true">
+            <svg viewBox="0 0 56 56" fill="none"><path d="M39.8 39.2C29.2 45.6 15.5 39 13.6 26.5c-1-7.1 2.4-13.6 8.4-17.4-1.4 13.2 6.4 22.5 19.1 19-1.1 4.8-5 8.5-1.3 11.1Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" /></svg>
+          </span>
+          <span className="vital-value">7 <small>h</small> 42 <small>m</small></span>
+        </button>
+        <span className="demo-indicator">{FIXTURE_LABEL}</span>
+      </section>
+
+      {/* Conversation */}
+      <section className="conversation" aria-label="SKY AI conversation">
+        <div className="conversation-lens" aria-hidden="true"><div className="lens-inner" /></div>
+        <div className="orb-zone" aria-hidden="true"><div className="orb-css-fallback" /><OrbCanvas phase={phase} energyRef={energyRef} reducedMotion={false} /></div>
+        <div className="conversation-copy">
+          <h1 id="greeting">{greeting}</h1>
+          <p id="prompt">{prompt}</p>
+        </div>
+        <VoiceWaveform phase={phase} energyRef={energyRef} />
+        <p id="captions" className="captions" aria-live="polite">
+          {phase === "listening" ? "Microphone active · audio analysed locally" : phase === "error" ? "Microphone unavailable — type instead" : ""}
+        </p>
+      </section>
+
+      {/* Health projection */}
+      <section className="health-projection" aria-label="Health summary, simulated data">
+        <div className="health-shield" aria-hidden="true" />
+        <button id="hologramButton" className="hologram-button" type="button" aria-label="View simulated body health details" onClick={() => openDetail({ ...DETAILS.hologram, footer: DEFAULT_FOOTER })}>
+          <svg className="human-hologram" viewBox="0 0 130 236" role="img" aria-label="Glowing holographic human silhouette">
+            <defs>
+              <linearGradient id="bodyFill" x1="0" x2="1"><stop stopColor="#80e9ff" stopOpacity=".16" /><stop offset=".48" stopColor="#e5ffff" stopOpacity=".24" /><stop offset="1" stopColor="#65c9ff" stopOpacity=".12" /></linearGradient>
+              <linearGradient id="bodyStroke" x1="0" y1="0" x2=".8" y2="1"><stop stopColor="#d5faff" /><stop offset=".5" stopColor="#67d9ff" /><stop offset="1" stopColor="#71b8ff" /></linearGradient>
+              <radialGradient id="chestPulse"><stop stopColor="#ffe0a0" stopOpacity=".9" /><stop offset=".3" stopColor="#ffc27f" stopOpacity=".4" /><stop offset="1" stopColor="#ffbe8f" stopOpacity="0" /></radialGradient>
+              <filter id="bodyGlow"><feGaussianBlur stdDeviation="3" /></filter>
+            </defs>
+            <g className="human-figure">
+              <path id="humanShape" d="M66 17c-9 0-13 8-11 18 1 7 3 10 6 12v10c-9 3-20 5-26 13-4 6-7 23-11 43l-7 29c-3 11-1 17 3 18 4 1 6-5 7-13l10-29 5-26-1 39c0 14 1 25 4 37l4 44 2 30c1 6 5 8 9 6l5-43 5-46 6 46 3 43c5 3 9 0 9-7l4-33 3-40 2-39-1-39 6 25 9 29c2 10 5 16 9 13 4-2 3-10 0-19l-8-31c-5-22-6-34-11-39-7-8-17-10-26-13V47c4-4 6-10 6-16 0-10-5-14-15-14Z" fill="url(#bodyFill)" stroke="url(#bodyStroke)" strokeWidth="1.6" strokeLinejoin="round" />
+              <path d="M65 57 65 103m-25-11c6 6 16 10 25 9 11 1 21-3 27-9M50 154c8 2 23 2 32 0m-16-51v52" stroke="#a8f7ff" opacity=".4" fill="none" />
+              <ellipse cx="66" cy="96" rx="29" ry="38" fill="url(#chestPulse)" className="chest-glow" />
+            </g>
+            <use href="#humanShape" fill="none" stroke="#a0eeff" strokeWidth="3.5" opacity=".65" filter="url(#bodyGlow)" />
+          </svg>
+        </button>
+        <button type="button" id="healthButton" className="health-summary" aria-label="View simulated overall health assessment" onClick={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}>
+          <span className="health-label">Overall</span>
+          <strong>Stable</strong>
+          <span className="health-guidance">Maintain recovery<br />and readiness</span>
+          <span className="health-demo">DEMO STATUS</span>
+        </button>
+      </section>
+
+      {/* Fluid surface + mic */}
+      <InputSurface />
+      <div className="voice-control">
+        <button id="micButton" className="mic-button" type="button" aria-label={MIC_ARIA[phase]} disabled={phase === "requesting_permission"} onClick={() => void toggle()}>
+          <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="18" y="8" width="12" height="24" rx="6" fill="none" stroke="currentColor" strokeWidth="2.4" /><path d="M13 24c0 15 22 15 22 0M24 36v6m-7 0h14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
+        </button>
+        <div id="voiceHint" className="voice-hint" aria-live="polite">{hint}</div>
+        <button type="button" className="text-trigger" id="textButton" aria-label="Type a message to SKY" onClick={() => setChatOpen(true)}>Type instead</button>
+      </div>
+
+      {/* Detail overlay */}
+      {detail ? (
+        <div className="detail-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className="detail-glass" tabIndex={-1} ref={detailRef}>
+            <button type="button" id="detailClose" className="detail-close" aria-label="Close details" onClick={closeDetail}>×</button>
+            <div id="detailEyebrow" className="detail-eyebrow">{detail.eyebrow}</div>
+            <h2 id="detailTitle">{detail.title}</h2>
+            {detail.value ? <p id="detailValue" className="detail-value">{detail.value}</p> : null}
+            <p id="detailMessage" className="detail-message">{detail.message}</p>
+            <p id="detailFooter" className="detail-footer">{detail.footer}</p>
+          </section>
+        </div>
+      ) : null}
+
+      {/* Text chat */}
+      {chatOpen ? (
+        <form className="text-chat" aria-label="Text interaction" onSubmit={(event) => { event.preventDefault(); const form = event.currentTarget; const input = form.elements.namedItem("message") as HTMLInputElement; const value = input.value.trim(); if (!value) return; chatReply(value); input.value = ""; setChatOpen(false); }}>
+          <label htmlFor="chatInput">Message to SKY (local demo)</label>
+          <div className="chat-line">
+            <input id="chatInput" name="message" autoComplete="off" maxLength={300} placeholder="How are you feeling today?" autoFocus />
+            <button type="submit">Send</button>
+            <button type="button" id="chatClose" aria-label="Close text input" onClick={() => setChatOpen(false)}>×</button>
+          </div>
+          <span>No AI backend is connected; replies are local demonstration responses.</span>
+        </form>
+      ) : null}
+
+      <div className="sr-only" role="status" aria-live="polite">{announcer}</div>
+    </main>
   );
 }

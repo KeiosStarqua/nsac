@@ -83,6 +83,7 @@ Default section order:
 - Secrets không nằm trong repo/flake; key OpenRouter của demo đặt ở `/etc/nsac-web/env` trên box (systemd EnvironmentFile, 0600).
 
 ### Spawn OpenCode agent (Keios, 2026-11-14)
+- **Agent xong việc thì commit + merge + clear** (user 2026-11-14): agent hc/OpenCode idle → merge kết quả vào `main`, commit, rồi `hc kill` + `hc rm` và dọn worktree — không để agent idle treo lại.
 - Dùng **hc CLI** để spawn OpenCode agent: `hc --skill`.
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
