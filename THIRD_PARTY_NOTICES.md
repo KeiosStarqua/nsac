@@ -7,3 +7,17 @@
 - Components taken: BlurText, CountUp, DepthText, ShinyText, GradientText, VariableProximity, DecryptedText
 - Location: apps/web/src/shared/react-bits/
 - Date: 2026-11-14
+
+## Open Anatomy 3D
+
+- Code: MIT
+- Models: CC BY 4.0 (BodyParts3D DBCLS, HuBMAP HRA, MakeHuman CC0)
+- Link: https://github.com/MervinR07/open-anatomy-3d
+- Location: apps/web/public/models/anatomy-male.glb
+- Date: 2026-11-14
+
+## three / @react-three/fiber / @react-three/drei
+
+- Licence: MIT
+- Location: apps/web (body-map scene)
+- Date: 2026-11-14

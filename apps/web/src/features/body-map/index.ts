@@ -1,0 +1,1 @@
+export { default as BodyMapOverlay } from "./BodyMapOverlay";

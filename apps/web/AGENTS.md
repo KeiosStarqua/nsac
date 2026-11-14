@@ -46,4 +46,6 @@ From the repo root: `bun run typecheck`, `bun run test`, `bun run build` (Turbor
 
 ## Child DOX Index
 
-None.
+| Path | Scope |
+|---|---|
+| `features/body-map/` | Open Anatomy 3D hologram body map overlay for the HUD: lazy-loaded three.js scene (three must stay out of the entry chunk), CC BY 4.0 attribution, WebGL/GLB fallbacks. |
