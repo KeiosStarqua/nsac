@@ -36,4 +36,36 @@ export interface Copy {
     unavailable: string;
     footer: string;
   };
+  /** Hidden /admin page — operator-only model switch. */
+  admin: {
+    title: string;
+    notConfigured: string;
+    checking: string;
+    unlockTitle: string;
+    keyLabel: string;
+    unlock: string;
+    unlocking: string;
+    denied: string;
+    currentEffective: string;
+    backendSetting: string;
+    envFallback: string;
+    appliesNote: string;
+    searchPlaceholder: string;
+    modelsCount: string;
+    noResults: string;
+    contextLength: string;
+    pricePrompt: string;
+    priceCompletion: string;
+    created: string;
+    free: string;
+    apply: string;
+    applying: string;
+    saved: string;
+    applyFailed: string;
+    invalidModel: string;
+    catalogUnavailable: string;
+    backendError: string;
+    unauthorized: string;
+    catalogError: string;
+  };
 }

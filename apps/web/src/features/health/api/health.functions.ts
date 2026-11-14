@@ -2,14 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { existsSync } from "node:fs";
 import {
   redactEnv,
-  resolveModel,
   reduceOverall,
   formatDiagnostics,
   overallLabel,
-  DEFAULT_MODEL,
   type Check,
   type CheckState,
 } from "../model/health";
+import { currentAgentModel } from "../../agent/runtime/agent-model.server";
 
 export type Snapshot = {
   checks: Check[];
@@ -35,7 +34,8 @@ export const getSnapshot = createServerFn({ method: "GET" }).handler(async (): P
     ),
   );
 
-  const modelId = resolveModel(process.env.SKY_OPENROUTER_MODEL);
+  // Effective model: backend setting → env → default (same source the agent uses).
+  const modelId = await currentAgentModel();
   checks.push(
     makeCheck("openrouter.model", "OpenRouter model", "ok", `effective model: ${modelId}`),
   );
@@ -162,7 +162,7 @@ export const validateOpenRouterKey = createServerFn({ method: "POST" }).handler(
 
 export const checkModel = createServerFn({ method: "POST" }).handler(async () => {
   const key = process.env.SKY_OPENROUTER_API_KEY?.trim();
-  const modelId = resolveModel(process.env.SKY_OPENROUTER_MODEL);
+  const modelId = await currentAgentModel();
   if (!key) return { result: "missing" as const };
   try {
     const controller = new AbortController();

@@ -123,4 +123,52 @@ describe("astro-chat", () => {
     const h = await loadChatHistory("ayla-reyes");
     expect(h.messages.map((m) => m.role)).toEqual(["user", "assistant"]);
   });
+
+  it("model switch disposes the cached session and recreates it; history is kept", async () => {
+    // Backend trỏ tới cổng không bao giờ mở → currentAgentModel rơi về SKY_OPENROUTER_MODEL,
+    // cho phép test đổi "model hiệu lực" một cách tất định.
+    const prevBackend = process.env.BACKEND_URL;
+    const prevModel = process.env.SKY_OPENROUTER_MODEL;
+    process.env.BACKEND_URL = "http://127.0.0.1:1";
+    process.env.SKY_OPENROUTER_MODEL = "test/model-one";
+    const { resetAgentModelCacheForTests } = await import("./agent-model.server");
+    resetAgentModelCacheForTests();
+    try {
+      let created = 0;
+      let disposed = 0;
+      setChatSessionFactory((async () => {
+        created++;
+        return { prompt: async () => "reply", dispose: () => { disposed++; } };
+      }) as any);
+
+      const first = await sendChatTurn("ayla-reyes", "hello");
+      expect(first.status).toBe("ok");
+      expect(created).toBe(1);
+      expect(disposed).toBe(0);
+
+      process.env.SKY_OPENROUTER_MODEL = "test/model-two";
+      resetAgentModelCacheForTests();
+      const second = await sendChatTurn("ayla-reyes", "hello again");
+      expect(second.status).toBe("ok");
+      expect(created).toBe(2);
+      expect(disposed).toBe(1);
+
+      // Lịch sử transcript (var/sky-sessions) vẫn còn sau khi session bị dispose.
+      const h = await loadChatHistory("ayla-reyes");
+      expect(h.messages.map((m) => m.role)).toEqual(["user", "assistant", "user", "assistant"]);
+
+      // Ép cùng một model → session được tái sử dụng, không dispose.
+      resetAgentModelCacheForTests();
+      const third = await sendChatTurn("ayla-reyes", "once more");
+      expect(third.status).toBe("ok");
+      expect(created).toBe(2);
+      expect(disposed).toBe(1);
+    } finally {
+      if (prevBackend === undefined) delete process.env.BACKEND_URL;
+      else process.env.BACKEND_URL = prevBackend;
+      if (prevModel === undefined) delete process.env.SKY_OPENROUTER_MODEL;
+      else process.env.SKY_OPENROUTER_MODEL = prevModel;
+      resetAgentModelCacheForTests();
+    }
+  });
 });

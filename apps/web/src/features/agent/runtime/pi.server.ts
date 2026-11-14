@@ -10,6 +10,7 @@ export function readOpenRouterKey(): string | null {
 }
 import type { AgentProfile } from "../agents/types";
 import { assistantText, isProviderError } from "../model/provider-result";
+import { currentAgentModel } from "./agent-model.server";
 
 type PiSdk = any;
 
@@ -52,7 +53,8 @@ export type SessionFacade = {
 export async function createSession(profile: AgentProfile, ctx?: { request?: string } & Record<string,unknown>, overrides?: { sessionManager?: unknown; promptSuffix?: string }): Promise<SessionFacade> {
   const key = readOpenRouterKey();
   if (!key) throw new Error("missing_key");
-  const model = process.env[profile.modelEnv]?.trim() || profile.defaultModel;
+  // Model resolution: backend setting (agent.model) → last good → SKY_OPENROUTER_MODEL → hardcoded default.
+  const model = await currentAgentModel();
   const baseUrl = process.env.SKY_OPENROUTER_BASE_URL?.trim() || undefined;
   const pi = await loadPiSdk();
   const probePath = ensureModelsFile({ model, withModelEntry: false, baseUrl });
