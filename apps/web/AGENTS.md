@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. Single route `/`: the SKY HUD — the 1672×941 astronaut wellness interface from `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md` (SkyIdentity, MissionContext, VitalsProjection, AICoreOrb, ConversationLens, HealthProjection, OrganicInputSurface, MicrophoneOrb + one authoritative voice-phase state machine, fixture ‘Simulated data’, canvas/SVG only). It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI).
+Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. Single route `/`: the SKY HUD — the 1672×941 astronaut wellness interface from `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md` (SkyIdentity, MissionContext, VitalsProjection, AICoreOrb, ConversationLens, HealthProjection, OrganicInputSurface, MicrophoneOrb + one authoritative voice-phase state machine, fixture ‘Simulated data’, canvas/SVG only). The HUD's hologram button opens the body-map overlay (`features/body-map/`), the one WebGL surface, where three.js is lazy-loaded behind the click. It is a showcase, not the astronaut's app (that is `apps/onboard`, NiceGUI).
 
 ## Ownership
 
@@ -13,7 +13,7 @@ Web app for **Sky**, the clinical assistant for astronauts and flight surgeons. 
 
 ## Local Contracts
 
-- Stack: TanStack Start (Vite) + TanStack Router file routes, React 19, Nitro, zod, react-markdown, OpenUI (`@openuidev/react-lang`, pinned), `@earendil-works/pi-coding-agent` (pinned 1.5.2, MIT — verified 2026-11-11; runs the composer server-side, lazy imported), motion, lucide-react and `@radix-ui/react-dialog` (the last three come with the Arc components; licences MIT, ISC, MIT — verified in `apps/web/node_modules/*/package.json`, 2026-11-10). Bun is the package manager; run from the repo root (`bun install`) or this folder. Every dependency must be OSI-approved.
+- Stack: TanStack Start (Vite) + TanStack Router file routes, React 19, Nitro, zod, react-markdown, OpenUI (`@openuidev/react-lang`, pinned), `@earendil-works/pi-coding-agent` (pinned 1.5.2, MIT — verified 2026-11-11; runs the composer server-side, lazy imported), motion, lucide-react and `@radix-ui/react-dialog` (the last three come with the Arc components; licences MIT, ISC, MIT — verified in `apps/web/node_modules/*/package.json`, 2026-11-10), plus `three` + `@react-three/fiber` + `@react-three/drei` (MIT, lazy-loaded by the body map) and `open-anatomy-3d` (code MIT; models and catalog CC BY 4.0, attribution rendered wherever they appear). Bun is the package manager; run from the repo root (`bun install`) or this folder. Every dependency must be OSI-approved.
 - OpenUI catalog (`features/sky-guide/catalog/library.tsx`): root component `Console`, then `Card`, `Say`, `Fact`, `Badge`, `Alert`, `Steps`, `GoTo`. Each wraps an Arc component from https://uiarc.dev (MIT, checked 2026-11-10), vendored under `src/components/arc/` (`alert`, `badge`, `button`, `card`, `gauge`, `stepper`, `text-reveal`; no LICENSE file in the folder — origin and licence live in the `library.tsx` and `global.css` comments). Sky's rules hold: no state-changing action, digits only through `Fact(id)`, no digit in free text.
 - Tokens: Arc's design tokens live in `src/components/arc/foundation.css`, loaded as its own stylesheet from `src/routes/__root.tsx` before the app stylesheet. `src/styles/global.css` maps them onto Sky's dark palette under `:root[data-theme="dark"]` (`<html>` carries `data-theme="dark"`, set in `__root.tsx`). One token layer: `--surface`, `--border`, `--accent`, `--text-*`, `--radius-*`, `--space-*`, `--ease-*`, `--duration-*`, `--shadow-*`, `--font-display`/`--font-body`.
 - Runtime: the application model does not depend on the runtime. Only `nitro({ preset })` in `vite.config.ts` selects it: `bun` by default, `NITRO_PRESET=node-server` for Node.
@@ -48,4 +48,4 @@ From the repo root: `bun run typecheck`, `bun run test`, `bun run build` (Turbor
 
 | Path | Scope |
 |---|---|
-| `features/body-map/` | Open Anatomy 3D hologram body map overlay for the HUD: lazy-loaded three.js scene (three must stay out of the entry chunk), CC BY 4.0 attribution, WebGL/GLB fallbacks. |
+| `features/body-map/AGENTS.md` | Open Anatomy 3D hologram body map overlay for the HUD: lazy-loaded three.js scene (three must stay out of the entry chunk), CC BY 4.0 attribution, WebGL/GLB fallbacks. |
