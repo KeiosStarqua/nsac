@@ -1,6 +1,6 @@
 # Kiến trúc agent mục tiêu — per-astronaut pairs, hazard workers, broadcast/shared memory
 
-**Trạng thái:** vision — chưa build (ghi nhận 2026-11-14 theo chỉ đạo của Keios). Không thuộc phạm vi nộp HKT 14–15/11. Tài liệu này định vị hướng đi dài hạn và các điểm nối vào code hiện có; mọi phần "hiện có" nêu dưới đây đã được verify trước khi ghi.
+**Trạng thái:** v1 (shared memory, single box) đã build — xem mục "Trạng thái 2026-11-14" ở cuối. Phần còn lại (hazard workers, broker, push) vẫn là vision; tài liệu định vị hướng đi dài hạn và các điểm nối vào code hiện có.
 
 ## Hình dạng tổng thể
 
@@ -52,7 +52,7 @@ Theo 5 mối nguy của NASA (radiation, reduced-gravity/xương-cơ, isolation 
 | Per-astronaut orchestrator pair | Chat per-astronaut OK; `sky-orchestrator`/`sky-generative-ui` là profile global | Profile theo từng astronaut + per-astronaut composer session (`var/sky-sessions/<id>.hud.jsonl`) — đang triển khai trong `?gen=1` hud-gen |
 | Hai agent nói chuyện | `askSky()` dispatch 1 chiều (regex `routeRequest` → composer → validate) | Hội thoại có giới hạn: orchestrator hỏi composer, nhận program, tiếp tục (maxSteps) — bước sau hud-gen |
 | Composer per-astronaut | Compose cache theo locale, session dùng chung | Session riêng từng astronaut (đang triển khai) |
-| Broadcast / shared memory | Không có | Thiết kế ở trên; code sau submission nếu cần |
+| Broadcast / shared memory | v1 đã build 2026-11-14 (xem mục "Trạng thái 2026-11-14") | Workers, broker, push — sau submission |
 | 5 hazard workers | Không có | Sau hackathon; chỉ dựng interface + một worker mẫu trước |
 
 ## Ngoài phạm vi / thứ tự đề xuất
@@ -66,3 +66,14 @@ Theo 5 mối nguy của NASA (radiation, reduced-gravity/xương-cơ, isolation 
 - AI không quyết định một mình; worker phát hiện deterministic, mọi action qua Confirm.
 - Mọi ngưỡng/trọng số có URL nguồn (comment code + UI).
 - Broadcast chỉ mang facts/events; không mệnh lệnh; không dữ liệu cá nhân thật; roster crew là hư cấu.
+
+## Trạng thái 2026-11-14 — v1 đã build
+Đã có (single box, `apps/backend` + `apps/web`):
+- Bảng `change_events` (+ index `(astronaut_id, id)`, `(topic, id)`) và `consumer_cursors` trong SQLite (WAL, idempotent `ensureSchema` ở `src/db/eventsClient.ts`); payload zod-strict theo topic, POST body ≤ 8 KB.
+- HTTP API: `POST /api/events` (endpoint mở, demo — documented as such), `GET /api/events?cursor=&limit=&astronautId=&topics=` (NULL-scoped global visible cho mọi astronaut; rows có `astronaut_id` chỉ của chính người đó), `GET|POST /api/cursors/:consumerId` (monotonic).
+- Prompt injection mỗi turn ở orchestrator (`sky-chat`, consumer `<id>-orchestrator`) và composer (`sky-hud-composer`, consumer `<id>-composer`): block `[SHARED CONTEXT — …]` chỉ chứa topic `hazard.detected`/`health.fact.updated`/`claims.changed` (không bao giờ `agent.turn.completed`), tối đa 10 dòng/1200 ký tự, ghép SAU tin nhắn user. Bất kỳ failure nào → không có block, turn vẫn chạy.
+- Per-astronaut cursors (at-least-once, `setCursor` best-effort, monotonic); publish `claims.changed` khi claim thành công và `agent.turn.completed` sau mỗi turn (chat + composer).
+- Bus in-process `EventEmitter3` (`eventsBus.emit("published", …)`); `server.ts` đăng ký đúng một listener log `[events] <id> <topic>` ra stdout — quan sát được nhưng không điều khiển gì.
+- Wire-mirror zod schemas ở `apps/web/src/features/agent/broadcast/model/events.ts` (pure, không IO, full unit tests) + `runtime/backend.ts` (fetch với timeout 1500ms, `setBackendFetch` test hook) + `runtime/shared-context.ts` (`sharedEventsBlock`).
+
+Cố ý CHƯA có (vẫn là vision): 5 hazard worker, NATS/Redis hay multi-machine, push/websocket delivery, agent-to-agent dialogue ngoài dispatch hiện có, `processed_events`/dedupe phía consumer (v1 dựa vào cursor), `vitals.updated`/`session.phase` topic, claim reset event từ web, UI surface nào cho broadcast.

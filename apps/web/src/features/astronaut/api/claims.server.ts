@@ -1,5 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { parseClaims, type ClaimEntry } from "../model/claims";
+import { publishEvent } from "../../agent/broadcast";
 
 const REQUEST_TIMEOUT_MS = 1500;
 const DEFAULT_BACKEND_URL = "http://127.0.0.1:3200";
@@ -69,7 +70,20 @@ export async function postBackendClaim(sessionId: string, astronautId: string): 
     body: JSON.stringify({ sessionId, astronautId }),
   });
   if (!res) return { ok: false, reason: "unavailable" };
-  if (res.ok) return { ok: true };
+  if (res.ok) {
+    // Shared memory (v1 broadcast): claim thành công → claims.changed, best-effort, nuốt lỗi.
+    try {
+      await publishEvent({
+        topic: "claims.changed",
+        astronautId,
+        source: "web-claims",
+        payload: { astronautId, action: "claimed" },
+      });
+    } catch {
+      // swallow — claim không được fail vì broadcast
+    }
+    return { ok: true };
+  }
   if (res.status === 409) return { ok: false, reason: "taken" };
   return { ok: false, reason: "error" };
 }

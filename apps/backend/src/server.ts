@@ -1,8 +1,14 @@
 import { astronautsRepo } from "./db/repositories/astronauts";
 import { handleClaimsRequest } from "./claimsRoutes";
 import { handleSettingsRequest } from "./settingsRoutes";
+import { eventsBus, handleEventsRequest } from "./eventsRoutes";
 
 const port = Number(process.env.PORT ?? 3200);
+
+// Quan sát tối thiểu cho bus in-process v1 — mọi thứ khác trên bus vẫn là data, không log thêm.
+eventsBus.on("published", (event: { id: number; topic: string }) => {
+  console.log(`[events] ${event.id} ${event.topic}`);
+});
 
 await astronautsRepo.seed();
 
@@ -19,6 +25,8 @@ Bun.serve({
     if (claims) return claims;
     const settings = await handleSettingsRequest(req);
     if (settings) return settings;
+    const events = await handleEventsRequest(req);
+    if (events) return events;
     if (url.pathname === "/api/astronauts") {
       const rows = await astronautsRepo.list();
       return Response.json(rows);
