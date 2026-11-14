@@ -29,6 +29,14 @@ function ensureSchema() {
       claimed_at INTEGER NOT NULL
     );
   `);
+  // Cùng lý do như astronaut_claims: không migration, tạo idempotent cho DB mới và prod cũ.
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
 }
 
 ensureSchema();
