@@ -1,12 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { listAgents } from "../agents/registry";
-function readOpenRouterKey(): string | null {
-  const raw = process.env.SKY_OPENROUTER_API_KEY;
-  if (typeof raw !== "string" || raw.trim() === "") return null;
-  return raw.trim();
-}
+import { askSky } from "../runtime/orchestrator.server";
 
 export const listAgentRoster = createServerFn({ method: "GET" }).handler(async () => {
+  const { readOpenRouterKey } = await import("../runtime/pi.server");
   const keyConfigured = readOpenRouterKey() !== null;
   return listAgents().map((a) => ({
     id: a.id,
@@ -18,12 +15,22 @@ export const listAgentRoster = createServerFn({ method: "GET" }).handler(async (
 });
 
 export const composeSurface = createServerFn({ method: "POST" })
-  .handler(async ({ data }: any) => {
+  .validator((d: { request: string; surface: string }) => d)
+  .handler(async ({ data }) => {
     const { runAgent } = await import("../runtime/run.server");
     const { validateProgram } = await import("../runtime/openui.server");
-    const res = await runAgent("sky-generative-ui", data.request, { surface: data.surface });
+    const { getSurface } = await import("../agents/surfaces");
+    const surface = getSurface(data.surface);
+    const allowList = surface?.allowList ?? [];
+    const res = await runAgent("sky-generative-ui", data.request, { request: data.request, surface: data.surface, allowList, maxChars: 4000 });
     if (res.status !== "ok") return { ok: false as const, status: res.status };
-    const v = validateProgram(res.text, 4000, []);
+    const v = validateProgram(res.text, 4000, allowList);
     if (!v.ok) return { ok: false as const, reason: v.reason };
     return { ok: true as const, program: v.program };
+  });
+
+export const ask = createServerFn({ method: "POST" })
+  .validator((d: { request: string; surface?: string }) => d)
+  .handler(async ({ data }) => {
+    return askSky(data.request, data.surface);
   });

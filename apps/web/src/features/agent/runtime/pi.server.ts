@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-function readOpenRouterKey(): string | null {
+export function readOpenRouterKey(): string | null {
   const raw = process.env.SKY_OPENROUTER_API_KEY;
   if (typeof raw !== "string" || raw.trim() === "") return null;
   return raw.trim();
@@ -43,7 +43,7 @@ export type SessionFacade = {
   dispose: () => void;
 };
 
-export async function createSession(profile: AgentProfile): Promise<SessionFacade> {
+export async function createSession(profile: AgentProfile, ctx?: { request?: string } & Record<string,unknown>): Promise<SessionFacade> {
   const key = readOpenRouterKey();
   if (!key) throw new Error("missing_key");
   const model = process.env[profile.modelEnv]?.trim() || profile.defaultModel;
@@ -68,7 +68,7 @@ export async function createSession(profile: AgentProfile): Promise<SessionFacad
     noPromptTemplates: true,
     noThemes: true,
     noContextFiles: true,
-    systemPromptOverride: () => profile.systemPrompt({ request: "" }),
+    systemPromptOverride: () => profile.systemPrompt({ request: (ctx?.request as string) ?? "", ...(ctx ?? {}) } as any),
     appendSystemPromptOverride: () => [],
   });
   await resourceLoader.reload();
