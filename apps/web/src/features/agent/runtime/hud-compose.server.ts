@@ -112,7 +112,7 @@ function briefFor(locale: Locale): string {
         "oxygen saturation, sleep), the overall wellness card, the conversation area with the orb and",
         "the waveform, a microphone row with a typed-input button, the simulated-data flag and the",
         "footer disclaimer. Use the SAME layout skeleton as the reference: Surface with Section",
-        "regions in this order — header, vitals, conversation, health, voice, input — plus FooterNote.",
+        "regions in this order — header, vitals, conversation, health, voice — plus FooterNote.",
         "All values resolve by Fact/MetricTile id at render time; write no digits.",
       ].join(" ")
     : [
@@ -121,7 +121,7 @@ function briefFor(locale: Locale): string {
         "oxygen saturation, sleep), the overall wellness card, the conversation area with the orb and",
         "the waveform, a microphone row with a typed-input button, the simulated-data flag and the",
         "footer disclaimer. Use the SAME layout skeleton as the reference: Surface with Section",
-        "regions in this order — header, vitals, conversation, health, voice, input — plus FooterNote.",
+        "regions in this order — header, vitals, conversation, health, voice — plus FooterNote.",
         "All values resolve by Fact/MetricTile id at render time; write no digits.",
       ].join(" ");
 }

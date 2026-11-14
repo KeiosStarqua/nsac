@@ -193,6 +193,8 @@ Keep a `prefers-reduced-motion` fallback and an entirely readable DOM-only fallb
 
 **Visual:** Massive translucent curved sheet occupying lower-center area, shimmering cyan / blue / lavender, shaped like a horizontal fluid glass membrane with soft waves. It sits above the physical desk, appears projected, and has a broad glow/reflection. It is not a button or flat card.
 
+**Not implemented:** the organic input surface was removed 2026-11-15 as visual noise; the mic row (UI08 + UI09) sits where the sheet was, with no backdrop.
+
 **Implementation:** GPU plane with translucent projected SDF/Bezier spline contours, noise-driven deformation, additive but tightly controlled glow. **States:** serene idle, responsive listening, narrower thinking, broad speaking, alert-dimmed. **Function:** `updateSurfaceField(phase, energy, elapsed, qualityTier)`.
 
 **Interaction:** The whole decorative surface should not accidentally catch taps meant for other controls; set `pointer-events: none` except actual interactive children.

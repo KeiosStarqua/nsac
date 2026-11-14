@@ -1,5 +1,5 @@
-/* The only residual CSS of the HUD feature: the four decorative keyframes the utilities in
-   `hud-classes.ts` / `watch-hud.ts` reference through `[animation:…]`. Everything else — sizes,
+/* The only residual CSS of the HUD feature: the two decorative keyframes the utilities in
+   `hud-classes.ts` reference through `[animation:…]`. Everything else — sizes,
    positions, colours, glows, media rules — is Tailwind utilities in `className`.
    Reduced motion is handled by `motion-reduce:animate-none!` on each animated element. */
 
@@ -14,18 +14,5 @@
 @keyframes chestGlow {
   50% {
     opacity: 0.56;
-  }
-}
-
-/* Organic input surface: the two wave strokes and the fluid sheet. */
-@keyframes fluidFlow {
-  50% {
-    transform: translateY(-9px) scaleY(1.11);
-  }
-}
-
-@keyframes fluidFloat {
-  50% {
-    transform: translateY(5px) scaleX(1.025);
   }
 }

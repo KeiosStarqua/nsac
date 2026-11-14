@@ -5,7 +5,7 @@
 //
 // Both presets must parse cleanly against the HUD catalog — `catalog/catalog.test.ts` checks that.
 // Syntax: OpenUI Lang, positional props matching the zod key order in `catalog.tsx`.
-export const HUD_PRESET_EN = `root = Surface([header, vitals, conversation, health, voice, input, footer])
+export const HUD_PRESET_EN = `root = Surface([header, vitals, conversation, health, voice, footer])
 header = Section("header", [brand, mission])
 brand = BrandBlock()
 mission = MissionButton()
@@ -27,10 +27,9 @@ wellness = WellnessCard()
 voice = Section("voice", [mic, typer])
 mic = MicButton()
 typer = ChatButton()
-input = Section("input", [])
 footer = FooterNote()`;
 
-export const HUD_PRESET_VI = `root = Surface([header, vitals, conversation, health, voice, input, footer])
+export const HUD_PRESET_VI = `root = Surface([header, vitals, conversation, health, voice, footer])
 header = Section("header", [brand, mission])
 brand = BrandBlock()
 mission = MissionButton()
@@ -52,7 +51,6 @@ wellness = WellnessCard()
 voice = Section("voice", [mic, typer])
 mic = MicButton()
 typer = ChatButton()
-input = Section("input", [])
 footer = FooterNote()`;
 
 export type HudPresetLocale = "en" | "vi";

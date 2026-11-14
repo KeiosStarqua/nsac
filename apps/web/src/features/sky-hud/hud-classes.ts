@@ -11,7 +11,7 @@
 //     (0,2,0) reproduces the old `.watch-screen …` descendant selectors — including winning over
 //     the ≤480px and short-viewport media variants, exactly as the old files did.
 //
-// Keyframes (chestGlow, fluidFlow, fluidFloat, micPulse) stay in `hud-keyframes.css`.
+// Keyframes (chestGlow, micPulse) stay in `hud-keyframes.css`.
 import type { VoicePhase } from "./types";
 
 /** Console-wide focus ring (was `button:focus-visible,input:focus-visible` in hud-screen.css). */
@@ -215,22 +215,7 @@ export const HEALTH_GUIDANCE = "mt-[8px] whitespace-nowrap text-[14px] font-ligh
 
 export const HEALTH_DEMO = "mt-[7px] text-[9px] tracking-[.12em] text-[#a6d9d4] opacity-[.62]";
 
-// ---- Fluid input surface + voice control -----------------------------------------------------------
-
-export const INPUT_PROJECTION = [
-  "pointer-events-none absolute left-[21.5%] top-[66.5%] z-[6] h-[23.5%] w-[62%]",
-  "[filter:drop-shadow(0_12px_30px_rgba(70,155,255,.15))] [&_svg]:h-full [&_svg]:w-full [&_svg]:overflow-visible",
-  "max-[1000px]:left-[13%] max-[1000px]:top-[72%] max-[1000px]:w-[74%]",
-  "max-[720px]:left-[1%] max-[720px]:top-[75%] max-[720px]:h-[18%] max-[720px]:w-[98%]",
-].join(" ");
-
-export const FLUID_WAVE =
-  "[transform-origin:center] [animation:fluidFlow_8s_ease-in-out_infinite_alternate] motion-reduce:animate-none!";
-
-export const FLUID_WAVE_TWO = "[animation-delay:-3s]";
-
-export const FLUID_SHEET =
-  "[transform-origin:center] [animation:fluidFloat_9s_ease-in-out_infinite_alternate] motion-reduce:animate-none!";
+// ---- Voice control --------------------------------------------------------------------------------
 
 export const VOICE_CONTROL =
   "absolute left-1/2 top-[65.5%] z-[12] flex min-w-[250px] flex-col items-center gap-0 [transform:translateX(-50%)] max-[1000px]:top-[71%] max-[720px]:top-[75%]";
