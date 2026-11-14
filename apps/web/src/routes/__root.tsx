@@ -65,9 +65,9 @@ function RootLayout() {
 
 function NotFound() {
   return (
-    <div style={{ padding: "96px 24px", textAlign: "center" }}>
+    <div className="px-6 py-[96px] text-center">
       <h1>404</h1>
-      <p style={{ margin: "12px 0 24px", color: "var(--muted)" }}>This page does not exist.</p>
+      <p className="mt-3! mb-6! text-(--muted)">This page does not exist.</p>
       <Link to="/" search={(prev) => prev}>
         Home
       </Link>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useCopy } from "~/shared/i18n";
 import {
   unlockAdminFn,
@@ -11,55 +11,23 @@ import type { CatalogModel } from "../runtime/openrouter.server";
 type Phase = "checking" | "unconfigured" | "locked" | "admin";
 type ApplyState = { kind: "ok" } | { kind: "error"; message: string } | null;
 
-const page: CSSProperties = {
-  minHeight: "100vh",
-  background: "var(--bg)",
-  color: "var(--text)",
-  fontFamily: "var(--font)",
-};
-const panel: CSSProperties = {
-  maxWidth: 1040,
-  margin: "0 auto",
-  padding: "28px 20px 48px",
-};
-const mono: CSSProperties = { fontFamily: "var(--mono)" };
-const muted: CSSProperties = { color: "var(--muted)" };
-const inputStyle: CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius-sm)",
-  color: "var(--text)",
-  padding: "10px 12px",
-  fontSize: 14,
-  width: "100%",
-  boxSizing: "border-box",
-};
-const buttonStyle: CSSProperties = {
-  background: "var(--accent)",
-  color: "var(--accent-ink)",
-  border: "none",
-  borderRadius: "var(--radius-sm)",
-  padding: "10px 18px",
-  fontSize: 14,
-  fontWeight: 600,
-  cursor: "pointer",
-};
+const page = "min-h-screen bg-(--bg) text-(--text) font-(family-name:--font)";
+const panel = "mx-auto max-w-[1040px] px-5 pt-7 pb-12";
+const mono = "font-(family-name:--mono)";
+const muted = "text-(--muted)";
+// `!` marks the few utilities that must win against globals.css, whose reset is unlayered and therefore
+// outranks Tailwind's utility layer: `button { font: inherit }` (font-size/weight) and
+// `:focus-visible { border-radius: 4px }` (radius on any focusable control).
+const inputClasses =
+  "w-full rounded-(--radius-sm)! border border-(--border) bg-(--surface) px-3 py-2.5 text-[14px] text-(--text)";
+const buttonClasses =
+  "cursor-pointer rounded-(--radius-sm)! border-none border-(--accent-ink) bg-(--accent) px-[18px] py-2.5 text-[14px]! font-semibold! text-(--accent-ink) disabled:opacity-60";
 
-const rowGrid: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1.7fr) minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 0.7fr)",
-  gap: 8,
-  alignItems: "baseline",
-  width: "100%",
-  textAlign: "left",
-  background: "transparent",
-  border: "1px solid transparent",
-  borderRadius: "var(--radius-sm)",
-  padding: "8px 10px",
-  color: "inherit",
-  cursor: "pointer",
-  fontSize: 13,
-};
+// Shared skeleton of a model row: the five columns, the 1px border and the 8px/10px padding. The
+// colour, radius and cursor differ per usage (header vs row) and are appended at the call site so the
+// two never disagree.
+const rowGrid =
+  "grid w-full grid-cols-[minmax(0,1.7fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.7fr)] items-baseline gap-2 border px-2.5 py-2 text-left";
 
 function fmtPrice(p: string | null): string {
   if (p == null) return "—";
@@ -194,9 +162,9 @@ export function AdminPage() {
 
   if (phase === "checking") {
     return (
-      <main style={page}>
-        <div style={panel}>
-          <p style={muted}>{copy.checking}</p>
+      <main className={page}>
+        <div className={panel}>
+          <p className={muted}>{copy.checking}</p>
         </div>
       </main>
     );
@@ -204,10 +172,10 @@ export function AdminPage() {
 
   if (phase === "unconfigured") {
     return (
-      <main style={page}>
-        <div style={panel}>
-          <h1 style={{ fontSize: 20 }}>{copy.title}</h1>
-          <p style={muted}>{copy.notConfigured}</p>
+      <main className={page}>
+        <div className={panel}>
+          <h1 className="text-[20px]">{copy.title}</h1>
+          <p className={muted}>{copy.notConfigured}</p>
         </div>
       </main>
     );
@@ -215,11 +183,14 @@ export function AdminPage() {
 
   if (phase === "locked") {
     return (
-      <main style={page}>
-        <div style={{ ...panel, maxWidth: 420 }}>
-          <h1 style={{ fontSize: 20, marginBottom: 16 }}>{copy.unlockTitle}</h1>
+      <main className={page}>
+        <div className="mx-auto max-w-[420px] px-5 pt-7 pb-12">
+          <h1 className="mb-4! text-[20px]">{copy.unlockTitle}</h1>
           <form onSubmit={submitUnlock}>
-            <label htmlFor="sky-admin-key" style={{ ...muted, display: "block", fontSize: 13, marginBottom: 6 }}>
+            <label
+              htmlFor="sky-admin-key"
+              className="mb-1.5 block text-[13px] text-(--muted)"
+            >
               {copy.keyLabel}
             </label>
             <input
@@ -229,14 +200,18 @@ export function AdminPage() {
               autoFocus
               value={key}
               onChange={(e) => setKey(e.target.value)}
-              style={inputStyle}
+              className={inputClasses}
             />
             {unlockError && (
-              <p role="alert" style={{ color: "var(--red)", fontSize: 13, margin: "10px 0 0" }}>
+              <p role="alert" className="mt-2.5! text-[13px] text-(--red)">
                 {unlockError}
               </p>
             )}
-            <button type="submit" disabled={unlockBusy || key.length === 0} style={{ ...buttonStyle, marginTop: 14, opacity: unlockBusy || key.length === 0 ? 0.6 : 1 }}>
+            <button
+              type="submit"
+              disabled={unlockBusy || key.length === 0}
+              className={`${buttonClasses} mt-3.5`}
+            >
               {unlockBusy ? copy.unlocking : copy.unlock}
             </button>
           </form>
@@ -246,72 +221,51 @@ export function AdminPage() {
   }
 
   return (
-    <main style={page}>
-      <div style={panel}>
-        <h1 style={{ fontSize: 20, margin: "0 0 12px" }}>{copy.title}</h1>
+    <main className={page}>
+      <div className={panel}>
+        <h1 className="mb-3! text-[20px]">{copy.title}</h1>
 
         <section
           aria-label={copy.currentEffective}
-          style={{
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-sm)",
-            padding: "12px 14px",
-            marginBottom: 16,
-          }}
+          className="mb-4 rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
         >
-          <div style={{ ...muted, fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>
+          <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
             {copy.currentEffective}
           </div>
-          <div style={{ ...mono, fontSize: 16, marginTop: 4, wordBreak: "break-all" }}>
+          <div className={`${mono} mt-1 text-[16px] break-all`}>
             {effectiveModel ?? "…"}
           </div>
-          <div style={{ ...muted, fontSize: 12, marginTop: 6 }}>
+          <div className={`${muted} mt-1.5 text-[12px]`}>
             {setting?.model
               ? `${copy.backendSetting}${setting.updatedAt ? ` · ${new Date(setting.updatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC` : ""}`
               : copy.envFallback}
           </div>
-          <div style={{ ...muted, fontSize: 12, marginTop: 4 }}>{copy.appliesNote}</div>
+          <div className={`${muted} mt-1 text-[12px]`}>{copy.appliesNote}</div>
         </section>
 
         {!catalogOk && (
-          <p role="alert" style={{ color: "var(--yellow)", fontSize: 13 }}>
+          <p role="alert" className="text-[13px] text-(--yellow)">
             {copy.catalogError}
           </p>
         )}
 
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+        <div className="mb-2.5 flex items-center gap-2.5">
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={copy.searchPlaceholder}
             aria-label={copy.searchPlaceholder}
-            style={{ ...inputStyle, flex: 1 }}
+            className={`${inputClasses} flex-1`}
           />
-          <span style={{ ...muted, fontSize: 12, whiteSpace: "nowrap" }}>
+          <span className={`${muted} text-[12px] whitespace-nowrap`}>
             {copy.modelsCount.replace("{count}", String(filtered.length))}
           </span>
         </div>
 
-        <div
-          style={{
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius-sm)",
-            overflow: "hidden",
-          }}
-        >
+        <div className="overflow-hidden rounded-(--radius-sm) border border-(--border)">
           <div
-            style={{
-              ...rowGrid,
-              ...muted,
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: 0.6,
-              borderBottom: "1px solid var(--border)",
-              borderRadius: 0,
-              cursor: "default",
-            }}
+            className={`${rowGrid} cursor-default border-transparent border-b-(--border) text-[11px] uppercase tracking-[0.6px] text-(--muted)`}
           >
             <span>id</span>
             <span>{copy.contextLength}</span>
@@ -319,11 +273,11 @@ export function AdminPage() {
             <span>{copy.priceCompletion}</span>
             <span>{copy.created}</span>
           </div>
-          <div style={{ maxHeight: "52vh", overflowY: "auto" }}>
+          <div className="max-h-[52vh] overflow-y-auto">
             {loadingModels ? (
-              <p style={{ ...muted, padding: 12, fontSize: 13 }}>…</p>
+              <p className={`${muted} p-3 text-[13px]`}>…</p>
             ) : filtered.length === 0 ? (
-              <p style={{ ...muted, padding: 12, fontSize: 13 }}>{copy.noResults}</p>
+              <p className={`${muted} p-3 text-[13px]`}>{copy.noResults}</p>
             ) : (
               filtered.map((m) => {
                 const selected = m.id === selectedId;
@@ -333,27 +287,27 @@ export function AdminPage() {
                     type="button"
                     aria-pressed={selected}
                     onClick={() => setSelectedId(m.id)}
-                    style={{
-                      ...rowGrid,
-                      background: selected ? "rgb(94 234 212 / 0.10)" : "transparent",
-                      border: selected ? "1px solid var(--accent)" : "1px solid transparent",
-                    }}
+                    className={`${rowGrid} cursor-pointer rounded-(--radius-sm)! text-[13px]! text-inherit ${
+                      selected
+                        ? "border-(--accent) bg-[rgba(94,234,212,0.1)]"
+                        : "border-transparent bg-transparent"
+                    }`}
                   >
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ ...mono, display: "block", wordBreak: "break-all" }}>
+                    <span className="min-w-0">
+                      <span className={`${mono} block break-all`}>
                         {m.id}
                         {m.prompt === "0" && (
-                          <span style={{ color: "var(--green)", marginLeft: 6, fontSize: 11 }}>
+                          <span className="ml-1.5 text-[11px] text-(--green)">
                             {copy.free.toUpperCase()}
                           </span>
                         )}
                       </span>
-                      <span style={{ ...muted, display: "block", fontSize: 11 }}>{m.name}</span>
+                      <span className={`${muted} block text-[11px]`}>{m.name}</span>
                     </span>
-                    <span style={mono}>{fmtContext(m.contextLength)}</span>
-                    <span style={mono}>{fmtPrice(m.prompt)}</span>
-                    <span style={mono}>{fmtPrice(m.completion)}</span>
-                    <span style={mono}>{fmtCreated(m.created)}</span>
+                    <span className={mono}>{fmtContext(m.contextLength)}</span>
+                    <span className={mono}>{fmtPrice(m.prompt)}</span>
+                    <span className={mono}>{fmtPrice(m.completion)}</span>
+                    <span className={mono}>{fmtCreated(m.created)}</span>
                   </button>
                 );
               })
@@ -361,18 +315,18 @@ export function AdminPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+        <div className="mt-3.5 flex items-center gap-3">
           <button
             type="button"
             onClick={apply}
             disabled={!selectedId || applying || !catalogOk}
-            style={{ ...buttonStyle, opacity: !selectedId || applying || !catalogOk ? 0.6 : 1 }}
+            className={buttonClasses}
           >
             {applying ? copy.applying : copy.apply}
           </button>
-          <div aria-live="polite" style={{ fontSize: 13 }}>
-            {applyState?.kind === "ok" && <span style={{ color: "var(--green)" }}>{copy.saved}</span>}
-            {applyState?.kind === "error" && <span style={{ color: "var(--red)" }}>{applyState.message}</span>}
+          <div aria-live="polite" className="text-[13px]">
+            {applyState?.kind === "ok" && <span className="text-(--green)">{copy.saved}</span>}
+            {applyState?.kind === "error" && <span className="text-(--red)">{applyState.message}</span>}
           </div>
         </div>
       </div>
