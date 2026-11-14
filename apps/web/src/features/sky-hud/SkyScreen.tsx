@@ -4,6 +4,7 @@ import "./hud-screen.css";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import BlurText from "../../shared/react-bits/BlurText/BlurText";
+import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import CountUp from "../../shared/react-bits/CountUp/CountUp";
 import DepthText from "../../shared/react-bits/DepthText/DepthText";
 import ShinyText from "../../shared/react-bits/ShinyText/ShinyText";
@@ -89,6 +90,18 @@ export function SkyScreen() {
   const [greeting, setGreeting] = useState("Good morning.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
   const [announcer, setAnnouncer] = useState("");
+  const [bg, setBg] = useState("light-tunnel");
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get("bg");
+      const fromStorage = window.localStorage.getItem("nsac.bg");
+      const chosen = fromUrl ?? fromStorage ?? "light-tunnel";
+      setBg(chosen);
+      if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
+    } catch { /* ignore */ }
+  }, [mounted]);
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
@@ -169,6 +182,7 @@ export function SkyScreen() {
 
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
+      {bg === "light-tunnel" ? <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true"><LightTunnel /></div> : null}
       <SpaceArt />
       <div className="space-vignette" aria-hidden="true" />
 
