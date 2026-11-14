@@ -49,6 +49,7 @@
         "lucide-react": "^1.71.0",
         "motion": "^14.12.0",
         "nitro": "^3.0.261103-rc",
+        "onedollarstats": "^0.0.25",
         "open-anatomy-3d": "^0.1.0",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
@@ -1049,6 +1050,8 @@
     "obug": ["obug@3.0.0", "", {}, "sha512-5vvB5+W7ePv+p3uqxi+RcW1XAzLW0/hxt3/4X4Lc4qHudzOhmBiBwOY6DRob4WnanAEGvNcLjF+KNOufrUoEQw=="],
 
     "ocache": ["ocache@0.3.1", "", {}, "sha512-qeBrhQ0ly6tgXsakgNwLx6diRUppJZIcV5OjVGa5yp9HzztutkaGDDXJqVMo1fKWz5fNDtTp3iPU2fuhHf0+Lg=="],
+
+    "onedollarstats": ["onedollarstats@0.0.25", "", { "peerDependencies": { "expo-router": ">=3.0.0", "react": ">=18.0.0", "react-native": ">=0.73.0" }, "optionalPeers": ["expo-router", "react", "react-native"] }, "sha512-Mv4GrDhCzEJ7LPIUAA5z2JTAEaRlNnIpzODMLsLToT7G5zK+4dSm4fxM7O9QswmQbqn9DwDBnUpjkKCjTL0+QQ=="],
 
     "open-anatomy-3d": ["open-anatomy-3d@0.1.0", "", {}, "sha512-2+fcvSpnxADq4q1iTeDjoK5EMN1Id7m+PalvCBVkt8qod6+OVLZKuqxBZr0T+wHQCmTlmMBcLma5CXLzdattAA=="],
 
