@@ -1,0 +1,12 @@
+{
+  "name": "herdr-tab-reminder",
+  "version": "0.1.0",
+  "description": "CEO bot helper: inject a mandatory herdr tab-label check reminder into the model's system instructions on every agent-loop request (context hook).",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts"
+  ]
+}

@@ -5,9 +5,11 @@
 //   ○ idle      xong việc, chờ Keios
 //   ◆ blocked   cần Keios quyết định (chỉ set thủ công / khi session lỗi)
 //
-// Label kept format: "<symbol> ceo-{index}-<slug>" — the plugin only flips the
-// leading symbol; "ceo-{index}-<slug>" stays untouched. If the label carries
-// no leading symbol, one is prepended.
+// Label kept format: "<symbol>:ceo-{index}-<slug>" (since Keios, 2026-11-15 —
+// the `:` replaces the space so the label is shorter). The plugin only flips the
+// leading symbol; "ceo-{index}-<slug>" stays untouched. It also tolerates the
+// legacy "<symbol> ceo-…" form on read and rewrites it to the colon form.
+// If the label carries no leading symbol, one is prepended.
 //
 // Behaviour
 //   - Any step start / step end with tool calls  -> ●
@@ -84,8 +86,9 @@ async function currentTabLabel() {
 }
 
 // Strip a leading state symbol (ours only) and return the rest of the label.
+// Tolerates both the colon form ("●:ceo-…") and the legacy space form ("● ceo-…").
 function labelBody(label) {
-  return label.replace(/^[●○◆]\s*/, "").trim()
+  return label.replace(/^[●○◆][:\s]*/, "").trim()
 }
 
 // Set the symbol on this session's herdr tab, preserving the rest of the
@@ -105,8 +108,8 @@ async function setTabState(symbol, force) {
     log("skip", `label "${label}" is ◆ (blocked), keeping it`)
     return "skip"
   }
-  await runHerdr(["tab", "rename", tab, `${symbol} ${body}`])
-  log("rename", `${symbol} ${body} (was "${label}")`)
+  await runHerdr(["tab", "rename", tab, `${symbol}:${body}`])
+  log("rename", `${symbol}:${body} (was "${label}")`)
   return "renamed"
 }
 
