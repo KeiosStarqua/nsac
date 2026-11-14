@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # nix-gc.sh — dọn store path mồ côi của các bản deploy nsac cũ trên box OpfaOS.
 #
-# An toàn nhờ gcroots: /nix/var/nix/gcroots/nsac-{web,backend} phải là symlink
-# tới store path đang chạy (systemd ExecStart đi qua ~/nsac/result[-backend]).
+# An toàn nhờ 3 gcroots: /nix/var/nix/gcroots/nsac-{web,backend} phải là symlink
+# tới store path đang chạy (systemd ExecStart đi qua ~/nsac/result[-backend]), và
+# /nix/var/nix/gcroots/nsac-web-node-modules phải trỏ tới FOD node_modules.
+# FOD đó là BUILD-TIME input: không output runtime nào tham chiếu nó, nên thiếu gcroot
+# là GC xoá sạch → deploy sau phải `bun install` lại → hash lệch outputHash → nix build fail.
 # Script TỪ CHỐI chạy nếu gcroot thiếu/hỏng/không trỏ tới path *-nsac-*-* còn tồn tại,
 # hoặc systemd service đang ExecStart path khác với gcroot (lệch = không rõ bản nào
 # đang sống, không xóa gì cả).
@@ -26,7 +29,7 @@ check_gcroot() {
   # nix không đi qua symlink trung gian: gcroot phải TRỰC TIẾP là store path,
   # không được là symlink trỏ tới ~/nsac/result[-backend] (2026-11-14: result-backend
   # bị rsync xoá → gcroot "resolve" được nhưng nix GC vẫn xoá backend store path → 203/EXEC).
-  [[ "$text" == /nix/store/* ]] || fail "gcroot $link → '$text' is not a direct store path (pin with: ln -sfn \"\$(readlink -f ~/nsac/result[-backend])\" $GCROOT_DIR/$name)"
+  [[ "$text" == /nix/store/* ]] || fail "gcroot $link → '$text' is not a direct store path (pin with: ln -sfn \"\$(readlink -f ~/nsac/result[-backend|-node-modules])\" $GCROOT_DIR/$name)"
   target=$(readlink -f "$link") || fail "gcroot $link dangles"
   [ -e "$target" ] || fail "gcroot target $target does not exist"
   [[ "$target" == *"$expect_substr"* ]] || fail "gcroot $link → '$target' does not look like $expect_substr"
@@ -35,6 +38,9 @@ check_gcroot() {
 
 check_gcroot nsac-web  -nsac-web-
 check_gcroot nsac-backend -nsac-backend-
+# FOD node_modules: build-time input, không runtime reference → phải có gcroot riêng.
+# Thiếu root này = chưa deploy bằng deploy.sh mới; từ chối GC, đừng xoá FOD.
+check_gcroot nsac-web-node-modules -nsac-web-node-modules-
 
 # Nếu systemd có unit nsac-{web,backend}, ExecStart phải resolve đúng gcroot target
 # (bảo vệ trường hợp ai đó đổi result mà quên gcroot).

@@ -47,6 +47,12 @@
           };
         in
         {
+          # Dependency tree FOD, exposed by name so deploy.sh can build it and pin its own
+          # gcroot. It is a BUILD-TIME input only — neither web nor backend keeps a runtime
+          # reference to it, so without a gcroot `nix-store --gc` deletes it and the next
+          # build has to re-run `bun install`, whose output no longer matches outputHash.
+          nodeModules = nodeModules;
+
           web = pkgs.stdenv.mkDerivation {
             pname = "nsac-web";
             version = "0.0.0";

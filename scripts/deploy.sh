@@ -5,6 +5,12 @@
 # các sự cố 2026-11-14: mất ~/nsac/result-backend → gcroot lủng lẳng → GC xoá backend (203/EXEC);
 # worktree thiếu submodule → /data trả 500; FOD staleness từ bun.lock đổi mà không có hash bump.
 #
+# 3 gcroot (luôn symlink TRỰC TIẾP tới store path, tạo SAU khi build thành công, TRƯỚC khi gc):
+#   nsac-web, nsac-backend — output runtime đang chạy.
+#   nsac-web-node-modules  — FOD node_modules (.#nodeModules → result-node-modules). Chỉ là
+#     build-time input: không output runtime nào giữ reference, nên không pin thì GC xoá và
+#     deploy sau phải `bun install` lại → hash lệch outputHash → nix build fail.
+#
 # Chạy từ BẤT KỲ checkout nào của repo (thường là shared tree hoặc worktree tại main):
 #   scripts/deploy.sh                  # deploy origin/main (fetch trước) — mặc định
 #   scripts/deploy.sh <ref>            # deploy ref cụ thể (vd. <sha> hoặc deploy-2026-11-14-21)
@@ -23,7 +29,7 @@ for arg in "$@"; do
     --dry-run) DRY_RUN=1 ;;
     --no-tag)  NO_TAG=1 ;;
     --no-gc)   NO_GC=1 ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
     --*)       echo "deploy.sh: unknown flag: $arg" >&2; exit 2 ;;
     *)         if [ -n "$REF" ]; then echo "deploy.sh: unexpected extra arg: $arg" >&2; exit 2; fi; REF="$arg" ;;
   esac
@@ -64,7 +70,7 @@ git worktree add --detach "$WORKTREE" "$SHA" >/dev/null
 [ -f "$WORKTREE/data/DATA.html" ] || { echo "deploy.sh: THIẾU $WORKTREE/data/DATA.html — /data sẽ 500; dừng" >&2; exit 1; }
 echo "deploy.sh: worktree sạch @ $SHORT_SHA (submodule data + LFS OK)"
 
-RSYNC_EXCLUDES=(--exclude .git --exclude node_modules --exclude .output --exclude var --exclude result --exclude result-backend --exclude .turbo)
+RSYNC_EXCLUDES=(--exclude .git --exclude node_modules --exclude .output --exclude var --exclude result --exclude result-backend --exclude result-node-modules --exclude .turbo)
 if [ "$DRY_RUN" = "1" ]; then
   rsync -a --delete --dry-run "${RSYNC_EXCLUDES[@]}" "$WORKTREE/" "$REMOTE_HOST:$REMOTE_DIR/" | tail -5
   echo "deploy.sh: DRY_RUN=1 — không thay đổi gì trên box. Thoát."
@@ -72,15 +78,18 @@ if [ "$DRY_RUN" = "1" ]; then
 fi
 
 rsync -a --delete "${RSYNC_EXCLUDES[@]}" "$WORKTREE/" "$REMOTE_HOST:$REMOTE_DIR/"
-echo "deploy.sh: rsync xong (excludes chuẩn: result + result-backend + .turbo + .git)"
+echo "deploy.sh: rsync xong (excludes chuẩn: result + result-backend + result-node-modules + .turbo + .git)"
 
 ssh "$REMOTE_HOST" "set -euo pipefail
   cd /home/ec2-user/nsac
   sudo -n /root/.nix-profile/bin/nix --extra-experimental-features 'nix-command flakes' build .#web --out-link result 2>&1 | tail -2
   sudo -n /root/.nix-profile/bin/nix --extra-experimental-features 'nix-command flakes' build .#backend --out-link result-backend 2>&1 | tail -2
-  # gcroot PHẢI là symlink TRỰC TIẾP tới store path — không đi qua ~/nsac/result[-backend] (nix GC không đi qua symlink trung gian).
+  # FOD node_modules: build by name rồi pin gcroot riêng — nếu không, GC xoá nó và deploy sau fail hash.
+  sudo -n /root/.nix-profile/bin/nix --extra-experimental-features 'nix-command flakes' build .#nodeModules --out-link result-node-modules 2>&1 | tail -2
+  # gcroot PHẢI là symlink TRỰC TIẾP tới store path — không đi qua ~/nsac/result* (nix GC không đi qua symlink trung gian).
   sudo ln -sfn \"\$(readlink -f ~/nsac/result)\" /nix/var/nix/gcroots/nsac-web
   sudo ln -sfn \"\$(readlink -f ~/nsac/result-backend)\" /nix/var/nix/gcroots/nsac-backend
+  sudo ln -sfn \"\$(readlink -f ~/nsac/result-node-modules)\" /nix/var/nix/gcroots/nsac-web-node-modules
   sudo -n systemctl reset-failed nsac-web nsac-backend
   sudo -n systemctl restart nsac-backend
   sleep 1
