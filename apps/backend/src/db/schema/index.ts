@@ -6,3 +6,4 @@ export * from "./groundReports";
 export * from "./auditLog";
 export * from "./astronauts";
 export * from "./astronautClaims";
+export * from "./appSettings";
