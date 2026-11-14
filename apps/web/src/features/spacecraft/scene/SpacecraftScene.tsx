@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars, useGLTF, useProgress } from "@react-three/drei";
 import * as THREE from "three";
@@ -6,6 +6,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import styles from "./SpacecraftScene.module.css";
 import { DRACO_DECODER_PATH } from "../model/models";
 import { frameBox, type Box3Like, type Framing } from "../model/framing";
+import { ISSStreamer, type ISSFramingBox, type ISSStreamStats } from "~/features/iss";
 import { SceneBoundary } from "./SceneBoundary";
 
 const FOV = 38;
@@ -16,6 +17,9 @@ const FIT_PADDING = 1.18;
 
 export interface SpacecraftSceneProps {
   readonly modelUrl: string;
+  readonly stream: boolean;
+  /** Dev-only (?part=<id>): stream just one streamed part. */
+  readonly onlyPart: string | null;
   readonly autoRotate: boolean;
   readonly reducedMotion: boolean;
   readonly paused: boolean;
@@ -92,7 +96,33 @@ function FitCamera({ framing }: { framing: Framing }) {
   return null;
 }
 
-function StationModel({ modelUrl, autoRotate, reducedMotion, paused }: SpacecraftSceneProps) {
+function framedFromBox(box: Box3Like, aspect: number): Framing {
+  return frameBox(box, {
+    fovDeg: FOV,
+    aspect,
+    padding: FIT_PADDING,
+    direction: VIEW_DIRECTION,
+  });
+}
+
+/** OrbitControls + projected-box camera fit; framing-only, mounted per data path. */
+function FramedOrbitControls({ framing, autoRotate, reducedMotion, paused }: { framing: Framing; autoRotate: boolean; reducedMotion: boolean; paused: boolean }) {
+  return (
+    <OrbitControls
+      makeDefault
+      target={framing.target}
+      enablePan
+      enableDamping
+      dampingFactor={0.08}
+      minDistance={framing.distance * 0.15}
+      maxDistance={framing.distance * 6}
+      autoRotate={autoRotate && !reducedMotion && !paused}
+      autoRotateSpeed={0.35}
+    />
+  );
+}
+
+function StationModel({ modelUrl, autoRotate, reducedMotion, paused }: Pick<SpacecraftSceneProps, "modelUrl" | "autoRotate" | "reducedMotion" | "paused">) {
   // ISS-B.glb needs KHR_draco_mesh_compression; the decoder is served from /draco/.
   // ISS-stationary.glb is uncompressed; the decoder path is simply unused for it.
   const gltf = useGLTF(modelUrl, DRACO_DECODER_PATH);
@@ -100,36 +130,76 @@ function StationModel({ modelUrl, autoRotate, reducedMotion, paused }: Spacecraf
   const aspect = size.height > 0 ? size.width / size.height : 1;
   const framing = useMemo(() => {
     const box = new THREE.Box3().setFromObject(gltf.scene);
-    return frameBox(boxToLike(box), {
-      fovDeg: FOV,
-      aspect,
-      padding: FIT_PADDING,
-      direction: VIEW_DIRECTION,
-    });
+    return framedFromBox(boxToLike(box), aspect);
   }, [gltf.scene, aspect]);
 
   return (
     <>
       <FitCamera framing={framing} />
       <primitive object={gltf.scene} />
-      <OrbitControls
-        makeDefault
-        target={framing.target}
-        enablePan
-        enableDamping
-        dampingFactor={0.08}
-        minDistance={framing.distance * 0.15}
-        maxDistance={framing.distance * 6}
-        autoRotate={autoRotate && !reducedMotion && !paused}
-        autoRotateSpeed={0.35}
-      />
+      <FramedOrbitControls framing={framing} autoRotate={autoRotate} reducedMotion={reducedMotion} paused={paused} />
     </>
   );
 }
 
-/** Bare percent in the corner — feedback for the 42 MB load, deliberately not a panel. */
-function ModelProgress() {
+function boxLikeFromFramingBox(box: ISSFramingBox): Box3Like {
+  return {
+    min: [box.min[0], box.min[1], box.min[2]],
+    max: [box.max[0], box.max[1], box.max[2]],
+  };
+}
+
+/**
+ * Streamed data path: ISS-B paints first; parts of the full-detail model
+ * stream around the camera; a global crossfade swaps ISS-B for the streamed
+ * station once the initially-relevant parts are in.
+ */
+function StreamedModel({ onlyPart, autoRotate, reducedMotion, paused, onStats, retryRef }: {
+  onlyPart: string | null;
+  autoRotate: boolean;
+  reducedMotion: boolean;
+  paused: boolean;
+  onStats: (stats: ISSStreamStats) => void;
+  retryRef: { current: (() => void) | null };
+}) {
+  const size = useThree((state) => state.size);
+  const aspect = size.height > 0 ? size.width / size.height : 1;
+  const [streamBox, setStreamBox] = useState<Box3Like | null>(null);
+
+  const framing = useMemo(
+    () => (streamBox ? framedFromBox(streamBox, aspect) : null),
+    [streamBox, aspect],
+  );
+
+  return (
+    <>
+      {framing ? <FitCamera framing={framing} /> : null}
+      <ISSStreamer
+        reducedMotion={reducedMotion}
+        onlyPart={onlyPart}
+        onFramingBox={(box) => setStreamBox(boxLikeFromFramingBox(box))}
+        onStats={onStats}
+        retryRef={retryRef}
+      />
+      {framing ? (
+        <FramedOrbitControls framing={framing} autoRotate={autoRotate} reducedMotion={reducedMotion} paused={paused} />
+      ) : null}
+    </>
+  );
+}
+
+/** Bare percent — bytes streamed in stream mode, model parse percent otherwise. */
+function ModelProgress({ streamStats }: { streamStats: ISSStreamStats | null }) {
   const { active, progress } = useProgress();
+  if (streamStats) {
+    if (streamStats.phase === "detail") return null;
+    const pct = Math.floor((streamStats.loadedBytes / Math.max(1, streamStats.totalBytes)) * 100);
+    return (
+      <p className={styles.progress} role="status" aria-label={`Loading model: ${pct} percent`}>
+        {pct}%
+      </p>
+    );
+  }
   if (!active) return null;
   return (
     <p className={styles.progress} role="status" aria-label={`Loading model: ${Math.floor(progress)} percent`}>
@@ -163,16 +233,22 @@ function SceneFallback({
  */
 export default function SpacecraftScene({
   modelUrl,
+  stream,
+  onlyPart,
   autoRotate,
   reducedMotion,
   paused,
 }: SpacecraftSceneProps) {
+  const [streamStats, setStreamStats] = useState<ISSStreamStats | null>(null);
+  const retryRef = useRef<(() => void) | null>(null);
+
   return (
     <SceneBoundary
       fallback={(retry) => (
         <SceneFallback
           onRetry={() => {
             useGLTF.clear(modelUrl);
+            useGLTF.clear("/models/iss/ISS-B.glb");
             retry();
           }}
         />
@@ -198,15 +274,34 @@ export default function SpacecraftScene({
         <RoomLighting />
         <DriftingStars reducedMotion={reducedMotion} />
         <Suspense fallback={null}>
-          <StationModel
-            modelUrl={modelUrl}
-            autoRotate={autoRotate}
-            reducedMotion={reducedMotion}
-            paused={paused}
-          />
+          {stream ? (
+            <StreamedModel
+              onlyPart={onlyPart}
+              autoRotate={autoRotate}
+              reducedMotion={reducedMotion}
+              paused={paused}
+              onStats={setStreamStats}
+              retryRef={retryRef}
+            />
+          ) : (
+            <StationModel
+              modelUrl={modelUrl}
+              autoRotate={autoRotate}
+              reducedMotion={reducedMotion}
+              paused={paused}
+            />
+          )}
         </Suspense>
       </Canvas>
-      <ModelProgress />
+      <ModelProgress streamStats={stream ? streamStats : null} />
+      {stream && streamStats?.error ? (
+        <div className={styles.streamBanner} role="status">
+          <span>{streamStats.error}</span>
+          <button type="button" className={styles.streamRetry} onClick={() => retryRef.current?.()}>
+            Retry
+          </button>
+        </div>
+      ) : null}
     </SceneBoundary>
   );
 }
