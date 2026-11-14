@@ -75,6 +75,13 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
 - Cấm `sleep`/poll thủ công trong chat để chờ file — chỉ dựa vào background watcher (cùng tinh thần luật `hc wait` ở root AGENTS.md).
 - Muốn ép đọc lại: xoá `.watch-state` rồi arming lại theo nội dung hiện tại.
 
+## Plugin wake-up — `.agents/bot/git/plugins/watch-branches/` (Keios, 2026-11-15)
+
+- Plugin server chạy trong OpenCode: poll `BRANCHES.md` mỗi 5s; khi xuất hiện entry `Status: ready` mới → `client.session.prompt` vào session cập nhật gần nhất, tạo turn thật để bot merge. Không thể dựa vào process nền do plugin spawn (harness chỉ báo shell do tool `shell` mở).
+- Đăng ký trong `opencode.jsonc` cùng thư mục, **absolute path** (`/home/keios/repos/mein/nsac/.agents/bot/git/plugins/watch-branches`) — path tương đối resolve theo cwd của background service, không theo repo root.
+- Plugin local-dir **phải có `package.json`** (`exports: { ".": "./index.ts" }`), thiếu là "Plugin failed to load".
+- Log: `~/.local/state/opencode/watch-branches.log`. Sau khi sửa plugin phải restart OpenCode.
+
 ## Restraint
 
 - Không deploy hộ nhánh khác; không mở rộng scope; không sửa code của nhánh đang `active`; không commit rác vào main; khi mơ hồ → `rejected <lý do>` và hỏi Keios/CEO.
