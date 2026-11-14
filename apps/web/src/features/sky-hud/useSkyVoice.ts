@@ -15,14 +15,19 @@ export function useSkyVoice(onPhase?: (phase: VoicePhase) => void) {
   const samplesRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const energyRef = useRef(0);
   const pendingRef = useRef(false);
+  // Callers pass an inline callback (e.g. `(next) => setHint(...)`), so it changes identity on every
+  // render. Holding it in a ref keeps `emitPhase`/`stop`/`toggle` stable: otherwise the unmount
+  // cleanup below re-runs on the render caused by the phase change itself, stopping the stream and
+  // resetting the phase to `idle` the moment a session starts.
+  const onPhaseRef = useRef(onPhase);
+  useEffect(() => {
+    onPhaseRef.current = onPhase;
+  }, [onPhase]);
 
-  const emitPhase = useCallback(
-    (next: VoicePhase) => {
-      setPhaseState(next);
-      onPhase?.(next);
-    },
-    [onPhase],
-  );
+  const emitPhase = useCallback((next: VoicePhase) => {
+    setPhaseState(next);
+    onPhaseRef.current?.(next);
+  }, []);
 
   const stop = useCallback(
     async (reset = true) => {

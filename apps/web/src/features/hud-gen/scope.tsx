@@ -7,6 +7,12 @@ import type { Copy, Locale } from "~/shared/i18n";
 import type { HudFacts } from "./model/facts";
 import type { VoicePhase } from "~/features/sky-hud/types";
 
+/** A host action fired by a catalog button, e.g. `{ type: "ToggleChat", params: {} }`. */
+export interface HudAction {
+  readonly type: string;
+  readonly params?: Record<string, unknown>;
+}
+
 export interface HudScopeValue {
   readonly copy: Copy;
   readonly locale: Locale;
@@ -35,6 +41,12 @@ export interface HudScopeValue {
   readonly waveNode: ReactNode;
   /** Brand button: reset the view (close dialogs/chat, restore greeting and prompt). */
   readonly resetView: () => void;
+  /**
+   * Host action sink. Catalog buttons call this directly instead of OpenUI's `useTriggerAction`,
+   * because `@openuidev/react-lang` 1.1.0 silently drops any action type registered in
+   * `schema.actions` (see `catalog.tsx`) before it can reach `Renderer.Root`'s `onAction`.
+   */
+  readonly onAction?: (action: HudAction) => void;
 }
 
 const HudScopeContext = createContext<HudScopeValue | null>(null);

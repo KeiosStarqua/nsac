@@ -306,34 +306,6 @@ export function SkyScreenGen() {
   const captions =
     phase === "listening" ? copy.hud.captionsListening : phase === "error" ? copy.hud.captionsError : "";
 
-  const scope = useMemo<HudScopeValue>(
-    () => ({
-      copy,
-      locale,
-      facts,
-      missionLabel: DETAILS.mission.value,
-      fx,
-      phase,
-      hint,
-      micAria: MIC_ARIA[phase],
-      captions,
-      greeting,
-      prompt,
-      chatOpen,
-      pickerOpen,
-      composeOrigin: agentProgram ? "agent" : "preset",
-      composeHint: copy.hud.composeHint,
-      composeHintDismissed,
-      conversationCopyRef,
-      orbNode,
-      waveNode,
-      resetView,
-    }),
-    [copy, locale, facts, fx, phase, hint, captions, greeting, prompt, chatOpen, pickerOpen, agentProgram, composeHintDismissed, orbNode, waveNode, resetView],
-  );
-
-  const program = agentProgram ?? hudPreset(locale);
-
   const handleAction = useCallback(
     (event: { type: string; params?: Record<string, unknown> }) => {
       switch (event.type) {
@@ -382,6 +354,35 @@ export function SkyScreenGen() {
     },
     [copy, openDetail, closeDetail, navigate, toggle],
   );
+
+  const scope = useMemo<HudScopeValue>(
+    () => ({
+      copy,
+      locale,
+      facts,
+      missionLabel: DETAILS.mission.value,
+      fx,
+      phase,
+      hint,
+      micAria: MIC_ARIA[phase],
+      captions,
+      greeting,
+      prompt,
+      chatOpen,
+      pickerOpen,
+      composeOrigin: agentProgram ? "agent" : "preset",
+      composeHint: copy.hud.composeHint,
+      composeHintDismissed,
+      conversationCopyRef,
+      orbNode,
+      waveNode,
+      resetView,
+      onAction: handleAction,
+    }),
+    [copy, locale, facts, fx, phase, hint, captions, greeting, prompt, chatOpen, pickerOpen, agentProgram, composeHintDismissed, orbNode, waveNode, resetView, handleAction],
+  );
+
+  const program = agentProgram ?? hudPreset(locale);
 
   return (
     <main className={SKY_APP} data-phase={phase} aria-label="SKY astronaut wellness overview">
