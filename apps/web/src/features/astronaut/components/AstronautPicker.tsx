@@ -1,72 +1,192 @@
-import { useEffect, useState } from "react";
-import { ASTRONAUTS } from "../model/astronauts";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { format, useCopy } from "../../../shared/i18n";
+import {
+  ASTRONAUTS,
+  astronautForKey,
+  findAstronaut,
+  moveSelection,
+  type Astronaut,
+} from "../model/astronauts";
 import styles from "./AstronautPicker.module.css";
 
 interface Props {
+  /** Rendered by the parent only when the picker should be visible. */
   readonly open: boolean;
+  /** Roster from the backend; the bundled fixture is used when absent or empty. */
+  readonly roster?: readonly Astronaut[];
+  /** Currently saved crew member, so reopening pre-selects it. */
+  readonly initialId?: string | null;
   readonly onSelect: (id: string) => void;
+  /** Omitted on the first visit: there is no valid state to return to yet. */
+  readonly onClose?: () => void;
 }
 
-export function AstronautPicker({ open, onSelect }: Props) {
-  const [selected, setSelected] = useState<string>(ASTRONAUTS[0]!.id);
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+}
+
+export function AstronautPicker({ open, roster, initialId, onSelect, onClose }: Props) {
+  const copy = useCopy();
+  const crew = roster && roster.length > 0 ? roster : ASTRONAUTS;
+  const defaultId = useMemo(
+    () => findAstronaut(initialId, crew)?.id ?? crew[0]?.id ?? "",
+    [initialId, crew],
+  );
+  const [selected, setSelected] = useState<string>(defaultId);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const returnFocusRef = useRef<Element | null>(null);
+  const cardRefs = useRef(new Map<string, HTMLButtonElement>());
+
+  // Reset to the saved astronaut (or Ayla) each time the dialog opens.
   useEffect(() => {
-    if (open) setSelected(ASTRONAUTS[0]!.id);
+    if (open) setSelected(defaultId);
+  }, [open, defaultId]);
+
+  // Keep the selection valid when the API roster replaces the fixture.
+  useEffect(() => {
+    if (!crew.some((a) => a.id === selected)) setSelected(defaultId);
+  }, [crew, selected, defaultId]);
+
+  // Move focus into the dialog and scroll the active card into view.
+  useEffect(() => {
+    if (!open) return;
+    returnFocusRef.current = document.activeElement;
+    panelRef.current?.focus();
+    return () => {
+      (returnFocusRef.current as HTMLElement | null)?.focus?.();
+    };
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "1") setSelected(ASTRONAUTS[0]!.id);
-      if (e.key === "2") setSelected(ASTRONAUTS[1]!.id);
-      if (e.key === "3") setSelected(ASTRONAUTS[2]!.id);
-      if (e.key === "Enter") {
-        onSelect(selected);
+    cardRefs.current.get(selected)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [open, selected]);
+
+  const confirm = useCallback((id: string) => {
+    if (id) onSelect(id);
+  }, [onSelect]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (isTypingTarget(event.target)) return;
+      // Let the explicit close control handle its own activation.
+      if ((event.target as HTMLElement | null)?.closest?.("[data-picker-close]")) return;
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        confirm(selected);
+        return;
+      }
+      if (event.key === "Escape" && onClose) {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      const byDigit = astronautForKey(event.key, crew);
+      if (byDigit) {
+        event.preventDefault();
+        setSelected(byDigit.id);
+        return;
+      }
+
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        const next = moveSelection(crew, selected, event.key === "ArrowLeft" ? -1 : 1);
+        if (next) {
+          event.preventDefault();
+          setSelected(next.id);
+        }
+        return;
+      }
+      if (event.key === "Home" || event.key === "End") {
+        const next = event.key === "Home" ? crew[0] : crew[crew.length - 1];
+        if (next) {
+          event.preventDefault();
+          setSelected(next.id);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, selected, onSelect]);
+  }, [open, selected, crew, confirm, onClose]);
 
   if (!open) return null;
-  const chosen = ASTRONAUTS.find((a) => a.id === selected) ?? ASTRONAUTS[0]!;
+
+  const chosen = findAstronaut(selected, crew) ?? crew[0];
+  if (!chosen) return null;
+
   return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true" aria-labelledby="astronaut-picker-title">
-      <section className={styles.panel}>
+    <div className={styles.backdrop} role="presentation">
+      <section
+        className={styles.panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="astronaut-picker-title"
+        aria-describedby="astronaut-picker-subtitle"
+        tabIndex={-1}
+        ref={panelRef}
+      >
+        {onClose ? (
+          <button
+            type="button"
+            className={styles.close}
+            aria-label={copy.astronaut.close}
+            data-picker-close
+            onClick={onClose}
+          >
+            ×
+          </button>
+        ) : null}
+
         <div className={styles.header}>
-          <span className={styles.pill}>CREW ROSTER</span>
-          <h2 id="astronaut-picker-title" className={styles.title}>Select your astronaut</h2>
-          <p className={styles.subtitle}>Choose the crew member this console will follow.</p>
+          <span className={styles.pill}>{copy.astronaut.eyebrow}</span>
+          <h2 id="astronaut-picker-title" className={styles.title}>{copy.astronaut.title}</h2>
+          <p id="astronaut-picker-subtitle" className={styles.subtitle}>{copy.astronaut.subtitle}</p>
         </div>
-        <div className={styles.grid}>
-          {ASTRONAUTS.map((a, i) => {
+
+        <div className={styles.rail} role="radiogroup" aria-labelledby="astronaut-picker-title">
+          {crew.map((a, index) => {
             const isSelected = selected === a.id;
             return (
               <button
                 key={a.id}
                 type="button"
-                className={styles.card + (isSelected ? " " + styles.cardSelected : " " + styles.cardDim)}
+                role="radio"
+                aria-checked={isSelected}
+                className={`${styles.card} ${isSelected ? styles.cardSelected : styles.cardDim}`}
                 onClick={() => setSelected(a.id)}
+                onDoubleClick={() => confirm(a.id)}
+                ref={(node) => {
+                  if (node) cardRefs.current.set(a.id, node);
+                  else cardRefs.current.delete(a.id);
+                }}
               >
-                <div className={styles.callsignRow}>
+                <span className={styles.callsignRow}>
                   <span className={styles.callsign}>{a.callsign}</span>
-                  <span className={styles.index}>#{i + 1}</span>
-                </div>
-                <div className={styles.avatarRing}>
+                  <kbd className={styles.key} aria-hidden="true">{index + 1}</kbd>
+                </span>
+                <span className={styles.avatarRing}>
                   <span className={styles.initial}>{a.initial}</span>
-                  {isSelected ? <span className={styles.check}>✓</span> : null}
-                </div>
-                <div className={styles.name}>{a.name}</div>
-                <div className={styles.role}>{a.role}</div>
-                <div className={styles.status}>Mission day 170 · Stable demo telemetry</div>
+                  {isSelected ? <span className={styles.check} aria-hidden="true">✓</span> : null}
+                </span>
+                <span className={styles.name}>{a.name}</span>
+                <span className={styles.role}>{a.role}</span>
+                <span className={styles.status}>{copy.astronaut.status}</span>
               </button>
             );
           })}
         </div>
-        <button type="button" className={styles.confirm} onClick={() => onSelect(selected)}>
-          Continue as {chosen.name}
+
+        <button type="button" className={styles.confirm} onClick={() => confirm(chosen.id)}>
+          {format(copy.astronaut.confirm, { name: chosen.name })}
         </button>
-        <div className={styles.hint}>Press 1, 2, or 3 to select · Press Enter to confirm</div>
-        <p className={styles.footer}>Simulated crew · Demonstration only · Not medical advice</p>
+        <p className={styles.hint}>{copy.astronaut.hint}</p>
+        <p className={styles.footer}>{copy.astronaut.footer}</p>
       </section>
     </div>
   );

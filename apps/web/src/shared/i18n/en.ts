@@ -6,4 +6,16 @@ export const en: Copy = {
     description:
       "Sky is an offline clinical assistant for long space missions. It collects crew health data, warns astronauts and flight surgeons, and recommends one action.",
   },
+  astronaut: {
+    eyebrow: "CREW ROSTER",
+    title: "Select your astronaut",
+    subtitle: "Choose the crew member this console will follow.",
+    status: "Mission day 170 · Stable demo telemetry",
+    confirm: "Continue as {name}",
+    greeting: "Good morning, {name}.",
+    change: "Change astronaut",
+    hint: "Press 1–6 to select · Enter to confirm",
+    footer: "Simulated crew · Demonstration only · Not medical advice",
+    close: "Close astronaut picker",
+  },
 };

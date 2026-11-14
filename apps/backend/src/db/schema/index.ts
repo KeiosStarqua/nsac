@@ -4,3 +4,4 @@ export * from "./recommendations";
 export * from "./readiness";
 export * from "./groundReports";
 export * from "./auditLog";
+export * from "./astronauts";

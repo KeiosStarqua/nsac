@@ -1,6 +1,8 @@
-import { readingsRepo } from "./db/repositories/readings";
+import { astronautsRepo } from "./db/repositories/astronauts";
 
 const port = Number(process.env.PORT ?? 3200);
+
+await astronautsRepo.seed();
 
 Bun.serve({
   port,
@@ -9,9 +11,15 @@ Bun.serve({
     if (url.pathname === "/health") {
       return Response.json({ ok: true });
     }
-    if (url.pathname === "/readings") {
-      const rows = await readingsRepo.list();
+    if (url.pathname === "/api/astronauts") {
+      const rows = await astronautsRepo.list();
       return Response.json(rows);
+    }
+    const m = url.pathname.match(/^\/api\/astronauts\/([^/]+)$/);
+    if (m) {
+      const row = await astronautsRepo.get(decodeURIComponent(m[1]));
+      if (!row) return new Response("not found", { status: 404 });
+      return Response.json(row);
     }
     return new Response("not found", { status: 404 });
   },

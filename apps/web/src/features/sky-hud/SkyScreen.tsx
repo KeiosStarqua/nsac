@@ -17,7 +17,8 @@ import { VoiceWaveform } from "./VoiceWaveform";
 import { InputSurface } from "./InputSurface";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
 import { Link } from "@tanstack/react-router";
-import { AstronautPicker, ASTRONAUT_STORAGE_KEY, findAstronaut } from "../astronaut";
+import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts } from "../astronaut";
+import { format, useCopy } from "../../shared/i18n";
 import type { VitalKind, VoicePhase } from "./types";
 
 const PHASE_TEXT: Record<VoicePhase, string> = {
@@ -48,6 +49,7 @@ interface DetailDialogProps {
   message: string;
   eyebrow: string;
   footer: string;
+  action?: { label: string; onClick: () => void };
 }
 
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
@@ -58,6 +60,7 @@ const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
  * No network, no storage, no medical services. See SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md.
  */
 export function SkyScreen() {
+  const copy = useCopy();
   const [hint, setHint] = useState(PHASE_TEXT.idle);
   const mounted = useMounted();
   useEffect(() => {
@@ -67,7 +70,7 @@ export function SkyScreen() {
       const astro = findAstronaut(stored);
       if (astro) {
         setAstronautId(astro.id);
-        setGreeting(`Good morning, ${astro.name.split(" ")[0]}.`);
+        setGreeting(format(copy.astronaut.greeting, { name: firstName(astro.name) }));
       } else {
         setPickerOpen(true);
       }
@@ -80,6 +83,7 @@ export function SkyScreen() {
   const [detail, setDetail] = useState<DetailDialogProps | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [astronautId, setAstronautId] = useState<string | null>(null);
+  const [roster, setRoster] = useState(() => [...ASTRONAUTS]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [greeting, setGreeting] = useState("Good morning.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
@@ -89,6 +93,21 @@ export function SkyScreen() {
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
 
   const { phase, energyRef, toggle, readEnergy, stop } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
+
+  // The backend roster is metadata only: the bundled fixture renders first and stays if the
+  // request fails (no network, backend down), so the picker never blocks on it.
+  useEffect(() => {
+    if (!mounted) return;
+    let alive = true;
+    void getAstronauts()
+      .then((rows) => {
+        if (alive && Array.isArray(rows) && rows.length > 0) setRoster(rows);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [mounted]);
 
   // One rAF loop feeds the waveform; orb/waveform read energyRef directly per frame.
   useEffect(() => {
@@ -113,13 +132,13 @@ export function SkyScreen() {
   }, [readEnergy]);
 
   const handleAstronautSelect = useCallback((id: string) => {
-    const astro = findAstronaut(id);
+    const astro = findAstronaut(id, roster);
     if (!astro) return;
-    try { window.localStorage.setItem(ASTRONAUT_STORAGE_KEY, id); } catch { /* ignore */ }
+    try { window.localStorage.setItem(ASTRONAUT_STORAGE_KEY, astro.id); } catch { /* ignore */ }
     setAstronautId(astro.id);
-    setGreeting(`Good morning, ${astro.name.split(" ")[0]}.`);
+    setGreeting(format(copy.astronaut.greeting, { name: firstName(astro.name) }));
     setPickerOpen(false);
-  }, []);
+  }, [roster, copy]);
 
   const openDetail = useCallback(({ title, value, message, eyebrow = "SIMULATED DATA", footer = DEFAULT_FOOTER }: DetailDialogProps) => {
     previousFocus.current = document.activeElement;
@@ -142,7 +161,6 @@ export function SkyScreen() {
   }, [detail, closeDetail]);
 
   const chatReply = (text: string) => {
-    setGreeting("I hear you, Minh.");
     setPrompt(/sleep|tired|rest/i.test(text)
       ? "Recovery is important. How did you sleep?"
       : /oxygen|heart|pulse|health/i.test(text)
@@ -150,6 +168,10 @@ export function SkyScreen() {
         : "Your message is received in this local UI demo.");
     setAnnouncer("Local demo response displayed.");
   };
+
+  const selectedAstronaut = findAstronaut(astronautId, roster);
+  const greetingFor = (astro: typeof selectedAstronaut) =>
+    astro ? format(copy.astronaut.greeting, { name: firstName(astro.name) }) : "Good morning.";
 
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
@@ -165,7 +187,7 @@ export function SkyScreen() {
           onClick={() => {
             setDetail(null);
             setChatOpen(false);
-            setGreeting("Good morning, Minh.");
+            setGreeting(greetingFor(findAstronaut(astronautId, roster)));
             setPrompt("How are you feeling today?");
           }}
         >
@@ -175,10 +197,17 @@ export function SkyScreen() {
             <span className="brand-tagline"><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12} intensity={0.4}>Astronaut Wellness</ShinyText></span>
           </span>
         </button>
-        <button type="button" aria-label="Change astronaut" onClick={() => setPickerOpen(true)} style={{ marginLeft: 8, color: "#9bb0c8", background: "transparent", border: 0, cursor: "pointer" }}>
-          Change astronaut
-        </button>
-        <button className="mission-trigger" type="button" aria-label="Mission information" onClick={() => openDetail({ ...DETAILS.mission, footer: DEFAULT_FOOTER })}>
+        <button className="mission-trigger" type="button" aria-label="Mission information" onClick={() => openDetail({
+          ...DETAILS.mission,
+          footer: DEFAULT_FOOTER,
+          action: {
+            label: copy.astronaut.change,
+            onClick: () => {
+              closeDetail();
+              setPickerOpen(true);
+            },
+          },
+        })}>
           <span className="station-icon" aria-hidden="true">
             <svg viewBox="0 0 44 36" fill="none">
               <path d="m18 16 8-2M18 21l8-2M15 8l5 10-5 10M28 6l-5 11 5 11M3 12l11-5 4 6-12 5zM31 14l10-5-3 12-9 4z" stroke="currentColor" strokeWidth="1.5" />
@@ -278,6 +307,9 @@ export function SkyScreen() {
             <h2 id="detailTitle">{detail.title}</h2>
             {detail.value ? <p id="detailValue" className="detail-value">{detail.value}</p> : null}
             <p id="detailMessage" className="detail-message">{detail.message}</p>
+            {detail.action ? (
+              <button type="button" className="detail-action" onClick={detail.action.onClick}>{detail.action.label}</button>
+            ) : null}
             <p id="detailFooter" className="detail-footer">{detail.footer}</p>
           </section>
         </div>
@@ -297,7 +329,13 @@ export function SkyScreen() {
       ) : null}
 
       {mounted && pickerOpen ? (
-        <AstronautPicker open onSelect={handleAstronautSelect} />
+        <AstronautPicker
+          open
+          roster={roster}
+          initialId={astronautId}
+          onSelect={handleAstronautSelect}
+          onClose={astronautId ? () => setPickerOpen(false) : undefined}
+        />
       ) : null}
       <div className="sr-only" role="status" aria-live="polite">{announcer}</div>
     </main>
