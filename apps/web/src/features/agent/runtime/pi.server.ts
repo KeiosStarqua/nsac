@@ -101,6 +101,13 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
   });
 
   let disposed = false;
+  const abortSession = (s: any) => {
+    try {
+      void Promise.resolve(s.abort?.()).catch(() => {});
+    } catch {
+      // abort is best-effort: the caller already lost the race
+    }
+  };
   return {
     async prompt(text, opts) {
       let total = "";
@@ -121,8 +128,17 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
           }
         }
       });
-      await session.prompt(text);
-      unsub();
+      // `opts.signal` is the caller's wall-clock budget (and, from the SSE route, a disconnected
+      // browser). Without wiring it the abort only lost a race while generation kept burning tokens.
+      const onAbort = () => abortSession(session);
+      if (opts.signal?.aborted) onAbort();
+      else opts.signal?.addEventListener("abort", onAbort, { once: true });
+      try {
+        await session.prompt(text);
+      } finally {
+        unsub();
+        opts.signal?.removeEventListener("abort", onAbort);
+      }
       // The SDK resolves prompt() normally even when the turn fails (e.g. provider 402);
       // an empty accumulated reply is never a successful answer. Deltas can be lost while
       // the final assistant message still carries text — recover it before throwing.

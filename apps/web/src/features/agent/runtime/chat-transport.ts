@@ -1,36 +1,40 @@
 /**
- * Custom AI SDK transport for Sky's text chat.
+ * Custom AI SDK transport for Sky's text chat — token-by-token over SSE.
  *
- * `useChat` (in `features/sky-hud/components/SkyChatPanel.tsx`) drives this class, and the class calls
- * the existing server function `sendChat` — no SSE endpoint, no backend change. The server answers one
- * whole reply per turn, so the transport emits that reply as a single text part and does not fake a
- * stream.
+ * `useChat` (in `features/sky-hud/components/SkyChatPanel.tsx`) drives this class; the class POSTs to
+ * the TanStack Start server route `/api/chat-stream`, which streams the PI session's text deltas as
+ * `data: {"type":"delta","text":"…"}` frames and ends with `data: {"type":"done"}` or
+ * `data: {"type":"error","code":…}`. The body is parsed incrementally by `./sse.ts`, so frames may be
+ * split at any byte boundary and a delta reaches the UI as it arrives.
  *
- * Errors: a non-`ok` turn throws a {@link SkyChatError} carrying the server's code
- * (`missing_key` | `timeout` | `unavailable`). AI SDK v7 catches a throw from `sendMessages` and puts
- * it on `useChat().error`, which the panel maps back to the localized banner; no empty assistant
- * bubble is created. (The alternative — an `error` chunk — would surface as a generic Error with only
- * the message text, losing the code.)
+ * Errors keep the pre-stream semantics:
+ *  - a failed HTTP response, or an `error` frame BEFORE the first delta, is thrown as
+ *    {@link SkyChatError}; AI SDK v7 puts a throw from `sendMessages` on `useChat().error` and no
+ *    assistant bubble is created;
+ *  - an `error` frame AFTER text was already emitted becomes an AI SDK `error` chunk, so the partial
+ *    answer stays on screen and the banner shows over it (no `finish`, so `onFinish` is treated as a
+ *    failure and the partial text never reaches the HUD prompt).
  *
- * The module is client-safe (type-only imports from `ai`); the server function is injected as
- * `SendChatTurn` so the transport can be unit-tested without TanStack Start.
+ * The module is client-safe (type-only imports from `ai`); `fetch` is injectable so the transport can
+ * be unit-tested without a server.
  */
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
+import { createSseParser } from "./sse";
 
 export type ChatTurnStatus = "ok" | "missing_key" | "unavailable" | "timeout";
 export type ChatErrorCode = Exclude<ChatTurnStatus, "ok">;
 
+const ERROR_CODES: readonly ChatErrorCode[] = ["missing_key", "unavailable", "timeout"];
+
 /** One stored transcript line, as `loadChatHistory` returns it. */
 export type ChatHistoryMessage = { role: "user" | "assistant"; text: string; at?: string };
 
+/** The shape a turn resolves with on the server (`sendChatTurn` / `streamChatTurn`). */
 export type ChatTurnResult = {
   status: ChatTurnStatus;
   reply?: string;
   messages?: ChatHistoryMessage[];
 };
-
-/** The `sendChat` server function, narrowed to what the transport needs. */
-export type SendChatTurn = (input: { astronautId: string; message: string }) => Promise<ChatTurnResult>;
 
 export type SkyUIMessage = UIMessage;
 
@@ -44,9 +48,21 @@ export class SkyChatError extends Error {
   }
 }
 
-/** Maps anything `useChat().error` holds back to a banner code; unknown errors read as unavailable. */
+function isErrorCode(value: unknown): value is ChatErrorCode {
+  return typeof value === "string" && (ERROR_CODES as readonly string[]).includes(value);
+}
+
+/**
+ * Maps anything `useChat().error` holds back to a banner code; unknown errors read as unavailable.
+ * A code can arrive either as a `SkyChatError` (thrown before the stream) or as the message of the
+ * `Error` the AI SDK builds from an `error` chunk emitted mid-stream.
+ */
 export function chatErrorCode(error: unknown): ChatErrorCode {
-  return error instanceof SkyChatError ? error.code : "unavailable";
+  if (error instanceof SkyChatError) return error.code;
+  if (error instanceof Error && isErrorCode(error.message)) return error.message;
+  const cause = (error as { cause?: unknown } | null)?.cause;
+  if (cause instanceof Error && isErrorCode(cause.message)) return cause.message;
+  return "unavailable";
 }
 
 export function messageText(message: SkyUIMessage): string {
@@ -57,7 +73,7 @@ export function messageText(message: SkyUIMessage): string {
     .trim();
 }
 
-/** The text of the person's most recent turn (what `sendChat` receives). */
+/** The text of the person's most recent turn (what the stream route receives). */
 export function lastUserText(messages: SkyUIMessage[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
@@ -66,26 +82,6 @@ export function lastUserText(messages: SkyUIMessage[]): string | null {
     return text.length > 0 ? text : null;
   }
   return null;
-}
-
-/** The chunks for one whole assistant reply: text-start → text-delta → text-end → finish. */
-export function replyChunks(reply: string, partId = "sky-reply"): UIMessageChunk[] {
-  return [
-    { type: "text-start", id: partId },
-    { type: "text-delta", id: partId, delta: reply },
-    { type: "text-end", id: partId },
-    { type: "finish" },
-  ];
-}
-
-export function replyStream(reply: string, partId = "sky-reply"): ReadableStream<UIMessageChunk> {
-  const chunks = replyChunks(reply, partId);
-  return new ReadableStream<UIMessageChunk>({
-    start(controller) {
-      for (const chunk of chunks) controller.enqueue(chunk);
-      controller.close();
-    },
-  });
 }
 
 /**
@@ -100,13 +96,165 @@ export function toUIMessages(history: ChatHistoryMessage[]): SkyUIMessage[] {
   }));
 }
 
+const STREAM_PATH = "/api/chat-stream";
+const PART_ID = "sky-reply";
+
+type Frame =
+  | { type: "delta"; text: string }
+  | { type: "done" }
+  | { type: "error"; code: ChatErrorCode };
+
+function parseFrame(data: string): Frame | null {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(data);
+  } catch {
+    return null;
+  }
+  if (raw === null || typeof raw !== "object") return null;
+  const frame = raw as { type?: unknown; text?: unknown; code?: unknown };
+  if (frame.type === "delta" && typeof frame.text === "string") return { type: "delta", text: frame.text };
+  if (frame.type === "done") return { type: "done" };
+  if (frame.type === "error") return { type: "error", code: isErrorCode(frame.code) ? frame.code : "unavailable" };
+  return null;
+}
+
+/** Pulls whole SSE frames out of a byte stream, keeping the unfinished tail between reads. */
+function openFrames(body: ReadableStream<Uint8Array>) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  const queue: string[] = [];
+  const parser = createSseParser((data) => queue.push(data));
+  let drained = false;
+
+  return {
+    async next(): Promise<string | null> {
+      for (;;) {
+        const queued = queue.shift();
+        if (queued !== undefined) return queued;
+        if (drained) return null;
+        const { done, value } = await reader.read();
+        if (done) {
+          drained = true;
+          parser(decoder.decode());
+          const rest = queue.shift();
+          return rest === undefined ? null : rest;
+        }
+        if (value) parser(decoder.decode(value, { stream: true }));
+      }
+    },
+    cancel() {
+      drained = true;
+      void reader.cancel().catch(() => {});
+    },
+  };
+}
+
+/**
+ * Consumes the head of the response (up to the first delta or a terminal frame) and returns the
+ * chunk stream. Consuming the head first is what lets an error before any text reject
+ * `sendMessages`, so `useChat().error` gets a {@link SkyChatError} and the panel shows its banner
+ * without an empty assistant bubble.
+ */
+async function openTurnStream(body: ReadableStream<Uint8Array>): Promise<ReadableStream<UIMessageChunk>> {
+  const frames = openFrames(body);
+  let head: string | null = null;
+  for (;;) {
+    let raw: string | null;
+    try {
+      raw = await frames.next();
+    } catch {
+      frames.cancel();
+      throw new SkyChatError("unavailable");
+    }
+    if (raw === null) break;
+    const frame = parseFrame(raw);
+    if (!frame) continue;
+    if (frame.type === "delta") {
+      head = frame.text;
+      break;
+    }
+    frames.cancel();
+    // An empty `done` means the turn produced no text: never render an empty bubble.
+    throw new SkyChatError(frame.type === "error" ? frame.code : "unavailable");
+  }
+  if (head === null) {
+    frames.cancel();
+    throw new SkyChatError("unavailable");
+  }
+  const firstDelta = head;
+
+  return new ReadableStream<UIMessageChunk>({
+    start(controller) {
+      const emit = (chunk: UIMessageChunk) => {
+        try {
+          controller.enqueue(chunk);
+        } catch {
+          // consumer went away: the pump stops on the next read
+        }
+      };
+      emit({ type: "text-start", id: PART_ID });
+      emit({ type: "text-delta", id: PART_ID, delta: firstDelta });
+
+      void (async () => {
+        try {
+          for (;;) {
+            const raw = await frames.next();
+            // A body that ends without a terminal frame is a failed turn mid-stream.
+            if (raw === null) {
+              emit({ type: "error", errorText: "unavailable" });
+              break;
+            }
+            const frame = parseFrame(raw);
+            if (!frame) continue;
+            if (frame.type === "delta") {
+              if (frame.text.length > 0) emit({ type: "text-delta", id: PART_ID, delta: frame.text });
+            } else if (frame.type === "done") {
+              emit({ type: "text-end", id: PART_ID });
+              emit({ type: "finish" });
+              break;
+            } else {
+              // Mid-stream failure: keep the partial text on screen, show the banner, no finish.
+              emit({ type: "error", errorText: frame.code });
+              break;
+            }
+          }
+        } catch {
+          emit({ type: "error", errorText: "unavailable" });
+        } finally {
+          frames.cancel();
+          try {
+            controller.close();
+          } catch {
+            // already closed
+          }
+        }
+      })();
+    },
+    cancel() {
+      frames.cancel();
+    },
+  });
+}
+
+async function errorCodeFromResponse(response: Response): Promise<ChatErrorCode> {
+  try {
+    const body = (await response.json()) as { code?: unknown; error?: unknown };
+    if (isErrorCode(body?.code)) return body.code;
+    if (isErrorCode(body?.error)) return body.error;
+  } catch {
+    // not JSON: fall through
+  }
+  return "unavailable";
+}
+
 export class SkyChatTransport implements ChatTransport<SkyUIMessage> {
   private readonly astronautId: string | null;
-  private readonly send: SendChatTurn;
+  private readonly fetchImpl: typeof fetch;
 
-  constructor(options: { astronautId: string | null; send: SendChatTurn }) {
+  constructor(options: { astronautId: string | null; fetchImpl?: typeof fetch }) {
     this.astronautId = options.astronautId;
-    this.send = options.send;
+    this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
   }
 
   async sendMessages(options: { messages: SkyUIMessage[] }): Promise<ReadableStream<UIMessageChunk>> {
@@ -115,13 +263,14 @@ export class SkyChatTransport implements ChatTransport<SkyUIMessage> {
     const message = lastUserText(options.messages);
     if (!message) throw new SkyChatError("unavailable");
 
-    const result = await this.send({ astronautId, message });
-    const reply = typeof result.reply === "string" ? result.reply.trim() : "";
-    if (result.status !== "ok" || reply.length === 0) {
-      // `ok` with an empty reply never becomes an empty bubble: it reads as unavailable.
-      throw new SkyChatError(result.status === "ok" ? "unavailable" : result.status);
-    }
-    return replyStream(reply);
+    const response = await this.fetchImpl(STREAM_PATH, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "text/event-stream" },
+      body: JSON.stringify({ astronautId, message }),
+    });
+    if (!response.ok) throw new SkyChatError(await errorCodeFromResponse(response));
+    if (!response.body) throw new SkyChatError("unavailable");
+    return openTurnStream(response.body);
   }
 
   /** No resumable server stream: a turn is answered in one request. */

@@ -6,11 +6,13 @@
  * full-height console conversation rendered above the HUD. Behaviour it owns:
  *
  *  - `useChat` state only; history comes from the existing `loadChatHistory` server function (the SDK
- *    never fetches it) and a turn is sent through the existing `sendChat` server function — the
- *    transport carries it, no SSE endpoint, no backend change.
+ *    never fetches it) and a turn streams through the SSE route `/api/chat-stream` (transport-owned):
+ *    the reply lands token by token, no server function call from this component.
  *  - Reset clears the transcript client-side only. There is no server reset endpoint, so the stored
  *    transcript (`var/sky-sessions/<id>.json`) is left alone and comes back on the next hydration.
- *  - A failed turn shows the matching banner and never leaves an empty assistant bubble.
+ *  - A failed turn shows the matching banner and never leaves an empty assistant bubble: an error
+ *    before the first token throws (no bubble), an error mid-stream keeps the partial answer on screen
+ *    with the banner above it.
  *  - `onReply` fires once per successful turn, so the HUD prompt + announcer keep working as before.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -48,20 +50,15 @@ import {
 } from "~/shared/ai-elements";
 import { format, useCopy } from "~/shared/i18n";
 import { firstName } from "../../astronaut";
-import { loadChatHistory, sendChat } from "../../agent/chat";
+import { loadChatHistory } from "../../agent/chat";
 import { SkyChatTransport, chatErrorCode, messageText, toUIMessages } from "../../agent/runtime/chat-transport";
-import type { ChatTurnResult, SkyUIMessage } from "../../agent/runtime/chat-transport";
+import type { SkyUIMessage } from "../../agent/runtime/chat-transport";
 
 export type SkyChatPanelProps = {
   astronaut: { id: string; name: string } | null;
   onClose: () => void;
   onReply: (text: string) => void;
 };
-
-/** The `sendChat` server function behind the transport's injectable boundary. */
-async function sendTurn(input: { astronautId: string; message: string }): Promise<ChatTurnResult> {
-  return sendChat({ data: input });
-}
 
 export function SkyChatPanel({ astronaut, onClose, onReply }: SkyChatPanelProps) {
   const c = useCopy().chat;
@@ -96,10 +93,7 @@ function SkyChatThread({ astronaut, onClose, onReply }: SkyChatPanelProps) {
   const onReplyRef = useRef(onReply);
   onReplyRef.current = onReply;
 
-  const transport = useMemo(
-    () => new SkyChatTransport({ astronautId, send: sendTurn }),
-    [astronautId],
-  );
+  const transport = useMemo(() => new SkyChatTransport({ astronautId }), [astronautId]);
 
   const { messages, sendMessage, setMessages, status, error } = useChat<SkyUIMessage>({
     transport,
