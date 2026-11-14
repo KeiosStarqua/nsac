@@ -14,7 +14,10 @@ export const SPACECRAFT_MODELS: readonly SpacecraftModel[] = [
   { id: "iss-stationary", url: ISS_FULL_URL, label: "ISS — Full detail (42 MB)" },
 ];
 
-export const DEFAULT_MODEL_ID = "iss-b";
+// The cinematic viewer shows the full-detail model only. The lightweight
+// model stays in the catalog (and reachable through loaders) for low-bandwidth
+// contexts, but it is not the default and has no UI toggle.
+export const DEFAULT_MODEL_ID = "iss-stationary";
 
 // ISS-B.glb requires KHR_draco_mesh_compression. The decoder is served locally
 // from public/draco/ (copied from three's bundled GLTF draco decoder) so the
