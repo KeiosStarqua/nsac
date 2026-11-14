@@ -1,7 +1,11 @@
 /* System fonts only: the page must render with the network unplugged. */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind v4: theme + utilities only. Preflight (the global CSS reset) is deliberately omitted —
+   the app ships its own reset in this file and vendored styles (Arc, react-bits) that were not
+   designed against Preflight. Re-add `@import "tailwindcss/preflight.css" layer(base);` only after
+   the stylesheets are migrated. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
 :root {
   /* Sky's palette. The --sky-* names hold the raw values and the short names below are what the app
