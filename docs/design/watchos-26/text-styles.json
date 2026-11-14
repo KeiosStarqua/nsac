@@ -1,0 +1,644 @@
+{
+  "source": {
+    "file": "watchOS 26",
+    "fileKey": "95rE6NIOdWeZFeWDCm7QF4",
+    "url": "https://www.figma.com/design/95rE6NIOdWeZFeWDCm7QF4/watchOS-26--Community-",
+    "page": "Text Styles and Dynamic Type (0:2194)",
+    "extracted": "2026-11-14"
+  },
+  "fontFamily": "SF Compact",
+  "fontLicenseNote": "SF Compact / SF Symbols ship under the separate Apple font license — do not commit font files to this repo; reference them only.",
+  "nameFormat": "<DynamicTypeSize>/<TextStyle> where DynamicTypeSize ∈ xSmall, Small, Large, xLarge, xxLarge, xxxLarge, AX1–AX3",
+  "styles": [
+    {
+      "name": "xSmall/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 30,
+      "lineHeight": 32.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 32,
+      "lineHeight": 34.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 30,
+      "lineHeight": 32.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 36,
+      "lineHeight": 38.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 34,
+      "lineHeight": 36.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 40,
+      "lineHeight": 42.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 41,
+      "lineHeight": 43.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 42,
+      "lineHeight": 44.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 40,
+      "lineHeight": 42.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 44,
+      "lineHeight": 46.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 45,
+      "lineHeight": 47.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 43,
+      "lineHeight": 46,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 44,
+      "lineHeight": 47,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Large Title",
+      "fontStyle": "Regular",
+      "fontSize": 46,
+      "lineHeight": 48.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Title 2",
+      "fontStyle": "Regular",
+      "fontSize": 36,
+      "lineHeight": 38.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Title 3",
+      "fontStyle": "Regular",
+      "fontSize": 26,
+      "lineHeight": 28.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 23,
+      "lineHeight": 25.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Body",
+      "fontStyle": "Regular",
+      "fontSize": 23,
+      "lineHeight": 25.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 20,
+      "lineHeight": 22.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 19,
+      "lineHeight": 21.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 18,
+      "lineHeight": 20.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX3/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 17,
+      "lineHeight": 19.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Title 2",
+      "fontStyle": "Regular",
+      "fontSize": 35,
+      "lineHeight": 37.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Title 3",
+      "fontStyle": "Regular",
+      "fontSize": 25,
+      "lineHeight": 27.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 22,
+      "lineHeight": 24.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Body",
+      "fontStyle": "Regular",
+      "fontSize": 22,
+      "lineHeight": 24.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 19,
+      "lineHeight": 21.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 18,
+      "lineHeight": 20.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 17,
+      "lineHeight": 19.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX2/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 16,
+      "lineHeight": 17.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 42,
+      "lineHeight": 44.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Title 1 (alt)",
+      "fontStyle": "Regular",
+      "fontSize": 34,
+      "lineHeight": 41,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Title 3",
+      "fontStyle": "Regular",
+      "fontSize": 24,
+      "lineHeight": 26.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 21,
+      "lineHeight": 23.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Body",
+      "fontStyle": "Regular",
+      "fontSize": 21,
+      "lineHeight": 23.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 18,
+      "lineHeight": 20.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 17,
+      "lineHeight": 19.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 16,
+      "lineHeight": 18.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "AX1/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 15,
+      "lineHeight": 17.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Title 2",
+      "fontStyle": "Regular",
+      "fontSize": 32,
+      "lineHeight": 34.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Title 3",
+      "fontStyle": "Regular",
+      "fontSize": 22,
+      "lineHeight": 24.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 19,
+      "lineHeight": 21.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Body",
+      "fontStyle": "Regular",
+      "fontSize": 19,
+      "lineHeight": 21.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 18,
+      "lineHeight": 20.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 17,
+      "lineHeight": 19.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 16,
+      "lineHeight": 18.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxxLarge/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 15,
+      "lineHeight": 17.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 39,
+      "lineHeight": 41.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Title 2",
+      "fontStyle": "Regular",
+      "fontSize": 31,
+      "lineHeight": 33.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Title 3",
+      "fontStyle": "Regular",
+      "fontSize": 21,
+      "lineHeight": 23.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 18,
+      "lineHeight": 20.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Body",
+      "fontStyle": "Regular",
+      "fontSize": 18,
+      "lineHeight": 20.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 17,
+      "lineHeight": 19.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 16,
+      "lineHeight": 18.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 15,
+      "lineHeight": 17.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xxLarge/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 14,
+      "lineHeight": 16.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 38,
+      "lineHeight": 40.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Title 2",
+      "fontStyle": "Regular",
+      "fontSize": 30,
+      "lineHeight": 32.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Title 3",
+      "fontStyle": "Regular",
+      "fontSize": 20,
+      "lineHeight": 22.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 17,
+      "lineHeight": 19.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Body",
+      "fontStyle": "Regular",
+      "fontSize": 17,
+      "lineHeight": 19.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 16,
+      "lineHeight": 18.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 15,
+      "lineHeight": 17.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 14,
+      "lineHeight": 16.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xLarge/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 13,
+      "lineHeight": 15.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Title 2",
+      "fontStyle": "Regular",
+      "fontSize": 28,
+      "lineHeight": 30.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Title 3",
+      "fontStyle": "Regular",
+      "fontSize": 19,
+      "lineHeight": 21.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 16,
+      "lineHeight": 18.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Body",
+      "fontStyle": "Regular",
+      "fontSize": 16,
+      "lineHeight": 18.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 15,
+      "lineHeight": 17.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 14,
+      "lineHeight": 16.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 13,
+      "lineHeight": 15.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Large/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 12,
+      "lineHeight": 14.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Title 2",
+      "fontStyle": "Regular",
+      "fontSize": 26,
+      "lineHeight": 28.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Title 3",
+      "fontStyle": "Regular",
+      "fontSize": 18,
+      "lineHeight": 20.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 15,
+      "lineHeight": 17.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Body",
+      "fontStyle": "Regular",
+      "fontSize": 15,
+      "lineHeight": 17.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 14,
+      "lineHeight": 16.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 13,
+      "lineHeight": 15.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 12,
+      "lineHeight": 14.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "Small/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 11,
+      "lineHeight": 13.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Title 1",
+      "fontStyle": "Regular",
+      "fontSize": 28,
+      "lineHeight": 30.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Title 2",
+      "fontStyle": "Regular",
+      "fontSize": 24,
+      "lineHeight": 26.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Title 3",
+      "fontStyle": "Light",
+      "fontSize": 17,
+      "lineHeight": 19.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Headline",
+      "fontStyle": "Semibold",
+      "fontSize": 14,
+      "lineHeight": 16.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Body",
+      "fontStyle": "Regular",
+      "fontSize": 14,
+      "lineHeight": 16.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Caption 1",
+      "fontStyle": "Regular",
+      "fontSize": 13,
+      "lineHeight": 15.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Caption 2",
+      "fontStyle": "Regular",
+      "fontSize": 12,
+      "lineHeight": 14.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Footnote 1",
+      "fontStyle": "Regular",
+      "fontSize": 11,
+      "lineHeight": 13.5,
+      "letterSpacing": 0
+    },
+    {
+      "name": "xSmall/Footnote 2",
+      "fontStyle": "Regular",
+      "fontSize": 10,
+      "lineHeight": 12.5,
+      "letterSpacing": 0
+    }
+  ]
+}
