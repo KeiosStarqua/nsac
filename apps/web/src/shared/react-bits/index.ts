@@ -53,6 +53,8 @@ export * from "./CardNav/CardNav";
 export { default as Stack } from "./Stack/Stack";
 export { default as LightTunnel } from "./LightTunnel/LightTunnel";
 export * from "./LightTunnel/LightTunnel";
+export { default as Particles } from "./Particles/Particles";
+export * from "./Particles/Particles";
 export * from "./Stack/Stack";
 export { default as FluidGlass } from "./FluidGlass/FluidGlass";
 export * from "./FluidGlass/FluidGlass";

@@ -5,6 +5,7 @@ import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import BlurText from "../../shared/react-bits/BlurText/BlurText";
 import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
+import Particles from "../../shared/react-bits/Particles/Particles";
 import CountUp from "../../shared/react-bits/CountUp/CountUp";
 import DepthText from "../../shared/react-bits/DepthText/DepthText";
 import ShinyText from "../../shared/react-bits/ShinyText/ShinyText";
@@ -77,14 +78,14 @@ export function SkyScreen() {
   const [greeting, setGreeting] = useState("Good morning.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
   const [announcer, setAnnouncer] = useState("");
-  const [bg, setBg] = useState("light-tunnel");
+  const [bg, setBg] = useState("particles");
   useEffect(() => {
     if (!mounted) return;
     try {
       const params = new URLSearchParams(window.location.search);
       const fromUrl = params.get("bg");
       const fromStorage = window.localStorage.getItem("nsac.bg");
-      const chosen = fromUrl ?? fromStorage ?? "light-tunnel";
+      const chosen = fromUrl ?? fromStorage ?? "particles";
       setBg(chosen);
       if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
     } catch { /* ignore */ }
@@ -253,7 +254,30 @@ export function SkyScreen() {
 
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
-      {bg === "light-tunnel" ? (
+      {bg === "particles" ? (
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
+          <Particles
+            particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}
+            particleCount={220}
+            particleSpread={9}
+            speed={0.075}
+            particleBaseSize={110}
+            sizeRandomness={1}
+            cameraDistance={22}
+            glow={0.6}
+            twinkle={0.55}
+            depthOfField={0}
+            alphaParticles={false}
+            connections={false}
+            hoverEffect="parallax"
+            particleHoverFactor={0.8}
+            clickBurst={false}
+            drift="none"
+            intro={true}
+            opacity={0.9}
+          />
+        </div>
+      ) : bg === "light-tunnel" ? (
         <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
           <LightTunnel cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
         </div>

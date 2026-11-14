@@ -15,7 +15,7 @@
 
 - Licence: MIT + Commons Clause
 - Link: https://github.com/DavidHDev/react-bits
-- Components taken: all 56 (7 prior + 49 new)
+- Components taken: all 57 (7 prior + 50 new)
 - Location: apps/web/src/shared/react-bits/
 - Licence file: apps/web/src/shared/react-bits/LICENSE.md
 - Date: 2026-11-14
