@@ -2,6 +2,8 @@ import { astronautsRepo } from "./db/repositories/astronauts";
 import { handleClaimsRequest } from "./claimsRoutes";
 import { handleSettingsRequest } from "./settingsRoutes";
 import { eventsBus, handleEventsRequest } from "./eventsRoutes";
+import { handleSensorsRequest } from "./sensors/routes";
+import { wsHandlers } from "./sensors/ws";
 
 const port = Number(process.env.PORT ?? 3200);
 
@@ -16,10 +18,15 @@ Bun.serve({
   port,
   // Mặc định chỉ lắng nghe 127.0.0.1: route ẩn (/api/claims/reset) không được lộ ra LAN/public; dev override bằng HOST.
   hostname: process.env.HOST ?? "127.0.0.1",
-  async fetch(req) {
+  async fetch(req, server) {
     const url = new URL(req.url);
     if (url.pathname === "/health") {
       return Response.json({ ok: true });
+    }
+    if (url.pathname === "/ws/telemetry") {
+      // Nâng cấp lên websocket cho telemetry synthetic (SPEC §8.2).
+      if (server.upgrade(req)) return undefined;
+      return new Response("websocket upgrade failed", { status: 400 });
     }
     const claims = await handleClaimsRequest(req);
     if (claims) return claims;
@@ -27,6 +34,8 @@ Bun.serve({
     if (settings) return settings;
     const events = await handleEventsRequest(req);
     if (events) return events;
+    const sensors = await handleSensorsRequest(req);
+    if (sensors) return sensors;
     if (url.pathname === "/api/astronauts") {
       const rows = await astronautsRepo.list();
       return Response.json(rows);
@@ -39,6 +48,7 @@ Bun.serve({
     }
     return new Response("not found", { status: 404 });
   },
+  websocket: wsHandlers,
 });
 
 console.log(`backend listening on ${port}`);

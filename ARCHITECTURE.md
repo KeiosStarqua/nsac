@@ -271,14 +271,20 @@ phải bump khi `bun.lock` đổi.
 
 ### Backend (TS + Bun)
 
-`apps/backend` — HTTP API (astronauts + claims, SQLite qua drizzle), chạy bằng Bun trực tiếp từ TypeScript:
+`apps/backend` — HTTP API (astronauts + claims + sensors/telemetry, SQLite qua drizzle), chạy bằng Bun trực tiếp từ TypeScript:
 
 ```bash
 cd apps/backend
 bun install
-bun test                         # 12 tests
+bun test # 56 pass; 1 fail pre-existing trên DB trắng (readings — cần var/sky.db dev với bảng readings)
 PORT=3200 bun run src/server.ts  # bind 127.0.0.1 mặc định (HOST override)
 ```
+
+Sensor simulation (theo `SENSOR_SIMULATION_SPEC.md`): `src/sensors/` — `registry.ts` (38 devices, source of truth),
+`metrics.ts`/`envelope.ts` (zod), `prng.ts` (mulberry32), `engine.ts` (SimulationEngine, scenario + fault injection),
+`store.ts` + `src/db/sensorsClient.ts` + `src/db/schema/telemetryEvents.ts` + `src/db/repositories/telemetry.ts`,
+`routes.ts` (`handleSensorsRequest` — `/api/sensors/*`), `ws.ts` (WS `/ws/telemetry`, subscribe filter).
+Ghi vào bảng `telemetry_events`; broadcast WS qua bus riêng `telemetryBus`, KHÔNG đụng `change_events`.
 
 Nix: `nix build .#backend` / `nix run .#backend` (port 3200, `SKY_DB_PATH` mặc định
 `/home/ec2-user/nsac/var/sky.db`, GC-root/deploy do box quyết định).
