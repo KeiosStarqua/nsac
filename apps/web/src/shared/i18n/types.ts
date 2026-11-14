@@ -13,4 +13,19 @@ export interface Copy {
     footer: string;
     close: string;
   };
+  chat: {
+    label: string;
+    placeholder: string;
+    send: string;
+    close: string;
+    thinking: string;
+    roleYou: string;
+    roleSky: string;
+    emptyHint: string;
+    selectFirst: string;
+    missingKey: string;
+    timeout: string;
+    unavailable: string;
+    footer: string;
+  };
 }

@@ -1,14 +1,22 @@
 import { useEffect, useRef, useState } from "react";
+import { useCopy } from "../../../shared/i18n";
+import { format } from "../../../shared/i18n/format";
+import { firstName } from "../../astronaut/model/astronauts";
 import { sendChat, loadChatHistory } from "../../agent/chat";
 
 type Props = { astronaut: { id: string; name: string } | null; onClose: () => void; onReply: (text: string) => void };
 
 export function ChatPanel({ astronaut, onClose, onReply }: Props) {
+  const copy = useCopy();
+  const c = copy.chat;
   const [msgs, setMsgs] = useState<{ role: string; text: string }[]>([]);
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => { setMsgs([]); }, [astronaut?.id]);
 
   useEffect(() => {
     if (!astronaut) return;
@@ -29,6 +37,10 @@ export function ChatPanel({ astronaut, onClose, onReply }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [msgs.length, pending]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!astronaut || pending) return;
@@ -43,32 +55,34 @@ export function ChatPanel({ astronaut, onClose, onReply }: Props) {
       setMsgs(r.messages ?? []);
       onReply(r.reply);
       setText("");
-    } else if (r.status === "missing_key") setErr("Replies are off on this deployment: no model key is configured.");
-    else if (r.status === "timeout") setErr("Sky did not answer in time. Try again.");
-    else setErr("Sky could not answer. Try again.");
+    } else if (r.status === "missing_key") setErr(c.missingKey);
+    else if (r.status === "timeout") setErr(c.timeout);
+    else setErr(c.unavailable);
   };
+
+  const inputLabel = astronaut ? format(c.label, { name: firstName(astronaut.name) }) : c.selectFirst;
 
   return (
     <div className="chat-panel" role="dialog" aria-label="Message SKY">
-      <button type="button" className="chat-close" onClick={onClose} aria-label="Close chat">×</button>
+      <button type="button" className="chat-close" onClick={onClose} aria-label={c.close}>×</button>
       <div className="chat-eyebrow">MESSAGE SKY</div>
-      <div className="chat-messages" aria-live="polite">
-        {msgs.length === 0 && !pending ? <div className="chat-empty">No messages yet. Say hello to Sky.</div> : null}
+      <div className="chat-messages" aria-live="polite" aria-busy={pending} ref={listRef}>
+        {msgs.length === 0 && !pending ? <div className="chat-empty">{c.emptyHint}</div> : null}
         {msgs.map((m, i) => (
           <div key={i} className={`chat-message${m.role === "user" ? " chat-message-user" : " chat-message-sky"}`}>
-            <span className="chat-role">{m.role === "user" ? "You" : "Sky"}</span>
+            <span className="chat-role">{m.role === "user" ? c.roleYou : c.roleSky}</span>
             {m.text}
           </div>
         ))}
       </div>
-      {pending && <div className="chat-pending" role="status">Sky is thinking…</div>}
+      {pending && <div className="chat-pending" role="status">{c.thinking}</div>}
       {err && <div className="chat-error" role="alert">{err}</div>}
-      {!astronaut ? <div className="chat-hint">Select an astronaut from the roster to start chatting.</div> : null}
+      {!astronaut ? <div className="chat-hint">{c.selectFirst}</div> : null}
       <form className="chat-line" onSubmit={submit}>
-        <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder="Message to Sky" aria-label="Message to Sky" disabled={!astronaut} />
-        <button type="submit" disabled={pending || !astronaut}>Send</button>
+        <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} autoComplete="off" placeholder={c.placeholder} aria-label={inputLabel} disabled={!astronaut} />
+        <button type="submit" disabled={pending || !astronaut}>{c.send}</button>
       </form>
-      <div className="chat-footer">Demonstration only · Not medical advice</div>
+      <div className="chat-footer">{c.footer}</div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ export function readOpenRouterKey(): string | null {
   return raw.trim();
 }
 import type { AgentProfile } from "../agents/types";
+import { assistantText, isProviderError } from "../model/provider-result";
 
 type PiSdk = any;
 
@@ -121,9 +122,18 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
       await session.prompt(text);
       unsub();
       // The SDK resolves prompt() normally even when the turn fails (e.g. provider 402);
-      // an empty accumulated reply is never a successful answer.
-      if (turnError) throw new Error(turnError);
-      if (total.trim() === "") throw new Error("empty_reply");
+      // an empty accumulated reply is never a successful answer. Deltas can be lost while
+      // the final assistant message still carries text — recover it before throwing.
+      if (turnError) {
+        console.warn("agent turn failed", String(turnError).slice(0, 200));
+        throw new Error(turnError);
+      }
+      if (total.trim() === "") {
+        const last = (session as any).messages?.at(-1);
+        const recovered = last?.role === "assistant" && !isProviderError(last) ? assistantText(last).trim() : "";
+        if (recovered) return recovered;
+        throw new Error("empty_reply");
+      }
       return total;
     },
     dispose() {

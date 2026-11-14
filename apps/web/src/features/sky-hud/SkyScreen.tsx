@@ -330,7 +330,7 @@ export function SkyScreen() {
 
       {/* Text chat */}
       {chatOpen ? (
-        <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => setPrompt(t)} />
+        <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
       ) : null}
 
       {mounted && pickerOpen ? (
