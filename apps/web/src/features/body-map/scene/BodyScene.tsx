@@ -11,7 +11,18 @@ import {
   type Vec3,
 } from "open-anatomy-3d";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import styles from "./BodyScene.module.css";
+
+// The GLB now uses EXT_meshopt_compression (added in commit bcf45cb), which three's
+// GLTFLoader cannot decode unless a meshopt decoder is registered. Without this the
+// model throws during load and the SceneBoundary fallback is shown ("body 3D not visible").
+try {
+  (GLTFLoader as unknown as { setMeshoptDecoder: (d: unknown) => void }).setMeshoptDecoder(MeshoptDecoder);
+} catch {
+  // ignore — decoder may already be set
+}
 import { structureKeyForMesh, type LayerMap } from "../model/layers";
 import { materialSpec, selectedSpec, type MaterialSpec } from "../model/materials";
 import { OrganFocus } from "./OrganFocus";

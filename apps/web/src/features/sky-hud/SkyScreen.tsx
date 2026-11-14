@@ -16,7 +16,8 @@ import { SkyOrb } from "./SkyOrb";
 import { VoiceWaveform } from "./VoiceWaveform";
 import { InputSurface } from "./InputSurface";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
-import { BodyMapOverlay } from "../body-map";
+import { Link } from "@tanstack/react-router";
+import { AstronautPicker, ASTRONAUT_STORAGE_KEY, findAstronaut } from "../astronaut";
 import type { VitalKind, VoicePhase } from "./types";
 
 const PHASE_TEXT: Record<VoicePhase, string> = {
@@ -59,12 +60,28 @@ const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 export function SkyScreen() {
   const [hint, setHint] = useState(PHASE_TEXT.idle);
   const mounted = useMounted();
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      const stored = window.localStorage.getItem(ASTRONAUT_STORAGE_KEY);
+      const astro = findAstronaut(stored);
+      if (astro) {
+        setAstronautId(astro.id);
+        setGreeting(`Good morning, ${astro.name.split(" ")[0]}.`);
+      } else {
+        setPickerOpen(true);
+      }
+    } catch {
+      setPickerOpen(true);
+    }
+  }, [mounted]);
   const reduce = useReducedMotion();
   const fx = mounted && !reduce;
   const [detail, setDetail] = useState<DetailDialogProps | null>(null);
-  const [bodyMapOpen, setBodyMapOpen] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
-  const [greeting, setGreeting] = useState("Good morning, Minh.");
+  const [astronautId, setAstronautId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [greeting, setGreeting] = useState("Good morning.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
   const [announcer, setAnnouncer] = useState("");
   const detailRef = useRef<HTMLDivElement | null>(null);
@@ -94,6 +111,15 @@ export function SkyScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readEnergy]);
+
+  const handleAstronautSelect = useCallback((id: string) => {
+    const astro = findAstronaut(id);
+    if (!astro) return;
+    try { window.localStorage.setItem(ASTRONAUT_STORAGE_KEY, id); } catch { /* ignore */ }
+    setAstronautId(astro.id);
+    setGreeting(`Good morning, ${astro.name.split(" ")[0]}.`);
+    setPickerOpen(false);
+  }, []);
 
   const openDetail = useCallback(({ title, value, message, eyebrow = "SIMULATED DATA", footer = DEFAULT_FOOTER }: DetailDialogProps) => {
     previousFocus.current = document.activeElement;
@@ -148,6 +174,9 @@ export function SkyScreen() {
             <span className="brand-name"><DepthText text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
             <span className="brand-tagline"><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12} intensity={0.4}>Astronaut Wellness</ShinyText></span>
           </span>
+        </button>
+        <button type="button" aria-label="Change astronaut" onClick={() => setPickerOpen(true)} style={{ marginLeft: 8, color: "#9bb0c8", background: "transparent", border: 0, cursor: "pointer" }}>
+          Change astronaut
         </button>
         <button className="mission-trigger" type="button" aria-label="Mission information" onClick={() => openDetail({ ...DETAILS.mission, footer: DEFAULT_FOOTER })}>
           <span className="station-icon" aria-hidden="true">
@@ -206,7 +235,7 @@ export function SkyScreen() {
       {/* Health projection */}
       <section className="health-projection" aria-label="Health summary, simulated data">
         <div className="health-shield" aria-hidden="true" />
-        <button id="hologramButton" className="hologram-button" type="button" aria-label="View simulated body health details" onClick={() => setBodyMapOpen(true)}>
+        <Link id="hologramButton" to="/body" className="hologram-button" aria-label="View simulated body health details">
           <svg className="human-hologram" viewBox="0 0 130 236" role="img" aria-label="Glowing holographic human silhouette">
             <defs>
               <linearGradient id="bodyFill" x1="0" x2="1"><stop stopColor="#80e9ff" stopOpacity=".16" /><stop offset=".48" stopColor="#e5ffff" stopOpacity=".24" /><stop offset="1" stopColor="#65c9ff" stopOpacity=".12" /></linearGradient>
@@ -221,7 +250,7 @@ export function SkyScreen() {
             </g>
             <use href="#humanShape" fill="none" stroke="#a0eeff" strokeWidth="3.5" opacity=".65" filter="url(#bodyGlow)" />
           </svg>
-        </button>
+        </Link>
         <button type="button" id="healthButton" className="health-summary" aria-label="View simulated overall health assessment" onClick={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}>
           <span className="health-label">Overall</span>
           <strong><GradientText colors={["#7fe9c9","#5ee6ff","#7fe9c9"]} animationSpeed={3} pointerEvents="none">Stable</GradientText></strong>
@@ -267,7 +296,9 @@ export function SkyScreen() {
         </form>
       ) : null}
 
-      <BodyMapOverlay open={bodyMapOpen} onClose={() => setBodyMapOpen(false)} />
+      {mounted && pickerOpen ? (
+        <AstronautPicker open onSelect={handleAstronautSelect} />
+      ) : null}
       <div className="sr-only" role="status" aria-live="polite">{announcer}</div>
     </main>
   );
