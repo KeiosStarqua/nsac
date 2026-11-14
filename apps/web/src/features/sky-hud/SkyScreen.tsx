@@ -182,8 +182,13 @@ export function SkyScreen() {
 
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
-      {bg === "light-tunnel" ? <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true"><LightTunnel /></div> : null}
-      <SpaceArt />
+      {bg === "light-tunnel" ? (
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
+          <LightTunnel cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
+        </div>
+      ) : (
+        <SpaceArt />
+      )}
       <div className="space-vignette" aria-hidden="true" />
 
       {/* Header */}
