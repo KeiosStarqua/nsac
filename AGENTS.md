@@ -84,7 +84,8 @@ Default section order:
 
 ### Spawn OpenCode agent (Keios, 2026-11-14)
 - **Agent xong việc thì commit + merge + clear** (user 2026-11-14): agent hc/OpenCode idle → merge kết quả vào `main`, commit, rồi `hc kill` + `hc rm` và dọn worktree — không để agent idle treo lại.
-- **Luôn spawn agent viết code bằng hc CLI** (Keios, 2026-11-14): mọi việc code (implementer, reviewer, port UI, refactor…) đều giao cho agent tạo bằng `hc run --bg --name nsac-<slug> --label project=nsac … opencode --prompt "$(cat /tmp/opencode/<task>.md)"`; đọc manual bằng `hc --skill` trước khi dùng. Không dùng built-in subagent tool để viết code, không tự sửa code thay agent trừ khi đó là việc một dòng (typo, doc) hoặc đang verify/fix kết quả agent trả về.
+- **Luôn spawn agent viết code bằng hc CLI** (Keios, 2026-11-14): mọi việc code (implementer, reviewer, port UI, refactor, fix…) phải chạy trên agent do **`hc run`** tạo — `hc run --bg --outlive-parent --name nsac-<slug> --label project=nsac … opencode --prompt "$(cat /tmp/opencode/<task>.md>"`; đọc `hc --skill` trước khi dùng. Không dùng built-in subagent tool, không tự viết/sửa feature code trong chat — chat chỉ verify, review, merge, deploy, và sửa lỗi một dòng (typo, doc, config).
+- **`--outlive-parent` là bắt buộc** (Keios, 2026-11-14): không có flag này, terminal con bị SIGTERM khi lượt chat của parent kết thúc → agent chết giữa việc (exit 143, file dở dang, commit thiếu). Đã trả giá 2026-11-14 với body-map/agent-core. Nếu agent chết giữa việc: `hc read` xem còn gì, rồi spawn lại agent mới với brief nêu rõ trạng thái hiện tại, đừng tự viết tiếp.
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
