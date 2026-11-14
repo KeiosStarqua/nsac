@@ -130,6 +130,10 @@ Challenge: **Create Health Monitoring Software for Astronauts on Space Missions*
 - Offline: embedding model riêng cho Chroma, tải sẵn model Docling, Pango cho WeasyPrint trên Mac.
 - Benchmark tốc độ model trên laptop demo trước 14/11 (test generic).
 
+### Agent architecture (Sky)
+
+- Orchestrator `sky-orchestrator` carries the SOUL identity Sky; specialists such as `sky-generative-ui` (OpenUI spec generator) live alongside. Code: `apps/web/src/features/agent/` (deep module). Adding an agent is a profile file + one registry line + one test row. Server-only PI SDK boundary; no new dependencies.
+
 ### NASA research
 
 This repo maps NASA public data and APIs so future NASA hackathons and contests can start from checked sources.
