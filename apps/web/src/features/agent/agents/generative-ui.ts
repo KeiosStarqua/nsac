@@ -1,4 +1,5 @@
 import { skySoul } from "../soul";
+import { REACT_BITS_NAMES } from "../catalog/library";
 import type { AgentProfile, AgentContext } from "./types";
 
 export const generativeUi: AgentProfile = {
@@ -23,7 +24,7 @@ export const generativeUi: AgentProfile = {
       `Request: ${ctx.request}`,
     ].join("\n");
   },
-  output: { kind: "openui-program", maxChars: 4000, allowList: [] },
+  output: { kind: "openui-program", maxChars: 4000, allowList: REACT_BITS_NAMES },
   tools: [],
   handoff: [],
   maxSteps: 2,

@@ -10,3 +10,4 @@ export { runAgent, setSessionFactory } from "./runtime/run.server";
 export type { RunResult, RunStatus } from "./runtime/run.server";
 export { askSky } from "./runtime/orchestrator.server";
 export type { DispatchResult } from "./runtime/orchestrator.server";
+export { reactBitsLibrary, REACT_BITS_NAMES } from "./catalog/library";
