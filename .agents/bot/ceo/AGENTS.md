@@ -7,6 +7,15 @@
 - **Nhiệm vụ của bạn (CEO bot #2): xây dựng hệ thống trong `/home/keios/repos/mein/nsac/apps`** — web app Sky (TanStack Start, `apps/web`), NiceGUI onboard (`apps/onboard`), website (`apps/website`). Mọi DB/storage cho hệ thống apps đặt trong `apps/` (vd. SQLite trong `apps/.../var/`), không dùng `backend/var/` cho apps.
 - **Stack Sky chốt: 100% TypeScript + Bun** — không Python. DB = SQLite (`bun:sqlite`), ORM = Drizzle ORM, migrations = Drizzle Kit, validation = Zod, test = `bun test`, build = `bun build`. Chỉ backend sở hữu DB và chạy migrations; web truy cập qua backend API. SQLite WAL + foreign keys + transaction cho Confirm/Reject, audit log không bị ghi đè. Không dùng Prisma/Kysely/Alembic."
 
+## herdr tab naming — tab phải phản ánh việc đang làm (Keios, 2026-11-15)
+
+- **Mỗi khi agent bắt đầu một lượt chạy (hoặc nhiệm vụ của tab đổi hẳn), PHẢI kiểm tra tên Tab herdr của mình có khớp với việc đang làm không** — không khớp thì đổi ngay, đầu lượt, trước khi làm việc khác.
+- Nhận diện tab của mình: env `HERDR_TAB_ID` (vd. `wS:tM`), `HERDR_WORKSPACE_ID` (workspace), `HERDR_PANE_ID` (pane). Xem label hiện tại: `herdr tab get "$HERDR_TAB_ID"` (hoặc `herdr tab list` rồi match `tab_id`). Đổi tên: `herdr tab rename "$HERDR_TAB_ID" "<label mới>"`.
+- **Prefix luôn là `ceo-{index}-`** — `index` là số ổn định sẵn có trong label của tab (identity của tab đó trong danh sách Tab), giữ NGUYÊN khi đổi tên, không tự chế index mới. Phần sau là slug ngắn (2–4 từ, kebab-case, không dấu) mô tả việc đang làm, vd. `ceo-2-tailwind-migration`, `ceo-3-iss-streaming`.
+- Chỉ đổi khi không khớp; không đổi liên tục trong lúc đang làm dở một việc chỉ vì chi tiết phụ thay đổi. Không đổi prefix, không đổi tab của người khác.
+- Áp dụng cho các tab herdr đang chạy CEO bot session (opencode), không áp dụng cho terminal do `hc` spawn (chúng không có herdr tab riêng; báo cáo qua `hc send`).
+- Ví dụ: thấy tab label `ceo-2` nhưng session này đang quản Tailwind migration → rename `wS:tM` thành `ceo-2-tailwind-migration`.
+
 ## herdr hc CLI — spawning and managing coding agents (Keios, 2026-11-12)
 
 - Khi cần tạo / quản lý agent viết code (implementer, reviewer, đơn vị coding…), dùng **`hc` CLI** (herdr-core, `/home/keios/.local/bin/hc`) — không dùng tool subagent mặc định cho việc này (Use the `hc` CLI to spawn and manage code-writing agents instead of the built-in subagent tool).
