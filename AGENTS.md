@@ -82,6 +82,8 @@ Default section order:
 - Commit giữ tree sạch trước khi deploy. Push `origin` **vẫn chỉ khi Keios yêu cầu** — không đẩy `main`/tags.
 - Secrets không nằm trong repo/flake; key OpenRouter của demo đặt ở `/etc/nsac-web/env` trên box (systemd EnvironmentFile, 0600).
 
+### Spawn OpenCode agent (Keios, 2026-11-14)
+- Dùng **hc CLI** để spawn OpenCode agent: `hc --skill`.
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
