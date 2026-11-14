@@ -36,6 +36,12 @@ export const en: Copy = {
     timeout: "Sky did not answer in time. Try again.",
     unavailable: "Sky could not answer. Try again.",
     footer: "Demonstration only · Not medical advice",
+    title: "Message Sky",
+    subtitle: "Ask about how you feel, sleep, training, or your simulated readings.",
+    reset: "Clear this conversation",
+    emptyTitle: "What should we look at?",
+    emptyDescription: "Sky answers with a short reply you can act on. Nothing is sent to the ground here.",
+    thinkingDetail: "Reviewing your message against the crew's simulated readings.",
   },
   watch: {
     simulated: "SIMULATED",

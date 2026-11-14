@@ -35,6 +35,16 @@ export interface Copy {
     timeout: string;
     unavailable: string;
     footer: string;
+    /** `/` chat overlay header (`features/sky-hud/components/SkyChatPanel.tsx`). */
+    title: string;
+    /** `/` chat overlay subtitle — what the person can ask about. */
+    subtitle: string;
+    /** Icon button that clears the transcript client-side. */
+    reset: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    /** Body of the pending trace row under `thinking`. */
+    thinkingDetail: string;
   };
   /** ≤480px watch layout: crew chip, tile labels, pager screens, tiny print. */
   watch: {

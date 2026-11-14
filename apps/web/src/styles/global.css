@@ -7,6 +7,34 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
+/* Semantic shadcn/ui names → Sky's palette, so the hand-vendored AI Elements components
+   (`src/shared/ai-elements/`) can use the classes they were written against (`bg-background`,
+   `text-muted-foreground`, `border-border`, `bg-muted`, `ring-ring`, …) instead of a shadcn theme.
+   `inline` keeps the value as `var(--sky-*)` at the use site, so nothing is frozen at build time.
+   The radius scale is deliberately NOT overridden: Tailwind's default `--radius-*` values are what
+   the already-migrated Tailwind screens (body-map, spacecraft) were tuned against. */
+@theme inline {
+  --color-background: var(--sky-bg);
+  --color-foreground: var(--sky-text);
+  --color-card: var(--sky-surface);
+  --color-card-foreground: var(--sky-text);
+  --color-popover: var(--sky-surface);
+  --color-popover-foreground: var(--sky-text);
+  --color-primary: var(--sky-accent);
+  --color-primary-foreground: var(--sky-accent-ink);
+  --color-secondary: var(--sky-surface-2);
+  --color-secondary-foreground: var(--sky-text);
+  --color-muted: var(--sky-surface-2);
+  --color-muted-foreground: var(--sky-muted);
+  --color-accent: var(--sky-accent);
+  --color-accent-foreground: var(--sky-accent-ink);
+  --color-destructive: var(--sky-red);
+  --color-destructive-foreground: var(--sky-bg);
+  --color-border: var(--sky-border);
+  --color-input: var(--sky-surface-2);
+  --color-ring: var(--sky-accent);
+}
+
 :root {
   /* Sky's palette. The --sky-* names hold the raw values and the short names below are what the app
      stylesheets use. Arc's token bridge needs the raw values: Arc also defines --surface, --border

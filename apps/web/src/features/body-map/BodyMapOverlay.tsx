@@ -18,6 +18,12 @@ const BodyScene = lazy(() =>
 export interface BodyMapOverlayProps {
   readonly open: boolean;
   readonly onClose: () => void;
+  /**
+   * `overlay` — the HUD glass panel (header, structure card, footer). `page` —
+   * the `/body` route: the canvas covers the viewport, only the floating
+   * "Body systems" rail and one attribution line stay.
+   */
+  readonly variant?: "overlay" | "page";
 }
 
 function webglAvailable(): boolean {
@@ -40,7 +46,11 @@ function webglAvailable(): boolean {
  * heading's letter-spacing, a button's font-size, the focus-visible radius, a
  * paragraph's margin) carries `!` to keep the pre-migration rendering.
  */
-export function BodyMapOverlay({ open, onClose }: BodyMapOverlayProps) {
+export function BodyMapOverlay({
+  open,
+  onClose,
+  variant = "overlay",
+}: BodyMapOverlayProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerMap>(DEFAULT_LAYERS);
   const [supported, setSupported] = useState<boolean | null>(null);
@@ -73,6 +83,76 @@ export function BodyMapOverlay({ open, onClose }: BodyMapOverlayProps) {
   }, [open, close]);
 
   if (!open) return null;
+
+  // The scene subtree both variants share: the 3D canvas, its preparation state
+  // and the WebGL/GLB fallbacks. Nothing else lives in here.
+  const scene = (
+    <>
+      {supported === null ? (
+        <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
+          Preparing the hologram…
+        </p>
+      ) : (
+        <Suspense
+          fallback={
+            <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
+              Preparing the hologram…
+            </p>
+          }
+        >
+          <BodyScene
+            webglAvailable={supported}
+            selected={selected}
+            onSelect={setSelected}
+            layers={layers}
+            reducedMotion={reducedMotion}
+            paused={paused}
+          />
+        </Suspense>
+      )}
+    </>
+  );
+
+  if (variant === "page") {
+    return (
+      <div
+        ref={dialogRef}
+        className="fixed inset-0 z-[1000] overflow-hidden bg-(--bg) text-(--text)"
+        role="main"
+        aria-labelledby="body-map-title"
+        tabIndex={-1}
+      >
+        <h1 id="body-map-title" className="sr-only">
+          Body hologram
+        </h1>
+
+        {/* The canvas owns the viewport: the panel's #050c16 radial, no frame. */}
+        <div className="absolute inset-0 overflow-hidden rounded-none border-0 [background:radial-gradient(80%_70%_at_50%_18%,color-mix(in_srgb,var(--surface)_48%,transparent),transparent_70%),#050c16] [box-shadow:inset_0_0_90px_rgba(0,0,0,0.45)]">
+          {scene}
+        </div>
+
+        {/* "Body systems" rides over the canvas: right and centred on desktop, a
+            bottom row under 900px (the rail itself wraps; see LayerRail). */}
+        <div className="absolute top-1/2 right-[clamp(14px,2vw,28px)] z-10 w-[248px] -translate-y-1/2 max-[900px]:inset-x-[12px] max-[900px]:top-auto max-[900px]:bottom-[12px] max-[900px]:w-auto max-[900px]:translate-y-0">
+          <LayerRail layers={layers} setLayers={setLayers} />
+        </div>
+
+        {/* CC BY 4.0: the attribution stays wherever the model appears. */}
+        <p className="pointer-events-none absolute bottom-[10px] left-[14px] z-10 m-0 max-w-[min(160ch,calc(100%_-_28px))] text-[10px] leading-[1.5] text-(--muted) opacity-[0.72] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)] max-[900px]:bottom-auto max-[900px]:top-[12px] max-[900px]:left-[12px]">
+          {ATTRIBUTION} Model licence:{" "}
+          <a
+            className="pointer-events-auto border-b border-b-(--accent)/40 text-(--accent) no-underline hover:text-(--text)!"
+            href="https://creativecommons.org/licenses/by/4.0/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+          </a>
+          . Simulated data, not for diagnosis.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -111,28 +191,7 @@ export function BodyMapOverlay({ open, onClose }: BodyMapOverlayProps) {
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_248px] gap-[clamp(12px,1.4vw,18px)] max-[900px]:grid-cols-[minmax(0,1fr)] max-[900px]:grid-rows-[minmax(0,1fr)_auto]">
         <div className="relative min-h-0 overflow-hidden rounded-(--radius) border border-(--accent)/22 [background:radial-gradient(80%_70%_at_50%_18%,color-mix(in_srgb,var(--surface)_48%,transparent),transparent_70%),#050c16] [box-shadow:inset_0_0_90px_rgba(0,0,0,0.45)] max-[900px]:min-h-[54vh]">
-          {supported === null ? (
-            <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
-              Preparing the hologram…
-            </p>
-          ) : (
-            <Suspense
-              fallback={
-                <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
-                  Preparing the hologram…
-                </p>
-              }
-            >
-              <BodyScene
-                webglAvailable={supported}
-                selected={selected}
-                onSelect={setSelected}
-                layers={layers}
-                reducedMotion={reducedMotion}
-                paused={paused}
-              />
-            </Suspense>
-          )}
+          {scene}
           {selected ? <StructureCard selected={selected} onClear={() => setSelected(null)} /> : null}
         </div>
 
