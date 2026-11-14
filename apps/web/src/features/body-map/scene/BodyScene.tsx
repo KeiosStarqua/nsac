@@ -22,6 +22,7 @@ try {
 } catch {
   // ignore — decoder may already be set
 }
+import { flattenPubis, isPubisMesh, shouldHidePenis } from "../model/genitalia";
 import { structureKeyForMesh, type LayerMap } from "../model/layers";
 import { materialSpec, selectedSpec, type MaterialSpec } from "../model/materials";
 import { OrganFocus } from "./OrganFocus";
@@ -50,6 +51,8 @@ interface MeshEntry {
 interface PreparedModel {
   readonly object: THREE.Group;
   readonly entries: MeshEntry[];
+  /** Geometries cloned for the pubic flatten, disposed when the model unmounts. */
+  readonly cloned: THREE.BufferGeometry[];
 }
 
 function toMaterial(spec: MaterialSpec): THREE.MeshStandardMaterial {
@@ -66,12 +69,54 @@ function toMaterial(spec: MaterialSpec): THREE.MeshStandardMaterial {
   });
 }
 
+/**
+ * Press the skin's genital bulge back onto the pubic plane, in world space, on
+ * a geometry of our own. Nothing is deleted (a cut would leave a hole in the
+ * body shell) and the GLB is never written: the cached source geometry stays
+ * pristine, so a remount always starts from the original shape.
+ *
+ * The asset's POSITION and NORMAL are normalized integer attributes, so both
+ * are replaced with float32 copies before writing and recomputing normals.
+ */
+function flattenPubisGeometry(mesh: THREE.Mesh): THREE.BufferGeometry {
+  const geometry = mesh.geometry.clone();
+  const position = geometry.getAttribute("position");
+  const count = position.count;
+  const points = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    points[i * 3] = position.getX(i);
+    points[i * 3 + 1] = position.getY(i);
+    points[i * 3 + 2] = position.getZ(i);
+  }
+
+  mesh.updateWorldMatrix(true, false);
+  const world = mesh.matrixWorld.clone();
+  const inverse = world.clone().invert();
+  const point = new THREE.Vector3();
+  for (let i = 0; i < count; i++) {
+    point.fromArray(points, i * 3).applyMatrix4(world);
+    const [x, y, z] = flattenPubis([point.x, point.y, point.z]);
+    if (x === point.x && y === point.y && z === point.z) continue;
+    point.set(x, y, z).applyMatrix4(inverse).toArray(points, i * 3);
+  }
+
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
+  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(new Float32Array(count * 3), 3));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 /** Clone once; materials are applied per selection in an effect. */
 function prepareModel(source: THREE.Group): PreparedModel {
   const object = source.clone(true);
   const entries: MeshEntry[] = [];
+  const cloned: THREE.BufferGeometry[] = [];
   object.traverse((node) => {
     if (!(node instanceof THREE.Mesh)) return;
+    if (isPubisMesh(node.name)) {
+      node.geometry = flattenPubisGeometry(node);
+      cloned.push(node.geometry);
+    }
     const key = structureKeyForMesh(node.name);
     const structure = key ? getStructure(key) : undefined;
     entries.push({
@@ -81,7 +126,7 @@ function prepareModel(source: THREE.Group): PreparedModel {
       category: structure?.category,
     });
   });
-  return { object, entries };
+  return { object, entries, cloned };
 }
 
 const JOINT_HOTSPOTS: ReadonlyArray<{
@@ -144,9 +189,17 @@ function BodyModel({
 
   useEffect(() => {
     for (const entry of prepared.entries) {
-      entry.mesh.visible = entry.system ? layers[entry.system] : true;
+      // `shouldHidePenis` wins over the rail: the genital mesh never appears.
+      entry.mesh.visible = !shouldHidePenis(entry.mesh.name) && (entry.system ? layers[entry.system] : true);
     }
   }, [prepared, layers]);
+
+  useEffect(() => {
+    const geometries = prepared.cloned;
+    return () => {
+      for (const geometry of geometries) geometry.dispose();
+    };
+  }, [prepared]);
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
