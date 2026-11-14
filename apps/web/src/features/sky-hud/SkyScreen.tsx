@@ -4,6 +4,7 @@ import "./hud-screen.css";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import BlurText from "../../shared/react-bits/BlurText/BlurText";
+import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import CountUp from "../../shared/react-bits/CountUp/CountUp";
 import DepthText from "../../shared/react-bits/DepthText/DepthText";
 import ShinyText from "../../shared/react-bits/ShinyText/ShinyText";
@@ -55,8 +56,8 @@ interface DetailDialogProps {
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
 /**
- * SKY — Astronaut Wellness. React port of the original single-file demo: an original procedural
- * scene, a transparent WebGL orb, local Web Audio microphone analysis, SVG waveform and fixture data.
+ * SKY — Astronaut Wellness. React port of the original single-file demo: local motion-design plates
+ * plus the WebGL orb, local Web Audio microphone analysis, SVG waveform and fixture data.
  * No network, no storage, no medical services. See SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md.
  */
 export function SkyScreen() {
@@ -88,6 +89,18 @@ export function SkyScreen() {
   const [greeting, setGreeting] = useState("Good morning.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
   const [announcer, setAnnouncer] = useState("");
+  const [bg, setBg] = useState("light-tunnel");
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get("bg");
+      const fromStorage = window.localStorage.getItem("nsac.bg");
+      const chosen = fromUrl ?? fromStorage ?? "light-tunnel";
+      setBg(chosen);
+      if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
+    } catch { /* ignore */ }
+  }, [mounted]);
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
@@ -175,6 +188,7 @@ export function SkyScreen() {
 
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
+      {bg === "light-tunnel" ? <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true"><LightTunnel /></div> : null}
       <SpaceArt />
       <div className="space-vignette" aria-hidden="true" />
 
@@ -221,7 +235,7 @@ export function SkyScreen() {
 
       {/* Vitals projection */}
       <section className="vitals-projection" aria-label="Sample physiological readings">
-        <div className="vitals-shield" aria-hidden="true" />
+        <div className="vitals-shield" aria-hidden="true"><img className="plate" src="/sky/motion/shield.png" alt="" /></div>
         <button className="vital" type="button" aria-label="Heart rate, demo value 62 beats per minute" onClick={() => openDetail({ ...VITAL_DETAILS.heartRate, footer: DEFAULT_FOOTER })}>
           <span className="vital-icon" aria-hidden="true">
             <svg viewBox="0 0 56 56" fill="none"><path d="M28 43 15.5 30.7C5.5 20.6 20.3 9.2 28 21c7.7-11.8 22.5-.4 12.5 9.7L28 43Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" /></svg>
@@ -249,7 +263,7 @@ export function SkyScreen() {
 
       {/* Conversation */}
       <section className="conversation" aria-label="SKY conversation">
-        <div className="conversation-lens" aria-hidden="true"><div className="lens-inner" /></div>
+        <div className="conversation-lens" aria-hidden="true"><img className="plate lens-plate" src="/sky/motion/lens.png" alt="" /><div className="lens-inner" /></div>
         <div className="orb-zone" aria-hidden="true"><div className="orb-css-fallback" /><SkyOrb phase={phase} energyRef={energyRef} /></div>
         <div className="conversation-copy" ref={conversationCopyRef}>
           <h1 id="greeting">{fx ? <BlurText text={greeting} animationFrom={{filter:"blur(10px)",opacity:0}} animationTo={[{filter:"blur(0px)",opacity:1}]} color="#ecf7ff" easing="easeOut" /> : greeting}</h1>
@@ -263,22 +277,9 @@ export function SkyScreen() {
 
       {/* Health projection */}
       <section className="health-projection" aria-label="Health summary, simulated data">
-        <div className="health-shield" aria-hidden="true" />
+        <div className="health-shield" aria-hidden="true"><img className="plate shield-mirror" src="/sky/motion/shield.png" alt="" /></div>
         <Link id="hologramButton" to="/body" className="hologram-button" aria-label="View simulated body health details">
-          <svg className="human-hologram" viewBox="0 0 130 236" role="img" aria-label="Glowing holographic human silhouette">
-            <defs>
-              <linearGradient id="bodyFill" x1="0" x2="1"><stop stopColor="#80e9ff" stopOpacity=".16" /><stop offset=".48" stopColor="#e5ffff" stopOpacity=".24" /><stop offset="1" stopColor="#65c9ff" stopOpacity=".12" /></linearGradient>
-              <linearGradient id="bodyStroke" x1="0" y1="0" x2=".8" y2="1"><stop stopColor="#d5faff" /><stop offset=".5" stopColor="#67d9ff" /><stop offset="1" stopColor="#71b8ff" /></linearGradient>
-              <radialGradient id="chestPulse"><stop stopColor="#ffe0a0" stopOpacity=".9" /><stop offset=".3" stopColor="#ffc27f" stopOpacity=".4" /><stop offset="1" stopColor="#ffbe8f" stopOpacity="0" /></radialGradient>
-              <filter id="bodyGlow"><feGaussianBlur stdDeviation="3" /></filter>
-            </defs>
-            <g className="human-figure">
-              <path id="humanShape" d="M66 17c-9 0-13 8-11 18 1 7 3 10 6 12v10c-9 3-20 5-26 13-4 6-7 23-11 43l-7 29c-3 11-1 17 3 18 4 1 6-5 7-13l10-29 5-26-1 39c0 14 1 25 4 37l4 44 2 30c1 6 5 8 9 6l5-43 5-46 6 46 3 43c5 3 9 0 9-7l4-33 3-40 2-39-1-39 6 25 9 29c2 10 5 16 9 13 4-2 3-10 0-19l-8-31c-5-22-6-34-11-39-7-8-17-10-26-13V47c4-4 6-10 6-16 0-10-5-14-15-14Z" fill="url(#bodyFill)" stroke="url(#bodyStroke)" strokeWidth="1.6" strokeLinejoin="round" />
-              <path d="M65 57 65 103m-25-11c6 6 16 10 25 9 11 1 21-3 27-9M50 154c8 2 23 2 32 0m-16-51v52" stroke="#a8f7ff" opacity=".4" fill="none" />
-              <ellipse cx="66" cy="96" rx="29" ry="38" fill="url(#chestPulse)" className="chest-glow" />
-            </g>
-            <use href="#humanShape" fill="none" stroke="#a0eeff" strokeWidth="3.5" opacity=".65" filter="url(#bodyGlow)" />
-          </svg>
+          <img className="holo-plate" src="/sky/motion/holo.png" alt="" />
         </Link>
         <button type="button" id="healthButton" className="health-summary" aria-label="View simulated overall health assessment" onClick={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}>
           <span className="health-label">Overall</span>
@@ -302,6 +303,7 @@ export function SkyScreen() {
       {detail ? (
         <div className="detail-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className="detail-glass" tabIndex={-1} ref={detailRef}>
+            <img className="glass-plate" src="/sky/motion/glass.png" alt="" />
             <button type="button" id="detailClose" className="detail-close" aria-label="Close details" onClick={closeDetail}>×</button>
             <div id="detailEyebrow" className="detail-eyebrow">{detail.eyebrow}</div>
             <h2 id="detailTitle">{detail.title}</h2>
