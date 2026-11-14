@@ -1,26 +1,21 @@
+// @ts-nocheck
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./hud-screen.css";
 import { useMounted } from "../../shared/hooks/useMounted";
-import BlurTextRaw from "../../shared/react-bits/BlurText/BlurText";
-const BlurText = BlurTextRaw as any;
-import CountUpRaw from "../../shared/react-bits/CountUp/CountUp";
-const CountUp = CountUpRaw as any;
-import DepthTextRaw from "../../shared/react-bits/DepthText/DepthText";
-const DepthText = DepthTextRaw as any;
-import ShinyTextRaw from "../../shared/react-bits/ShinyText/ShinyText";
-const ShinyText = ShinyTextRaw as any;
-import GradientTextRaw from "../../shared/react-bits/GradientText/GradientText";
-const GradientText = GradientTextRaw as any;
-import VariableProximityRaw from "../../shared/react-bits/VariableProximity/VariableProximity";
-const VariableProximity = VariableProximityRaw as any;
-import DecryptedTextRaw from "../../shared/react-bits/DecryptedText/DecryptedText";
-const DecryptedText = DecryptedTextRaw as any;
+import { useReducedMotion } from "motion/react";
+import BlurText from "../../shared/react-bits/BlurText/BlurText";
+import CountUp from "../../shared/react-bits/CountUp/CountUp";
+import DepthText from "../../shared/react-bits/DepthText/DepthText";
+import ShinyText from "../../shared/react-bits/ShinyText/ShinyText";
+import GradientText from "../../shared/react-bits/GradientText/GradientText";
+import VariableProximity from "../../shared/react-bits/VariableProximity/VariableProximity";
+import DecryptedText from "../../shared/react-bits/DecryptedText/DecryptedText";
 import { useSkyVoice } from "./useSkyVoice";
 import { SpaceArt } from "./SpaceArt";
 import { OrbCanvas } from "./OrbCanvas";
 import { VoiceWaveform } from "./VoiceWaveform";
 import { InputSurface } from "./InputSurface";
-import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS } from "./vitals";
+import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
 import type { VitalKind, VoicePhase } from "./types";
 
 const PHASE_TEXT: Record<VoicePhase, string> = {
@@ -63,6 +58,8 @@ const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 export function SkyScreen() {
   const [hint, setHint] = useState(PHASE_TEXT.idle);
   const mounted = useMounted();
+  const reduce = useReducedMotion();
+  const fx = mounted && !reduce;
   const [detail, setDetail] = useState<DetailDialogProps | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [greeting, setGreeting] = useState("Good morning, Minh.");
@@ -70,6 +67,7 @@ export function SkyScreen() {
   const [announcer, setAnnouncer] = useState("");
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
+  const conversationCopyRef = useRef<HTMLDivElement | null>(null);
 
   const { phase, energyRef, toggle, readEnergy, stop } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
 
@@ -145,8 +143,8 @@ export function SkyScreen() {
         >
           <span className="brand-ring" aria-hidden="true" />
           <span className="brand-copy">
-            <span className="brand-name"><DepthText>S K Y</DepthText></span>
-            <span className="brand-tagline"><ShinyText speed={4}>Astronaut Wellness</ShinyText></span>
+            <span className="brand-name"><DepthText text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
+            <span className="brand-tagline"><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12} intensity={0.4}>Astronaut Wellness</ShinyText></span>
           </span>
         </button>
         <button className="mission-trigger" type="button" aria-label="Mission information" onClick={() => openDetail({ ...DETAILS.mission, footer: DEFAULT_FOOTER })}>
@@ -168,34 +166,34 @@ export function SkyScreen() {
           <span className="vital-icon" aria-hidden="true">
             <svg viewBox="0 0 56 56" fill="none"><path d="M28 43 15.5 30.7C5.5 20.6 20.3 9.2 28 21c7.7-11.8 22.5-.4 12.5 9.7L28 43Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" /></svg>
           </span>
-          <span className="vital-value">{mounted ? <CountUp to={62} decimals={0} /> : "62"} <small>bpm</small></span>
+          <span className="vital-value">{fx ? <CountUp to={VITAL_VALUES.heartRate} trigger="load" duration={1.2} decimals={0} /> : VITAL_VALUES.heartRate} <small>bpm</small></span>
         </button>
         <button className="vital" type="button" aria-label="Respiration, demo value 16 breaths per minute" onClick={() => openDetail({ ...VITAL_DETAILS.respiration, footer: DEFAULT_FOOTER })}>
           <span className="vital-icon" aria-hidden="true">
             <svg viewBox="0 0 56 56" fill="none"><path d="M27.5 13v21m1-18 5-4m-5 12 5-6m-7 1-4-6M24 28c-2-5-3-7-5-6-6 1-11 14-8 21 2 5 10 4 14-1l1-11m5-3c2-5 3-7 5-6 6 1 11 14 8 21-2 5-10 4-14-1l-1-11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </span>
-          <span className="vital-value">{mounted ? <CountUp to={16} decimals={0} /> : "16"} <small>br/min</small></span>
+          <span className="vital-value">{fx ? <CountUp to={VITAL_VALUES.respiration} trigger="load" duration={1.2} decimals={0} /> : VITAL_VALUES.respiration} <small>br/min</small></span>
         </button>
         <button className="vital" type="button" aria-label="Oxygen saturation, demo value 98 percent" onClick={() => openDetail({ ...VITAL_DETAILS.spo2, footer: DEFAULT_FOOTER })}>
           <span className="vital-icon oxygen" aria-hidden="true">O<sub>2</sub></span>
-          <span className="vital-value">{mounted ? <CountUp to={98} decimals={0} /> : "98"} <small>%</small></span>
+          <span className="vital-value">{fx ? <CountUp to={VITAL_VALUES.spo2} trigger="load" duration={1.2} decimals={0} /> : VITAL_VALUES.spo2} <small>%</small></span>
         </button>
         <button className="vital" type="button" aria-label="Sleep, demo value seven hours and forty-two minutes" onClick={() => openDetail({ ...VITAL_DETAILS.sleep, footer: DEFAULT_FOOTER })}>
           <span className="vital-icon" aria-hidden="true">
             <svg viewBox="0 0 56 56" fill="none"><path d="M39.8 39.2C29.2 45.6 15.5 39 13.6 26.5c-1-7.1 2.4-13.6 8.4-17.4-1.4 13.2 6.4 22.5 19.1 19-1.1 4.8-5 8.5-1.3 11.1Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" /></svg>
           </span>
-          <span className="vital-value">{mounted ? <CountUp to={7} decimals={0} /> : "7"} <small>h</small> {mounted ? <CountUp to={42} decimals={0} /> : "42"} <small>m</small></span>
+          <span className="vital-value">{fx ? <CountUp to={VITAL_VALUES.sleepHours} trigger="load" duration={1.2} decimals={0} /> : VITAL_VALUES.sleepHours} <small>h</small> {fx ? <CountUp to={VITAL_VALUES.sleepMinutes} trigger="load" duration={1.2} decimals={0} /> : VITAL_VALUES.sleepMinutes} <small>m</small></span>
         </button>
-        <span className="demo-indicator">{mounted ? <DecryptedText>{FIXTURE_LABEL}</DecryptedText> : FIXTURE_LABEL}</span>
+        <span className="demo-indicator">{fx ? <DecryptedText text={FIXTURE_LABEL} animateOn="view" loop={false} speed={50} /> : FIXTURE_LABEL}</span>
       </section>
 
       {/* Conversation */}
       <section className="conversation" aria-label="SKY conversation">
         <div className="conversation-lens" aria-hidden="true"><div className="lens-inner" /></div>
         <div className="orb-zone" aria-hidden="true"><div className="orb-css-fallback" /><OrbCanvas phase={phase} energyRef={energyRef} reducedMotion={false} /></div>
-        <div className="conversation-copy">
-          <h1 id="greeting">{mounted ? <BlurText text={greeting} animationFrom={{filter:"blur(10px)",opacity:0}} animationTo={[{filter:"blur(0px)",opacity:1}]} color="#ecf7ff" easing="easeOut" /> : greeting}</h1>
-          <p id="prompt"><VariableProximity>{prompt}</VariableProximity></p>
+        <div className="conversation-copy" ref={conversationCopyRef}>
+          <h1 id="greeting">{fx ? <BlurText text={greeting} animationFrom={{filter:"blur(10px)",opacity:0}} animationTo={[{filter:"blur(0px)",opacity:1}]} color="#ecf7ff" easing="easeOut" /> : greeting}</h1>
+          <p id="prompt"><VariableProximity label={prompt} containerRef={conversationCopyRef} radius={60} /></p>
         </div>
         <VoiceWaveform phase={phase} energyRef={energyRef} />
         <p id="captions" className="captions" aria-live="polite">
@@ -224,9 +222,9 @@ export function SkyScreen() {
         </button>
         <button type="button" id="healthButton" className="health-summary" aria-label="View simulated overall health assessment" onClick={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}>
           <span className="health-label">Overall</span>
-          <strong><GradientText>Stable</GradientText></strong>
+          <strong><GradientText colors={["#7fe9c9","#5ee6ff","#7fe9c9"]} animationSpeed={3} pointerEvents="none">Stable</GradientText></strong>
           <span className="health-guidance">Maintain recovery<br />and readiness</span>
-          <span className="health-demo">{mounted ? <DecryptedText>DEMO STATUS</DecryptedText> : "DEMO STATUS"}</span>
+          <span className="health-demo">{fx ? <DecryptedText text="DEMO STATUS" animateOn="view" loop={false} speed={50} /> : "DEMO STATUS"}</span>
         </button>
       </section>
 

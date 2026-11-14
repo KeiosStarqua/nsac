@@ -67,3 +67,5 @@ export const DETAILS = {
 } as const;
 
 export const FIXTURE_LABEL = "SIMULATED TELEMETRY";
+
+export const VITAL_VALUES = { heartRate: 62, respiration: 16, spo2: 98, sleepHours: 7, sleepMinutes: 42 };
