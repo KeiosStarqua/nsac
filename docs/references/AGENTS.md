@@ -26,6 +26,8 @@ Không có framework riêng; đối chiếu với README HKT và OSDR khi nghi n
 
 | File | Nội dung |
 |---|---|
+| `apple-carekit-hig.md` | Digest Apple HIG CareKit (tasks/charts/contacts, privacy, platforms) cho HKT; truy cập 2026-11-14 |
+| `apple-healthkit-hig.md` | Digest Apple HIG HealthKit (privacy, activity rings, Apple Health icon, editorial) cho HKT; truy cập 2026-11-14 |
 | `astronaut-health-metrics-by-system.md` | 17 hệ cơ quan + ghi chú liên tục vs định kỳ |
 | `challenge-health-monitoring-software.md` | Ghi chú đề bài Space Apps 2026 (đề, mục tiêu, gợi ý, ngày Resources, khoảng trống so với kế hoạch); nguồn + ngày kiểm tra 2026-11-02 |
 | `spaceapps-resources-2026/` | Resource links pulled from Space Apps 2026 challenge tab Resources (NASA HRP hazards/risks/research, ASC-CSA articles) |
