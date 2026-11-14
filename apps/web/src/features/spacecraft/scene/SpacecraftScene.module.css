@@ -1,35 +1,25 @@
-/* 3D viewport fallbacks and loading line. The frame around the canvas lives in SpacecraftPage.module.css. */
+/* Canvas + the bare corner percent; the frame around it lives in SpacecraftPage.module.css. */
 .canvas {
   display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
 
 .progress {
   position: absolute;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%);
+  right: clamp(14px, 2vw, 26px);
+  bottom: clamp(14px, 2vh, 24px);
   margin: 0;
-  padding: 8px 18px;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 78%, transparent);
-  color: var(--muted);
+  padding: 0;
   font-family: var(--mono);
   font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.progress strong {
-  color: var(--accent);
-  font-weight: 500;
+  letter-spacing: 0.14em;
   font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--text) 38%, transparent);
+  user-select: none;
+  pointer-events: none;
 }
 
 .fallback {
@@ -38,46 +28,34 @@
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 28px;
   text-align: center;
 }
 
 .fallbackTitle {
   margin: 0;
-  font-size: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   font-weight: 400;
-  color: var(--text);
-}
-
-.fallbackDetail {
-  margin: 0;
-  max-width: 46ch;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--muted) 85%, transparent);
 }
 
 .retry {
-  margin-top: 4px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  margin-top: 2px;
+  border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
   border-radius: 999px;
   background: transparent;
-  color: var(--accent);
-  padding: 7px 16px;
+  color: color-mix(in srgb, var(--text) 70%, transparent);
+  padding: 7px 18px;
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   cursor: pointer;
 }
 
 .retry:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-}
-
-.credit {
-  margin: 6px 0 0;
-  max-width: 58ch;
-  font-size: 10px;
-  line-height: 1.5;
-  color: var(--muted);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
 }

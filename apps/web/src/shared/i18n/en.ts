@@ -66,7 +66,7 @@ export const en: Copy = {
     deviceWatch: "Watch",
     watchCaption: "SKY · Watch preview — live demonstration",
     spacecraftButton: "SPACECRAFT",
-    spacecraftButtonAria: "Open the ISS 3D model test bench",
+    spacecraftButtonAria: "Open the full-screen ISS 3D view",
     captionsListening: "Microphone active · audio analysed locally",
     captionsError: "Microphone unavailable — type instead",
     greetingFallback: "Good morning.",

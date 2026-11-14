@@ -68,7 +68,7 @@ export interface Copy {
     deviceWatch: string;
     /** Caption under the watch device preview — labels it as a live demonstration. */
     watchCaption: string;
-    /** Header chrome chip linking to the `/spacecraft` NASA ISS 3D test bench. */
+    /** Header chrome chip linking to the `/spacecraft` cinematic ISS 3D view. */
     spacecraftButton: string;
     spacecraftButtonAria: string;
     captionsListening: string;
