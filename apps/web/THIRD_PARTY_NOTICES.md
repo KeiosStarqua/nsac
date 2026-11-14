@@ -15,10 +15,19 @@
 
 - Licence: MIT + Commons Clause
 - Link: https://github.com/DavidHDev/react-bits
-- Components taken: all 58 (7 prior + 51 new; Topography added 2026-11-15)
+- Components taken: all 59 (7 prior + 52 new; CrystalizedBall 2026-11-14, Topography 2026-11-15)
+- CrystalizedBall: https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/CrystalizedBall/CrystalizedBall.jsx — orb for `/`
 - Topography: https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/Topography/Topography.jsx — backdrop for `/watch`
 - Location: apps/web/src/shared/react-bits/
 - Licence file: apps/web/src/shared/react-bits/LICENSE.md
+- Date: 2026-11-14
+
+## ogl
+
+- Licence: Unlicense (public domain)
+- Link: https://github.com/oframe/ogl
+- Version: 1.0.11
+- Used by: the vendored React Bits CrystalizedBall (`src/shared/react-bits/CrystalizedBall/`), lazy-loaded with the HUD orb zone
 - Date: 2026-11-14
 
 ## glTF Transform (@gltf-transform/*)
