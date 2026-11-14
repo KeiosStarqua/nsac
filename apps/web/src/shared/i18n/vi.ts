@@ -236,7 +236,7 @@ export const vi: Copy = {
       {
         title: "Đề xuất",
         body: "Nối tín hiệu giữa các hệ, chọn một hành động trong ISS Medical Checklist và giải thích dễ hiểu. Cảnh báo bác sĩ bay và cả đoàn khi rủi ro chung.",
-        tag: "AI cục bộ giải thích",
+        tag: "Giải thích trên máy này",
       },
       {
         title: "Xác nhận",
@@ -290,7 +290,7 @@ export const vi: Copy = {
       queued: "Báo cáo đang chờ, mô phỏng trễ 20 phút",
       delivered: "Báo cáo đã đến mặt đất",
     },
-    disclaimer: "Nội dung do AI tạo, không thay thế bác sĩ.",
+    disclaimer: "Nội dung do máy tạo, không thay thế bác sĩ.",
     note: "Giá trị minh họa. Ứng dụng hiển thị công thức và nguồn cho từng trọng số.",
     dayLabel: "Ngày",
     running: "Đang tua nhanh tới ngày",
@@ -359,7 +359,7 @@ export const vi: Copy = {
     items: [
       { title: "Offline trước tiên", body: "Chạy trên một laptop. Rút dây mạng, mọi thứ vẫn như cũ." },
       {
-        title: "AI không tự quyết",
+        title: "SKY không tự quyết định",
         body: "Phát hiện là deterministic. Mô hình giải thích và soạn nháp. Phi hành gia xác nhận.",
       },
       {
@@ -371,7 +371,7 @@ export const vi: Copy = {
         body: "Dữ liệu phi hành đoàn là synthetic, sinh theo khoảng giá trị công bố trong các nghiên cứu NASA OSDR.",
       },
     ],
-    disclaimer: "Nội dung do AI tạo, không thay thế bác sĩ.",
+    disclaimer: "Nội dung do máy tạo, không thay thế bác sĩ.",
   },
   earth: {
     title: "Cùng một vấn đề trên Trái Đất, tại TP. Hồ Chí Minh",
@@ -431,7 +431,7 @@ export const vi: Copy = {
       fixKey: "Đặt OpenRouter key…",
     },
     sourceLabel: "Nguồn",
-    disclaimer: "Nội dung do AI tạo, không thay thế bác sĩ.",
+    disclaimer: "Nội dung do máy tạo, không thay thế bác sĩ.",
     stepsLabel: "Chuyện gì xảy ra tiếp theo",
     facts: {
       tripLength: { label: "Chuyến đi Sao Hỏa", value: "7 đến 10 tháng" },

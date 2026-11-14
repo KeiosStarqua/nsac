@@ -84,7 +84,7 @@ Default section order:
 
 ### Spawn OpenCode agent (Keios, 2026-11-14)
 - **Agent xong việc thì commit + merge + clear** (user 2026-11-14): agent hc/OpenCode idle → merge kết quả vào `main`, commit, rồi `hc kill` + `hc rm` và dọn worktree — không để agent idle treo lại.
-- Dùng **hc CLI** để spawn OpenCode agent: `hc --skill`.
+- **Luôn spawn agent viết code bằng hc CLI** (Keios, 2026-11-14): mọi việc code (implementer, reviewer, port UI, refactor…) đều giao cho agent tạo bằng `hc run --bg --name nsac-<slug> --label project=nsac … opencode --prompt "$(cat /tmp/opencode/<task>.md)"`; đọc manual bằng `hc --skill` trước khi dùng. Không dùng built-in subagent tool để viết code, không tự sửa code thay agent trừ khi đó là việc một dòng (typo, doc) hoặc đang verify/fix kết quả agent trả về.
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 

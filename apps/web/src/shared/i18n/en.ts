@@ -236,7 +236,7 @@ export const en: Copy = {
       {
         title: "Recommend",
         body: "Link signals across systems, pick one action from the ISS Medical Checklist, and explain why in plain language. Warn the flight surgeon and the crew when risk is shared.",
-        tag: "Local AI explains",
+        tag: "Explained on device",
       },
       {
         title: "Confirm",
@@ -290,7 +290,7 @@ export const en: Copy = {
       queued: "Report queued, simulated 20-minute delay",
       delivered: "Report delivered to ground",
     },
-    disclaimer: "AI-generated, not a substitute for a physician.",
+    disclaimer: "Machine-generated, not a substitute for a physician.",
     note: "Illustrative values. The app shows the formula and a source for every weight.",
     dayLabel: "Day",
     running: "Fast-forwarding to day",
@@ -359,7 +359,7 @@ export const en: Copy = {
     items: [
       { title: "Offline first", body: "Runs on one laptop. Pull the network cable and nothing changes." },
       {
-        title: "AI does not decide alone",
+        title: "SKY does not decide alone",
         body: "Detection is deterministic. The model explains and drafts. The astronaut confirms.",
       },
       {
@@ -371,7 +371,7 @@ export const en: Copy = {
         body: "Crew data is synthetic, generated to match ranges published in NASA OSDR studies.",
       },
     ],
-    disclaimer: "AI-generated, not a substitute for a physician.",
+    disclaimer: "Machine-generated, not a substitute for a physician.",
   },
   earth: {
     title: "The same problem on Earth, in Ho Chi Minh City",
@@ -431,7 +431,7 @@ export const en: Copy = {
       fixKey: "Set the OpenRouter key…",
     },
     sourceLabel: "Source",
-    disclaimer: "AI-generated, not a substitute for a physician.",
+    disclaimer: "Machine-generated, not a substitute for a physician.",
     stepsLabel: "What happens next",
     facts: {
       tripLength: { label: "Trip to Mars", value: "7 to 10 months" },

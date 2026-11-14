@@ -41,7 +41,7 @@ interface DetailDialogProps {
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
 /**
- * SKY — Astronaut Wellness AI. React port of the original single-file demo: an original procedural
+ * SKY — Astronaut Wellness. React port of the original single-file demo: an original procedural
  * scene, a transparent WebGL orb, local Web Audio microphone analysis, SVG waveform and fixture data.
  * No network, no storage, no medical services. See SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md.
  */
@@ -130,7 +130,7 @@ export function SkyScreen() {
           <span className="brand-ring" aria-hidden="true" />
           <span className="brand-copy">
             <span className="brand-name">S K Y</span>
-            <span className="brand-tagline">Astronaut Wellness AI</span>
+            <span className="brand-tagline">Astronaut Wellness</span>
           </span>
         </button>
         <button className="mission-trigger" type="button" aria-label="Mission information" onClick={() => openDetail({ ...DETAILS.mission, footer: DEFAULT_FOOTER })}>
@@ -174,7 +174,7 @@ export function SkyScreen() {
       </section>
 
       {/* Conversation */}
-      <section className="conversation" aria-label="SKY AI conversation">
+      <section className="conversation" aria-label="SKY conversation">
         <div className="conversation-lens" aria-hidden="true"><div className="lens-inner" /></div>
         <div className="orb-zone" aria-hidden="true"><div className="orb-css-fallback" /><OrbCanvas phase={phase} energyRef={energyRef} reducedMotion={false} /></div>
         <div className="conversation-copy">
@@ -247,7 +247,7 @@ export function SkyScreen() {
             <button type="submit">Send</button>
             <button type="button" id="chatClose" aria-label="Close text input" onClick={() => setChatOpen(false)}>×</button>
           </div>
-          <span>No AI backend is connected; replies are local demonstration responses.</span>
+          <span>No external service is connected; replies are local demonstration responses.</span>
         </form>
       ) : null}
 
