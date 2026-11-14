@@ -1,4 +1,4 @@
 [submodule "data"]
 	path = data
-	url = https://github.com/KeiosStarqua/nsac-data.git
+	url = https://github.com/wosonday/nsac-data.git
 	ignore = untracked
