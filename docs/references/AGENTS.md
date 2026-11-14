@@ -28,4 +28,4 @@ Không có framework riêng; đối chiếu với README HKT và OSDR khi nghi n
 |---|---|
 | `astronaut-health-metrics-by-system.md` | 17 hệ cơ quan + ghi chú liên tục vs định kỳ |
 | `challenge-health-monitoring-software.md` | Ghi chú đề bài Space Apps 2026 (đề, mục tiêu, gợi ý, ngày Resources, khoảng trống so với kế hoạch); nguồn + ngày kiểm tra 2026-11-02 |
-| `nasa-std-3001/` | NASA-STD-3001 Vol.1 Rev B (Crew Health): Markdown (Docling) tách theo Table of Contents: đọc `index.md` trước, rồi mở file trong `sections/` (mỗi file có front matter liệt kê `[V1 xxxx]`). PDF gốc chỉ giữ local, bị gitignore; tải lại từ `source_url`. Chưa index vào RAG trước 14/11 |
+| `spaceapps-resources-2026/` | Resource links pulled from Space Apps 2026 challenge tab Resources (NASA HRP hazards/risks/research, ASC-CSA articles) |

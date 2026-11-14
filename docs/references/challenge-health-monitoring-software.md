@@ -70,6 +70,6 @@ Khoảng trống so với đề (cần quyết định sau 14/11 09:00):
 
 ## Việc theo dõi
 
-- **13/11/2026:** NASA đăng Resources. `README.md` từng ghi 28/10/2026; cập nhật lại khi đọc tab này.
+- **14/11/2026:** Đã tải tab Resources vào `docs/references/spaceapps-resources-2026/` (NASA HRP hazards/risks/ongoing research, ASC-CSA articles). Resources ban đầu trống, công bố 13/11/2026.
 - Đọc Resources, FAQ, và Participant Guides ngay khi có; ghi lại dataset mới vào `README.md` (mục nguồn dữ liệu) nếu dùng.
 - Trước 14/11 09:00 chỉ làm nghiên cứu, cài tool, tải model/dataset công khai; không code dự án.
