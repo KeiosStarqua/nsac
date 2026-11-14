@@ -8,7 +8,7 @@ The SKY HUD's body hologram: a full-screen glass panel around the Open Anatomy 3
 
 - Owns everything under `features/body-map/`. `index.ts` is the public surface: `BodyMapOverlay` and `BodyMapOverlayProps`, nothing else.
 - The only code outside the feature that belongs to it is the one import and `<BodyMapOverlay>` line in `features/sky-hud/SkyScreen.tsx`.
-- The model asset is `apps/web/public/models/anatomy-male.glb` (7,614,076 bytes), served locally. Never point at the package CDN.
+- The model asset is `apps/web/public/models/anatomy-male.glb` (~6,250,000 bytes after meshopt simplify), served locally. Never point at the package CDN.
 
 ## Local Contracts
 
@@ -28,7 +28,7 @@ The SKY HUD's body hologram: a full-screen glass panel around the Open Anatomy 3
 
 ## Verification
 
-From the repo root (`export PATH="$HOME/.bun/bin:$PATH"`): `bun run build` (generates `routeTree.gen`), then `bun run typecheck`, `bun run test`, then build again if anything changed. Serve `PORT=3999 bun .output/server/index.mjs` from `apps/web`: `/` is 200 and contains `id="hologramButton"`; `/models/anatomy-male.glb` is 200 with `Content-Length: 7614076`. Check `apps/web/.output/public/assets`: no `WebGLRenderer` in the entry `index-*.js`, and find it in `BodyScene-*.js` (2026-11-14: entry 409,877 B; BodyScene chunk 1,013,082 B).
+From the repo root (`export PATH="$HOME/.bun/bin:$PATH"`): `bun run build` (generates `routeTree.gen`), then `bun run typecheck`, `bun run test`, then build again if anything changed. Serve `PORT=3999 bun .output/server/index.mjs` from `apps/web`: `/` is 200 and contains `id="hologramButton"`; `/models/anatomy-male.glb` is 200 (size reduced via gltf-transform simplify+meshopt; update expected Content-Length after build). Check `apps/web/.output/public/assets`: no `WebGLRenderer` in the entry `index-*.js`, and find it in `BodyScene-*.js` (2026-11-14: entry 409,877 B; BodyScene chunk 1,013,082 B).
 
 ## Child DOX Index
 
