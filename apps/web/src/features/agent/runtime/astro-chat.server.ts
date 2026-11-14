@@ -136,6 +136,13 @@ export async function sendChatTurn(astronautIdRaw: string, messageRaw: string) {
       ]);
       clearTimeout(timer);
       const trimmed = reply.trim().slice(0, MAX_REPLY);
+      if (trimmed === "") {
+        // Belt and braces: pi.server already throws on empty replies. Never push an empty bubble.
+        const cached = cache.get(id);
+        cached?.session.dispose();
+        cache.delete(id);
+        return { status: "unavailable" as ChatStatus };
+      }
       const current = readTranscript(id);
       current.push({ role: "assistant", text: trimmed, at: new Date().toISOString() });
       writeTranscript(id, current);

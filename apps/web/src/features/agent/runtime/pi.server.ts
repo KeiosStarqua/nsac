@@ -25,13 +25,18 @@ function piCacheDir(): string {
   return cacheDir;
 }
 
-function ensureModelsFile(parts: { model: string; withModelEntry: boolean; baseUrl?: string }): string {
+// A Sky chat reply is at most a few short sentences; cap generation instead of
+// inheriting the catalog default (64000 for claude-sonnet-4.5).
+const SKY_MAX_TOKENS = 2048;
+
+function ensureModelsFile(parts: { model: string; withModelEntry: boolean; maxTokens?: number; baseUrl?: string }): string {
   const hash = createHash("sha256").update(JSON.stringify(parts)).digest("hex").slice(0, 16);
   const path = join(piCacheDir(), `models-${hash}.json`);
   if (!existsSync(path)) {
     const provider: Record<string, unknown> = {};
     if (parts.baseUrl) provider.baseUrl = parts.baseUrl;
-    if (parts.withModelEntry) provider.models = [{ id: parts.model, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }];
+    if (parts.withModelEntry) provider.models = [{ id: parts.model, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, ...(parts.maxTokens !== undefined ? { maxTokens: parts.maxTokens } : {}) }];
+    else if (parts.maxTokens !== undefined) provider.modelOverrides = { [parts.model]: { maxTokens: parts.maxTokens } };
     const payload = Object.keys(provider).length > 0 ? { providers: { openrouter: provider } } : { providers: {} };
     writeFileSync(path, JSON.stringify(payload), { mode: 0o600 });
   }
@@ -51,7 +56,12 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
   const pi = await loadPiSdk();
   const probePath = ensureModelsFile({ model, withModelEntry: false, baseUrl });
   const probe = await pi.ModelRuntime.create({ modelsPath: probePath, authPath: join(piCacheDir(), "auth.json") });
-  const modelsPath = probe.getModel("openrouter", model) ? probePath : ensureModelsFile({ model, withModelEntry: true, baseUrl });
+  const known = !!probe.getModel("openrouter", model);
+  // Cap maxTokens either way; modelOverrides keeps the catalog entry intact, while an
+  // unknown model needs a full entry (metrics probed above).
+  const modelsPath = known
+    ? ensureModelsFile({ model, withModelEntry: false, maxTokens: SKY_MAX_TOKENS, baseUrl })
+    : ensureModelsFile({ model, withModelEntry: true, maxTokens: SKY_MAX_TOKENS, baseUrl });
   const modelRuntime = await pi.ModelRuntime.create({ modelsPath, authPath: join(piCacheDir(), "auth.json") });
   const modelObj = modelRuntime.getModel("openrouter", model);
   if (!modelObj) throw new Error("unavailable");
@@ -91,17 +101,29 @@ export async function createSession(profile: AgentProfile, ctx?: { request?: str
   return {
     async prompt(text, opts) {
       let total = "";
+      let turnError: string | null = null;
       const unsub = session.subscribe((event: any) => {
         if (event.type === "message_update") {
           const e = event.assistantMessageEvent;
           if (e?.type === "text_delta" && typeof e.delta === "string") {
             total += e.delta;
             opts.onDelta?.(e.delta);
+          } else if (e?.type === "error") {
+            turnError = e.error?.errorMessage ?? e.error?.stopReason ?? e.reason ?? "error";
+          }
+        } else if (event.type === "message_end") {
+          const m = event.message;
+          if (m?.role === "assistant" && (m.stopReason === "error" || m.stopReason === "aborted")) {
+            turnError = m.errorMessage ?? m.stopReason;
           }
         }
       });
       await session.prompt(text);
       unsub();
+      // The SDK resolves prompt() normally even when the turn fails (e.g. provider 402);
+      // an empty accumulated reply is never a successful answer.
+      if (turnError) throw new Error(turnError);
+      if (total.trim() === "") throw new Error("empty_reply");
       return total;
     },
     dispose() {
