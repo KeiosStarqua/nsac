@@ -3,7 +3,6 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars, useGLTF, useProgress } from "@react-three/drei";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import styles from "./SpacecraftScene.module.css";
 import { DRACO_DECODER_PATH } from "../model/models";
 import { frameBox, type Box3Like, type Framing } from "../model/framing";
 import { ISSStreamer, type ISSFramingBox, type ISSStreamStats } from "~/features/iss";
@@ -195,14 +194,22 @@ function ModelProgress({ streamStats }: { streamStats: ISSStreamStats | null }) 
     if (streamStats.phase === "detail") return null;
     const pct = Math.floor((streamStats.loadedBytes / Math.max(1, streamStats.totalBytes)) * 100);
     return (
-      <p className={styles.progress} role="status" aria-label={`Loading model: ${pct} percent`}>
+      <p
+        className="pointer-events-none absolute right-[clamp(14px,2vw,26px)] bottom-[clamp(14px,2vh,24px)] m-0 p-0 font-(family-name:--mono) text-[10px] tracking-[0.14em] tabular-nums text-(--text)/38 select-none"
+        role="status"
+        aria-label={`Loading model: ${pct} percent`}
+      >
         {pct}%
       </p>
     );
   }
   if (!active) return null;
   return (
-    <p className={styles.progress} role="status" aria-label={`Loading model: ${Math.floor(progress)} percent`}>
+    <p
+      className="pointer-events-none absolute right-[clamp(14px,2vw,26px)] bottom-[clamp(14px,2vh,24px)] m-0 p-0 font-(family-name:--mono) text-[10px] tracking-[0.14em] tabular-nums text-(--text)/38 select-none"
+      role="status"
+      aria-label={`Loading model: ${Math.floor(progress)} percent`}
+    >
       {Math.floor(progress)}%
     </p>
   );
@@ -214,10 +221,16 @@ function SceneFallback({
   onRetry?: () => void;
 }) {
   return (
-    <div className={styles.fallback} role="status">
-      <p className={styles.fallbackTitle}>Spacecraft unavailable</p>
+    <div className="absolute inset-0 grid place-content-center justify-items-center gap-[12px] p-[28px] text-center" role="status">
+      <p className="m-0 font-(family-name:--mono) text-[11px] font-normal tracking-[0.22em] uppercase text-(--muted)/85">
+        Spacecraft unavailable
+      </p>
       {onRetry ? (
-        <button type="button" className={styles.retry} onClick={onRetry}>
+        <button
+          type="button"
+          className="mt-[2px] cursor-pointer rounded-[999px]! border border-(--text)/22 bg-transparent px-[18px] py-[7px] text-[11px]! tracking-[0.08em] text-(--text)/70 hover:bg-(--text)/8"
+          onClick={onRetry}
+        >
           Try again
         </button>
       ) : null}
@@ -255,7 +268,7 @@ export default function SpacecraftScene({
       )}
     >
       <Canvas
-        className={styles.canvas}
+        className="absolute inset-0 block size-full"
         dpr={[1, 1.75]}
         camera={{ position: [0, 0, 100], fov: FOV, near: 0.1, far: 10000 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
@@ -295,9 +308,16 @@ export default function SpacecraftScene({
       </Canvas>
       <ModelProgress streamStats={stream ? streamStats : null} />
       {stream && streamStats?.error ? (
-        <div className={styles.streamBanner} role="status">
+        <div
+          className="absolute left-[clamp(14px,2vw,26px)] bottom-[clamp(14px,2vh,24px)] flex items-center gap-[10px] font-(family-name:--mono) text-[10px] tracking-[0.06em] text-(--muted)/90 select-none"
+          role="status"
+        >
           <span>{streamStats.error}</span>
-          <button type="button" className={styles.streamRetry} onClick={() => retryRef.current?.()}>
+          <button
+            type="button"
+            className="cursor-pointer rounded-[999px]! border border-(--text)/18 bg-transparent px-[12px] py-[3px] text-[10px]! tracking-[0.08em] text-(--text)/62 hover:bg-(--text)/8"
+            onClick={() => retryRef.current?.()}
+          >
             Retry
           </button>
         </div>

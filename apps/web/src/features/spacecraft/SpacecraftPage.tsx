@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import styles from "./SpacecraftPage.module.css";
+// The nebula drift keyframes (the one bit of motion Tailwind cannot inline).
+import "./nebula-drift.css";
 import { DEFAULT_MODEL_ID, SPACECRAFT_MODELS } from "./model/models";
 import { usePausedWhenHidden, useReducedMotion } from "./model/preferences";
 
@@ -63,15 +64,21 @@ export function SpacecraftPage() {
     SPACECRAFT_MODELS[0]!.url;
 
   return (
-    <main className={styles.page} aria-label="ISS — cinematic 3D view">
+    <main
+      className="relative h-[100vh] overflow-hidden bg-black text-(--text) supports-[height:100dvh]:h-[100dvh]"
+      aria-label="ISS — cinematic 3D view"
+    >
       {/* Deep-black universe with a very dim Webb "Cosmic Cliffs" backdrop and
           blue/violet nebula tints. Sits behind the transparent canvas. */}
-      <div className={styles.backdrop} aria-hidden="true">
-        <div className={styles.backdropImage} />
-        <div className={styles.backdropTint} />
+      <div className="absolute inset-0 overflow-hidden bg-black" aria-hidden="true">
+        <div className="absolute -inset-[6%] [background-image:url(/spacecraft/cosmic-cliffs-web.jpg)] bg-cover [background-position:center_30%] opacity-[0.24] [filter:saturate(0.72)_brightness(0.85)] animate-[nebulaDrift_110s_ease-in-out_infinite_alternate] motion-reduce:animate-none" />
+        <div className="absolute inset-0 [background:radial-gradient(70%_55%_at_16%_80%,rgba(88,72,214,0.22),transparent_65%),radial-gradient(65%_52%_at_84%_14%,rgba(45,108,196,0.24),transparent_62%),radial-gradient(120%_105%_at_50%_50%,transparent_42%,rgba(0,0,0,0.82)_100%),linear-gradient(180deg,rgba(0,0,0,0.68)_0%,rgba(1,3,9,0.38)_28%,rgba(1,3,9,0.34)_60%,rgba(0,0,0,0.85)_100%)]" />
       </div>
       {/* Light fake-bloom: a soft cyan halo behind the station. */}
-      <div className={styles.glow} aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute inset-0 [background:radial-gradient(40%_32%_at_50%_46%,rgba(140,205,255,0.1),rgba(140,205,255,0.035)_45%,transparent_75%)]"
+        aria-hidden="true"
+      />
 
       {supported === null ? null : supported ? (
         <Suspense fallback={null}>
@@ -85,11 +92,16 @@ export function SpacecraftPage() {
           />
         </Suspense>
       ) : (
-        <div className={styles.fallback} role="status">
-          <p className={styles.fallbackText}>Spacecraft unavailable</p>
+        <div className="absolute inset-0 grid place-items-center p-[28px]" role="status">
+          <p className="m-0 font-(family-name:--mono) text-[11px] tracking-[0.22em] uppercase text-(--muted)/80">
+            Spacecraft unavailable
+          </p>
         </div>
       )}
-      <div className={styles.vignette} aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute inset-0 [box-shadow:inset_0_0_18vmax_rgba(0,0,0,0.72)]"
+        aria-hidden="true"
+      />
     </main>
   );
 }

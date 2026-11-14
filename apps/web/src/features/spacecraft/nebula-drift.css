@@ -1,0 +1,11 @@
+/* The nebula pan is the only motion on /spacecraft that Tailwind cannot express as a utility: an
+   @keyframes rule has to live in a stylesheet. Everything else on the route is Tailwind v4 utilities;
+   the element itself carries `animate-[nebulaDrift_…]` and `motion-reduce:animate-none`. */
+@keyframes nebulaDrift {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(1.7%, 1.5%, 0) scale(1.05);
+  }
+}
