@@ -78,7 +78,7 @@ Default section order:
 
 ### Deploy & commit (Keios, 2026-11-14)
 - Sau **mỗi lần đổi code** trong repo này: **tự động commit + deploy** mà không cần hỏi lại. Dùng nix flake để build (`.#web`); app chạy trên EC2 OpfaOS (i-06f2143b75567e68f) sau Caddy, `nsac-web.service`, `127.0.0.1:3100`, phục vụ tại https://nasa.taquangkhoi.com (Caddy vhost → service).
-- Runbook deploy: `rsync repo → box (trừ .git, node_modules, .output, var)`; `ssh opfaos 'cd ~/nsac && sudo nix --extra-experimental-features "nix-command flakes" build .#web --out-link result'` (nix trên box chỉ chạy được bằng root; build nhanh/chậm phụ thuộc FOD re-fetch); `sudo systemctl restart nsac-web`; verify `/`, `/concept`, `/demo`, `/story` đều 200 qua public URL.
+- Runbook deploy: `rsync repo → box (trừ .git, node_modules, .output, var)`; `ssh opfaos 'cd ~/nsac && sudo nix --extra-experimental-features "nix-command flakes" build .#web --out-link result'` (nix trên box chỉ chạy được bằng root; build nhanh/chậm phụ thuộc FOD re-fetch); `sudo systemctl restart nsac-web`; verify `/`, `/concept`, `/demo`, `/story` đều 200 qua public URL. Sau mỗi lần build xong: `sudo ln -sfn "$(readlink -f ~/nsac/result)" /nix/var/nix/gcroots/nsac-web` (GC root thủ công — **KHÔNG** chạy `nix-collect-garbage` trên box này; lần chạy 2026-11-14 xoá store đang chạy → site 502 cho đến khi rebuild xong).
 - Commit giữ tree sạch trước khi deploy. Push `origin` **vẫn chỉ khi Keios yêu cầu** — không đẩy `main`/tags.
 - Secrets không nằm trong repo/flake; key OpenRouter của demo đặt ở `/etc/nsac-web/env` trên box (systemd EnvironmentFile, 0600).
 
