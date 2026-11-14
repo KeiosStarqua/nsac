@@ -59,3 +59,34 @@
 .retry:hover {
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
+
+/* Streaming failure affordance — same bare language as the percent corner. */
+.streamBanner {
+  position: absolute;
+  left: clamp(14px, 2vw, 26px);
+  bottom: clamp(14px, 2vh, 24px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--muted) 90%, transparent);
+  user-select: none;
+}
+
+.streamRetry {
+  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+  padding: 3px 12px;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.streamRetry:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}

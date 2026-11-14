@@ -1,0 +1,377 @@
+{
+  "version": 1,
+  "overview": "/models/iss/ISS-B.glb",
+  "fullDetail": "/models/iss/ISS-stationary.glb",
+  "totalGeometryBytes": 11897300,
+  "totalTextureBytes": 20116064,
+  "parts": [
+    {
+      "id": "zvezda-zarya",
+      "url": "/models/iss/streamed/parts/zvezda-zarya.gltf",
+      "bytes": 12409912,
+      "geometryBytes": 2935876,
+      "textureBytes": 9375625,
+      "textures": [
+        "349bf71d93bba9477c6e9aa9974c1bbc4f7d5cd254c4ee68b0a7d2ea6aa90178.png",
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "401134fd5b24055f679f96dccf76fd4e2ed6b55472a82cef38ee878923f6cfc3.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "afa9fac345b6398c8fb94a7e9307256b8a1b676986e1709a3cfca3ad78d96053.png",
+        "c657f7b9f7230844fa4114e35729d62fc5a8a525c2fb9bf1f2d62d7a3901a741.png",
+        "d314f3505f7e255ffb57f8751a574979a3c439f2d433c32f01bd09d3f5705f8d.png"
+      ],
+      "bounds": {
+        "min": [
+          -16.443439,
+          -6.872511,
+          -33.167805
+        ],
+        "max": [
+          16.443429,
+          6.156451,
+          -3.383446
+        ]
+      },
+      "nodes": 26
+    },
+    {
+      "id": "unity-destiny",
+      "url": "/models/iss/streamed/parts/unity-destiny.gltf",
+      "bytes": 3695665,
+      "geometryBytes": 980828,
+      "textureBytes": 7334599,
+      "textures": [
+        "349bf71d93bba9477c6e9aa9974c1bbc4f7d5cd254c4ee68b0a7d2ea6aa90178.png",
+        "3a4fabd2c0b2bfffff505175a0f5b678628562b6e1f60ffe6932e72c3ed47348.png",
+        "401134fd5b24055f679f96dccf76fd4e2ed6b55472a82cef38ee878923f6cfc3.png",
+        "7061110835955d3e6663750c9f796a546d236ed557c820b1f27024c5d3a68960.png",
+        "a830ad9e168a005c71365fe3c906031df85069ff4ce13a4d2b5cf7097a5dcb3d.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "ad69bc4f84d43e87f87ccbed30ad53bb8bece7ce41fc9a758655685b64464074.png"
+      ],
+      "bounds": {
+        "min": [
+          -3.493712,
+          -3.105724,
+          -3.682807
+        ],
+        "max": [
+          5.37766,
+          10.353106,
+          11.633691
+        ]
+      },
+      "nodes": 5
+    },
+    {
+      "id": "harmony-columbus-kibo",
+      "url": "/models/iss/streamed/parts/harmony-columbus-kibo.gltf",
+      "bytes": 4034767,
+      "geometryBytes": 1412232,
+      "textureBytes": 13651061,
+      "textures": [
+        "1b83703764d644622014a9e8f90b127d7e3dff9bf2fa369d6b1773a022e0f5ca.png",
+        "349bf71d93bba9477c6e9aa9974c1bbc4f7d5cd254c4ee68b0a7d2ea6aa90178.png",
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "3a4fabd2c0b2bfffff505175a0f5b678628562b6e1f60ffe6932e72c3ed47348.png",
+        "401134fd5b24055f679f96dccf76fd4e2ed6b55472a82cef38ee878923f6cfc3.png",
+        "9b672527c11f015e0b2758c3c914e80808319d94dd0a6a27a59152afd9ffef57.png",
+        "a830ad9e168a005c71365fe3c906031df85069ff4ce13a4d2b5cf7097a5dcb3d.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "ad69bc4f84d43e87f87ccbed30ad53bb8bece7ce41fc9a758655685b64464074.png",
+        "afa9fac345b6398c8fb94a7e9307256b8a1b676986e1709a3cfca3ad78d96053.png",
+        "c657f7b9f7230844fa4114e35729d62fc5a8a525c2fb9bf1f2d62d7a3901a741.png",
+        "d314f3505f7e255ffb57f8751a574979a3c439f2d433c32f01bd09d3f5705f8d.png"
+      ],
+      "bounds": {
+        "min": [
+          -11.411045,
+          -4.032473,
+          11.384988
+        ],
+        "max": [
+          23.377088,
+          6.010363,
+          21.090339
+        ]
+      },
+      "nodes": 15
+    },
+    {
+      "id": "tranquility-cupola",
+      "url": "/models/iss/streamed/parts/tranquility-cupola.gltf",
+      "bytes": 1160271,
+      "geometryBytes": 1114436,
+      "textureBytes": 11291471,
+      "textures": [
+        "1b83703764d644622014a9e8f90b127d7e3dff9bf2fa369d6b1773a022e0f5ca.png",
+        "349bf71d93bba9477c6e9aa9974c1bbc4f7d5cd254c4ee68b0a7d2ea6aa90178.png",
+        "3a4fabd2c0b2bfffff505175a0f5b678628562b6e1f60ffe6932e72c3ed47348.png",
+        "401134fd5b24055f679f96dccf76fd4e2ed6b55472a82cef38ee878923f6cfc3.png",
+        "9b672527c11f015e0b2758c3c914e80808319d94dd0a6a27a59152afd9ffef57.png",
+        "a830ad9e168a005c71365fe3c906031df85069ff4ce13a4d2b5cf7097a5dcb3d.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "afa9fac345b6398c8fb94a7e9307256b8a1b676986e1709a3cfca3ad78d96053.png",
+        "c657f7b9f7230844fa4114e35729d62fc5a8a525c2fb9bf1f2d62d7a3901a741.png",
+        "d314f3505f7e255ffb57f8751a574979a3c439f2d433c32f01bd09d3f5705f8d.png"
+      ],
+      "bounds": {
+        "min": [
+          -8.081648,
+          -8.733762,
+          -2.900975
+        ],
+        "max": [
+          11.854033,
+          3.145781,
+          5.940132
+        ]
+      },
+      "nodes": 14
+    },
+    {
+      "id": "mbs-robotics",
+      "url": "/models/iss/streamed/parts/mbs-robotics.gltf",
+      "bytes": 1511859,
+      "geometryBytes": 541652,
+      "textureBytes": 6838471,
+      "textures": [
+        "349bf71d93bba9477c6e9aa9974c1bbc4f7d5cd254c4ee68b0a7d2ea6aa90178.png",
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "918a78fa7b7a7ebf6c97a6468935368d41ff800206dbe16b6de3bdd4f1f37010.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png"
+      ],
+      "bounds": {
+        "min": [
+          -17.59179,
+          3.706979,
+          6.453888
+        ],
+        "max": [
+          0.511352,
+          20.193714,
+          13.71998
+        ]
+      },
+      "nodes": 25
+    },
+    {
+      "id": "truss-s0",
+      "url": "/models/iss/streamed/parts/truss-s0.gltf",
+      "bytes": 302805,
+      "geometryBytes": 294688,
+      "textureBytes": 6602036,
+      "textures": [
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "9b672527c11f015e0b2758c3c914e80808319d94dd0a6a27a59152afd9ffef57.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "d314f3505f7e255ffb57f8751a574979a3c439f2d433c32f01bd09d3f5705f8d.png"
+      ],
+      "bounds": {
+        "min": [
+          -6.836623,
+          0.870334,
+          2.864655
+        ],
+        "max": [
+          6.821807,
+          7.594714,
+          12.267009
+        ]
+      },
+      "nodes": 1
+    },
+    {
+      "id": "truss-s1",
+      "url": "/models/iss/streamed/parts/truss-s1.gltf",
+      "bytes": 392098,
+      "geometryBytes": 374904,
+      "textureBytes": 9405135,
+      "textures": [
+        "1b83703764d644622014a9e8f90b127d7e3dff9bf2fa369d6b1773a022e0f5ca.png",
+        "349bf71d93bba9477c6e9aa9974c1bbc4f7d5cd254c4ee68b0a7d2ea6aa90178.png",
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "918a78fa7b7a7ebf6c97a6468935368d41ff800206dbe16b6de3bdd4f1f37010.png",
+        "9b672527c11f015e0b2758c3c914e80808319d94dd0a6a27a59152afd9ffef57.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png"
+      ],
+      "bounds": {
+        "min": [
+          -21.016349,
+          -1.011867,
+          -20.319276
+        ],
+        "max": [
+          -2.94271,
+          11.028149,
+          6.56823
+        ]
+      },
+      "nodes": 3
+    },
+    {
+      "id": "truss-s3",
+      "url": "/models/iss/streamed/parts/truss-s3.gltf",
+      "bytes": 864610,
+      "geometryBytes": 840376,
+      "textureBytes": 8179800,
+      "textures": [
+        "1b83703764d644622014a9e8f90b127d7e3dff9bf2fa369d6b1773a022e0f5ca.png",
+        "349bf71d93bba9477c6e9aa9974c1bbc4f7d5cd254c4ee68b0a7d2ea6aa90178.png",
+        "918a78fa7b7a7ebf6c97a6468935368d41ff800206dbe16b6de3bdd4f1f37010.png",
+        "9b672527c11f015e0b2758c3c914e80808319d94dd0a6a27a59152afd9ffef57.png",
+        "a830ad9e168a005c71365fe3c906031df85069ff4ce13a4d2b5cf7097a5dcb3d.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png"
+      ],
+      "bounds": {
+        "min": [
+          -27.547674,
+          -2.69191,
+          2.060122
+        ],
+        "max": [
+          -20.375028,
+          12.828576,
+          7.539679
+        ]
+      },
+      "nodes": 5
+    },
+    {
+      "id": "truss-s4",
+      "url": "/models/iss/streamed/parts/truss-s4.gltf",
+      "bytes": 1260762,
+      "geometryBytes": 1228388,
+      "textureBytes": 6940726,
+      "textures": [
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "7061110835955d3e6663750c9f796a546d236ed557c820b1f27024c5d3a68960.png",
+        "918a78fa7b7a7ebf6c97a6468935368d41ff800206dbe16b6de3bdd4f1f37010.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "c657f7b9f7230844fa4114e35729d62fc5a8a525c2fb9bf1f2d62d7a3901a741.png"
+      ],
+      "bounds": {
+        "min": [
+          -55.994212,
+          -29.050881,
+          -15.543916
+        ],
+        "max": [
+          -25.763453,
+          38.434178,
+          25.568286
+        ]
+      },
+      "nodes": 7
+    },
+    {
+      "id": "truss-p1",
+      "url": "/models/iss/streamed/parts/truss-p1.gltf",
+      "bytes": 334506,
+      "geometryBytes": 321696,
+      "textureBytes": 6607001,
+      "textures": [
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "918a78fa7b7a7ebf6c97a6468935368d41ff800206dbe16b6de3bdd4f1f37010.png",
+        "9b672527c11f015e0b2758c3c914e80808319d94dd0a6a27a59152afd9ffef57.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png"
+      ],
+      "bounds": {
+        "min": [
+          6.599578,
+          -0.997073,
+          -20.319231
+        ],
+        "max": [
+          21.016365,
+          11.042943,
+          6.56823
+        ]
+      },
+      "nodes": 2
+    },
+    {
+      "id": "truss-p3",
+      "url": "/models/iss/streamed/parts/truss-p3.gltf",
+      "bytes": 715109,
+      "geometryBytes": 464180,
+      "textureBytes": 7745296,
+      "textures": [
+        "1b83703764d644622014a9e8f90b127d7e3dff9bf2fa369d6b1773a022e0f5ca.png",
+        "349bf71d93bba9477c6e9aa9974c1bbc4f7d5cd254c4ee68b0a7d2ea6aa90178.png",
+        "918a78fa7b7a7ebf6c97a6468935368d41ff800206dbe16b6de3bdd4f1f37010.png",
+        "9b672527c11f015e0b2758c3c914e80808319d94dd0a6a27a59152afd9ffef57.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "b7fa9346030d4b1aeaedcad3e8d9e6a441030ad88a924410d84591e35e5e3b06.png"
+      ],
+      "bounds": {
+        "min": [
+          21.018675,
+          -2.815474,
+          1.990407
+        ],
+        "max": [
+          27.613695,
+          12.824782,
+          7.497735
+        ]
+      },
+      "nodes": 3
+    },
+    {
+      "id": "truss-p4",
+      "url": "/models/iss/streamed/parts/truss-p4.gltf",
+      "bytes": 1250710,
+      "geometryBytes": 1218372,
+      "textureBytes": 6940726,
+      "textures": [
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "7061110835955d3e6663750c9f796a546d236ed557c820b1f27024c5d3a68960.png",
+        "918a78fa7b7a7ebf6c97a6468935368d41ff800206dbe16b6de3bdd4f1f37010.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "c657f7b9f7230844fa4114e35729d62fc5a8a525c2fb9bf1f2d62d7a3901a741.png"
+      ],
+      "bounds": {
+        "min": [
+          25.763453,
+          -29.047609,
+          -14.758212
+        ],
+        "max": [
+          55.994217,
+          39.801592,
+          23.991221
+        ]
+      },
+      "nodes": 7
+    },
+    {
+      "id": "panels-external",
+      "url": "/models/iss/streamed/parts/panels-external.gltf",
+      "bytes": 4536283,
+      "geometryBytes": 169672,
+      "textureBytes": 8365056,
+      "textures": [
+        "3a17ff2fcabbab8f3637626d92e29def6146ddc4539dc99d15ba706e16acd8d7.png",
+        "3b1f8754e0dc962ba3644acc4f15d6a7b831bdc91960addabe71de009522eb3f.png",
+        "65e64b008b4502113963bbd2a450fc266f26dd8509f80cf78c28f54b56aa895d.png",
+        "a98aa7666a402871dcb740d1e534b7ad07a16da79536cfbfdd8ceae979f0ba2d.png",
+        "d5fa103d61e50cdb817522dcbb93ee7709f3d916a7fb9738506bf9040c731375.png",
+        "dbb8b676019b5c82a3657f1c37ff060f42f5254001edcc51d9e8938bd952f3d7.png"
+      ],
+      "bounds": {
+        "min": [
+          -4.71512,
+          -2.560253,
+          -12.632245
+        ],
+        "max": [
+          20.912977,
+          2.617555,
+          20.873266
+        ]
+      },
+      "nodes": 18
+    }
+  ]
+}

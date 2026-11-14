@@ -17,3 +17,7 @@ Ghi chú:
 - Model ISS bên ngoài không có semantic geometry (phòng, cửa, luồng khí, tọa độ crew). Xem
   `docs/BIOCONTAINMENT_SIMULATOR.md` — hướng là dựng semantic interior habitat riêng.
 - `ISS-stationary.glb` nặng 42 MB — chỉ nên lazy-load, cân nhắc LOD `ISS-B.glb` cho lần đầu.
+- Thư mục `streamed/` là các part tách từ chính `ISS-stationary.glb` (scripts/iss/split-iss.ts;
+  world-matrix bake, bounds từ accessor min/max, 131/131 mesh nodes, textures dedup lossless,
+  shared textures theo sha256). Cùng nguồn VTAD / credit NASA như `ISS-stationary.glb` ở trên;
+  không sửa, không thay thế file gốc. Binary của `streamed/` nằm trong Git LFS.
