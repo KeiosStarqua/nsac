@@ -9,8 +9,9 @@ export const Route = createFileRoute("/")({
   // frame (see SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md). Interactive canvas/voice experience; the page
   // still renders its essentials with the network unplugged. The former console lives at /console.
   //
-  // `?gen=1` swaps in the declarative OpenUI HUD (`features/hud-gen`): preset-primary, agent-enhanced.
-  // `?gen=0` (or no `gen`) keeps the staged HUD. Lenient: a bad value falls back and never throws.
+  // `/` renders the declarative OpenUI HUD (`features/hud-gen`, preset-primary, agent-enhanced) by
+  // default. `?gen=0` (persisted to localStorage `nsac.gen`) opts out to the staged HUD; `?gen=1`
+  // (or no `gen` at all) selects the declarative one. Lenient: a bad value falls back and never throws.
   ssr: true,
   // The router's default search parser JSON-parses digit-like values, so `?gen=1` arrives as number 1
   // and a string enum always mismatches the canonical URL (SSR strips it with a 307). Keeping the
@@ -30,17 +31,18 @@ export const Route = createFileRoute("/")({
 });
 
 function SkyScreenPage() {
-  // Read like `?bg=`: SSR renders the staged HUD, the client opts into the declarative tree after
-  // mount, persisting the choice to localStorage `nsac.gen` (`?gen=0` opts out, `?gen=1` opts in).
+  // Read like `?bg=`: SSR renders the staged HUD, the client swaps in the declarative tree after
+  // mount, persisting the choice to localStorage `nsac.gen` (no `gen` anywhere ⇒ declarative;
+  // `?gen=0` opts out to staged, `?gen=1` opts in to declarative).
   const [gen, setGen] = useState(false);
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const fromUrl = params.get("gen");
       const fromStorage = window.localStorage.getItem("nsac.gen");
-      const chosen = fromUrl ?? fromStorage ?? "0";
-      setGen(chosen === "1");
-      if (fromUrl !== null) window.localStorage.setItem("nsac.gen", chosen);
+      const chosen = fromUrl ?? fromStorage ?? "1";
+      setGen(chosen !== "0");
+      if (fromUrl !== null) window.localStorage.setItem("nsac.gen", fromUrl);
     } catch { /* ignore */ }
   }, []);
   return gen ? <SkyScreenGen /> : <SkyScreen variant="console" />;

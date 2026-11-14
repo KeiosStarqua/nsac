@@ -3,6 +3,8 @@ import "../sky-hud/hud-screen.css";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
+import Particles from "../../shared/react-bits/Particles/Particles";
+const ParticlesAny = Particles as any;
 // react-bits sources are @ts-nocheck; their inferred prop types demand props with runtime defaults.
 const LightTunnelAny = LightTunnel as any;
 import { useSkyVoice } from "../sky-hud/useSkyVoice";
@@ -40,14 +42,14 @@ interface DetailDialogProps {
 }
 
 /**
- * `/?gen=1` — the SKY HUD with the ENTIRE staged display tree declared as OpenUI Lang
+ * The SKY HUD with the ENTIRE staged display tree declared as OpenUI Lang
  * (@openuidev/react-lang, pinned 1.1.0) against the purpose-built catalog in `catalog.tsx`.
  * Data comes from fixtures + astronaut claims + locale at render time; values reach the tree only
  * through Fact/MetricTile resolved from the HUD facts builder — never as literals in the program.
  *
  * The preset is the primary path. The `sky-hud-composer` agent (per-astronaut PI SDK session,
  * `var/sky-sessions/<id>.hud.jsonl`) may replace it after review passes; on any failure the preset
- * silently stays, so `?gen=0` / the default route remain untouched.
+ * silently stays, so `?gen=0` keeps the staged HUD byte-identical.
  *
  * Logic mirrors SkyScreen.tsx 1:1 (voice, rAF loop, picker + claims, bg, watch viewport, dialogs,
  * announcer). Below 480px the shared WatchHud renders instead of the staged tree — the glanceable
@@ -90,7 +92,7 @@ export function SkyScreenGen() {
   const [greeting, setGreeting] = useState(() => copy.hud.greetingFallback);
   const [prompt, setPrompt] = useState(() => copy.chat.placeholder);
   const [announcer, setAnnouncer] = useState("");
-  const [bg, setBg] = useState("light-tunnel");
+  const [bg, setBg] = useState("particles");
   // Agent enhancement: the composed program, once accepted by review. Preset stays until then.
   const [agentProgram, setAgentProgram] = useState<string | null>(null);
   const [composeHintDismissed, setComposeHintDismissed] = useState(false);
@@ -100,7 +102,7 @@ export function SkyScreenGen() {
       const params = new URLSearchParams(window.location.search);
       const fromUrl = params.get("bg");
       const fromStorage = window.localStorage.getItem("nsac.bg");
-      const chosen = fromUrl ?? fromStorage ?? "light-tunnel";
+      const chosen = fromUrl ?? fromStorage ?? "particles";
       setBg(chosen);
       if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
     } catch { /* ignore */ }
@@ -383,7 +385,30 @@ export function SkyScreenGen() {
 
   return (
     <main className="sky-app" data-phase={phase} aria-label="SKY astronaut wellness overview">
-      {bg === "light-tunnel" ? (
+      {bg === "particles" ? (
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
+          <ParticlesAny
+            particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}
+            particleCount={220}
+            particleSpread={9}
+            speed={0.075}
+            particleBaseSize={110}
+            sizeRandomness={1}
+            cameraDistance={22}
+            glow={0.6}
+            twinkle={0.55}
+            depthOfField={0}
+            alphaParticles={false}
+            connections={false}
+            hoverEffect="parallax"
+            particleHoverFactor={0.8}
+            clickBurst={false}
+            drift="none"
+            intro={true}
+            opacity={0.9}
+          />
+        </div>
+      ) : bg === "light-tunnel" ? (
         <div style={{ position: "absolute", inset: 0, zIndex: 0 }} aria-hidden="true">
           <LightTunnelAny cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
         </div>
@@ -408,7 +433,9 @@ export function SkyScreenGen() {
         />
       ) : (
         <HudScopeProvider value={scope}>
-          <Renderer response={program} library={hudLibrary} isStreaming={false} onAction={handleAction} />
+          <Renderer.Root response={program} library={hudLibrary} isStreaming={false} onAction={handleAction}>
+            <Renderer.Content style={{ position: "static" }} />
+          </Renderer.Root>
         </HudScopeProvider>
       )}
 

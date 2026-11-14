@@ -2,7 +2,7 @@ import { skySoul } from "../soul";
 import { HUD_COMPONENT_NAMES } from "../../hud-gen/model/names";
 import type { AgentProfile, AgentContext } from "./types";
 
-// Per-astronaut composer for `/?gen=1`: turns the fixture facts + locale into one OpenUI Lang
+// Per-astronaut composer for the declarative `/` HUD: turns the fixture facts + locale into one OpenUI Lang
 // program for the HUD catalog. The preset is the primary render path; this agent only enhances it.
 export const hudComposer: AgentProfile = {
   id: "sky-hud-composer",

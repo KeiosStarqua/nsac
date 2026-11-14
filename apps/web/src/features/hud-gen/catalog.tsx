@@ -38,6 +38,7 @@ import { hasDigit, type ParseProgram } from "./model/review";
 import { HUD_FACT_IDS, HUD_VITAL_KINDS } from "./model/names";
 import { FIXTURE_LABEL } from "~/features/sky-hud/vitals";
 import { InputSurface } from "~/features/sky-hud/InputSurface";
+import { DeviceSwitcher } from "~/features/sky-hud/components/DeviceSwitcher";
 import { useHudScope } from "./scope";
 import styles from "./catalog.module.css";
 
@@ -237,6 +238,7 @@ const MetricTile = defineComponent({
         <span className="vital-value">
           {fact.segments.map((segment, index) => (
             <Fragment key={index}>
+              {index > 0 ? " " : null}
               {ctx.fx ? <CountUpAny to={Number(segment.value)} trigger="load" duration={1.2} decimals={0} /> : segment.value}{" "}
               {segment.unit ? <small>{segment.unit}</small> : null}
             </Fragment>
@@ -475,8 +477,32 @@ const Section = defineComponent({
     const ctx = useHudScope();
     const children = toChildArray(props.children);
     switch (props.area as SectionArea) {
-      case "header":
-        return <header className="sky-header">{renderNode(children)}</header>;
+      case "header": {
+        // Staged layout: brand left, chrome actions right (mission + device switcher + spacecraft).
+        const brand = toChildArray(props.children).filter((child) => childTypeName(child) === "BrandBlock");
+        const rest = toChildArray(props.children).filter((child) => childTypeName(child) !== "BrandBlock");
+        return (
+          <header className="sky-header">
+            {renderNode(brand)}
+            <div className="sky-header-actions">
+              {renderNode(rest)}
+              <DeviceSwitcher current="console" />
+              <Link id="spacecraftLink" to="/spacecraft" className="spacecraft-link" aria-label={ctx.copy.hud.spacecraftButtonAria}>
+                <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="1.3" y="8" width="13" height="8" rx="1.2" />
+                  <path d="M5.6 8v8M9.9 8v8" />
+                  <rect x="33.7" y="8" width="13" height="8" rx="1.2" />
+                  <path d="M38.1 8v8M42.4 8v8" />
+                  <rect x="19" y="6" width="10" height="12" rx="1.6" />
+                  <path d="M24 6V2.6M21.6 2.6h4.8" />
+                  <circle cx="24" cy="12" r="1.5" />
+                </svg>
+                <span className="spacecraft-text">{ctx.copy.hud.spacecraftButton}</span>
+              </Link>
+            </div>
+          </header>
+        );
+      }
       case "vitals":
         return (
           <section className="vitals-projection" aria-label={ctx.copy.hud.vitalsAria}>
