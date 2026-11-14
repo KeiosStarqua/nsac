@@ -6,4 +6,12 @@
   "instructions": [
     ".agents/bot/ceo/*.md",
   ],
+  // herdr-tab-status: tự flip symbol ●/○/◆ trên tab herdr của session theo
+  // turn start/end (xem plugins/herdr-tab-status/index.ts). Chỉ chạy khi
+  // HERDR_ENV=1 và HERDR_TAB_ID set; bỏ qua child session (hc/subagent).
+  // Local-dir plugin phải có package.json (exports "." → ./index.ts) —
+  // server npm-install plugin như một package, thiếu là failed to load.
+  "plugins": [
+    ".agents/bot/ceo/plugins/herdr-tab-status",
+  ],
 }

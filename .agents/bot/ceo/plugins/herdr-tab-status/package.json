@@ -1,0 +1,12 @@
+{
+  "name": "herdr-tab-status",
+  "version": "0.1.0",
+  "description": "CEO bot helper: flip the leading state symbol (● working / ○ idle / ◆ blocked) of the herdr tab label when the session starts/ends a turn.",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts"
+  ]
+}
