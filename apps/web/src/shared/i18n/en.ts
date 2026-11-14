@@ -70,6 +70,7 @@ export const en: Copy = {
     deviceSwitcher: "Device",
     deviceConsole: "Console",
     deviceWatch: "Watch",
+    watchCaption: "SKY · Watch preview — live demonstration",
     spacecraftButton: "SPACECRAFT",
     spacecraftButtonAria: "Open the full-screen ISS 3D view",
     captionsListening: "Microphone active · audio analysed locally",

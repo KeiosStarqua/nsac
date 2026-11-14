@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./hud-screen.css";
+import "./watch-device.css";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import BlurText from "../../shared/react-bits/BlurText/BlurText";
@@ -291,7 +292,8 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
     />
   );
 
-  // Detail overlay / chat panel / astronaut picker — always at the root.
+  // Detail overlay / chat panel / astronaut picker — rendered inside `.watch-screen` in the framed
+  // `/watch` layout so they clip to the watch face; at the root on `/`.
   const detailOverlay = detail ? (
     <div className="detail-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className="detail-glass" tabIndex={-1} ref={detailRef}>
@@ -374,7 +376,18 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
 
       {variant === "watch" ? (
         <>
-          {watchHud}
+          {/* /watch IS the watch device: the live WatchHud + overlays (picker, chat, detail) clip
+             inside the glass face of the AI-generated mockup on every viewport. */}
+          <div className="watch-stage">
+            <div className="watch-device" role="group" aria-label={copy.hud.watchCaption}>
+              <div className="watch-screen">
+                {watchHud}
+                {overlays}
+              </div>
+              <img className="watch-frame" src="/watch/mockup-futuristic-space-gray.png" alt="" aria-hidden="true" draggable={false} />
+            </div>
+            <p className="watch-caption">{copy.hud.watchCaption}</p>
+          </div>
           {/* Floating Console | Watch chip — pinned top-right; hidden ≤480px (phone is watch-only). */}
           <DeviceSwitcher current="watch" className="device-switcher-float" />
         </>
@@ -523,8 +536,8 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
         </>
       )}
 
-      {/* Overlays always at the root */}
-      {overlays}
+      {/* Overlays at the root — inside the watch face in the framed `/watch` layout */}
+      {variant === "watch" ? null : overlays}
       <div className="sr-only" role="status" aria-live="polite">{announcer}</div>
     </main>
   );
