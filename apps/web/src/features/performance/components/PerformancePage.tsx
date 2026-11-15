@@ -31,6 +31,14 @@ const BRAND_RING = [
   "shadow-[0_0_16px_rgba(105,192,255,0.24),inset_0_0_8px_rgba(108,156,255,0.14)]",
 ].join(" ");
 
+const NAV_LINK_TERTIARY = [
+  "inline-flex items-center gap-1.5 self-center rounded-full border border-white/10 bg-transparent",
+  "px-2.5 py-1.5 text-[9px] uppercase tracking-[0.18em] text-[#7186ad]! no-underline!",
+  "[transition:border-color_.18s,color_.18s]",
+  "hover:border-[#8ce7ff] hover:text-[#aee6ff]!",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!",
+].join(" ");
+
 const NAV_LINK = [
   "inline-flex items-center gap-1.5 rounded-full border border-[rgba(122,222,255,0.30)] bg-[rgba(11,36,58,0.45)]",
   "px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] text-[#aee6ff]! no-underline!",
@@ -192,6 +200,9 @@ export function PerformancePage({ initial }: PerformancePageProps) {
             <Link to="/" search={(prev) => prev} className={NAV_LINK}>
               <span aria-hidden="true">←</span>
               {copy.performance.backToHud}
+            </Link>
+            <Link to="/research" search={(prev) => prev} className={NAV_LINK_TERTIARY}>
+              {copy.performance.researchEvidence}
             </Link>
             <Link to="/body" search={(prev) => prev} className={NAV_LINK}>
               {copy.performance.bodyMap}
