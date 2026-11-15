@@ -116,7 +116,7 @@ if (cmd === "list") {
     console.log(`exists: ${existingId}\tname=${name}`);
     process.exit(0);
   }
-  const created = await call("POST", "", { name, speechEngine: { wsUrl } });
+  const created = await call("POST", "", { name, speech_engine: { ws_url: wsUrl } });
   print(created.status, created.json);
   const id = engineIdOf(created.json);
   if (!id) {
@@ -133,7 +133,7 @@ if (cmd === "list") {
   if (!name && !wsUrl) { console.error("cần --name hoặc --ws-url"); process.exit(1); }
   const body: Record<string, unknown> = {};
   if (name) body.name = name;
-  if (wsUrl) body.speechEngine = { wsUrl };
+  if (wsUrl) body.speech_engine = { ws_url: wsUrl };
   const { status, json } = await call("PATCH", `/${encodeURIComponent(id)}`, body);
   print(status, json);
 } else if (cmd === "delete") {
