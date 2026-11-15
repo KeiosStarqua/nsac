@@ -36,7 +36,6 @@ import VoicePill from "~/shared/react-bits/VoicePill/VoicePill";
 const BlurTextAny = BlurText as any;
 const CountUpAny = CountUp as any;
 const DecryptedTextAny = DecryptedText as any;
-const DepthTextAny = DepthText as any;
 const GradientTextAny = GradientText as any;
 const ShinyTextAny = ShinyText as any;
 const VariableProximityAny = VariableProximity as any;
@@ -189,7 +188,7 @@ const BrandBlock = defineComponent({
       <button className={BRAND} type="button" aria-label={ctx.copy.hud.brandAria} onClick={ctx.resetView}>
         <span className={BRAND_RING} aria-hidden="true" />
         <span className={BRAND_COPY}>
-          <span className={BRAND_NAME}><DepthTextAny text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
+          <span className={BRAND_NAME}><DepthText text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
           <span className={BRAND_TAGLINE}><ShinyTextAny color="#9bb0c8" shineColor="#d6f2ff" speed={12} intensity={0.4}>{ctx.copy.hud.tagline}</ShinyTextAny></span>
         </span>
       </button>

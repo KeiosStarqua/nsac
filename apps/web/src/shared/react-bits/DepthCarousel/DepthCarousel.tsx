@@ -1,13 +1,75 @@
 // DepthCarousel
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/DepthCarousel/DepthCarousel.jsx
+// Source: @react-bits/DepthCarousel-TS-TW — https://reactbits.dev/r/DepthCarousel-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  PointerEvent as ReactPointerEvent,
+  KeyboardEvent as ReactKeyboardEvent
+} from 'react';
 import gsap from 'gsap';
-import './DepthCarousel.css';
 
-const DEFAULT_ITEMS = [
+export type DepthCarouselItem = string | { image: string; alt?: string };
+type TiltDirection = 'left' | 'right';
+
+export interface DepthCarouselProps {
+  items?: DepthCarouselItem[];
+  cardWidth?: number;
+  cardHeight?: number;
+  radius?: number;
+  tint?: string;
+  depth?: number;
+  spread?: number;
+  tilt?: number;
+  tiltDirection?: TiltDirection;
+  perspective?: number;
+  visibleCards?: number;
+  falloff?: number;
+  blur?: number;
+  duration?: number;
+  ease?: string;
+  autoplay?: boolean;
+  autoplayDelay?: number;
+  loop?: boolean;
+  showControls?: boolean;
+  showIndicators?: boolean;
+  onChange?: (index: number, item: { image: string; alt?: string }) => void;
+  className?: string;
+}
+
+interface CarouselConfig {
+  count: number;
+  depth: number;
+  spread: number;
+  tilt: number;
+  tiltDirection: TiltDirection;
+  visibleCards: number;
+  falloff: number;
+  blur: number;
+  duration: number;
+  ease: string;
+  loop: boolean;
+  cardWidth: number;
+  autoplayDelay: number;
+}
+
+interface DragState {
+  x: number;
+  startPos: number;
+  lastX: number;
+  lastT: number;
+  v: number;
+  moved: boolean;
+  id: number;
+}
+
+const DEFAULT_ITEMS: DepthCarouselItem[] = [
   { image: 'https://picsum.photos/seed/depth1/800/1000', alt: 'Slide 1' },
   { image: 'https://picsum.photos/seed/depth2/800/1000', alt: 'Slide 2' },
   { image: 'https://picsum.photos/seed/depth3/800/1000', alt: 'Slide 3' },
@@ -16,8 +78,8 @@ const DEFAULT_ITEMS = [
   { image: 'https://picsum.photos/seed/depth6/800/1000', alt: 'Slide 6' }
 ];
 
-const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
-const normalizeItem = it => (typeof it === 'string' ? { image: it, alt: '' } : it);
+const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
+const normalizeItem = (it: DepthCarouselItem) => (typeof it === 'string' ? { image: it, alt: '' } : it);
 
 const DepthCarousel = ({
   items = DEFAULT_ITEMS,
@@ -42,25 +104,25 @@ const DepthCarousel = ({
   showIndicators = true,
   onChange,
   className = ''
-}) => {
+}: DepthCarouselProps) => {
   const data = useMemo(() => (Array.isArray(items) ? items : []).map(normalizeItem), [items]);
   const count = data.length;
 
-  const rootRef = useRef(null);
-  const stageRef = useRef(null);
-  const cardRefs = useRef([]);
-  const overlayRefs = useRef([]);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const overlayRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   const posRef = useRef(0);
   const focusRef = useRef(0);
-  const tweenRef = useRef(null);
+  const tweenRef = useRef<gsap.core.Tween | null>(null);
   const scaleRef = useRef(1);
-  const cfgRef = useRef({});
+  const cfgRef = useRef<CarouselConfig>({} as CarouselConfig);
   const onChangeRef = useRef(onChange);
 
-  const dragRef = useRef(null);
-  const wheelTimerRef = useRef(null);
-  const autoTimerRef = useRef(null);
+  const dragRef = useRef<DragState | null>(null);
+  const wheelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reducedRef = useRef(false);
 
   const [active, setActive] = useState(0);
@@ -82,7 +144,7 @@ const DepthCarousel = ({
     autoplayDelay
   };
 
-  const layout = useCallback(pos => {
+  const layout = useCallback((pos: number) => {
     const cfg = cfgRef.current;
     const n = cfg.count;
     if (!n) return;
@@ -126,7 +188,7 @@ const DepthCarousel = ({
   }, []);
 
   const notify = useCallback(
-    idx => {
+    (idx: number) => {
       setActive(idx);
       onChangeRef.current?.(idx, data[idx]);
     },
@@ -134,7 +196,7 @@ const DepthCarousel = ({
   );
 
   const tweenTo = useCallback(
-    (target, animate) => {
+    (target: number, animate: boolean) => {
       tweenRef.current?.kill();
       const cfg = cfgRef.current;
       const proxy = { p: posRef.current };
@@ -158,7 +220,7 @@ const DepthCarousel = ({
   );
 
   const setFocus = useCallback(
-    (rawIndex, animate = true) => {
+    (rawIndex: number, animate = true) => {
       const cfg = cfgRef.current;
       const n = cfg.count;
       if (!n) return;
@@ -177,7 +239,7 @@ const DepthCarousel = ({
     [tweenTo, notify]
   );
 
-  const navigateBy = useCallback(step => setFocus(focusRef.current + step, true), [setFocus]);
+  const navigateBy = useCallback((step: number) => setFocus(focusRef.current + step, true), [setFocus]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -196,7 +258,7 @@ const DepthCarousel = ({
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    const onWheel = e => {
+    const onWheel = (e: WheelEvent) => {
       const cfg = cfgRef.current;
       if (cfg.count < 2) return;
       e.preventDefault();
@@ -216,7 +278,7 @@ const DepthCarousel = ({
     };
   }, [layout, setFocus]);
 
-  const onPointerDown = useCallback(e => {
+  const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     const cfg = cfgRef.current;
     if (cfg.count < 2) return;
     tweenRef.current?.kill();
@@ -232,7 +294,7 @@ const DepthCarousel = ({
   }, []);
 
   const onPointerMove = useCallback(
-    e => {
+    (e: ReactPointerEvent<HTMLDivElement>) => {
       const drag = dragRef.current;
       if (!drag) return;
       const cfg = cfgRef.current;
@@ -266,7 +328,7 @@ const DepthCarousel = ({
   }, [setFocus]);
 
   const onKeyDown = useCallback(
-    e => {
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         navigateBy(-1);
@@ -279,7 +341,7 @@ const DepthCarousel = ({
   );
 
   const onCardClick = useCallback(
-    index => {
+    (index: number) => {
       if (dragRef.current?.moved) return;
       setFocus(index, true);
     },
@@ -298,7 +360,7 @@ const DepthCarousel = ({
     };
     const start = () => {
       stop();
-      autoTimerRef.current = window.setInterval(
+      autoTimerRef.current = setInterval(
         () => {
           if (!hovered && !focused) navigateBy(1);
         },
@@ -347,8 +409,8 @@ const DepthCarousel = ({
   return (
     <div
       ref={rootRef}
-      className={`depth-carousel ${className}`.trim()}
-      style={{ '--dc-perspective': `${perspective}px` }}
+      className={`relative flex h-full min-h-[320px] w-full cursor-grab touch-pan-y select-none items-center justify-center outline-none [perspective-origin:50%_50%] active:cursor-grabbing focus-visible:rounded-xl focus-visible:outline-2 focus-visible:outline-white/50 focus-visible:[outline-offset:4px] ${className}`.trim()}
+      style={{ perspective: `${perspective}px` }}
       role="group"
       aria-roledescription="carousel"
       aria-label="Depth carousel"
@@ -359,22 +421,31 @@ const DepthCarousel = ({
       onPointerCancel={onPointerEnd}
       onKeyDown={onKeyDown}
     >
-      <div className="depth-carousel__stage" ref={stageRef}>
+      <div className="absolute inset-0 [transform-style:preserve-3d]" ref={stageRef}>
         {data.map((item, i) => (
           <div
             key={i}
-            className="depth-carousel__card"
-            ref={el => (cardRefs.current[i] = el)}
+            className="absolute left-1/2 top-1/2 cursor-pointer overflow-hidden bg-[#0b0d12] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.65),0_8px_20px_-10px_rgba(0,0,0,0.5)] [transform:translate(-50%,-50%)] [transform-origin:center] [will-change:transform,opacity,filter]"
+            ref={el => {
+              cardRefs.current[i] = el;
+            }}
             style={{ width: cardWidth, height: cardHeight, borderRadius: radius }}
             aria-roledescription="slide"
             aria-label={`${i + 1} of ${count}`}
             aria-hidden={active !== i}
             onClick={() => onCardClick(i)}
           >
-            <img className="depth-carousel__img" src={item.image} alt={item.alt || ''} draggable={false} />
+            <img
+              className="block h-full w-full select-none object-cover [pointer-events:none] [-webkit-user-drag:none]"
+              src={item.image}
+              alt={item.alt || ''}
+              draggable={false}
+            />
             <span
-              className="depth-carousel__tint"
-              ref={el => (overlayRefs.current[i] = el)}
+              className="pointer-events-none absolute inset-0 opacity-0 mix-blend-multiply"
+              ref={el => {
+                overlayRefs.current[i] = el;
+              }}
               style={{ background: tint }}
             />
           </div>
@@ -385,7 +456,7 @@ const DepthCarousel = ({
         <>
           <button
             type="button"
-            className="depth-carousel__arrow depth-carousel__arrow--prev"
+            className="absolute left-4 top-1/2 z-[3000] grid h-[42px] w-[42px] -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-[rgba(18,20,26,0.55)] text-white backdrop-blur-md transition-[background,border-color,transform] duration-200 hover:border-white/40 hover:bg-[rgba(28,31,40,0.85)] active:scale-95"
             aria-label="Previous slide"
             onClick={() => navigateBy(-1)}
           >
@@ -402,7 +473,7 @@ const DepthCarousel = ({
           </button>
           <button
             type="button"
-            className="depth-carousel__arrow depth-carousel__arrow--next"
+            className="absolute right-4 top-1/2 z-[3000] grid h-[42px] w-[42px] -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-[rgba(18,20,26,0.55)] text-white backdrop-blur-md transition-[background,border-color,transform] duration-200 hover:border-white/40 hover:bg-[rgba(28,31,40,0.85)] active:scale-95"
             aria-label="Next slide"
             onClick={() => navigateBy(1)}
           >
@@ -421,7 +492,11 @@ const DepthCarousel = ({
       )}
 
       {showIndicators && count > 1 && (
-        <div className="depth-carousel__dots" role="tablist" aria-label="Slides">
+        <div
+          className="absolute bottom-4 left-1/2 z-[3000] flex -translate-x-1/2 gap-2 rounded-full bg-[rgba(14,16,22,0.4)] px-3 py-2 backdrop-blur-sm"
+          role="tablist"
+          aria-label="Slides"
+        >
           {data.map((_, i) => (
             <button
               key={i}
@@ -429,7 +504,9 @@ const DepthCarousel = ({
               role="tab"
               aria-selected={active === i}
               aria-label={`Go to slide ${i + 1}`}
-              className={`depth-carousel__dot${active === i ? ' is-active' : ''}`}
+              className={`h-[7px] cursor-pointer rounded-full transition-[width,background] duration-[250ms] ${
+                active === i ? 'w-5 bg-white' : 'w-[7px] bg-white/30'
+              }`}
               onClick={() => setFocus(i, true)}
             />
           ))}

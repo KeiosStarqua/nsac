@@ -1,16 +1,103 @@
-// Crystalized Ball
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Animations/CrystalizedBall/CrystalizedBall.jsx
+// CrystalizedBall
+// Source: @react-bits/CrystalizedBall-TS-TW — https://reactbits.dev/r/CrystalizedBall-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
-
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { Renderer, Program, Mesh, Triangle, Geometry, RenderTarget, Texture } from 'ogl';
 
-import './CrystalizedBall.css';
+type Preset = 'plasma' | 'aurora' | 'nebula' | 'ember' | 'frost' | 'solar' | 'eclipse' | 'abyss';
+type Motion = 'rise' | 'fall' | 'drift' | 'orbit';
+type ParticleShape = 'square' | 'round';
+type Theme = 'dark' | 'light';
+type Rgb = [number, number, number];
 
-const BALL_PRESETS = {
+interface PresetValues {
+  color: string;
+  strands: number;
+  crackle: number;
+  flares: number;
+  glow: number;
+  sparks: number;
+  particleCount: number;
+  fill: number;
+  motion: Motion;
+  particleShape: ParticleShape;
+  depth: number;
+  sway: number;
+  twinkle: number;
+  haze: number;
+  dustSpeed: number;
+}
+
+export interface CrystalizedBallProps extends Partial<PresetValues> {
+  preset?: Preset;
+  theme?: Theme;
+  size?: number;
+  speed?: number;
+  interactive?: boolean;
+  hoverStrength?: number;
+  intro?: boolean;
+  paused?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Palette {
+  rim: Rgb;
+  rimHot: Rgb;
+  rimMid: Rgb;
+  rimDeep: Rgb;
+  spark: Rgb;
+  sparkGlow: Rgb;
+  haze: Rgb;
+  edge: Rgb;
+  tones: Rgb[];
+}
+
+interface Settings extends Omit<PresetValues, 'color'> {
+  light: boolean;
+  palette: Palette;
+  size: number;
+  speed: number;
+  interactive: boolean;
+  hoverStrength: number;
+  intro: boolean;
+  paused: boolean;
+}
+
+interface StrandData {
+  harmonics: number[];
+  rates: number[];
+  phases: number[];
+  flareHarmonics: number[];
+  flareRates: number[];
+  flarePhases: number[];
+}
+
+interface Arc {
+  start: number;
+  span: number;
+  curl: number;
+  life: number;
+  duration: number;
+  drift: number;
+  strength: number;
+}
+
+interface DustLayer {
+  requested: number;
+  rows: number;
+  home: Texture;
+  seed: Texture;
+  mesh: Mesh;
+  read: RenderTarget | null;
+  write: RenderTarget | null;
+}
+
+const BALL_PRESETS: Record<Preset, PresetValues> = {
   plasma: {
     color: '#F25BD0',
     strands: 6,
@@ -149,8 +236,8 @@ const BALL_PRESETS = {
   }
 };
 
-const MOTIONS = { rise: 0, fall: 1, drift: 2, orbit: 3 };
-const SHAPES = { square: 0, round: 1 };
+const MOTIONS: Record<string, number> = { rise: 0, fall: 1, drift: 2, orbit: 3 };
+const SHAPES: Record<string, number> = { square: 0, round: 1 };
 const MAX_STRANDS = 8;
 const MAX_ARCS = 4;
 const MAX_PARTICLES = 40000;
@@ -158,19 +245,19 @@ const STATE_WIDTH = 256;
 const PIXEL_BUDGET = 4.5e6;
 const INTRO_SECONDS = 2.2;
 const SETTLE_SECONDS = 7;
-const WHITE = [1, 1, 1];
-const BLACK = [0, 0, 0];
+const WHITE: Rgb = [1, 1, 1];
+const BLACK: Rgb = [0, 0, 0];
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-const smooth = (edge0, edge1, value) => {
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+const smooth = (edge0: number, edge1: number, value: number) => {
   const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
   return t * t * (3 - 2 * t);
 };
-const easeOut = t => 1 - Math.pow(1 - t, 3);
-const mixColor = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-const wrapAngle = a => a - Math.PI * 2 * Math.floor((a + Math.PI) / (Math.PI * 2));
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+const mixColor = (a: number[], b: number[], t: number): Rgb => a.map((v, i) => v + (b[i] - v) * t) as Rgb;
+const wrapAngle = (a: number) => a - Math.PI * 2 * Math.floor((a + Math.PI) / (Math.PI * 2));
 
-const parseColor = (value, fallback) => {
+const parseColor = (value: string, fallback: Rgb): Rgb => {
   try {
     const ctx = document.createElement('canvas').getContext('2d');
     if (!ctx) return fallback;
@@ -189,10 +276,10 @@ const parseColor = (value, fallback) => {
   }
 };
 
-const toLinear = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-const toGamma = c => (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
+const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+const toGamma = (c: number) => (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
 
-const toOklab = rgb => {
+const toOklab = (rgb: number[]): Rgb => {
   const [r, g, b] = rgb.map(toLinear);
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
@@ -204,7 +291,7 @@ const toOklab = rgb => {
   ];
 };
 
-const fromOklab = ([L, a, b]) => {
+const fromOklab = ([L, a, b]: number[]): Rgb => {
   const l = Math.pow(L + 0.3963377774 * a + 0.2158037573 * b, 3);
   const m = Math.pow(L - 0.1055613458 * a - 0.0638541728 * b, 3);
   const s = Math.pow(L - 0.0894841775 * a - 1.291485548 * b, 3);
@@ -212,26 +299,26 @@ const fromOklab = ([L, a, b]) => {
     4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
     -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
     -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s
-  ].map(v => clamp(toGamma(clamp(v, 0, 1)), 0, 1));
+  ].map(v => clamp(toGamma(clamp(v, 0, 1)), 0, 1)) as Rgb;
 };
 
-const blend = (a, b, t) => fromOklab(mixColor(toOklab(a), toOklab(b), t));
+const blend = (a: Rgb, b: Rgb, t: number): Rgb => fromOklab(mixColor(toOklab(a), toOklab(b), t));
 
-const shift = (rgb, hue, lightness, chroma) => {
+const shift = (rgb: Rgb, hue: number, lightness: number, chroma: number): Rgb => {
   const [L, a, b] = toOklab(rgb);
   const c = Math.hypot(a, b) * chroma;
   const h = Math.atan2(b, a) + (hue * Math.PI) / 180;
   return fromOklab([clamp(L + lightness, 0, 1), c * Math.cos(h), c * Math.sin(h)]);
 };
 
-const withLightness = (rgb, hue, lightness, chroma) => {
+const withLightness = (rgb: Rgb, hue: number, lightness: number, chroma: number): Rgb => {
   const [, a, b] = toOklab(rgb);
   const c = Math.max(Math.hypot(a, b) * chroma, 0.02);
   const h = Math.atan2(b, a) + (hue * Math.PI) / 180;
   return fromOklab([clamp(lightness, 0, 1), c * Math.cos(h), c * Math.sin(h)]);
 };
 
-const buildPalette = (color, light) => {
+const buildPalette = (color: Rgb, light: boolean): Palette => {
   if (light) {
     const ink = withLightness(color, 0, Math.min(toOklab(color)[0], 0.62), 1.15);
     return {
@@ -271,7 +358,7 @@ const buildPalette = (color, light) => {
   };
 };
 
-const seeded = start => {
+const seeded = (start: number) => {
   let state = start >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -282,7 +369,7 @@ const seeded = start => {
   };
 };
 
-const buildStrands = () => {
+const buildStrands = (): StrandData => {
   const random = seeded(99);
   const bands = [
     [6, 12, 0.6, 1.6],
@@ -290,7 +377,14 @@ const buildStrands = () => {
     [40, 70, 3, 7],
     [80, 130, 6, 12]
   ];
-  const data = { harmonics: [], rates: [], phases: [], flareHarmonics: [], flareRates: [], flarePhases: [] };
+  const data: StrandData = {
+    harmonics: [],
+    rates: [],
+    phases: [],
+    flareHarmonics: [],
+    flareRates: [],
+    flarePhases: []
+  };
   for (let s = 0; s < MAX_STRANDS; s++) {
     bands.forEach(([low, high, slow, fast]) => {
       data.harmonics.push(Math.round(low + random() * (high - low)));
@@ -310,7 +404,7 @@ const buildStrands = () => {
   return data;
 };
 
-const buildDust = count => {
+const buildDust = (count: number) => {
   const random = seeded(1337);
   const rows = Math.max(1, Math.ceil(count / STATE_WIDTH));
   const home = new Float32Array(STATE_WIDTH * rows * 4);
@@ -319,9 +413,9 @@ const buildDust = count => {
   let guard = 0;
   while (k < count && guard < count * 80) {
     guard++;
-    let x;
-    let y;
-    let tone;
+    let x: number;
+    let y: number;
+    let tone: number;
     if (random() < 0.28) {
       const angle = random() * Math.PI * 2;
       const radius = 0.87 + Math.sqrt(random()) * 0.105;
@@ -810,37 +904,38 @@ void main() {
 
 const CrystalizedBall = ({
   preset = 'plasma',
-  color = undefined,
+  color,
   theme = 'dark',
   size = 0.7,
-  strands = undefined,
-  crackle = undefined,
-  flares = undefined,
-  glow = undefined,
-  sparks = undefined,
-  particleCount = undefined,
-  fill = undefined,
-  motion = undefined,
-  particleShape = undefined,
-  depth = undefined,
-  sway = undefined,
-  twinkle = undefined,
-  haze = undefined,
+  strands,
+  crackle,
+  flares,
+  glow,
+  sparks,
+  particleCount,
+  fill,
+  motion,
+  particleShape,
+  depth,
+  sway,
+  twinkle,
+  haze,
   speed = 1,
-  dustSpeed = undefined,
+  dustSpeed,
   interactive = true,
   hoverStrength = 0.7,
   intro = true,
   paused = false,
   className = '',
   style
-}) => {
-  const containerRef = useRef(null);
-  const settingsRef = useRef(null);
-  const wakeRef = useRef(null);
+}: CrystalizedBallProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<Settings | null>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
 
   const base = BALL_PRESETS[preset] || BALL_PRESETS.plasma;
-  const pick = (value, key) => (value === undefined || value === null ? base[key] : value);
+  const pick = <K extends keyof PresetValues>(value: PresetValues[K] | undefined, key: K): PresetValues[K] =>
+    value === undefined || value === null ? base[key] : value;
   const tint = pick(color, 'color');
 
   const colors = useMemo(() => {
@@ -881,6 +976,7 @@ const CrystalizedBall = ({
 
     const renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: false, depth: false });
     const gl = renderer.gl;
+    const gl2 = gl as unknown as WebGL2RenderingContext;
     if (!renderer.isWebgl2) {
       gl.getExtension('WEBGL_lose_context')?.loseContext();
       return undefined;
@@ -903,9 +999,9 @@ const CrystalizedBall = ({
       width: 1,
       height: 1,
       depth: false,
-      type: halfFloat ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE,
+      type: halfFloat ? gl2.HALF_FLOAT : gl.UNSIGNED_BYTE,
       format: gl.RGBA,
-      internalFormat: halfFloat ? gl.RGBA16F : gl.RGBA,
+      internalFormat: halfFloat ? gl2.RGBA16F : gl.RGBA,
       minFilter: gl.NEAREST,
       magFilter: gl.NEAREST
     });
@@ -992,7 +1088,7 @@ const CrystalizedBall = ({
       uDecode: { value: 1 / encode }
     };
 
-    const additive = program => {
+    const additive = (program: Program) => {
       program.setBlendFunc(gl.ONE, gl.ONE);
       return program;
     };
@@ -1043,40 +1139,40 @@ const CrystalizedBall = ({
       })
     });
 
-    const disposeTarget = target => {
+    const disposeTarget = (target: RenderTarget | null) => {
       if (!target) return;
       gl.deleteFramebuffer(target.buffer);
       target.textures.forEach(texture => gl.deleteTexture(texture.texture));
     };
 
-    const stateTarget = rows =>
+    const stateTarget = (rows: number) =>
       new RenderTarget(gl, {
         width: STATE_WIDTH,
         height: rows,
         color: 2,
         depth: false,
-        type: fullFloat ? gl.FLOAT : gl.HALF_FLOAT,
+        type: fullFloat ? gl.FLOAT : gl2.HALF_FLOAT,
         format: gl.RGBA,
-        internalFormat: fullFloat ? gl.RGBA32F : gl.RGBA16F,
+        internalFormat: fullFloat ? gl2.RGBA32F : gl2.RGBA16F,
         minFilter: gl.NEAREST,
         magFilter: gl.NEAREST
       });
 
-    const dataTexture = (data, rows) =>
+    const dataTexture = (data: Float32Array, rows: number) =>
       new Texture(gl, {
         image: data,
         width: STATE_WIDTH,
         height: rows,
         type: gl.FLOAT,
         format: gl.RGBA,
-        internalFormat: gl.RGBA32F,
+        internalFormat: gl2.RGBA32F,
         minFilter: gl.NEAREST,
         magFilter: gl.NEAREST,
         generateMipmaps: false,
         flipY: false
       });
 
-    let dust = null;
+    let dust: DustLayer | null = null;
 
     const disposeDust = () => {
       if (!dust) return;
@@ -1098,7 +1194,7 @@ const CrystalizedBall = ({
       stirUniforms.uReset.value = 0;
     };
 
-    const rebuildDust = requested => {
+    const rebuildDust = (requested: number) => {
       const total = clamp(Math.round(requested / 100) * 100, 0, MAX_PARTICLES);
       if (dust && dust.requested === total) return;
       disposeDust();
@@ -1141,9 +1237,9 @@ const CrystalizedBall = ({
     let surge = 0;
     let stirring = 0;
     let stirEnergy = 0;
-    let kick = null;
+    let kick: { x: number; y: number; strength: number } | null = null;
     let nextArc = 0.3;
-    const arcs = [];
+    const arcs: Arc[] = [];
     const pointer = { x: 0, y: 0, inside: false, fresh: true };
     const heat = { angle: 0, velocity: 0, power: 0, near: 0 };
     const brush = { x: 0, y: 0, vx: 0, vy: 0 };
@@ -1163,7 +1259,7 @@ const CrystalizedBall = ({
       start();
     };
 
-    const spawnArc = (angle, strength) => {
+    const spawnArc = (angle: number, strength: number) => {
       if (arcs.length >= MAX_ARCS) return;
       arcs.push({
         start: angle,
@@ -1176,7 +1272,7 @@ const CrystalizedBall = ({
       });
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (resizePending) {
         resizePending = false;
@@ -1371,14 +1467,14 @@ const CrystalizedBall = ({
       raf = requestAnimationFrame(frame);
     };
 
-    const locate = e => {
+    const locate = (e: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       return { x, y, inside: x >= 0 && y >= 0 && x <= rect.width && y <= rect.height };
     };
 
-    const onPointerMove = e => {
+    const onPointerMove = (e: PointerEvent) => {
       const spot = locate(e);
       if (spot.inside && !pointer.inside) pointer.fresh = true;
       pointer.x = spot.x;
@@ -1387,7 +1483,7 @@ const CrystalizedBall = ({
       if (spot.inside) start();
     };
 
-    const onPointerDown = e => {
+    const onPointerDown = (e: PointerEvent) => {
       const s = settingsRef.current;
       const spot = locate(e);
       if (!s || !s.interactive || reducedMotion || !spot.inside) return;
@@ -1414,11 +1510,11 @@ const CrystalizedBall = ({
       start();
     };
 
-    const onPointerOut = e => {
+    const onPointerOut = (e: PointerEvent) => {
       if (!e.relatedTarget) onPointerLeave();
     };
 
-    const onPointerUp = e => {
+    const onPointerUp = (e: PointerEvent) => {
       if (e.pointerType === 'touch') onPointerLeave();
     };
 
@@ -1464,7 +1560,9 @@ const CrystalizedBall = ({
     };
   }, []);
 
-  return <div ref={containerRef} className={`crystalized-ball ${className}`.trim()} style={style} />;
+  return (
+    <div ref={containerRef} className={`relative w-full h-full overflow-hidden ${className}`.trim()} style={style} />
+  );
 };
 
 export default CrystalizedBall;

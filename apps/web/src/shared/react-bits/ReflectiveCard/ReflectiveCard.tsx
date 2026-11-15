@@ -1,15 +1,114 @@
 // ReflectiveCard
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/ReflectiveCard/ReflectiveCard.jsx
+// Source: @react-bits/ReflectiveCard-TS-TW — https://reactbits.dev/r/ReflectiveCard-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CheckmarkBadge01Icon, FingerPrintIcon } from '@hugeicons/core-free-icons';
 
-import './ReflectiveCard.css';
+export interface ReflectiveCardProps {
+  name?: string;
+  role?: string;
+  badge?: string;
+  status?: string;
+  statusColor?: string;
+  idLabel?: string;
+  idValue?: string;
+  children?: ReactNode;
+  theme?: 'dark' | 'light';
+  videoSrc?: string;
+  webcam?: boolean;
+  onWebcamError?: (error: Error) => void;
+  tint?: string;
+  metalness?: number;
+  roughness?: number;
+  blurStrength?: number;
+  grayscale?: number;
+  warp?: number;
+  warpScale?: number;
+  shine?: number;
+  bevel?: number;
+  glare?: number;
+  enableTilt?: boolean;
+  tiltStrength?: number;
+  intro?: boolean;
+  width?: number | string;
+  height?: number | string;
+  radius?: number;
+  className?: string;
+  style?: CSSProperties;
+}
 
-const THEMES = {
+interface Settings {
+  tint: number[];
+  metalness: number;
+  roughness: number;
+  blurStrength: number;
+  grayscale: number;
+  warp: number;
+  warpScale: number;
+  shine: number;
+  bevel: number;
+  glare: number;
+  enableTilt: boolean;
+  tiltStrength: number;
+  radius: number;
+  theme: number;
+  intro: boolean;
+}
+
+interface Source {
+  element: HTMLVideoElement;
+  src: string;
+  time: number;
+  ready: boolean;
+  failed: boolean;
+  width: number;
+  height: number;
+  mix: number;
+}
+
+interface EnvFrame {
+  width: number;
+  height: number;
+  scale: number;
+  blur: number;
+  roughness: number;
+  video: Source;
+  cam: Source;
+}
+
+interface PlateFrame {
+  width: number;
+  height: number;
+  rotateX: number;
+  rotateY: number;
+  capture: number;
+  glare: number;
+  pointerX: number;
+  pointerY: number;
+  settings: Settings;
+}
+
+type Uniforms = Record<string, WebGLUniformLocation | null>;
+
+interface Program {
+  program: WebGLProgram;
+  uniforms: Uniforms;
+}
+
+interface Target {
+  texture: WebGLTexture | null;
+  framebuffer: WebGLFramebuffer | null;
+  width: number;
+  height: number;
+}
+
+type SourceKey = 'video' | 'cam';
+
+const THEMES: Record<'dark' | 'light', Record<string, string>> = {
   dark: {
     '--rc-base': '#1d1c22',
     '--rc-shadow': '0 22px 44px -20px rgba(0, 0, 0, 0.8), 0 6px 16px -8px rgba(0, 0, 0, 0.5)',
@@ -34,6 +133,32 @@ const THEMES = {
     '--rc-rim': 'rgba(24, 24, 27, 0.08)',
     '--rc-rim-highlight': 'rgba(255, 255, 255, 0.8)'
   }
+};
+
+const BODY_STYLE: CSSProperties = {
+  borderRadius: 'var(--rc-radius)',
+  background: 'var(--rc-base)',
+  boxShadow: 'var(--rc-shadow)',
+  transform:
+    'translate3d(0, var(--rc-lift, 0px), 0) rotateX(var(--rc-rotate-x, 0deg)) rotateY(var(--rc-rotate-y, 0deg))',
+  opacity: 'var(--rc-presence, 1)',
+  isolation: 'isolate',
+  willChange: 'transform'
+};
+
+const TILE_STYLE: CSSProperties = {
+  borderRadius: 'var(--rc-tile-radius)',
+  background: 'var(--rc-tile)',
+  boxShadow: 'var(--rc-tile-shadow)',
+  color: 'var(--rc-muted)'
+};
+
+const TILE_RIM_STYLE: CSSProperties = {
+  boxShadow: 'inset 0 0 0 1px var(--rc-tile-edge), inset 0 1px 0 var(--rc-tile-highlight)'
+};
+
+const RIM_STYLE: CSSProperties = {
+  boxShadow: 'inset 0 0 0 1px var(--rc-rim), inset 0 1px 0 var(--rc-rim-highlight)'
 };
 
 const VIEW_DISTANCE = 900;
@@ -300,14 +425,14 @@ void main() {
   fragColor = vec4(color * coverage, coverage);
 }`;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const toPx = value => {
+const toPx = (value: number | string) => {
   if (typeof value === 'number') return `${value}px`;
   return value;
 };
 
-const parseColor = value => {
+const parseColor = (value: string): number[] => {
   const text = String(value || '').trim();
   const hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text);
   if (hex) {
@@ -319,7 +444,7 @@ const parseColor = value => {
   return [1, 1, 1];
 };
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -332,7 +457,7 @@ const compile = (gl, type, source) => {
   return shader;
 };
 
-const link = (gl, fragmentSource) => {
+const link = (gl: WebGL2RenderingContext, fragmentSource: string): Program | null => {
   const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
   const fragment = compile(gl, gl.FRAGMENT_SHADER, fragmentSource);
   const program = vertex && fragment ? gl.createProgram() : null;
@@ -352,7 +477,7 @@ const link = (gl, fragmentSource) => {
     gl.deleteProgram(program);
     return null;
   }
-  const uniforms = {};
+  const uniforms: Uniforms = {};
   const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
   for (let index = 0; index < count; index++) {
     const info = gl.getActiveUniform(program, index);
@@ -361,7 +486,7 @@ const link = (gl, fragmentSource) => {
   return { program, uniforms };
 };
 
-const coverMap = (width, height, aspect, mirror) => {
+const coverMap = (width: number, height: number, aspect: number, mirror: boolean) => {
   const ratio = width / Math.max(1, height);
   const sx = ratio > aspect ? aspect / ratio : 1;
   const sy = ratio > aspect ? 1 : ratio / aspect;
@@ -369,13 +494,13 @@ const coverMap = (width, height, aspect, mirror) => {
   return [u, -sy, 0.5 - u * 0.5, 0.5 + sy * 0.5];
 };
 
-const lodFor = (width, height, envWidth, aspect) => {
+const lodFor = (width: number, height: number, envWidth: number, aspect: number) => {
   const ratio = width / Math.max(1, height);
   const visible = width * (ratio > aspect ? aspect / ratio : 1);
   return Math.max(0, Math.log2(Math.max(1, visible / Math.max(1, envWidth))) - 0.5);
 };
 
-const createRenderer = canvas => {
+const createRenderer = (canvas: HTMLCanvasElement) => {
   const gl = canvas.getContext('webgl2', {
     alpha: true,
     premultipliedAlpha: true,
@@ -395,7 +520,7 @@ const createRenderer = canvas => {
     return null;
   }
 
-  const createTexture = (mipmaps, wrap) => {
+  const createTexture = (mipmaps: boolean, wrap: number) => {
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, mipmaps ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
@@ -406,7 +531,7 @@ const createRenderer = canvas => {
     return texture;
   };
 
-  const createTarget = () => {
+  const createTarget = (): Target => {
     const texture = createTexture(false, gl.MIRRORED_REPEAT);
     const framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -415,7 +540,7 @@ const createRenderer = canvas => {
     return { texture, framebuffer, width: 1, height: 1 };
   };
 
-  const allocate = (target, width, height) => {
+  const allocate = (target: Target, width: number, height: number) => {
     if (target.width === width && target.height === height) return;
     target.width = width;
     target.height = height;
@@ -439,19 +564,19 @@ const createRenderer = canvas => {
   const blurY = createTarget();
   const rotation = new Float32Array(9);
 
-  const pass = (target, program) => {
+  const pass = (target: Target | null, program: Program) => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.framebuffer : null);
     gl.viewport(0, 0, target ? target.width : canvas.width, target ? target.height : canvas.height);
     gl.useProgram(program.program);
     return program.uniforms;
   };
 
-  const bind = (unit, texture) => {
+  const bind = (unit: number, texture: WebGLTexture | null) => {
     gl.activeTexture(gl.TEXTURE0 + unit);
     gl.bindTexture(gl.TEXTURE_2D, texture);
   };
 
-  const upload = (key, element) => {
+  const upload = (key: SourceKey, element: HTMLVideoElement) => {
     try {
       gl.bindTexture(gl.TEXTURE_2D, textures[key]);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -464,7 +589,7 @@ const createRenderer = canvas => {
     }
   };
 
-  const renderEnv = ({ width, height, scale, blur, roughness, video, cam }) => {
+  const renderEnv = ({ width, height, scale, blur, roughness, video, cam }: EnvFrame) => {
     const envScale = clamp(2.5 / Math.max(blur, 0.01), 0.12, scale);
     const envWidth = Math.max(8, Math.ceil(width * OVERSCAN * envScale));
     const envHeight = Math.max(8, Math.ceil(height * OVERSCAN * envScale));
@@ -505,7 +630,17 @@ const createRenderer = canvas => {
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 
-  const renderPlate = ({ width, height, rotateX, rotateY, capture: amount, glare, pointerX, pointerY, settings }) => {
+  const renderPlate = ({
+    width,
+    height,
+    rotateX,
+    rotateY,
+    capture: amount,
+    glare,
+    pointerX,
+    pointerY,
+    settings
+  }: PlateFrame) => {
     const cx = Math.cos(rotateX);
     const sx = Math.sin(rotateX);
     const cy = Math.cos(rotateY);
@@ -583,18 +718,18 @@ const ReflectiveCard = ({
   radius = 24,
   className = '',
   style
-}) => {
-  const rootRef = useRef(null);
-  const bodyRef = useRef(null);
-  const canvasRef = useRef(null);
-  const videoRef = useRef(null);
-  const camRef = useRef(null);
-  const wakeRef = useRef(null);
+}: ReflectiveCardProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const camRef = useRef<HTMLVideoElement>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
   const errorRef = useRef(onWebcamError);
   const [generation, setGeneration] = useState(0);
 
   const palette = theme === 'light' ? 'light' : 'dark';
-  const settings = {
+  const settings: Settings = {
     tint: parseColor(tint).map(channel => Math.pow(channel, 2.2)),
     metalness: clamp(metalness, 0, 1),
     roughness: clamp(roughness, 0, 1),
@@ -642,7 +777,7 @@ const ReflectiveCard = ({
     const light = { p: 0, target: 0 };
     const pointer = { x: 0, y: 0 };
     const size = { width: body.offsetWidth, height: body.offsetHeight, scale: 1 };
-    const makeSource = element => ({
+    const makeSource = (element: HTMLVideoElement): Source => ({
       element,
       src: '',
       time: -1,
@@ -656,7 +791,7 @@ const ReflectiveCard = ({
     let presence = 1;
     let presenceStart = 0;
     let slowUntil = 0;
-    let touchId = null;
+    let touchId: number | null = null;
     let raf = 0;
     let last = 0;
     let visible = true;
@@ -676,7 +811,7 @@ const ReflectiveCard = ({
       style.setProperty('--rc-lift', `${((1 - eased) * 14).toFixed(2)}px`);
     };
 
-    const refresh = (key, source) => {
+    const refresh = (key: SourceKey, source: Source) => {
       const element = source.element;
       const src = element.srcObject ? 'stream' : element.currentSrc;
       if (src !== source.src) {
@@ -706,7 +841,7 @@ const ReflectiveCard = ({
       return true;
     };
 
-    const fade = (source, dt) => {
+    const fade = (source: Source, dt: number) => {
       const target = source.ready && !source.failed && source.src ? 1 : 0;
       const before = source.mix;
       source.mix += (target - source.mix) * (1 - Math.exp(-dt / FADE_SECONDS));
@@ -733,7 +868,7 @@ const ReflectiveCard = ({
       wake();
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (resizePending) {
         resizePending = false;
@@ -824,7 +959,7 @@ const ReflectiveCard = ({
     };
     wakeRef.current = wake;
 
-    const aim = (nx, ny, on = true) => {
+    const aim = (nx: number, ny: number, on = true) => {
       x.target = clamp(nx, -1, 1);
       y.target = clamp(ny, -1, 1);
       light.target = on ? 1 : 0;
@@ -832,7 +967,7 @@ const ReflectiveCard = ({
       wake();
     };
 
-    const aimAt = event => {
+    const aimAt = (event: PointerEvent) => {
       const rect = root.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       const nx = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -844,21 +979,21 @@ const ReflectiveCard = ({
 
     const release = () => aim(0, 0, false);
 
-    const onEnter = event => {
+    const onEnter = (event: PointerEvent) => {
       if (event.pointerType === 'mouse') aimAt(event);
     };
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       if (event.pointerType === 'mouse' || event.pointerId === touchId) aimAt(event);
     };
-    const onLeave = event => {
+    const onLeave = (event: PointerEvent) => {
       if (event.pointerType === 'mouse') release();
     };
-    const onDown = event => {
+    const onDown = (event: PointerEvent) => {
       if (event.pointerType === 'mouse') return;
       touchId = event.pointerId;
       aimAt(event);
     };
-    const onUp = event => {
+    const onUp = (event: PointerEvent) => {
       if (event.pointerId !== touchId) return;
       touchId = null;
       release();
@@ -871,7 +1006,7 @@ const ReflectiveCard = ({
     root.addEventListener('pointerup', onUp);
     root.addEventListener('pointercancel', onUp);
 
-    const onLost = event => {
+    const onLost = (event: Event) => {
       event.preventDefault();
       lost = true;
       cancelAnimationFrame(raf);
@@ -969,7 +1104,7 @@ const ReflectiveCard = ({
       errorRef.current?.(new Error('Camera access is not available in this browser.'));
       return;
     }
-    let stream = null;
+    let stream: MediaStream | null = null;
     let cancelled = false;
     media
       .getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false })
@@ -1002,43 +1137,63 @@ const ReflectiveCard = ({
     '--rc-radius': `${corner}px`,
     '--rc-pad': `${Math.round(clamp(corner * 0.8, 16, 22))}px`,
     '--rc-tile-radius': `${Math.round(clamp(corner * 0.5, 8, 14))}px`,
-    '--rc-status': statusColor
-  };
+    '--rc-status': statusColor,
+    width: 'var(--rc-width)',
+    height: 'var(--rc-height)',
+    perspective: '900px',
+    color: 'var(--rc-ink)'
+  } as CSSProperties;
 
   return (
-    <div ref={rootRef} className={`reflective-card ${className}`.trim()} style={{ ...cardStyle, ...style }}>
-      <div ref={bodyRef} className="reflective-card__body">
-        <canvas ref={canvasRef} className="reflective-card__canvas" aria-hidden="true" />
-        <div className="reflective-card__content">
+    <div
+      ref={rootRef}
+      className={`relative box-border max-w-full touch-pan-y select-none ${className}`.trim()}
+      style={{ ...cardStyle, ...style }}
+    >
+      <div ref={bodyRef} className="relative box-border h-full w-full overflow-hidden" style={BODY_STYLE}>
+        <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" aria-hidden="true" />
+        <div className="relative z-[1] box-border flex h-full flex-col p-[var(--rc-pad)]">
           {children ?? (
             <>
               {(badge || status) && (
-                <div className="reflective-card__header">
+                <div className="flex items-center gap-3 text-[13px] leading-5">
                   {badge && (
-                    <span className="reflective-card__badge">
+                    <span className="inline-flex items-center gap-1.5 font-medium [color:var(--rc-ink)]">
                       <HugeiconsIcon icon={CheckmarkBadge01Icon} size={16} strokeWidth={1.8} />
                       {badge}
                     </span>
                   )}
                   {status && (
-                    <span className="reflective-card__status">
-                      <span className="reflective-card__dot" />
+                    <span className="ml-auto inline-flex items-center gap-2 [color:var(--rc-muted)]">
+                      <span className="h-1.5 w-1.5 rounded-full [background:var(--rc-status)]" />
                       {status}
                     </span>
                   )}
                 </div>
               )}
-              <div className="reflective-card__identity">
-                {name && <h3 className="reflective-card__name">{name}</h3>}
-                {role && <p className="reflective-card__role">{role}</p>}
+              <div className="mt-auto">
+                {name && (
+                  <h3 className="m-0 text-[24px] font-medium leading-[1.15] tracking-[-0.02em] [color:var(--rc-ink)] [text-wrap:balance]">
+                    {name}
+                  </h3>
+                )}
+                {role && <p className="mb-0 mt-1 text-[14px] leading-[1.4] [color:var(--rc-muted)]">{role}</p>}
               </div>
               {(idLabel || idValue) && (
-                <div className="reflective-card__footer">
-                  <div className="reflective-card__id">
-                    {idLabel && <span className="reflective-card__label">{idLabel}</span>}
-                    {idValue && <span className="reflective-card__value">{idValue}</span>}
+                <div className="mt-6 flex items-end justify-between gap-4">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    {idLabel && <span className="text-[12px] leading-4 [color:var(--rc-muted)]">{idLabel}</span>}
+                    {idValue && (
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[15px] leading-5 tracking-[0.02em] tabular-nums [color:var(--rc-ink)]">
+                        {idValue}
+                      </span>
+                    )}
                   </div>
-                  <span className="reflective-card__tile">
+                  <span
+                    className="relative box-border flex h-11 w-11 flex-none items-center justify-center"
+                    style={TILE_STYLE}
+                  >
+                    <span className="pointer-events-none absolute inset-0 rounded-[inherit]" style={TILE_RIM_STYLE} />
                     <HugeiconsIcon icon={FingerPrintIcon} size={22} strokeWidth={1.6} />
                   </span>
                 </div>
@@ -1046,18 +1201,24 @@ const ReflectiveCard = ({
             </>
           )}
         </div>
-        <span className="reflective-card__rim" />
+        <span className="pointer-events-none absolute inset-0 z-[2] rounded-[inherit]" style={RIM_STYLE} />
       </div>
       <video
         ref={videoRef}
-        className="reflective-card__media"
+        className="pointer-events-none absolute left-0 top-0 h-px w-px opacity-0"
         muted
         loop
         playsInline
         crossOrigin="anonymous"
         aria-hidden="true"
       />
-      <video ref={camRef} className="reflective-card__media" muted playsInline aria-hidden="true" />
+      <video
+        ref={camRef}
+        className="pointer-events-none absolute left-0 top-0 h-px w-px opacity-0"
+        muted
+        playsInline
+        aria-hidden="true"
+      />
     </div>
   );
 };

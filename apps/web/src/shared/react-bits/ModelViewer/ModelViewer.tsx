@@ -1,27 +1,138 @@
 // ModelViewer
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/ModelViewer/ModelViewer.jsx
+// Source: @react-bits/ModelViewer-TS-TW — https://reactbits.dev/r/ModelViewer-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
 /* eslint-disable react/no-unknown-property */
-import { Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type Ref,
+  type RefObject
+} from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { ContactShadows, Environment, useFBX, useGLTF } from '@react-three/drei';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import * as THREE from 'three';
+
+export type ModelViewerEnvironment =
+  | 'apartment'
+  | 'city'
+  | 'dawn'
+  | 'forest'
+  | 'lobby'
+  | 'night'
+  | 'park'
+  | 'studio'
+  | 'sunset'
+  | 'warehouse'
+  | 'none';
+
+export type ModelViewerIntro = 'rise' | 'spin' | 'fade' | 'none';
+
+export interface ModelViewerHandle {
+  capture: (type?: string) => string | null;
+}
+
+export interface ModelViewerProps {
+  url: string;
+  width?: number | string;
+  height?: number | string;
+  environment?: ModelViewerEnvironment;
+  environmentIntensity?: number;
+  exposure?: number;
+  autoRotate?: boolean;
+  autoRotateSpeed?: number;
+  autoRotateDelay?: number;
+  dragRotate?: boolean;
+  turntable?: boolean;
+  zoom?: boolean;
+  minZoom?: number;
+  maxZoom?: number;
+  hoverTilt?: number;
+  float?: number;
+  shadow?: boolean;
+  shadowOpacity?: number;
+  intro?: ModelViewerIntro;
+  startAngle?: number;
+  tilt?: number;
+  offsetX?: number;
+  offsetY?: number;
+  fit?: number;
+  resetOnDoubleClick?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  onModelLoaded?: () => void;
+  ref?: Ref<ModelViewerHandle>;
+}
+
+type Settings = {
+  autoRotate: boolean;
+  autoRotateSpeed: number;
+  autoRotateDelay: number;
+  dragRotate: boolean;
+  turntable: boolean;
+  zoom: boolean;
+  minZoom: number;
+  maxZoom: number;
+  hoverTilt: number;
+  float: number;
+  shadow: boolean;
+  shadowOpacity: number;
+  intro: ModelViewerIntro;
+  startAngle: number;
+  tilt: number;
+  offsetX: number;
+  offsetY: number;
+  fit: number;
+  resetOnDoubleClick: boolean;
+  reducedMotion: boolean;
+};
+
+type Bounds = { scale: number; center: THREE.Vector3; radius: number; floor: number };
+
+type Motion = {
+  yaw: number;
+  pitch: number;
+  yawVelocity: number;
+  pitchVelocity: number;
+  zoom: number;
+  zoomGoal: number;
+  tiltX: number;
+  tiltY: number;
+  tiltGoalX: number;
+  tiltGoalY: number;
+  spinSpeed: number;
+  idle: number;
+  dragging: boolean;
+  intro: number;
+  clock: number;
+  reset: { yaw: number; pitch: number } | null;
+};
+
+type ModelProps = { url: string; children: (object: THREE.Object3D) => ReactNode };
 
 const FOV = 30;
 const INTRO_SECONDS = 1.3;
 const DRAG_SPEED = 0.0065;
 const PITCH_LIMIT = (65 * Math.PI) / 180;
 
-const toRadians = degrees => (degrees * Math.PI) / 180;
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
 
-const measured = new WeakMap();
-const announced = new WeakSet();
+const measured = new WeakMap<THREE.Object3D, Bounds>();
+const announced = new WeakSet<THREE.Object3D>();
 
-const measure = object => {
-  if (measured.has(object)) return measured.get(object);
+const measure = (object: THREE.Object3D): Bounds => {
+  const cached = measured.get(object);
+  if (cached) return cached;
   const box = new THREE.Box3().setFromObject(object);
   const extent = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
@@ -31,32 +142,32 @@ const measure = object => {
   return bounds;
 };
 
-const GltfModel = ({ url, children }) => {
+const GltfModel = ({ url, children }: ModelProps) => {
   const { scene } = useGLTF(url, true, true);
   const object = useMemo(() => scene.clone(true), [scene]);
   return children(object);
 };
 
-const FbxModel = ({ url, children }) => {
+const FbxModel = ({ url, children }: ModelProps) => {
   const fbx = useFBX(url);
   const object = useMemo(() => fbx.clone(true), [fbx]);
   return children(object);
 };
 
-const ObjModel = ({ url, children }) => {
+const ObjModel = ({ url, children }: ModelProps) => {
   const obj = useLoader(OBJLoader, url);
   const object = useMemo(() => obj.clone(true), [obj]);
   return children(object);
 };
 
-const Model = ({ url, children }) => {
-  const extension = url.split('?')[0].split('.').pop().toLowerCase();
+const Model = ({ url, children }: ModelProps) => {
+  const extension = (url.split('?')[0].split('.').pop() ?? '').toLowerCase();
   if (extension === 'fbx') return <FbxModel url={url}>{children}</FbxModel>;
   if (extension === 'obj') return <ObjModel url={url}>{children}</ObjModel>;
   return <GltfModel url={url}>{children}</GltfModel>;
 };
 
-const Exposure = ({ value }) => {
+const Exposure = ({ value }: { value: number }) => {
   const gl = useThree(state => state.gl);
   const invalidate = useThree(state => state.invalidate);
   useEffect(() => {
@@ -75,7 +186,7 @@ const Refresh = () => {
   return null;
 };
 
-const Lighting = ({ environment, intensity }) => {
+const Lighting = ({ environment, intensity }: { environment: ModelViewerEnvironment; intensity: number }) => {
   const previous = useRef(environment);
   useEffect(() => {
     previous.current = environment;
@@ -92,15 +203,25 @@ const Lighting = ({ environment, intensity }) => {
   );
 };
 
-const Stage = ({ object, settingsRef, visibleRef, onReady }) => {
+const Stage = ({
+  object,
+  settingsRef,
+  visibleRef,
+  onReady
+}: {
+  object: THREE.Object3D;
+  settingsRef: RefObject<Settings>;
+  visibleRef: RefObject<boolean>;
+  onReady?: () => void;
+}) => {
   const { camera, gl, size, invalidate } = useThree();
-  const placeRef = useRef(null);
-  const floatRef = useRef(null);
-  const tiltRef = useRef(null);
-  const spinRef = useRef(null);
-  const fitRef = useRef(null);
+  const placeRef = useRef<THREE.Group>(null);
+  const floatRef = useRef<THREE.Group>(null);
+  const tiltRef = useRef<THREE.Group>(null);
+  const spinRef = useRef<THREE.Group>(null);
+  const fitRef = useRef<THREE.Group>(null);
   const bounds = useMemo(() => measure(object), [object]);
-  const motionRef = useRef(null);
+  const motionRef = useRef<Motion | null>(null);
 
   if (!motionRef.current) {
     const s = settingsRef.current;
@@ -133,13 +254,13 @@ const Stage = ({ object, settingsRef, visibleRef, onReady }) => {
 
   useEffect(() => {
     const element = gl.domElement;
-    const pointers = new Map();
+    const pointers = new Map<number, { x: number; y: number; t: number }>();
     let pinchStart = 0;
     let zoomStart = 1;
 
     const wake = () => invalidate();
 
-    const onDown = event => {
+    const onDown = (event: PointerEvent) => {
       const s = settingsRef.current;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, t: event.timeStamp });
       if (pointers.size === 2 && s.zoom) {
@@ -158,7 +279,7 @@ const Stage = ({ object, settingsRef, visibleRef, onReady }) => {
       wake();
     };
 
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       const s = settingsRef.current;
       const rect = element.getBoundingClientRect();
       if (event.pointerType === 'mouse' || event.pointerType === 'pen') {
@@ -193,7 +314,7 @@ const Stage = ({ object, settingsRef, visibleRef, onReady }) => {
       wake();
     };
 
-    const onUp = event => {
+    const onUp = (event: PointerEvent) => {
       const last = pointers.get(event.pointerId);
       if (last && event.timeStamp - last.t > 80) {
         motion.yawVelocity = 0;
@@ -214,7 +335,7 @@ const Stage = ({ object, settingsRef, visibleRef, onReady }) => {
       wake();
     };
 
-    const onWheel = event => {
+    const onWheel = (event: WheelEvent) => {
       const s = settingsRef.current;
       if (!s.zoom || !(event.ctrlKey || event.metaKey)) return;
       event.preventDefault();
@@ -392,13 +513,13 @@ const ModelViewer = ({
   style,
   onModelLoaded,
   ref
-}) => {
-  const glRef = useRef(null);
-  const invalidateRef = useRef(null);
-  const containerRef = useRef(null);
+}: ModelViewerProps) => {
+  const glRef = useRef<THREE.WebGLRenderer | null>(null);
+  const invalidateRef = useRef<(() => void) | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const visibleRef = useRef(true);
   const [ready, setReady] = useState(false);
-  const settings = {
+  const settings: Settings = {
     autoRotate,
     autoRotateSpeed,
     autoRotateDelay: Math.max(0, autoRotateDelay),
@@ -418,7 +539,7 @@ const ModelViewer = ({
     offsetY,
     fit,
     resetOnDoubleClick,
-    reducedMotion: typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    reducedMotion: typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   };
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -452,7 +573,7 @@ const ModelViewer = ({
   }, [onModelLoaded]);
 
   return (
-    <div ref={containerRef} className={className} style={{ position: 'relative', width, height, ...style }}>
+    <div ref={containerRef} className={`relative ${className}`.trim()} style={{ width, height, ...style }}>
       <Canvas
         frameloop="demand"
         dpr={[1, 2]}

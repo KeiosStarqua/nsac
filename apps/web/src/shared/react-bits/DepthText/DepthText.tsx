@@ -1,10 +1,51 @@
 // DepthText
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/DepthText/DepthText.jsx
+// Source: @react-bits/DepthText-TS-TW — https://reactbits.dev/r/DepthText-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import './DepthText.css';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+
+export interface DepthTextProps {
+  text?: string;
+  layers?: number;
+  depth?: number;
+  faceColor?: string;
+  depthColor?: string;
+  gradientDepth?: boolean;
+  tilt?: number;
+  pointerTracking?: boolean;
+  smoothing?: number;
+  perspective?: number;
+  autoOrbit?: boolean;
+  orbitSpeed?: number;
+  hoverPush?: number;
+  float?: boolean;
+  fontSize?: string;
+  fontWeight?: number | string;
+  shadow?: boolean;
+  outline?: boolean;
+  intro?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface DepthLayer {
+  index: number;
+  color: string;
+  transform: string;
+}
+
+interface Rotation {
+  x: number;
+  y: number;
+}
+
+interface Motion {
+  push: number;
+  velocity: number;
+  float: number;
+}
 
 const MAX_LAYERS = 64;
 const INTRO_MS = 1200;
@@ -13,24 +54,24 @@ const PUSH_DAMPING = 17;
 const PRESS_EXTRA = 0.25;
 const FLOAT_EASE = 0.7;
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
 
-const getLayerColor = (faceColor, depthColor, index, total) => {
+const getLayerColor = (faceColor: string, depthColor: string, index: number, total: number): string => {
   const progress = total <= 1 ? 1 : index / total;
   const eased = progress * progress;
   const faceMix = Math.round((1 - eased) * 72 + 4);
   return `color-mix(in srgb, color-mix(in srgb, ${faceColor} ${faceMix}%, ${depthColor}) 92%, black)`;
 };
 
-const getFadeColor = (depthColor, index, total, outline) => {
-  const reach = layer => Math.pow(clamp(1 - (layer - 0.5) / total, 0, 1), 1.6);
+const getFadeColor = (depthColor: string, index: number, total: number, outline: boolean): string => {
+  const reach = (layer: number) => Math.pow(clamp(1 - (layer - 0.5) / total, 0, 1), 1.6);
   const here = reach(index);
   const behind = index >= total ? 0 : reach(index + 1);
   const alpha = outline ? here : behind >= 1 ? 1 : 1 - (1 - here) / (1 - behind);
   return `color-mix(in srgb, ${depthColor} ${(clamp(alpha, 0, 1) * 100).toFixed(2)}%, transparent)`;
 };
 
-const getTransform = (rotateX, rotateY, lift = 0, roll = 0, sink = 0) =>
+const getTransform = (rotateX: number, rotateY: number, lift = 0, roll = 0, sink = 0): string =>
   [
     lift ? `translateY(${lift.toFixed(2)}px)` : '',
     roll ? `rotateZ(${roll.toFixed(3)}deg)` : '',
@@ -62,11 +103,11 @@ const DepthText = ({
   intro = true,
   className = '',
   style = {}
-}) => {
-  const rootRef = useRef(null);
-  const stageRef = useRef(null);
-  const rotationRef = useRef(null);
-  const motionRef = useRef({ push: 0, velocity: 0, float: 0 });
+}: DepthTextProps) => {
+  const rootRef = useRef<HTMLSpanElement | null>(null);
+  const stageRef = useRef<HTMLSpanElement | null>(null);
+  const rotationRef = useRef<Rotation | null>(null);
+  const motionRef = useRef<Motion>({ push: 0, velocity: 0, float: 0 });
   const introRef = useRef(intro ? 0 : 1);
   const [introDone, setIntroDone] = useState(!intro);
 
@@ -82,7 +123,7 @@ const DepthText = ({
   const baseRotation = useMemo(() => ({ x: -safeTilt * 0.32, y: safeTilt * 0.42 }), [safeTilt]);
   const [initialTransform] = useState(() => getTransform(baseRotation.x, baseRotation.y));
 
-  const depthLayers = useMemo(
+  const depthLayers = useMemo<DepthLayer[]>(
     () =>
       Array.from({ length: safeLayers }, (_, layerIndex) => {
         const index = safeLayers - layerIndex;
@@ -159,7 +200,7 @@ const DepthText = ({
       frameId = 0;
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       const delta = lastTime ? Math.min(now - lastTime, 50) : 16;
       lastTime = now;
 
@@ -215,7 +256,7 @@ const DepthText = ({
       frameId = requestAnimationFrame(tick);
     };
 
-    const handlePointerMove = event => {
+    const handlePointerMove = (event: PointerEvent) => {
       const rect = root.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
 
@@ -235,13 +276,13 @@ const DepthText = ({
       start();
     };
 
-    const handlePointerOut = event => {
+    const handlePointerOut = (event: PointerEvent) => {
       if (!event.relatedTarget) handlePointerLeave();
     };
 
-    const isHoverPointer = event => event.pointerType === 'mouse' || event.pointerType === 'pen';
+    const isHoverPointer = (event: PointerEvent) => event.pointerType === 'mouse' || event.pointerType === 'pen';
 
-    const handleEnter = event => {
+    const handleEnter = (event: PointerEvent) => {
       if (!isHoverPointer(event)) return;
       hovered = true;
       start();
@@ -258,7 +299,7 @@ const DepthText = ({
       start();
     };
 
-    const handleUp = event => {
+    const handleUp = (event: PointerEvent) => {
       pressed = false;
       if (!isHoverPointer(event)) hovered = false;
       start();
@@ -319,39 +360,71 @@ const DepthText = ({
     };
   }, [autoOrbit, baseRotation, pointerTracking, safeOrbitSpeed, safeSmoothing, safeTilt, safePush, float, extent]);
 
-  const rootStyle = {
+  const rootStyle: CSSProperties = {
     ...style,
-    '--depth-text-perspective': `${safePerspective}px`,
-    '--depth-text-font-size': fontSize,
-    '--depth-text-font-weight': fontWeight,
-    '--depth-text-face-color': faceColor,
-    '--depth-text-shadow':
-      shadow && !gradientDepth ? `0 0.18em 0.32em color-mix(in srgb, ${depthColor} 24%, rgba(0, 0, 0, 0.42))` : 'none',
-    '--depth-text-face-shadow': shadow ? '0 0.035em 0.07em rgba(0, 0, 0, 0.28)' : 'none'
+    perspective: `${safePerspective}px`,
+    perspectiveOrigin: '50% 48%',
+    isolation: 'isolate'
   };
 
+  const stageStyle: CSSProperties & Record<string, string | number> = {
+    transformStyle: 'preserve-3d',
+    transform: initialTransform,
+    transformOrigin: '50% 50%',
+    willChange: 'transform',
+    '--depth-text-grow': introDone ? 1 : 0
+  };
+
+  const textStyle: CSSProperties = {
+    fontSize,
+    fontWeight,
+    lineHeight: 0.86,
+    letterSpacing: '-0.065em',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+    transformStyle: 'preserve-3d',
+    backfaceVisibility: 'hidden',
+    fontKerning: 'normal',
+    textRendering: 'geometricPrecision'
+  };
+
+  const outlineStyle: CSSProperties | null = outline
+    ? { WebkitTextFillColor: 'transparent', WebkitTextStroke: 'max(1px, 0.012em) currentColor' }
+    : null;
+
   return (
-    <span
-      ref={rootRef}
-      className={`depth-text ${outline ? 'depth-text--outline' : ''} ${className}`.trim()}
-      style={rootStyle}
-    >
-      <span
-        ref={stageRef}
-        className="depth-text__stage"
-        style={{ transform: initialTransform, '--depth-text-grow': introDone ? 1 : 0 }}
-      >
+    <span ref={rootRef} className={`inline-block ${className}`.trim()} style={rootStyle}>
+      <span ref={stageRef} className="relative inline-grid place-items-center" style={stageStyle}>
         {depthLayers.map(layer => (
           <span
             aria-hidden="true"
-            className={`depth-text__layer ${layer.index === safeLayers ? 'depth-text__layer--back' : ''}`.trim()}
+            className="pointer-events-none absolute inset-0 z-0 inline-block"
             key={layer.index}
-            style={{ color: layer.color, transform: layer.transform }}
+            style={{
+              ...textStyle,
+              ...outlineStyle,
+              color: layer.color,
+              transform: layer.transform,
+              textShadow:
+                shadow && !gradientDepth && layer.index === safeLayers
+                  ? `0 0.18em 0.32em color-mix(in srgb, ${depthColor} 24%, rgba(0, 0, 0, 0.42))`
+                  : undefined
+            }}
           >
             {text}
           </span>
         ))}
-        <span className="depth-text__face">{text}</span>
+        <span
+          className="relative z-10 inline-block"
+          style={{
+            ...textStyle,
+            color: faceColor,
+            textShadow: shadow ? '0 0.035em 0.07em rgba(0, 0, 0, 0.28)' : 'none',
+            transform: 'translateZ(0.6px)'
+          }}
+        >
+          {text}
+        </span>
       </span>
     </span>
   );

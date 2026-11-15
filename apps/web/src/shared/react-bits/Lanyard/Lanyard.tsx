@@ -1,18 +1,176 @@
 // Lanyard
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/Lanyard/Lanyard.jsx
+// Source: @react-bits/Lanyard-TS-TW — https://reactbits.dev/r/Lanyard-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
 import { useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import * as THREE from 'three';
 
-import './Lanyard.css';
+type Orientation = 'portrait' | 'landscape';
+type Finish = 'glossy' | 'matte' | 'holographic' | 'metallic';
+type Metal = 'graphite' | 'silver' | 'gold';
+type Anchor = 'left' | 'center' | 'right';
+type ImageFit = 'cover' | 'contain';
+type Rgb = [number, number, number];
+type Point = { clientX: number; clientY: number };
 
-const CARD_SIZES = {
+interface PathLike {
+  moveTo(x: number, y: number): unknown;
+  lineTo(x: number, y: number): unknown;
+  bezierCurveTo(c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number): unknown;
+}
+
+export interface LanyardProps {
+  frontImage?: string;
+  backImage?: string;
+  imageFit?: ImageFit;
+  cardColor?: string;
+  orientation?: Orientation;
+  finish?: Finish;
+  cornerRadius?: number;
+  size?: number;
+  anchor?: Anchor;
+  strapLength?: number;
+  strapImage?: string;
+  strapColor?: string;
+  strapWidth?: number;
+  metal?: Metal;
+  gravity?: number;
+  damping?: number;
+  elasticity?: number;
+  breeze?: number;
+  interactive?: boolean;
+  intro?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Settings {
+  frontImage?: string;
+  backImage?: string;
+  imageFit: ImageFit;
+  cardColor: string;
+  orientation: Orientation;
+  finish: Finish;
+  cornerRadius: number;
+  size: number;
+  anchor: Anchor;
+  strapLength: number;
+  strapImage?: string;
+  strapColor: string;
+  strapWidth: number;
+  metal: Metal;
+  gravity: number;
+  damping: number;
+  elasticity: number;
+  breeze: number;
+  interactive: boolean;
+  intro: boolean;
+}
+
+interface Images {
+  front: HTMLImageElement | null;
+  back: HTMLImageElement | null;
+  strap: HTMLImageElement | null;
+}
+
+interface CardLayout {
+  width: number;
+  height: number;
+  radius: number;
+  slot: { width: number; height: number; y: number };
+  ringY: number;
+  hangY: number;
+}
+
+interface FinishLook {
+  roughness: number;
+  metalness: number;
+  clearcoat: number;
+  clearcoatRoughness: number;
+  foil: number;
+  anisotropy: number;
+}
+
+interface Body {
+  position: THREE.Vector3;
+  previous: THREE.Vector3;
+  velocity: THREE.Vector3;
+  quaternion: THREE.Quaternion;
+  previousQuaternion: THREE.Quaternion;
+  angular: THREE.Vector3;
+  mass: number;
+  inverseInertia: THREE.Vector3;
+  hang: THREE.Vector3;
+}
+
+interface Grab {
+  local: THREE.Vector3;
+  rotation: THREE.Quaternion;
+  reach: number;
+  from: THREE.Vector3;
+  target: THREE.Vector3;
+}
+
+interface Simulation {
+  nodes: THREE.Vector3[];
+  previous: THREE.Vector3[];
+  velocities: THREE.Vector3[];
+  lengths: Float64Array;
+  impulses: Float64Array;
+  rest: number;
+  anchor: THREE.Vector3;
+  body: Body;
+  grab: Grab | null;
+  turn: number;
+  twist: number;
+  twistRaw: number;
+  calm: number;
+}
+
+interface Physics {
+  gravity: number;
+  hold: number;
+  stiffness: number;
+  spring: number;
+  bandDamping: number;
+  linearDrag: number;
+  angularDrag: number;
+  air: number;
+  broadside: number;
+  spinAir: number;
+  nodeDrag: number;
+  nodeAir: number;
+  twist: number;
+  twistDamping: number;
+  grip: number;
+  gripDamping: number;
+  breeze: number;
+}
+
+interface Applied {
+  layoutKey?: string;
+  framingKey?: string;
+  imageKey?: string;
+  faceKey?: string;
+  strapColor?: string;
+  strapScale?: number;
+}
+
+interface Press {
+  x: number;
+  y: number;
+  time: number;
+  point: THREE.Vector3;
+}
+
+const CARD_SIZES: Record<string, [number, number]> = {
   portrait: [1.6, 2.25],
   landscape: [2.25, 1.6]
 };
-const ANCHORS = { left: 0.27, center: 0.5, right: 0.73 };
+const ANCHORS: Record<string, number> = { left: 0.27, center: 0.5, right: 0.73 };
 const THICKNESS = 0.018;
 const BEVEL = 0.007;
 const JOINTS = 4;
@@ -28,7 +186,7 @@ const EYELET_RADIUS = 0.036;
 const CLAMP_BODY = 0.15;
 const FACE_WIDTH = 1024;
 
-const FINISHES = {
+const FINISHES: Record<string, FinishLook> = {
   glossy: { roughness: 0.42, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06, foil: 0, anisotropy: 0 },
   matte: { roughness: 0.85, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.6, foil: 0, anisotropy: 0 },
   holographic: { roughness: 0.3, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, foil: 1, anisotropy: 0 },
@@ -144,16 +302,16 @@ if (foilStrength > 0.0) {
 }
 `;
 
-const METALS = {
+const METALS: Record<string, { color: string; roughness: number }> = {
   silver: { color: '#d9dce2', roughness: 0.16 },
   gold: { color: '#e4b965', roughness: 0.2 },
   graphite: { color: '#4d4f55', roughness: 0.28 }
 };
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const mix = (a, b, t) => a + (b - a) * t;
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
-const parseColor = (value, fallback) => {
+const parseColor = (value: string, fallback: Rgb): Rgb => {
   try {
     const ctx = document.createElement('canvas').getContext('2d');
     if (!ctx) return fallback;
@@ -172,11 +330,11 @@ const parseColor = (value, fallback) => {
   }
 };
 
-const luminance = rgb => 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-const toCss = (rgb, alpha = 1) =>
+const luminance = (rgb: Rgb) => 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+const toCss = (rgb: Rgb, alpha = 1) =>
   `rgba(${Math.round(rgb[0] * 255)}, ${Math.round(rgb[1] * 255)}, ${Math.round(rgb[2] * 255)}, ${alpha})`;
 
-const seeded = start => {
+const seeded = (start: number) => {
   let state = start >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -187,7 +345,7 @@ const seeded = start => {
   };
 };
 
-const traceRoundedRect = (path, x, y, width, height, radius) => {
+const traceRoundedRect = (path: PathLike, x: number, y: number, width: number, height: number, radius: number) => {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2));
   const k = r * 0.4477;
   path.moveTo(x + r, y);
@@ -201,11 +359,14 @@ const traceRoundedRect = (path, x, y, width, height, radius) => {
   path.bezierCurveTo(x, y + k, x + k, y, x + r, y);
 };
 
-const loadImage = (cache, url) => {
+const loadImage = (
+  cache: Map<string, Promise<HTMLImageElement | null>>,
+  url?: string
+): Promise<HTMLImageElement | null> => {
   if (!url) return Promise.resolve(null);
   const cached = cache.get(url);
   if (cached) return cached;
-  const promise = new Promise(resolve => {
+  const promise = new Promise<HTMLImageElement | null>(resolve => {
     const image = new Image();
     image.crossOrigin = 'anonymous';
     image.decoding = 'async';
@@ -217,7 +378,7 @@ const loadImage = (cache, url) => {
   return promise;
 };
 
-const cardLayout = (orientation, cornerRadius) => {
+const cardLayout = (orientation: Orientation, cornerRadius: number): CardLayout => {
   const [width, height] = CARD_SIZES[orientation] || CARD_SIZES.portrait;
   const radius = mix(0.03, Math.min(width, height) * 0.2, clamp(cornerRadius, 0, 1));
   const slot = { width: 0.34, height: 0.07, y: height / 2 - 0.13 };
@@ -225,7 +386,7 @@ const cardLayout = (orientation, cornerRadius) => {
   return { width, height, radius, slot, ringY, hangY: ringY + RING_RADIUS };
 };
 
-const buildCardGeometry = layout => {
+const buildCardGeometry = (layout: CardLayout) => {
   const { width, height, radius, slot } = layout;
   const outline = new THREE.Shape();
   traceRoundedRect(
@@ -265,7 +426,7 @@ const buildCardGeometry = layout => {
   return { body, face };
 };
 
-const buildClampGeometry = width => {
+const buildClampGeometry = (width: number) => {
   const shape = new THREE.Shape();
   const w = width * 1.16;
   traceRoundedRect(shape, -w / 2 + 0.014, -CLAMP_BODY / 2 + 0.014, w - 0.028, CLAMP_BODY - 0.028, 0.024);
@@ -281,13 +442,13 @@ const buildClampGeometry = width => {
   return geometry;
 };
 
-const buildBandGeometry = count => {
+const buildBandGeometry = (count: number) => {
   const columns = BAND_COLUMNS.length;
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * columns * 3), 3));
   geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(count * columns * 3), 3));
   geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(count * columns * 2), 2));
-  const index = [];
+  const index: number[] = [];
   for (let i = 0; i < count - 1; i++) {
     for (let c = 0; c < columns - 1; c++) {
       const a = i * columns + c;
@@ -298,12 +459,12 @@ const buildBandGeometry = count => {
   return geometry;
 };
 
-const buildEnvironment = renderer => {
+const buildEnvironment = (renderer: THREE.WebGLRenderer) => {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0.035, 0.035, 0.04);
   const geometry = new THREE.PlaneGeometry(1, 1);
-  const materials = [];
-  const panel = (intensity, position, scale, rotation = 0) => {
+  const materials: THREE.Material[] = [];
+  const panel = (intensity: number, position: [number, number, number], scale: [number, number], rotation = 0) => {
     const material = new THREE.MeshBasicMaterial({
       color: new THREE.Color(intensity, intensity, intensity),
       side: THREE.DoubleSide
@@ -332,7 +493,7 @@ const buildEnvironment = renderer => {
   return target;
 };
 
-const makeCanvasTexture = (canvas, anisotropy) => {
+const makeCanvasTexture = (canvas: HTMLCanvasElement, anisotropy: number) => {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = anisotropy;
@@ -348,7 +509,7 @@ const buildGrainTexture = () => {
   if (!ctx) return new THREE.CanvasTexture(canvas);
   const random = seeded(7);
   const field = Float32Array.from({ length: size * size }, () => random());
-  const height = (x, y) => {
+  const height = (x: number, y: number) => {
     let sum = 0;
     for (let j = -1; j <= 1; j++) {
       for (let i = -1; i <= 1; i++) sum += field[((y + j + size) % size) * size + ((x + i + size) % size)];
@@ -381,8 +542,8 @@ const buildWeaveTexture = () => {
   const threads = 8;
   const random = seeded(19);
   const fiber = Float32Array.from({ length: size * size }, () => random());
-  const profile = f => Math.sqrt(Math.max(0, 1 - 4 * f * f));
-  const height = (x, y) => {
+  const profile = (f: number) => Math.sqrt(Math.max(0, 1 - 4 * f * f));
+  const height = (x: number, y: number) => {
     const px = ((x % size) + size) % size;
     const py = ((y % size) + size) % size;
     const u = (px / size) * threads;
@@ -419,14 +580,20 @@ const buildWeaveTexture = () => {
   return texture;
 };
 
-const drawFitted = (ctx, image, width, height, fit) => {
+const drawFitted = (
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+  fit: ImageFit
+) => {
   const scale = (fit === 'contain' ? Math.min : Math.max)(width / image.width, height / image.height);
   const w = image.width * scale;
   const h = image.height * scale;
   ctx.drawImage(image, (width - w) / 2, (height - h) / 2, w, h);
 };
 
-const paintFace = (canvas, image, color, fit) => {
+const paintFace = (canvas: HTMLCanvasElement, image: HTMLImageElement | null, color: Rgb, fit: ImageFit) => {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.fillStyle = toCss(color);
@@ -434,7 +601,7 @@ const paintFace = (canvas, image, color, fit) => {
   if (image) drawFitted(ctx, image, canvas.width, canvas.height, fit);
 };
 
-const paintStrap = (canvas, image, color) => {
+const paintStrap = (canvas: HTMLCanvasElement, image: HTMLImageElement | null, color: Rgb) => {
   const across = 192;
   const along = image ? Math.max(64, Math.round((image.width / image.height) * across)) : across * 2;
   canvas.width = across;
@@ -451,7 +618,7 @@ const paintStrap = (canvas, image, color) => {
     ctx.restore();
     return along / across;
   }
-  const ink = luminance(color) > 0.5 ? [0, 0, 0] : [1, 1, 1];
+  const ink: Rgb = luminance(color) > 0.5 ? [0, 0, 0] : [1, 1, 1];
   ctx.fillStyle = toCss(ink, 0.05);
   for (let y = 0; y < along; y += 4) ctx.fillRect(0, y, across, 1);
   ctx.fillStyle = toCss(ink, 0.2);
@@ -462,7 +629,7 @@ const paintStrap = (canvas, image, color) => {
   return along / across;
 };
 
-const createSimulation = () => {
+const createSimulation = (): Simulation => {
   const vectors = () => Array.from({ length: JOINTS + 1 }, () => new THREE.Vector3());
   return {
     nodes: vectors(),
@@ -504,14 +671,14 @@ const scratch = {
   r: new THREE.Quaternion()
 };
 
-const applyInverseInertia = (body, vector, out) => {
+const applyInverseInertia = (body: Body, vector: THREE.Vector3, out: THREE.Vector3) => {
   scratch.r.copy(body.quaternion).invert();
   out.copy(vector).applyQuaternion(scratch.r);
   out.set(out.x * body.inverseInertia.x, out.y * body.inverseInertia.y, out.z * body.inverseInertia.z);
   return out.applyQuaternion(body.quaternion);
 };
 
-const rotateBody = (q, w) => {
+const rotateBody = (q: THREE.Quaternion, w: THREE.Vector3) => {
   const { x: qx, y: qy, z: qz, w: qw } = q;
   q.x += 0.5 * (w.x * qw + w.y * qz - w.z * qy);
   q.y += 0.5 * (w.y * qw + w.z * qx - w.x * qz);
@@ -520,17 +687,17 @@ const rotateBody = (q, w) => {
   q.normalize();
 };
 
-const bodyWeight = (body, r, normal) => {
+const bodyWeight = (body: Body, r: THREE.Vector3, normal: THREE.Vector3) => {
   const rn = scratch.c.crossVectors(r, normal);
   return 1 / body.mass + rn.dot(applyInverseInertia(body, rn, scratch.d));
 };
 
-const pushBody = (body, r, impulse) => {
+const pushBody = (body: Body, r: THREE.Vector3, impulse: THREE.Vector3) => {
   body.position.addScaledVector(impulse, 1 / body.mass);
   rotateBody(body.quaternion, applyInverseInertia(body, scratch.e.crossVectors(r, impulse), scratch.f));
 };
 
-const solveSegment = (sim, i, h, physics) => {
+const solveSegment = (sim: Simulation, i: number, h: number, physics: Physics) => {
   const { nodes, body } = sim;
   const a = nodes[i];
   const wa = i === 0 ? 0 : NODE_WEIGHT;
@@ -561,7 +728,7 @@ const solveSegment = (sim, i, h, physics) => {
   else b.addScaledVector(normal, -lambda * wb);
 };
 
-const solvePin = (body, grab, target) => {
+const solvePin = (body: Body, grab: Grab, target: THREE.Vector3) => {
   const r = scratch.g.copy(grab.local).applyQuaternion(body.quaternion);
   const delta = scratch.a.copy(target).sub(body.position).sub(r);
   const distance = delta.length();
@@ -571,7 +738,7 @@ const solvePin = (body, grab, target) => {
   pushBody(body, r, normal.multiplyScalar(lambda));
 };
 
-const placeHanging = (sim, layout, intro) => {
+const placeHanging = (sim: Simulation, layout: CardLayout, intro: boolean) => {
   const { nodes, previous, velocities, body, anchor } = sim;
   nodes[0].copy(anchor);
   for (let i = 1; i <= JOINTS; i++) {
@@ -599,7 +766,7 @@ const placeHanging = (sim, layout, intro) => {
   sim.calm = 0;
 };
 
-const configureSimulation = (sim, layout, length) => {
+const configureSimulation = (sim: Simulation, layout: CardLayout, length: number) => {
   sim.rest = length / JOINTS;
   const { width, height } = layout;
   const body = sim.body;
@@ -613,7 +780,7 @@ const configureSimulation = (sim, layout, length) => {
   body.hang.set(0, layout.hangY, 0);
 };
 
-const stepSimulation = (sim, dt, physics, time) => {
+const stepSimulation = (sim: Simulation, dt: number, physics: Physics, time: number) => {
   const steps = Math.max(1, Math.ceil(dt / MAX_STEP - 1e-6));
   const h = dt / steps;
   const { nodes, previous, velocities, body } = sim;
@@ -727,10 +894,10 @@ const Lanyard = ({
   intro = true,
   className = '',
   style
-}) => {
-  const containerRef = useRef(null);
-  const settingsRef = useRef(null);
-  const applyRef = useRef(null);
+}: LanyardProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<Settings | null>(null);
+  const applyRef = useRef<(() => void) | null>(null);
 
   settingsRef.current = {
     frontImage,
@@ -763,7 +930,7 @@ const Lanyard = ({
     const container = containerRef.current;
     if (!container) return undefined;
 
-    let renderer;
+    let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     } catch {
@@ -774,7 +941,7 @@ const Lanyard = ({
     renderer.toneMapping = THREE.NeutralToneMapping;
     renderer.toneMappingExposure = 1;
     const canvas = renderer.domElement;
-    canvas.className = 'lanyard-canvas';
+    canvas.className = 'block w-full h-full';
     canvas.setAttribute('aria-hidden', 'true');
     container.appendChild(canvas);
 
@@ -789,8 +956,8 @@ const Lanyard = ({
     fillLight.position.set(3, -1, 4);
     scene.add(keyLight, fillLight);
 
-    const imageCache = new Map();
-    const images = { front: null, back: null, strap: null };
+    const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
+    const images: Images = { front: null, back: null, strap: null };
     const frontCanvas = document.createElement('canvas');
     const backCanvas = document.createElement('canvas');
     const strapCanvas = document.createElement('canvas');
@@ -808,7 +975,7 @@ const Lanyard = ({
       foilFill: { value: new THREE.Vector3() },
       foilTop: { value: new THREE.Vector3() }
     };
-    const injectFoil = shader => {
+    const injectFoil = (shader: THREE.WebGLProgramParametersWithUniforms) => {
       Object.assign(shader.uniforms, foilUniforms);
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>\n${FOIL_VERTEX_HEAD}`)
@@ -865,13 +1032,13 @@ const Lanyard = ({
     scene.add(clampGroup);
 
     const sim = createSimulation();
-    const controls = [];
+    const controls: THREE.Vector3[] = [];
     const mouth = new THREE.Vector3();
     const tuck = new THREE.Vector3();
     const curve = new THREE.CatmullRomCurve3(controls, false, 'centripetal');
     const view = { width: 1, height: 1 };
     let layout = cardLayout('portrait', 0.3);
-    let applied = {};
+    let applied: Applied = {};
     let strapScale = STRAP_WIDTH;
     let tileRatio = 2;
     let raf = 0;
@@ -881,12 +1048,12 @@ const Lanyard = ({
     let alive = true;
     let placed = false;
     let hovering = false;
-    let press = null;
+    let press: Press | null = null;
     let imageToken = 0;
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
     const paintFaces = () => {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const color = parseColor(s.cardColor, [1, 1, 1]);
       const width = FACE_WIDTH;
       const height = Math.round((FACE_WIDTH * layout.height) / layout.width);
@@ -906,7 +1073,7 @@ const Lanyard = ({
     };
 
     const repaintStrap = () => {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       tileRatio = paintStrap(strapCanvas, images.strap, parseColor(s.strapColor, [0.07, 0.07, 0.07]));
       weave.repeat.set(2, 2 * tileRatio);
       strapTexture.dispose();
@@ -915,7 +1082,7 @@ const Lanyard = ({
     };
 
     const frameView = () => {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const aspect = view.width / view.height;
       let viewHeight = layout.height / clamp(s.size, 0.15, 0.9);
       const minimumWidth = layout.width / 0.72;
@@ -940,7 +1107,7 @@ const Lanyard = ({
     };
 
     const apply = () => {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const layoutKey = `${s.orientation}|${s.cornerRadius}`;
       if (layoutKey !== applied.layoutKey) {
         layout = cardLayout(s.orientation, s.cornerRadius);
@@ -1020,7 +1187,7 @@ const Lanyard = ({
 
     const points = Array.from({ length: SAMPLES }, () => new THREE.Vector3());
     const sides = Array.from({ length: SAMPLES }, () => new THREE.Vector3());
-    const bends = BAND_BEND.map(angle => [Math.cos(angle), Math.sin(angle)]);
+    const bends = BAND_BEND.map((angle): [number, number] => [Math.cos(angle), Math.sin(angle)]);
     const work = {
       tangent: new THREE.Vector3(),
       toCamera: new THREE.Vector3(),
@@ -1104,8 +1271,8 @@ const Lanyard = ({
       renderer.render(scene, camera);
     };
 
-    const physics = () => {
-      const s = settingsRef.current;
+    const physics = (): Physics => {
+      const s = settingsRef.current!;
       const gravity = 40 * clamp(s.gravity, 0, 3);
       const weight = Math.max(gravity, 20);
       const springy = clamp(s.elasticity, 0, 1);
@@ -1131,7 +1298,7 @@ const Lanyard = ({
       };
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       if (!alive) return;
       const dt = Math.min(1 / 30, Math.max(1 / 240, (now - last) / 1000));
@@ -1159,7 +1326,7 @@ const Lanyard = ({
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
 
-    const toPointer = event => {
+    const toPointer = (event: Point) => {
       const rect = canvas.getBoundingClientRect();
       pointer.set(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -1174,11 +1341,11 @@ const Lanyard = ({
       return hits[0] || null;
     };
 
-    const setCursor = value => {
+    const setCursor = (value: string) => {
       if (canvas.style.cursor !== value) canvas.style.cursor = value;
     };
 
-    const flip = point => {
+    const flip = (point: THREE.Vector3) => {
       const body = sim.body;
       const up = scratch.a.set(0, 1, 0).applyQuaternion(body.quaternion);
       let direction = sim.turn > 0 ? -1 : 1;
@@ -1190,8 +1357,8 @@ const Lanyard = ({
       body.angular.addScaledVector(up, FLIP_SPIN * direction);
     };
 
-    const onPointerDown = event => {
-      if (!settingsRef.current.interactive || event.button > 0) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!settingsRef.current!.interactive || event.button > 0) return;
       toPointer(event);
       const hit = pickCard();
       if (!hit) return;
@@ -1209,8 +1376,8 @@ const Lanyard = ({
       start();
     };
 
-    const onPointerMove = event => {
-      if (!settingsRef.current.interactive) return;
+    const onPointerMove = (event: PointerEvent) => {
+      if (!settingsRef.current!.interactive) return;
       toPointer(event);
       if (sim.grab) {
         if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 6) press = null;
@@ -1223,7 +1390,7 @@ const Lanyard = ({
       setCursor(hovering ? 'grab' : '');
     };
 
-    const onPointerUp = event => {
+    const onPointerUp = (event: PointerEvent) => {
       if (!sim.grab) return;
       sim.grab = null;
       if (press && event.type === 'pointerup' && performance.now() - press.time < 450) flip(press.point);
@@ -1233,8 +1400,8 @@ const Lanyard = ({
       start();
     };
 
-    const onTouchStart = event => {
-      if (!settingsRef.current.interactive || event.touches.length !== 1) return;
+    const onTouchStart = (event: TouchEvent) => {
+      if (!settingsRef.current!.interactive || event.touches.length !== 1) return;
       toPointer(event.touches[0]);
       if (pickCard()) event.preventDefault();
     };
@@ -1292,7 +1459,9 @@ const Lanyard = ({
     };
   }, []);
 
-  return <div ref={containerRef} className={`lanyard ${className}`.trim()} style={style} />;
+  return (
+    <div ref={containerRef} className={`relative w-full h-full overflow-hidden ${className}`.trim()} style={style} />
+  );
 };
 
 export default Lanyard;

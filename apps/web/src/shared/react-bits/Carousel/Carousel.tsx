@@ -1,9 +1,19 @@
 // Carousel
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/Carousel/Carousel.jsx
+// Source: @react-bits/Carousel-TS-TW — https://reactbits.dev/r/Carousel-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  isValidElement,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode
+} from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   ArrowLeft01Icon,
@@ -15,11 +25,133 @@ import {
   Timer02Icon
 } from '@hugeicons/core-free-icons';
 
-import './Carousel.css';
+export interface CarouselItem {
+  id?: string | number;
+  title?: ReactNode;
+  description?: ReactNode;
+  icon?: ReactNode;
+  image?: string;
+  alt?: string;
+}
+
+export type CarouselEntry = CarouselItem | string | ReactElement;
+
+export interface CarouselProps {
+  items?: CarouselEntry[];
+  baseWidth?: number | string;
+  aspectRatio?: number;
+  peek?: number;
+  gap?: number;
+  radius?: number;
+  frame?: boolean;
+  effect?: 'tilt' | 'slide' | 'scale' | 'fade' | 'cube';
+  indicator?: 'dots' | 'bars' | 'counter' | 'none';
+  arrows?: boolean;
+  autoplay?: boolean;
+  autoplayDelay?: number;
+  pauseOnHover?: boolean;
+  loop?: boolean;
+  draggable?: boolean;
+  round?: boolean;
+  initialIndex?: number;
+  theme?: 'dark' | 'light';
+  onChange?: (index: number) => void;
+  className?: string;
+  style?: CSSProperties;
+}
+
+type Settings = {
+  count: number;
+  mode: string;
+  width: number;
+  bleed: number;
+  inset: number;
+  cardWidth: number;
+  span: number;
+  loop: boolean;
+  autoplay: boolean;
+  autoplayDelay: number;
+  pauseOnHover: boolean;
+  draggable: boolean;
+  bars: boolean;
+  shade: number;
+};
+
+type Drag = {
+  id: number;
+  x: number;
+  y: number;
+  p: number;
+  from: number;
+  moved: boolean;
+  samples: [number, number][];
+};
+
+type Engine = {
+  goTo: (index: number) => void;
+  step: (direction: number, auto?: boolean) => void;
+  sync: () => void;
+};
+
+const ROOT =
+  'group/root relative flex max-w-full box-border flex-col items-center outline-none [-webkit-tap-highlight-color:transparent]';
+const ROOT_BARE = `${ROOT} gap-5`;
+const ROOT_FRAMED = `${ROOT} gap-4`;
+const STAGE_BASE =
+  'relative box-border flex flex-col items-center gap-3 self-stretch group-focus-visible/root:outline-2 group-focus-visible/root:outline-offset-4 group-focus-visible/root:outline-[var(--carousel-ink)]';
+const STAGE_PANEL =
+  'overflow-hidden p-2.5 [background:var(--carousel-frame)] [box-shadow:var(--carousel-frame-shadow)] backdrop-blur-[20px] backdrop-saturate-[1.6]';
+const STAGE = `${STAGE_BASE} rounded-[var(--carousel-radius)]`;
+const STAGE_FRAME = `${STAGE_BASE} ${STAGE_PANEL} rounded-[calc(var(--carousel-radius)+10px)]`;
+const STAGE_RING = `${STAGE_BASE} ${STAGE_PANEL} rounded-full`;
+const FRAME_RIM =
+  'pointer-events-none absolute inset-0 z-30 rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--carousel-frame-edge),inset_0_1px_0_var(--carousel-frame-highlight)]';
+const VIEWPORT =
+  'relative touch-pan-y select-none self-stretch data-[draggable=true]:cursor-grab data-[dragging=true]:cursor-grabbing';
+const SLIDE = 'group/slide absolute top-0 [backface-visibility:hidden] will-change-[transform,opacity]';
+const SLIDE_OTHER = `${SLIDE} cursor-pointer`;
+const CARD_BASE =
+  'relative box-border h-full w-full overflow-hidden rounded-[var(--carousel-radius)] text-[var(--carousel-ink)] [background:var(--carousel-tile)] [box-shadow:var(--carousel-tile-shadow)] transition-[filter] duration-250 group-hover/slide:[filter:var(--carousel-hover)]';
+const CARD = `${CARD_BASE} flex flex-col items-start justify-between gap-4 p-[calc(20px*var(--carousel-scale,1))]`;
+const CARD_ROUND = `${CARD_BASE} flex flex-col items-center justify-center gap-[14px] p-[14%] text-center`;
+const CARD_CUSTOM = `${CARD_BASE} block p-0`;
+const CARD_RIM =
+  'pointer-events-none absolute inset-0 rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--carousel-tile-edge),inset_0_1px_0_var(--carousel-tile-highlight)]';
+const IMAGE = 'pointer-events-none absolute inset-0 h-full w-full object-cover';
+const SCRIM_BASE = 'pointer-events-none absolute inset-0 opacity-[var(--carousel-focus,1)]';
+const SCRIM = `${SCRIM_BASE} bg-[linear-gradient(to_top,rgba(0,0,0,0.62)_0%,rgba(0,0,0,0.6)_8%,rgba(0,0,0,0.54)_17%,rgba(0,0,0,0.45)_26%,rgba(0,0,0,0.34)_36%,rgba(0,0,0,0.22)_46%,rgba(0,0,0,0.11)_56%,rgba(0,0,0,0.04)_64%,rgba(0,0,0,0)_72%)]`;
+const SCRIM_ROUND = `${SCRIM_BASE} bg-black/30`;
+const ICON_BASE = 'relative grid h-8 w-8 flex-none place-items-center rounded-full [&_svg]:h-4 [&_svg]:w-4';
+const ICON = `${ICON_BASE} bg-[var(--carousel-badge)] text-[var(--carousel-ink)]`;
+const ICON_IMAGE = `${ICON_BASE} bg-white/18 text-white backdrop-blur-[10px]`;
+const TEXT = 'relative mt-auto opacity-[var(--carousel-focus,1)]';
+const TEXT_ROUND = 'relative mt-0 opacity-[var(--carousel-focus,1)]';
+const TITLE_BASE = 'text-[calc(18px*var(--carousel-scale,1))] font-semibold leading-[1.25] tracking-[-0.01em]';
+const TITLE = TITLE_BASE;
+const TITLE_IMAGE = `${TITLE_BASE} text-white`;
+const DESCRIPTION_BASE = 'mb-0 mt-1 text-[calc(14px*var(--carousel-scale,1))] leading-[1.45]';
+const DESCRIPTION = `${DESCRIPTION_BASE} text-[var(--carousel-muted)]`;
+const DESCRIPTION_IMAGE = `${DESCRIPTION_BASE} text-white/78`;
+const SHADE = 'pointer-events-none absolute inset-0 rounded-[var(--carousel-radius)] bg-black';
+const CONTROLS = 'flex max-w-full items-center justify-center gap-3';
+const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--carousel-ink)]';
+const ARROW = `grid h-8 w-8 flex-none cursor-pointer place-items-center rounded-full border-none p-0 text-[var(--carousel-ink)] [background:var(--carousel-tile)] [box-shadow:inset_0_0_0_1px_var(--carousel-tile-edge),inset_0_1px_0_var(--carousel-tile-highlight),var(--carousel-tile-shadow)] transition-[opacity,filter,transform] duration-200 disabled:cursor-default disabled:opacity-35 enabled:hover:[filter:var(--carousel-hover)] enabled:active:scale-[0.92] enabled:active:duration-0 enabled:active:[filter:var(--carousel-press)] ${FOCUS}`;
+const DOTS = 'flex items-center';
+const DOT = `group/dot grid h-5 w-5 cursor-pointer place-items-center rounded-full border-none bg-transparent p-0 ${FOCUS}`;
+const DOT_MARK_BASE = 'h-2 w-2 rounded-full transition-[background-color,transform] duration-200';
+const DOT_MARK = `${DOT_MARK_BASE} bg-[var(--carousel-faint)] group-hover/dot:bg-[var(--carousel-soft)]`;
+const DOT_MARK_ACTIVE = `${DOT_MARK_BASE} scale-[1.2] bg-[var(--carousel-ink)]`;
+const BARS = 'flex min-w-0 flex-1 gap-1.5';
+const BAR = `group/bar flex h-5 flex-1 cursor-pointer items-center border-none bg-transparent p-0 ${FOCUS}`;
+const BAR_TRACK =
+  'relative h-[3px] w-full overflow-hidden rounded-[3px] bg-[var(--carousel-faint)] transition-colors duration-200 group-hover/bar:bg-[var(--carousel-soft)]';
+const BAR_FILL = 'absolute inset-0 origin-left bg-[var(--carousel-ink)]';
+const COUNTER = 'flex items-baseline gap-1.5 overflow-hidden text-[13px] tabular-nums text-[var(--carousel-muted)]';
+const COUNTER_CURRENT = 'inline-block text-[var(--carousel-ink)]';
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const DEFAULT_ITEMS = [
+const DEFAULT_ITEMS: CarouselItem[] = [
   {
     id: 1,
     title: 'Swipe with momentum',
@@ -52,7 +184,7 @@ const DEFAULT_ITEMS = [
   }
 ];
 
-const THEMES = {
+const THEMES: Record<string, Record<string, string>> = {
   dark: {
     '--carousel-frame': 'rgba(38, 35, 46, 0.66)',
     '--carousel-frame-edge': 'rgba(255, 255, 255, 0.08)',
@@ -93,26 +225,26 @@ const EFFECTS = ['tilt', 'slide', 'scale', 'fade', 'cube'];
 const STIFFNESS = 150;
 const DAMPING = 24;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const wrap = (value, count) => ((value % count) + count) % count;
-const nearest = (offset, count) => wrap(offset + count / 2, count) - count / 2;
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const wrap = (value: number, count: number) => ((value % count) + count) % count;
+const nearest = (offset: number, count: number) => wrap(offset + count / 2, count) - count / 2;
 
-const smootherstep = t => t * t * t * (t * (t * 6 - 15) + 10);
+const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
 
-const edgeMask = size => {
+const edgeMask = (size: number) => {
   const stops = [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1].map(t => [smootherstep(t).toFixed(3), (t * size).toFixed(1)]);
   const left = stops.map(([alpha, x]) => `rgba(0, 0, 0, ${alpha}) ${x}px`);
   const right = [...stops].reverse().map(([alpha, x]) => `rgba(0, 0, 0, ${alpha}) calc(100% - ${x}px)`);
   return `linear-gradient(to right, ${[...left, ...right].join(', ')})`;
 };
 
-const band = (value, max) => {
+const band = (value: number, max: number) => {
   if (value < 0) return -0.3 * (1 - Math.exp(value / 0.55));
   if (value > max) return max + 0.3 * (1 - Math.exp((max - value) / 0.55));
   return value;
 };
 
-const pose = (index, position, s) => {
+const pose = (index: number, position: number, s: Settings) => {
   const offset = s.loop ? nearest(index - position, s.count) : index - position;
   const distance = Math.abs(offset);
   const near = Math.min(distance, 1);
@@ -156,39 +288,45 @@ const pose = (index, position, s) => {
   return result;
 };
 
-const keyOf = (item, index) => {
+const keyOf = (item: CarouselEntry, index: number) => {
   if (isValidElement(item)) return item.key ?? index;
-  if (typeof item === 'object' && item?.id != null) return item.id;
+  if (typeof item === 'object' && item !== null && item.id != null) return item.id;
   return index;
 };
 
-const Chevron = ({ flip }) => (
+const Chevron = ({ flip = false }: { flip?: boolean }) => (
   <HugeiconsIcon icon={flip ? ArrowLeft01Icon : ArrowRight01Icon} size={16} strokeWidth={2} />
 );
 
-const Card = ({ item, round, compact }) => {
+const Card = ({ item, round, compact }: { item: CarouselEntry; round: boolean; compact: boolean }) => {
   if (isValidElement(item)) {
     return (
-      <div className={`carousel-card is-custom${round ? ' is-round' : ''}`}>
+      <div className={CARD_CUSTOM}>
         {item}
-        <span className="carousel-card-rim" />
+        <span className={CARD_RIM} />
       </div>
     );
   }
-  const { image, alt = '', icon: mark, title, description } = typeof item === 'string' ? { image: item } : (item ?? {});
+  const {
+    image,
+    alt = '',
+    icon: mark,
+    title,
+    description
+  }: CarouselItem = typeof item === 'string' ? { image: item } : (item ?? {});
   const text = Boolean(title || description);
   return (
-    <div className={`carousel-card${image ? ' has-image' : ''}${round ? ' is-round' : ''}`}>
-      {image && <img className="carousel-image" src={image} alt={alt} draggable={false} decoding="async" />}
-      {image && text && <span className="carousel-scrim" />}
-      {mark && <span className="carousel-icon">{mark}</span>}
+    <div className={round ? CARD_ROUND : CARD}>
+      {image && <img className={IMAGE} src={image} alt={alt} draggable={false} decoding="async" />}
+      {image && text && <span className={round ? SCRIM_ROUND : SCRIM} />}
+      {mark && <span className={image ? ICON_IMAGE : ICON}>{mark}</span>}
       {text && (
-        <div className="carousel-text">
-          {title && <div className="carousel-title">{title}</div>}
-          {description && !compact && <p className="carousel-description">{description}</p>}
+        <div className={round ? TEXT_ROUND : TEXT}>
+          {title && <div className={image ? TITLE_IMAGE : TITLE}>{title}</div>}
+          {description && !compact && <p className={image ? DESCRIPTION_IMAGE : DESCRIPTION}>{description}</p>}
         </div>
       )}
-      <span className="carousel-card-rim" />
+      <span className={CARD_RIM} />
     </div>
   );
 };
@@ -215,18 +353,18 @@ export default function Carousel({
   onChange,
   className = '',
   style
-}) {
+}: CarouselProps) {
   const count = items.length;
   const mode = EFFECTS.includes(effect) ? effect : 'tilt';
   const stacked = mode === 'fade' || mode === 'cube';
-  const rootRef = useRef(null);
-  const stageRef = useRef(null);
-  const viewportRef = useRef(null);
-  const slideRefs = useRef([]);
-  const shadeRefs = useRef([]);
-  const fillRefs = useRef([]);
-  const counterRef = useRef(null);
-  const engineRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const shadeRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const fillRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const counterRef = useRef<HTMLSpanElement>(null);
+  const engineRef = useRef<Engine | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const ratio = clamp(aspectRatio, 0.3, 4);
@@ -246,7 +384,7 @@ export default function Carousel({
   const clipped = !frame && !stacked;
   const bleed = clipped ? Math.round(Math.min(48, cardWidth * 0.12)) : 0;
   const inset = bleed + (width - cardWidth) / 2;
-  const settings = {
+  const settings: Settings = {
     count,
     mode,
     width,
@@ -281,17 +419,17 @@ export default function Carousel({
       hovered: false,
       focused: false,
       visible: true,
-      drag: null,
+      drag: null as Drag | null,
       wheeling: false,
-      wheelTimer: 0,
+      wheelTimer: 0 as number,
       suppress: false,
       last: 0
     };
     let raf = 0;
     let alive = true;
 
-    const unit = s => (s.mode === 'fade' || s.mode === 'cube' ? s.cardWidth : s.span);
-    const limit = (s, value) => (s.loop ? value : clamp(value, 0, s.count - 1));
+    const unit = (s: Settings) => (s.mode === 'fade' || s.mode === 'cube' ? s.cardWidth : s.span);
+    const limit = (s: Settings, value: number) => (s.loop ? value : clamp(value, 0, s.count - 1));
 
     const apply = () => {
       const s = settingsRef.current;
@@ -324,7 +462,7 @@ export default function Carousel({
       setActive(index);
     };
 
-    const paused = s =>
+    const paused = (s: Settings) =>
       (s.pauseOnHover && state.hovered) ||
       state.focused ||
       Boolean(state.drag) ||
@@ -332,7 +470,7 @@ export default function Carousel({
       !state.visible ||
       document.hidden;
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       if (!alive) return;
       const s = settingsRef.current;
@@ -376,7 +514,7 @@ export default function Carousel({
       if (!raf && alive) raf = requestAnimationFrame(tick);
     };
 
-    const moveTo = target => {
+    const moveTo = (target: number) => {
       state.target = target;
       state.elapsed = 0;
       announce();
@@ -384,7 +522,7 @@ export default function Carousel({
       wake();
     };
 
-    const step = (direction, auto = false) => {
+    const step = (direction: number, auto = false) => {
       const s = settingsRef.current;
       if (s.count < 2) return;
       let next = Math.round(state.target) + direction;
@@ -395,7 +533,7 @@ export default function Carousel({
       moveTo(next);
     };
 
-    const goTo = index => {
+    const goTo = (index: number) => {
       const s = settingsRef.current;
       if (!s.count) return;
       const goal = clamp(Math.round(index), 0, s.count - 1);
@@ -403,7 +541,7 @@ export default function Carousel({
       moveTo(s.loop ? current + nearest(goal - wrap(current, s.count), s.count) : goal);
     };
 
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       const s = settingsRef.current;
       if (!s.draggable || (event.pointerType === 'mouse' && event.button !== 0)) return;
       state.drag = {
@@ -417,7 +555,7 @@ export default function Carousel({
       };
     };
 
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       const drag = state.drag;
       if (!drag || event.pointerId !== drag.id) return;
       const s = settingsRef.current;
@@ -446,7 +584,7 @@ export default function Carousel({
       apply();
     };
 
-    const onPointerUp = event => {
+    const onPointerUp = (event: PointerEvent) => {
       const drag = state.drag;
       if (!drag || event.pointerId !== drag.id) return;
       state.drag = null;
@@ -460,7 +598,10 @@ export default function Carousel({
         state.suppress = false;
       }, 0);
       const s = settingsRef.current;
-      const sample = drag.samples.find(([time]) => event.timeStamp - time < 90) ?? [event.timeStamp, event.clientX];
+      const sample: [number, number] = drag.samples.find(([time]) => event.timeStamp - time < 90) ?? [
+        event.timeStamp,
+        event.clientX
+      ];
       const elapsed = Math.max(16, event.timeStamp - sample[0]);
       const velocity = clamp(((sample[1] - event.clientX) / elapsed) * (1000 / unit(s)), -12, 12);
       const travelled = state.p - drag.from;
@@ -475,14 +616,14 @@ export default function Carousel({
       moveTo(target);
     };
 
-    const onClickCapture = event => {
+    const onClickCapture = (event: MouseEvent) => {
       if (!state.suppress) return;
       event.preventDefault();
       event.stopPropagation();
       state.suppress = false;
     };
 
-    const onWheel = event => {
+    const onWheel = (event: WheelEvent) => {
       const s = settingsRef.current;
       if (!s.draggable || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
       event.preventDefault();
@@ -500,11 +641,11 @@ export default function Carousel({
       }, 120);
     };
 
-    const onKeyDown = event => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]'))
         return;
       const s = settingsRef.current;
-      const keys = {
+      const keys: Record<string, () => void> = {
         ArrowRight: () => step(1),
         ArrowLeft: () => step(-1),
         Home: () => goTo(0),
@@ -532,8 +673,8 @@ export default function Carousel({
       }
     };
 
-    const onFocusOut = event => {
-      if (root.contains(event.relatedTarget)) return;
+    const onFocusOut = (event: FocusEvent) => {
+      if (root.contains(event.relatedTarget as Node | null)) return;
       state.focused = false;
       wake();
     };
@@ -639,11 +780,11 @@ export default function Carousel({
   const mask = clipped ? edgeMask(inset) : undefined;
 
   const controlsNode = controls ? (
-    <div className="carousel-controls" style={{ width: cardWidth }}>
+    <div className={CONTROLS} style={{ width: cardWidth }}>
       {arrows && (
         <button
           type="button"
-          className="carousel-arrow"
+          className={ARROW}
           aria-label="Previous slide"
           disabled={atStart}
           onClick={() => engineRef.current?.step(-1)}
@@ -653,39 +794,39 @@ export default function Carousel({
       )}
 
       {indicator === 'dots' && (
-        <div className="carousel-dots">
+        <div className={DOTS}>
           {items.map((_, index) => (
             <button
               key={index}
               type="button"
-              className={`carousel-dot${index === active ? ' is-active' : ''}`}
+              className={DOT}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={index === active ? 'true' : undefined}
               onClick={() => engineRef.current?.goTo(index)}
             >
-              <span className="carousel-dot-mark" />
+              <span className={index === active ? DOT_MARK_ACTIVE : DOT_MARK} />
             </button>
           ))}
         </div>
       )}
 
       {indicator === 'bars' && (
-        <div className="carousel-bars">
+        <div className={BARS}>
           {items.map((_, index) => (
             <button
               key={index}
               type="button"
-              className="carousel-bar"
+              className={BAR}
               aria-label={`Go to slide ${index + 1}`}
               aria-current={index === active ? 'true' : undefined}
               onClick={() => engineRef.current?.goTo(index)}
             >
-              <span className="carousel-bar-track">
+              <span className={BAR_TRACK}>
                 <span
                   ref={element => {
                     fillRefs.current[index] = element;
                   }}
-                  className="carousel-bar-fill"
+                  className={BAR_FILL}
                   style={{
                     transform: `scaleX(${index < active ? 1 : index === active && !settings.autoplay ? 1 : 0})`
                   }}
@@ -697,8 +838,8 @@ export default function Carousel({
       )}
 
       {indicator === 'counter' && (
-        <div className="carousel-counter">
-          <span ref={counterRef} className="carousel-counter-current">
+        <div className={COUNTER}>
+          <span ref={counterRef} className={COUNTER_CURRENT}>
             {String(active + 1).padStart(2, '0')}
           </span>
           <span>/</span>
@@ -709,7 +850,7 @@ export default function Carousel({
       {arrows && (
         <button
           type="button"
-          className="carousel-arrow"
+          className={ARROW}
           aria-label="Next slide"
           disabled={atEnd}
           onClick={() => engineRef.current?.step(1)}
@@ -724,24 +865,26 @@ export default function Carousel({
   return (
     <div
       ref={rootRef}
-      className={`carousel-container${frame ? ' has-frame' : ''}${round ? ' is-round' : ''}${className ? ` ${className}` : ''}`}
-      style={{
-        ...(THEMES[theme] ?? THEMES.dark),
-        '--carousel-radius': `${round ? 9999 : Math.max(0, radius)}px`,
-        '--carousel-scale': clamp(cardWidth / 300, 0.86, 1),
-        width: typeof maxWidth === 'number' ? '100%' : maxWidth,
-        maxWidth: typeof maxWidth === 'number' ? maxWidth : undefined,
-        ...style
-      }}
+      className={`${frame ? ROOT_FRAMED : ROOT_BARE}${className ? ` ${className}` : ''}`}
+      style={
+        {
+          ...(THEMES[theme] ?? THEMES.dark),
+          '--carousel-radius': `${round ? 9999 : Math.max(0, radius)}px`,
+          '--carousel-scale': clamp(cardWidth / 300, 0.86, 1),
+          width: typeof maxWidth === 'number' ? '100%' : maxWidth,
+          maxWidth: typeof maxWidth === 'number' ? maxWidth : undefined,
+          ...style
+        } as CSSProperties
+      }
       role="region"
       aria-roledescription="carousel"
       aria-label="Carousel"
       tabIndex={0}
     >
-      <div ref={stageRef} className="carousel-stage">
+      <div ref={stageRef} className={frame ? (round ? STAGE_RING : STAGE_FRAME) : STAGE}>
         <div
           ref={viewportRef}
-          className="carousel-viewport"
+          className={VIEWPORT}
           data-draggable={settings.draggable ? 'true' : undefined}
           aria-live={settings.autoplay ? 'off' : 'polite'}
           style={{
@@ -761,17 +904,19 @@ export default function Carousel({
                 ref={element => {
                   slideRefs.current[index] = element;
                 }}
-                className="carousel-slide"
-                style={{
-                  left: inset,
-                  width: cardWidth,
-                  height: cardHeight,
-                  transform: initial.transform,
-                  opacity: initial.opacity,
-                  visibility: initial.visible ? 'visible' : 'hidden',
-                  zIndex: initial.layer,
-                  '--carousel-focus': initial.focus
-                }}
+                className={index === active ? SLIDE : SLIDE_OTHER}
+                style={
+                  {
+                    left: inset,
+                    width: cardWidth,
+                    height: cardHeight,
+                    transform: initial.transform,
+                    opacity: initial.opacity,
+                    visibility: initial.visible ? 'visible' : 'hidden',
+                    zIndex: initial.layer,
+                    '--carousel-focus': initial.focus
+                  } as CSSProperties
+                }
                 data-current={index === active ? 'true' : undefined}
                 role="group"
                 aria-roledescription="slide"
@@ -786,7 +931,7 @@ export default function Carousel({
                     ref={element => {
                       shadeRefs.current[index] = element;
                     }}
-                    className="carousel-shade"
+                    className={SHADE}
                     style={{ opacity: initial.shade }}
                   />
                 )}
@@ -796,7 +941,7 @@ export default function Carousel({
         </div>
 
         {inside && controlsNode}
-        {frame && <span className="carousel-frame-rim" />}
+        {frame && <span className={FRAME_RIM} />}
       </div>
 
       {!inside && controlsNode}
