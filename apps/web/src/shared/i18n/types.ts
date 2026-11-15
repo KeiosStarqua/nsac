@@ -118,6 +118,90 @@ export interface Copy {
     /** Chat-composed program on the declarative `/` HUD: chip that restores Sky's own view. */
     chatOverrideBack: string;
   };
+  /**
+   * `/` default — the "SKY · Astronaut Wellness" mock console (`features/hud-mock`). Every number it
+   * shows is simulated (fixture `features/hud-mock/model/fixture.ts`); units stay English by design.
+   * `?gen=0` still renders the staged screen and `?arch=openui` the declarative hud-gen tree.
+   */
+  hudMock: {
+    profileTitle: string;
+    profileSimulated: string;
+    /** `{name}` = the followed astronaut. */
+    avatarAlt: string;
+    /** Roster role labels — the fixture/backend role string maps onto one of these. */
+    roles: {
+      commander: string;
+      flightEngineer: string;
+      medicalOfficer: string;
+      missionSpecialist: string;
+      payloadSpecialist: string;
+    };
+    vitalsTitle: string;
+    vitalsNow: string;
+    vitalHeartRate: string;
+    vitalBloodPressure: string;
+    vitalRespiratoryRate: string;
+    vitalBloodOxygen: string;
+    vitalBodyTemperature: string;
+    vitalsAria: string;
+    trendsTitle: string;
+    trendsLast24h: string;
+    trendHeartRate: string;
+    trendSleep: string;
+    trendActivity: string;
+    /** `{value}` = the trailing average. */
+    trendAvg: string;
+    trendsAria: string;
+    readinessTitle: string;
+    readinessStatus: string;
+    readinessStable: string;
+    readinessGuidance: string;
+    /** `{score}` = the ring's 0–100 value. */
+    readinessScoreAria: string;
+    /** `{value}` = the small secondary 0–100 value beside the ring. */
+    readinessSupportAria: string;
+    readinessAria: string;
+    tabsAria: string;
+    tabs: { body: string; recovery: string; cognitive: string; energy: string };
+    panelBody: string;
+    panelRecovery: string;
+    panelCognitive: string;
+    panelEnergy: string;
+    /** Row labels of the four readiness tab panels. */
+    metricBodyWeight: string;
+    metricMuscleMass: string;
+    metricBoneMineral: string;
+    metricBodyFat: string;
+    metricSleepDuration: string;
+    metricSleepEfficiency: string;
+    metricHrv: string;
+    metricFatigue: string;
+    metricReactionTime: string;
+    metricMathAccuracy: string;
+    metricMood: string;
+    metricAttention: string;
+    metricEnergyBurned: string;
+    metricEnergyIntake: string;
+    metricEnergyBalance: string;
+    metricActivity: string;
+    fatigueLow: string;
+    attentionNormal: string;
+    /** `{balance}` = the signed kcal balance, e.g. "+180". */
+    balanceCaption: string;
+    cardActivity: string;
+    cardEnergyBurned: string;
+    cardEnergyIntake: string;
+    cardActivityDeltaCaption: string;
+    cardsAria: string;
+    /** `{sleep}` = duration, `{efficiency}` = percent. Deterministic, no LLM. */
+    insightText: string;
+    insightKicker: string;
+    insightOpen: string;
+    simulatedCrew: string;
+    bodyHoloAria: string;
+    /** Accessible name of the detail dialog's close button. */
+    detailClose: string;
+  };
   /** `/performance` — SKY / Human Performance, the fitness-style 12-metric demo face. */
   performance: {
     metaTitle: string;
