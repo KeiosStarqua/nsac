@@ -172,6 +172,12 @@ Prefer modules with **simple interfaces and substantial hidden complexity**. Avo
 
 Use GoF patterns when they match a recurring problem — not for decoration. Catalog: https://refactoring.guru/design-patterns/catalog
 
+#### UI parity — `/` console và `?arch=openui` (Keios, 2026-11-16)
+
+- `/` (`apps/web/src/features/hud-mock/SkyHudMock.tsx`, mặc định) và `/?arch=openui` (`apps/web/src/features/hud-gen/SkyScreenGen.tsx`, cây OpenUI ẩn) là **một thiết kế**: cùng bố cục, cùng dữ liệu, cùng copy. Chỉ khác lớp chrome OpenUI (chip "Back to Sky's view") và đường voice.
+- Catalog `features/hud-gen/catalog.tsx` render **chính** component/class của `hud-mock` (`features/hud-mock/components/*`, `features/hud-mock/mock-classes.ts`). Không chép markup, không dựng lại bố cục tuyệt đối của màn staged đã xoá.
+- Mọi thay đổi layout, dữ liệu hay copy ở một bên phải phản chiếu sang bên kia **trong cùng một thay đổi** (cùng nhánh/commit). `features/hud-gen/model/preset-parity.test.ts` là chốt chặn.
+
 ### Repository layout
 
 Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có file thật.
