@@ -1,0 +1,842 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-15T19:11:22Z",
+  "title": "Design System: SKY",
+  "extensions": {
+    "colorMeta": {
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Night Ink",
+        "canonical": "oklch(15.0% 0.0208 264.34)",
+        "tonalRamp": [
+          "#0f1217",
+          "#282c33",
+          "#444952",
+          "#626773",
+          "#828894",
+          "#a4aab5",
+          "#c8cdd8",
+          "#edf2fb"
+        ]
+      },
+      "stage-deep": {
+        "role": "neutral",
+        "displayName": "Stage Deep",
+        "canonical": "oklch(13.04% 0.0286 246.75)",
+        "tonalRamp": [
+          "#0b1219",
+          "#232d36",
+          "#3e4a55",
+          "#5b6976",
+          "#7b8a98",
+          "#9eacb9",
+          "#c3cfda",
+          "#e9f3fd"
+        ]
+      },
+      "stage-mid": {
+        "role": "neutral",
+        "displayName": "Stage Mid",
+        "canonical": "oklch(22.38% 0.0498 253.72)",
+        "tonalRamp": [
+          "#08121f",
+          "#1f2d3d",
+          "#394a5f",
+          "#556982",
+          "#748aa4",
+          "#98acc4",
+          "#bdcfe5",
+          "#e4f4ff"
+        ]
+      },
+      "stage-halo": {
+        "role": "neutral",
+        "displayName": "Stage Halo",
+        "canonical": "oklch(31.13% 0.0827 253.56)",
+        "tonalRamp": [
+          "#011227",
+          "#142d49",
+          "#2d4a6d",
+          "#466993",
+          "#668bb6",
+          "#8cadd5",
+          "#b2d0f5",
+          "#dbf5ff"
+        ]
+      },
+      "surface-navy": {
+        "role": "neutral",
+        "displayName": "Surface Navy",
+        "canonical": "oklch(22.04% 0.0416 264.83)",
+        "tonalRamp": [
+          "#0c111d",
+          "#242c3b",
+          "#3f485c",
+          "#5c677e",
+          "#7c88a0",
+          "#9faac1",
+          "#c4cee2",
+          "#e9f2ff"
+        ]
+      },
+      "surface-raised": {
+        "role": "neutral",
+        "displayName": "Surface Raised",
+        "canonical": "oklch(25.55% 0.0499 265.08)",
+        "tonalRamp": [
+          "#0b111f",
+          "#232b3e",
+          "#3d485f",
+          "#5a6783",
+          "#7a88a5",
+          "#9daac5",
+          "#c2cee6",
+          "#e8f2ff"
+        ]
+      },
+      "line-slate": {
+        "role": "neutral",
+        "displayName": "Line Slate",
+        "canonical": "oklch(32.12% 0.0604 265.25)",
+        "tonalRamp": [
+          "#091122",
+          "#212b42",
+          "#3b4864",
+          "#576789",
+          "#7788ab",
+          "#9baacb",
+          "#bfcdeb",
+          "#e6f2ff"
+        ]
+      },
+      "line-slate-soft": {
+        "role": "neutral",
+        "displayName": "Line Slate Soft",
+        "canonical": "oklch(27.95% 0.0368 260.03)",
+        "tonalRamp": [
+          "#0c121c",
+          "#242c39",
+          "#3f4959",
+          "#5c687c",
+          "#7c899d",
+          "#9fabbe",
+          "#c3cedf",
+          "#e9f2ff"
+        ]
+      },
+      "glass-line": {
+        "role": "secondary",
+        "displayName": "Glass Line",
+        "canonical": "oklch(85.17% 0.1043 221.73)",
+        "tonalRamp": [
+          "#001625",
+          "#003346",
+          "#00526a",
+          "#00738f",
+          "#3395b2",
+          "#67b7d1",
+          "#95d9f1",
+          "#c3fdff"
+        ]
+      },
+      "glass-veil": {
+        "role": "neutral",
+        "displayName": "Chrome Veil",
+        "canonical": "oklch(25.33% 0.0519 248.04)",
+        "tonalRamp": [
+          "#06131f",
+          "#1c2d3e",
+          "#364b5f",
+          "#516a83",
+          "#718ba5",
+          "#95adc5",
+          "#bbd0e5",
+          "#e2f4ff"
+        ]
+      },
+      "card-wash": {
+        "role": "neutral",
+        "displayName": "Card Base",
+        "canonical": "oklch(23.74% 0.0505 255.43)",
+        "tonalRamp": [
+          "#08121f",
+          "#1f2c3e",
+          "#394a5f",
+          "#556983",
+          "#758aa5",
+          "#99acc5",
+          "#becfe6",
+          "#e4f3ff"
+        ]
+      },
+      "mini-wash": {
+        "role": "neutral",
+        "displayName": "Mini Card Base",
+        "canonical": "oklch(20.64% 0.0416 254.09)",
+        "tonalRamp": [
+          "#09121d",
+          "#212d3b",
+          "#3c4a5b",
+          "#58697e",
+          "#788aa0",
+          "#9bacc0",
+          "#c0cfe1",
+          "#e6f3ff"
+        ]
+      },
+      "tag-wash": {
+        "role": "neutral",
+        "displayName": "Accent Wash",
+        "canonical": "oklch(28.45% 0.0416 227.3)",
+        "tonalRamp": [
+          "#05141a",
+          "#1b2f37",
+          "#344c57",
+          "#4f6c79",
+          "#6f8d9b",
+          "#94afbb",
+          "#bad2dd",
+          "#e1f6ff"
+        ]
+      },
+      "tab-wash": {
+        "role": "neutral",
+        "displayName": "Active Tab Wash",
+        "canonical": "oklch(27.83% 0.0588 249.32)",
+        "tonalRamp": [
+          "#051221",
+          "#1a2d40",
+          "#334b62",
+          "#4e6a86",
+          "#6e8ba9",
+          "#93adc8",
+          "#b9d0e9",
+          "#e0f4ff"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Text Primary",
+        "canonical": "oklch(97.29% 0.015 235.37)",
+        "tonalRamp": [
+          "#0e1215",
+          "#272d30",
+          "#424a4e",
+          "#60696e",
+          "#80898f",
+          "#a3abb1",
+          "#c7cfd3",
+          "#ecf3f7"
+        ]
+      },
+      "text-bright": {
+        "role": "neutral",
+        "displayName": "Text Bright",
+        "canonical": "oklch(98.25% 0.0109 225.98)",
+        "tonalRamp": [
+          "#0f1214",
+          "#282d2f",
+          "#434a4c",
+          "#61696c",
+          "#82898d",
+          "#a4abae",
+          "#c8ced1",
+          "#edf3f5"
+        ]
+      },
+      "text-body": {
+        "role": "neutral",
+        "displayName": "Text Body",
+        "canonical": "oklch(90.82% 0.0314 240.67)",
+        "tonalRamp": [
+          "#0a1319",
+          "#222d36",
+          "#3c4b55",
+          "#586a77",
+          "#788b98",
+          "#9cadb9",
+          "#c1d0db",
+          "#e7f4fe"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Text Muted",
+        "canonical": "oklch(76.27% 0.0596 238.41)",
+        "tonalRamp": [
+          "#011420",
+          "#152f3f",
+          "#2e4c60",
+          "#486c84",
+          "#688da6",
+          "#8dafc6",
+          "#b4d2e7",
+          "#dcf6ff"
+        ]
+      },
+      "text-dim": {
+        "role": "neutral",
+        "displayName": "Text Dim",
+        "canonical": "oklch(68.14% 0.0478 241.4)",
+        "tonalRamp": [
+          "#05131d",
+          "#1c2e3c",
+          "#354b5c",
+          "#506b7f",
+          "#708ca1",
+          "#94aec1",
+          "#bad1e2",
+          "#e1f5ff"
+        ]
+      },
+      "text-ui": {
+        "role": "neutral",
+        "displayName": "Text UI",
+        "canonical": "oklch(94.45% 0.0149 260.73)",
+        "tonalRamp": [
+          "#0f1216",
+          "#292c31",
+          "#45494f",
+          "#636870",
+          "#838891",
+          "#a5aab2",
+          "#c9cdd5",
+          "#eef2f8"
+        ]
+      },
+      "text-ui-muted": {
+        "role": "neutral",
+        "displayName": "Text UI Muted",
+        "canonical": "oklch(72.18% 0.0371 260.37)",
+        "tonalRamp": [
+          "#0c121c",
+          "#242c39",
+          "#3f495a",
+          "#5c687c",
+          "#7c899e",
+          "#9fabbe",
+          "#c3cedf",
+          "#e9f2ff"
+        ]
+      },
+      "accent-sea": {
+        "role": "primary",
+        "displayName": "Sea-glass Teal",
+        "canonical": "oklch(85.49% 0.1251 181.07)",
+        "tonalRamp": [
+          "#001b14",
+          "#00392e",
+          "#005a4c",
+          "#007c6b",
+          "#009e8c",
+          "#51bfae",
+          "#86e1d1",
+          "#b8fff5"
+        ]
+      },
+      "accent-sea-soft": {
+        "role": "primary",
+        "displayName": "Sea-glass Soft",
+        "canonical": "oklch(88.82% 0.0988 177.11)",
+        "tonalRamp": [
+          "#001911",
+          "#00372b",
+          "#005648",
+          "#087866",
+          "#3c9a87",
+          "#6dbba9",
+          "#9addcc",
+          "#c7fff1"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Teal Ink",
+        "canonical": "oklch(22.09% 0.0348 182.12)",
+        "tonalRamp": [
+          "#061512",
+          "#1d302d",
+          "#374e4a",
+          "#536e69",
+          "#738f89",
+          "#97b0ab",
+          "#bcd3ce",
+          "#e3f7f3"
+        ]
+      },
+      "accent-cyan": {
+        "role": "secondary",
+        "displayName": "Instrument Cyan",
+        "canonical": "oklch(85.83% 0.1011 220.84)",
+        "tonalRamp": [
+          "#001624",
+          "#003345",
+          "#005268",
+          "#00738e",
+          "#3795b0",
+          "#69b6cf",
+          "#97d9ef",
+          "#c4fcff"
+        ]
+      },
+      "accent-blue": {
+        "role": "secondary",
+        "displayName": "Signal Blue",
+        "canonical": "oklch(76.9% 0.121 252.68)",
+        "tonalRamp": [
+          "#001031",
+          "#012c56",
+          "#184a7d",
+          "#3169a7",
+          "#528bcb",
+          "#7baee8",
+          "#a4d1ff",
+          "#cff6ff"
+        ]
+      },
+      "accent-violet": {
+        "role": "secondary",
+        "displayName": "Spectral Violet",
+        "canonical": "oklch(70.9% 0.1592 293.54)",
+        "tonalRamp": [
+          "#160037",
+          "#31195e",
+          "#4e3588",
+          "#6d51b4",
+          "#8d73d9",
+          "#ae99f6",
+          "#d1bfff",
+          "#f4e6ff"
+        ]
+      },
+      "status-steady": {
+        "role": "tertiary",
+        "displayName": "Steady Green",
+        "canonical": "oklch(86.19% 0.141 168.09)",
+        "tonalRamp": [
+          "#001c0a",
+          "#003a21",
+          "#005b3c",
+          "#007e58",
+          "#00a178",
+          "#50c29c",
+          "#86e3c1",
+          "#b7ffe7"
+        ]
+      },
+      "status-watch": {
+        "role": "tertiary",
+        "displayName": "Watch Amber",
+        "canonical": "oklch(83.69% 0.1644 84.43)",
+        "tonalRamp": [
+          "#250800",
+          "#462200",
+          "#6a3e00",
+          "#905c00",
+          "#b37d00",
+          "#d2a22d",
+          "#f2c76c",
+          "#ffeda2"
+        ]
+      },
+      "status-critical": {
+        "role": "tertiary",
+        "displayName": "Critical Coral",
+        "canonical": "oklch(71.06% 0.1661 22.22)",
+        "tonalRamp": [
+          "#320000",
+          "#59000c",
+          "#831b23",
+          "#af363c",
+          "#d65a5b",
+          "#f58481",
+          "#ffada9",
+          "#ffd7d3"
+        ]
+      },
+      "status-simulated": {
+        "role": "tertiary",
+        "displayName": "Simulated Lime",
+        "canonical": "oklch(92.2% 0.1292 130.41)",
+        "tonalRamp": [
+          "#051700",
+          "#1b3400",
+          "#345302",
+          "#4f751e",
+          "#6e9642",
+          "#93b86e",
+          "#b9da99",
+          "#e0fdc5"
+        ]
+      },
+      "focus-outline": {
+        "role": "neutral",
+        "displayName": "Focus White",
+        "canonical": "oklch(98.67% 0.0084 225.08)",
+        "tonalRamp": [
+          "#0f1213",
+          "#292c2e",
+          "#45494b",
+          "#63686b",
+          "#83898b",
+          "#a5abad",
+          "#c9ced0",
+          "#eef3f4"
+        ]
+      },
+      "watch-black": {
+        "role": "neutral",
+        "displayName": "Watch Black",
+        "canonical": "oklch(0.0% 0.0 0.0)",
+        "tonalRamp": [
+          "#121212",
+          "#2c2c2c",
+          "#484848",
+          "#676767",
+          "#888888",
+          "#aaaaaa",
+          "#cdcdcd",
+          "#f2f2f2"
+        ]
+      },
+      "watch-label": {
+        "role": "neutral",
+        "displayName": "Watch Label",
+        "canonical": "oklch(96.79% 0.0109 274.9)",
+        "tonalRamp": [
+          "#111115",
+          "#2a2b30",
+          "#47484d",
+          "#65676d",
+          "#86878e",
+          "#a8aab0",
+          "#cbcdd3",
+          "#f0f1f6"
+        ]
+      },
+      "watch-cyan": {
+        "role": "tertiary",
+        "displayName": "Watch Cyan",
+        "canonical": "oklch(80.76% 0.135 221.82)",
+        "tonalRamp": [
+          "#00172b",
+          "#00344e",
+          "#005473",
+          "#00769b",
+          "#0098be",
+          "#47badd",
+          "#80dcfb",
+          "#b2ffff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Greeting",
+        "purpose": "One sentence above the orb. Never a marketing headline."
+      },
+      "title": {
+        "displayName": "Panel Title",
+        "purpose": "Crew name and card titles in the profile block."
+      },
+      "metric": {
+        "displayName": "Metric Number",
+        "purpose": "The one number a panel answers with; tabular, units adjacent and smaller."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Row values, insight sentence, panel rows."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Button labels in the instrument register: 14px, 600."
+      },
+      "label": {
+        "displayName": "Micro Label",
+        "purpose": "Card titles, tab labels, chips, mission stamp. Uppercase and tracked, never a sentence."
+      },
+      "micro": {
+        "displayName": "Eyebrow / Stamp",
+        "purpose": "Eyebrows, SIMULATED, demo markers, footer note. The 9px floor."
+      },
+      "mono": {
+        "displayName": "Machine",
+        "purpose": "Listening timer, kbd chips, mono severity and engine pills."
+      }
+    },
+    "shadows": [
+      {
+        "name": "instrument-rest",
+        "value": "0 1px 2px rgb(0 0 0 / 0.4)",
+        "purpose": "Flat instrument surfaces and inputs."
+      },
+      {
+        "name": "floating-panel",
+        "value": "0 20px 60px -20px rgba(0, 0, 0, 0.6)",
+        "purpose": "The astronaut picker modal above the HUD."
+      },
+      {
+        "name": "card-inset-highlight",
+        "value": "inset 0 1px 0 rgba(255, 255, 255, 0.04)",
+        "purpose": "Top highlight that lifts a glass card off the stage without a cast shadow."
+      },
+      {
+        "name": "orb-halo",
+        "value": "filter: drop-shadow(0 0 26px rgba(68, 172, 255, 0.24))",
+        "purpose": "Presence halo under the orb; deepens to violet while thinking."
+      },
+      {
+        "name": "mic-halo",
+        "value": "0 0 28px 2px rgba(94, 234, 212, 0.22), 0 0 10px rgba(120, 234, 255, 0.25)",
+        "purpose": "The one coloured bloom on the voice control."
+      },
+      {
+        "name": "chat-bloom",
+        "value": "0 0 44px rgba(94, 240, 214, 0.14), 0 0 80px rgba(178, 112, 255, 0.16)",
+        "purpose": "Floating chat card, so it reads as above the HUD rather than part of it."
+      },
+      {
+        "name": "insight-bloom",
+        "value": "0 0 24px -8px rgba(94, 234, 212, 0.45)",
+        "purpose": "Soft attention under the insight band."
+      }
+    ],
+    "motion": [
+      {
+        "name": "chrome",
+        "value": "0.18s",
+        "purpose": "Border, background, colour and glow transitions on chips, tabs and buttons."
+      },
+      {
+        "name": "cluster",
+        "value": "0.24s ease",
+        "purpose": "Voice cluster dim and scale while the chat card is open."
+      },
+      {
+        "name": "card-enter",
+        "value": "180ms",
+        "purpose": "Chat card fade plus 8px rise; skipped under reduced motion."
+      },
+      {
+        "name": "voice-pill",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1) 240ms",
+        "purpose": "VoicePill press and slide easing."
+      },
+      {
+        "name": "orb-spin",
+        "value": "0.15 rad/s",
+        "purpose": "Hologram figure rotation, disabled under reduced motion."
+      },
+      {
+        "name": "chest-glow",
+        "value": "5s ease-in-out infinite",
+        "purpose": "The only idle keyframe besides the slow orb drift; 0.56 opacity at 50%."
+      },
+      {
+        "name": "focus-in",
+        "value": "220-320ms",
+        "purpose": "A projection opens: evidence settles after the origin appears."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "watch-min",
+        "value": "160px"
+      },
+      {
+        "name": "phone-small",
+        "value": "420px"
+      },
+      {
+        "name": "phone",
+        "value": "480px"
+      },
+      {
+        "name": "mini-grid",
+        "value": "520px"
+      },
+      {
+        "name": "single-column",
+        "value": "721px"
+      },
+      {
+        "name": "three-column",
+        "value": "1101px"
+      },
+      {
+        "name": "stage-scale",
+        "value": "1300px"
+      },
+      {
+        "name": "stage-max",
+        "value": "1720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Instrument-register commit action: flat teal with near-black green ink. Used in /admin, never on the HUD stage.",
+      "html": "<button class=\"ds-btn-primary\">Apply changes</button>",
+      "css": ".ds-btn-primary { cursor: pointer; border: none; border-radius: 10px; background: var(--accent); color: var(--accent-ink); padding: 10px 18px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1.4; transition: background 0.18s; } .ds-btn-primary:hover { background: var(--accent-strong, #99f6e4); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .ds-btn-primary:disabled { opacity: 0.6; cursor: default; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary instrument action: transparent fill, one slate border. Paired with the primary, never used alone on the stage.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { cursor: pointer; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text); padding: 10px 18px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1.4; transition: border-color 0.18s, color 0.18s; } .ds-btn-ghost:hover { border-color: var(--accent); color: var(--accent); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }"
+    },
+    {
+      "name": "Nav Chip",
+      "kind": "chip",
+      "refersTo": "nav-chip",
+      "description": "Header chrome on the HUD: a translucent pill with a cyan hairline. Mission stamp, device switcher, language and spacecraft links share it.",
+      "html": "<a class=\"ds-chip\" href=\"#\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M3 12h18M12 3c3 3.5 3 14 0 18\"/></svg>SPACECRAFT</a>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 9px; border: 1px solid rgba(122, 222, 255, 0.35); border-radius: 9999px; background: rgba(11, 36, 58, 0.5); padding: 8px 13px; color: #c8ecff; font-size: 10px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; text-decoration: none; backdrop-filter: blur(6px); transition: border-color 0.18s, background 0.18s, box-shadow 0.18s, color 0.18s; } .ds-chip:hover { border-color: #8ce7ff; background: rgba(20, 62, 94, 0.55); color: #e6fbff; box-shadow: 0 0 16px rgba(105, 214, 255, 0.28); } .ds-chip:focus-visible { outline: 2px solid #f5fcff; outline-offset: 3px; }"
+    },
+    {
+      "name": "Micro Tag",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "Metadata pill inside a card (source, range, method). The accent variant carries the teal wash.",
+      "html": "<span class=\"ds-tag\">7d</span><span class=\"ds-tag ds-tag--accent\">MEASURED</span>",
+      "css": ".ds-tag { display: inline-flex; align-items: center; border: 1px solid rgba(122, 222, 255, 0.28); border-radius: 9999px; background: rgba(11, 36, 58, 0.55); padding: 3px 9px; color: #8fb8d4; font-size: 9px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; } .ds-tag--accent { border-color: rgba(94, 234, 212, 0.34); background: rgba(94, 234, 212, 0.1); color: #8ef0d9; }"
+    },
+    {
+      "name": "Stage Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The HUD panel: gradient fill, one alpha-cyan hairline, inset top highlight, no cast shadow.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-head\"><h3>Vital signs</h3><span class=\"ds-card-tag\">LIVE</span></div><p class=\"ds-card-row\">Heart rate <b>62</b> bpm</p></article>",
+      "css": ".ds-card { border: 1px solid rgba(122, 222, 255, 0.15); border-radius: 18px; background: linear-gradient(160deg, rgba(13, 31, 54, 0.86), rgba(7, 18, 33, 0.92)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04); padding: 14px; color: #edf8ff; backdrop-filter: blur(8px); } .ds-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .ds-card h3 { margin: 0; color: #a8d8f0; font-size: 11px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; } .ds-card-tag { border: 1px solid rgba(94, 234, 212, 0.34); border-radius: 9999px; background: rgba(94, 234, 212, 0.1); padding: 3px 8px; color: #8ef0d9; font-size: 9px; letter-spacing: 0.14em; } .ds-card-row { margin: 10px 0 0; color: #cfe4f4; font-size: 12px; font-weight: 300; } .ds-card-row b { color: #f2fbff; font-size: 15px; font-weight: 300; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Insight Band",
+      "kind": "custom",
+      "description": "The one outbound action on the console: a full-width pill that carries a single deterministic sentence and leads to /performance.",
+      "html": "<button class=\"ds-band\"><span class=\"ds-band-icon\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M4 15l4-5 4 3 5-7\"/><path d=\"M4 20h16\"/></svg></span><span><span class=\"ds-band-text\">Muscle strength is trending below your baseline for 14 days.</span><span class=\"ds-band-kicker\">SKY INSIGHT</span></span><svg class=\"ds-band-chev\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M9 5l7 7-7 7\"/></svg></button>",
+      "css": ".ds-band { display: flex; align-items: center; gap: 12px; width: 100%; border: 1px solid rgba(122, 222, 255, 0.24); border-radius: 9999px; background: linear-gradient(100deg, rgba(13, 40, 66, 0.9), rgba(21, 26, 58, 0.9)); box-shadow: 0 0 24px -8px rgba(94, 234, 212, 0.45); padding: 10px 16px; color: #eaf8ff; font-family: inherit; text-align: left; cursor: pointer; transition: border-color 0.18s, background 0.18s; } .ds-band:hover { border-color: rgba(139, 233, 255, 0.6); } .ds-band:focus-visible { outline: 2px solid #f5fcff; outline-offset: 3px; } .ds-band-icon, .ds-band-chev { flex: none; color: #8ef0d9; } .ds-band-chev { margin-left: auto; } .ds-band-text { display: block; font-size: 12.5px; font-weight: 300; line-height: 1.35; color: #dcecff; } .ds-band-kicker { display: block; margin-top: 2px; color: #7f9db4; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Instrument-register input: flat navy fill, one slate border, 10px radius.",
+      "html": "<label class=\"ds-field\">Admin key<input type=\"password\" placeholder=\"••••••••\" value=\"\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-family: inherit; font-size: 12px; letter-spacing: 0.02em; } .ds-field input { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 14px; transition: border-color 0.18s; } .ds-field input::placeholder { color: var(--muted); opacity: 0.7; } .ds-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }"
+    },
+    {
+      "name": "Pill Tabs",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "Segmented control inside a card: a dark pill well holding equal-width pill buttons; active carries a cyan wash and inset highlight.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab\" aria-selected=\"true\">Body</button><button class=\"ds-tab\">Recovery</button><button class=\"ds-tab\">Cognitive</button></div>",
+      "css": ".ds-tabs { display: inline-flex; width: 100%; flex-wrap: wrap; align-items: center; gap: 4px; border: 1px solid rgba(122, 222, 255, 0.16); border-radius: 9999px; background: rgba(7, 18, 33, 0.6); padding: 3px; } .ds-tab { flex: 1; border: 1px solid transparent; border-radius: 9999px; background: transparent; padding: 6px 10px; color: #8fb8d4; font-family: inherit; font-size: 10px; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; cursor: pointer; transition: border-color 0.18s, background 0.18s, color 0.18s; } .ds-tab:hover { color: #d4f4ff; } .ds-tab[aria-selected='true'] { border-color: rgba(140, 231, 255, 0.5); background: rgba(120, 234, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(140, 231, 255, 0.25); color: #d9f6ff; } .ds-tab:focus-visible { outline: 2px solid #f5fcff; outline-offset: 3px; }"
+    },
+    {
+      "name": "Voice Pill",
+      "kind": "custom",
+      "description": "Idle mic on the console: an 84px navy disc with a teal accent and a single teal halo. Replaced by the listening bar once the session is live.",
+      "html": "<button class=\"ds-voice\" aria-label=\"Start voice\"><svg width=\"45\" height=\"45\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"3\" width=\"6\" height=\"11\" rx=\"3\"/><path d=\"M5 11a7 7 0 0 0 14 0\"/><path d=\"M12 18v3\"/></svg></button>",
+      "css": ".ds-voice { position: relative; display: inline-grid; place-items: center; width: 84px; height: 84px; border: 0; border-radius: 50%; background: #0e2233; color: #bfe6ef; box-shadow: 0 0 28px 2px rgba(94, 234, 212, 0.22), 0 0 10px rgba(120, 234, 255, 0.25); cursor: pointer; transition: color 0.15s, box-shadow 0.18s; } .ds-voice:hover { color: #5eead4; box-shadow: 0 0 34px 4px rgba(94, 234, 212, 0.3), 0 0 12px rgba(120, 234, 255, 0.3); } .ds-voice:focus-visible { outline: 2px solid #f5fcff; outline-offset: 4px; }"
+    },
+    {
+      "name": "Readiness Gauge",
+      "kind": "custom",
+      "description": "Decomposable readiness readout: a 104px ring whose fill is teal to blue to violet, value tabular and centred. Shows no number without coverage.",
+      "html": "<div class=\"ds-gauge\"><svg viewBox=\"0 0 104 104\" aria-hidden=\"true\"><defs><linearGradient id=\"dsGauge\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#5eead4\"/><stop offset=\"0.55\" stop-color=\"#7ab8ff\"/><stop offset=\"1\" stop-color=\"#a78bfa\"/></linearGradient></defs><g transform=\"rotate(-90 52 52)\"><circle cx=\"52\" cy=\"52\" r=\"46\" fill=\"none\" stroke=\"rgba(122,222,255,0.14)\" stroke-width=\"8\"/><circle cx=\"52\" cy=\"52\" r=\"46\" fill=\"none\" stroke=\"url(#dsGauge)\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-dasharray=\"289\" stroke-dashoffset=\"86\"/></g></svg><div class=\"ds-gauge-value\">70<span>/100</span></div></div>",
+      "css": ".ds-gauge { position: relative; width: 104px; height: 104px; } .ds-gauge svg { width: 100%; height: 100%; } .ds-gauge-value { position: absolute; inset: 0; display: grid; place-items: center; color: #f2fbff; font-size: 30px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; } .ds-gauge-value span { margin-left: 1px; color: #8fb8d4; font-size: 11px; font-weight: 300; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Instrument",
+    "overview": "Sky looks like a crew instrument that is watching, not like a dashboard wearing a space theme. The field is a deep navy that grades from a lit halo at the top of the viewport down to near-black; information sits on glass panels that float just above it; one sea-glass teal marks the thing that is currently actionable. Nothing else competes. Presence is carried by a single luminous object — the orb — and by the quality of attention in the copy, never by decoration.\n\nThe system is dark-only and it is a reading surface more than a browsing one: an astronaut glances, understands what changed, and answers once. That is why types are light-weight, why measurements are tabular, why labels are small letter-spaced caps, and why the accent is rationed. Depth comes from tonal gradients and 1px translucent cyan borders, not from drop shadows.\n\nTwo registers share one identity. The stage register is the HUD, the cinematic routes and the two data faces: radial backdrop, glass cards, glow accents. The instrument register is where an operator completes a task (admin, the crew picker, the watch face): flat fills, solid slate borders, real shadows, 14px type. Both use the same palette and the same sea-glass accent.",
+    "keyCharacteristics": [
+      "Deep navy radial stage (#010812 → #091c32 → #0c3159), never pure black except on the watch face.",
+      "One primary accent — sea-glass teal (#5eead4) — plus an instrument cyan and a violet that appears only inside gradients and rims.",
+      "Glass panels: 18px radius, 1px rgba(122,222,255,.15) border, gradient fill, 8px backdrop blur, 1px inset top highlight.",
+      "Light-weight type (300) at every size; uppercase micro-labels at 9–11px with .14–.2em tracking; tabular numerals for every measurement.",
+      "Pills for all chrome (chips, tabs, tags, voice controls); asymmetric organic radii only for glass cutouts.",
+      "Depth by glow and tonal layering, not by shadow.",
+      "SIMULATED is always visible on fixture data; every threshold and score carries its source."
+    ],
+    "rules": [
+      {
+        "name": "The One Bright Object Rule",
+        "body": "Exactly one luminous focal object per screen: the orb, or the body hologram, or an open decision — never two. When the decision is active, the orb dims; when the body is active, the orb steps back.",
+        "section": "colors"
+      },
+      {
+        "name": "The Rare Teal Rule",
+        "body": "Sea-glass teal appears on ≤10% of any screen. Its rarity is what makes it read as \"this is the thing to act on\". Painting every number teal destroys the only hierarchy signal the system has.",
+        "section": "colors"
+      },
+      {
+        "name": "The Gradient-Rim Rule",
+        "body": "Multi-hue gradients (teal → blue → violet, or teal → violet) live only in a 1px rim, an arc, a progress fill, or the around-a-pill border technique — never as the fill of a surface, never on text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Light-Weight Rule",
+        "body": "Interface text is font-weight 300; 400 is for micro-labels, 500 for uppercase labels, 600 only for the two button roles and crew names. A 700-weight headline is a different product.",
+        "section": "typography"
+      },
+      {
+        "name": "The Micro-Label Rule",
+        "body": "Uppercase with .14–.2em tracking is allowed only at ≤11px and only for labels, chips, and stamps. Setting a sentence in tracked caps is the anti-pattern the whole system was built to avoid.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every measurement, delta, countdown and score is tabular-nums; every unit is a separate small span in text-muted. Numbers never animate between values.",
+        "section": "typography"
+      },
+      {
+        "name": "The Glow-Not-Shadow Rule",
+        "body": "On the stage, an element is raised by a tonal gradient and a glow — never by a grey drop shadow. A grey shadow on the navy field reads as dirt.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Halo Rule",
+        "body": "At most one element per screen carries a coloured outer bloom. Two competing halos is the visual signature of a HUD mock, not of an instrument.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Pill-For-Chrome Rule",
+        "body": "If it is chrome, it is a pill; if it holds content, it is a rounded rectangle. A square button in the HUD, or a pill around a card, is a register error.",
+        "section": "shapes"
+      },
+      {
+        "name": "The One Aperture Rule",
+        "body": "One organic cutout per screen, and only around a subject that carries data. A second organic shape turns an instrument into a poster.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do keep one bright object per screen; dim the orb when the readiness panel or a decision is the focus.",
+      "Do spend sea-glass teal on the actionable element only, and keep it under ~10% of the surface.",
+      "Do build panels from gradient fill + 1px alpha-cyan border + inset top highlight; add backdrop blur only where the stage shows through.",
+      "Do keep every measurement tabular, with its unit separate and muted, and every score labelled with its source or SIMULATED.",
+      "Do show the SIMULATED chip on any fixture value, on the card itself, at ≥8.5px — never only in a footer.",
+      "Do keep the focus ring at 2px #f5fcff, offset 3–5px, on every interactive element including canvases and the picker.",
+      "Do ship both languages through shared/i18n and let the widest string drive the layout.",
+      "Do give every state a word, not only a colour: unknown, stale, queued, acknowledged, needs review.",
+      "Do treat reduced motion as a first-class state: no animation and instant state changes when it is requested."
+    ],
+    "donts": [
+      "Do not add a webfont, CDN stylesheet, or remote image for the app's own chrome — the type stack resolving to the platform face is the system. The vendored React Bits VariableProximity label (Roboto Flex via Google Fonts) is the one exception on the staged HUD, not a precedent.",
+      "Do not use red or amber to dramatise AI text, a delta, or a trend; coral is for reviewed critical states only, and a 30-day delta is neutral teal.",
+      "Do not paint a card with a violet or purple gradient; violet lives in rims, arcs and the thinking halo.",
+      "Do not use a purple–cyan gradient as a surface fill, a glowing rectangle around every card, a left sidebar, or a 4–8 equal-KPI grid — those are the anti-references this system exists to refuse.",
+      "Do not set body text in tracked uppercase, use 700 weights, or drop any readable text below 8.5px.",
+      "Do not animate numbers between values, simulate a waveform from nothing, or leave an infinite idle animation beyond the slow orb drift and the chest glow.",
+      "Do not add a third backdrop to the console, another device view behind a query param, or a second organic aperture to one screen.",
+      "Do not let a generated label or an LLM author a threshold, a severity, or a stable/safe verdict; absence renders as unknown, never as green.",
+      "Do not treat acknowledgement as resolution, confirmation as performance, or queued as transmitted."
+    ]
+  }
+}

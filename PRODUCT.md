@@ -48,16 +48,16 @@ Explicitly undecided product facts:
 ## Brand Commitments
 
 - Product name: **Sky** (in-fiction: a guardian/angel for each astronaut, from the garden on the ship — see `STORY.md`).
-- Voice/posture: a quiet instrument that notices change and asks for one good decision — not a doctor avatar, not a chatbot pasted on a dashboard, not a sci-fi game HUD. Presence without personality theater; calm until there is a reason not to be; embodied information; human authority (see root `DESIGN.md`, "Design DNA").
+- Voice/posture: a quiet instrument that notices change and asks for one good decision — not a doctor avatar, not a chatbot pasted on a dashboard, not a sci-fi game HUD. Presence without personality theater; calm until there is a reason not to be; embodied information; human authority (see root `DESIGN.md`, "The Quiet Instrument"; the fuller rationale is in `DESIGN-proposal-v1.md`, "Design DNA").
 - All sample fixtures display **SIMULATED** visibly.
 - Repo is public, Apache-2.0; README + AI disclosure + sources are required submission artifacts.
-- Do not merge fixture crews (`iss-showcase`: Ayla/Dae-Jung/Lena; `hong-hac-story`: Minh/Linh/Ana/Kenji) — see DESIGN.md §0.
+- Do not merge fixture crews (`iss-showcase`: Ayla/Dae-Jung/Lena; `hong-hac-story`: Minh/Linh/Ana/Kenji) — see `DESIGN-proposal-v1.md` §0 (fixture configurations), still in force.
 
 ## Evidence on Hand
 
 Real, committed material future work may use (do not fabricate beyond these):
 
-- `DESIGN.md` (root) — product-wide design source of truth, v1.0.0 (2026-11-14).
+- `DESIGN.md` (root) — product-wide visual design source of truth, generated from the shipped code: token frontmatter plus the eight canonical sections, with a machine-readable sidecar at `.impeccable/design.json`. `DESIGN-proposal-v1.md` — the superseded v1.0.0 proposal, kept for the rationale, authority model, state machines and acceptance matrix that the visual system does not carry.
 - `UX.md`, `UX_IMPLEMENTATION.md`, `SKY_UI_COMPONENT_FUNCTIONAL_SPEC.md`, `STORY.md`, `ARCHITECTURE.md`, `HARNESSING.md`, `SENSOR_SIMULATION_SPEC.md` — committed specs.
 - `data/` git submodule (nsac-data) — demo datasets, features, models, predictions; includes `DATA.html`.
 - NASA sources: OSD-569, OSD-575, OSDR API, DONKI, ISS Medical Checklist (mirror), Circulation 2026 ISS cardiovascular paper — URLs in root `README.md`.
