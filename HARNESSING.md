@@ -598,7 +598,7 @@ LLM sau này (P1+) chỉ giải thích/soạn draft; phi hành gia xác nhận �
 - Sim telemetry là primary source; Sky ML analog artifacts (`data/4_predictions/`, hr ridge model)
   là reference-only, KHÔNG BAO GIỜ mix vào runtime path — V1 không wire artifact nào
   (`evidence.sourceIds` chỉ chứa `telemetry:<first>..<last>`).
-- `sky-medical-officer` Pi SDK profile: on-demand only, sống ở phía web — KHÔNG build trong branch này.
+- `sky-medical-officer` Pi SDK profile: on-demand, sống ở phía web (`apps/web` — `agents/medical-officer.ts` + `runtime/medical-officer.server.ts`, merged `8448cf1` / `deploy-2026-11-16-7`). Panel `/performance` (`ClinicalPanel.tsx`) gọi `/api/clinical/findings` của backend.
 - MedicalAgentDefinition / RoutineDefinition là contracts; engine generic, specialists là config.
 - NASA-STD-3001 Vol 1 active rev là **Rev C (2023-09-15)**; clinical thresholds hoàn toàn out of scope.
   Mọi con số trong cardio-v1 là ENGINEERING DEMO POLICY — không phải clinical guidance, không chẩn đoán.
