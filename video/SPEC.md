@@ -1,4 +1,6 @@
-# SPEC — Sky · Never Alone in Space (30 s launch film)
+# SPEC — Sky · Never Alone in Space (30 s launch film) — v1
+
+VERSION: 1 (first script; render output: `out/sky-launch-30s-v1.mp4`). Successor versions get their own `-vN` names.
 
 GOAL:    A viewer who knows nothing about the product finishes the film wanting to tell one person:
          "an astronaut now has a guardian in space." They remember one line.

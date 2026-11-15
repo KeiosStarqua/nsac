@@ -14,7 +14,8 @@ silent by design.
 ## Local Contracts
 
 - Entry point: `index.html` (HyperFrames composition). Preview: `npx hyperframes preview`;
-  render: `npx hyperframes render -o out/sky-launch-30s.mp4`.
+  render: `npx hyperframes render -o out/sky-launch-30s-v1.mp4`. Render outputs are **versioned**
+  (`out/sky-launch-30s-vN.mp4`) — always bump `N`, never overwrite an earlier version.
 - `media/` holds product screenshots used as plates (captured from the web app; fictional crew
   only, no personal data). Do **not** put external media with unclear licenses in git.
 - `out/` (render output, MP4) and HyperFrames caches are **not committed** — final MP4 is

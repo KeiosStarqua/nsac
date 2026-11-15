@@ -1,4 +1,7 @@
-# REVIEW — Sky · Never Alone in Space (30 s launch film)
+# REVIEW — Sky · Never Alone in Space (30 s launch film) — v1
+
+Version 1 review. Render output: `out/sky-launch-30s-v1.mp4` (25.5 MB, h264, 1920×1080,
+30 fps, 900 frames, 30.000 s).
 
 Review pass on the committed composition (`video/index.html` @ `c56eca1`), run after
 `npx hyperframes check` came back clean. Frames were inspected as stills
@@ -64,5 +67,5 @@ one shallow push into the vitals column instead of the whole plate.
 
 ## Render
 
-`npx hyperframes render --video-frame-format png -q delivery -o out/sky-launch-30s.mp4`
+`npx hyperframes render --video-frame-format png -q delivery -o out/sky-launch-30s-v1.mp4`
 → `1920×1080`, 30 fps, 900 frames, 30.000 s, h264. Output is not committed (`.gitignore`).
