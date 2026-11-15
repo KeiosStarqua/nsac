@@ -33,7 +33,8 @@ export const hazardDetectedPayloadSchema = z
   })
   .strict();
 
-export const healthFactUpdatedPayloadSchema = z
+/** Payload v1 (legacy) — vẫn được simulator cũ và tool khác publish. */
+export const healthFactLegacyPayloadSchema = z
   .object({
     fact: z.string().trim().min(1).max(64),
     value: z.union([z.string().max(300), z.number().finite()]),
@@ -41,6 +42,34 @@ export const healthFactUpdatedPayloadSchema = z
     severity: severitySchema.optional(),
   })
   .strict();
+
+/**
+ * Payload v2 — fact dẫn xuất từ continuous simulator (SENSOR_SIMULATION_SPEC §14).
+ * BYTE-IDENTICAL mirror của `healthFactDerivedPayload` trong apps/backend/src/eventsRoutes.ts:
+ * chỉ facts, không raw reading. `sourceMode` luôn synthetic. Summary của con người nằm trên
+ * row `change_events` (event.summary), KHÔNG nằm trong payload.
+ */
+export const healthFactDerivedPayloadSchema = z
+  .object({
+    factId: z.string().trim().min(1).max(96),
+    missionId: z.string().trim().min(1).max(64),
+    crewId: z.string().trim().min(1).max(64).optional(),
+    category: z.enum(["cardiovascular", "respiratory", "radiation", "environment"]),
+    rule: z.string().trim().min(1).max(64),
+    status: z.enum(["active", "resolved"]),
+    severity: z.enum(["info", "yellow", "red"]),
+    sourceMode: z.literal("synthetic"),
+    quality: z.enum(["valid", "suspect", "invalid"]),
+    observedAt: z.string().trim().min(1).max(40),
+    evidenceEventIds: z.array(z.string().trim().min(1).max(64)).max(8),
+  })
+  .strict();
+
+// Backend chấp nhận cả hai shape (zod union ở eventsRoutes.ts); web mirror đúng union đó.
+export const healthFactUpdatedPayloadSchema = z.union([
+  healthFactLegacyPayloadSchema,
+  healthFactDerivedPayloadSchema,
+]);
 
 export const claimsChangedPayloadSchema = z
   .object({
@@ -94,6 +123,8 @@ export const eventPayloadSchemas = {
 } as const;
 
 export type HazardDetectedPayload = z.infer<typeof hazardDetectedPayloadSchema>;
+export type HealthFactLegacyPayload = z.infer<typeof healthFactLegacyPayloadSchema>;
+export type HealthFactDerivedPayload = z.infer<typeof healthFactDerivedPayloadSchema>;
 export type HealthFactUpdatedPayload = z.infer<typeof healthFactUpdatedPayloadSchema>;
 export type ClaimsChangedPayload = z.infer<typeof claimsChangedPayloadSchema>;
 export type AgentTurnCompletedPayload = z.infer<typeof agentTurnCompletedPayloadSchema>;
@@ -162,6 +193,12 @@ function lineFor(event: ChangeEvent): string | null {
     case "health.fact.updated": {
       const p = healthFactUpdatedPayloadSchema.safeParse(event.payload);
       if (!p.success) return null;
+      if ("rule" in p.data) {
+        // v2 fact từ simulator: severity|rule, text = summary của row hoặc `rule: status`.
+        // evidenceEventIds không bao giờ vào prompt.
+        const text = summary ?? `${p.data.rule}: ${p.data.status}`;
+        return `- [${p.data.severity}|${oneLine(p.data.rule)}] ${oneLine(text)} (source: ${oneLine(event.source)})`;
+      }
       const text = summary ?? `${p.data.fact}: ${p.data.value}${p.data.unit ? ` ${p.data.unit}` : ""}`;
       return `- [${p.data.severity ?? "info"}|${oneLine(p.data.fact)}] ${oneLine(text)} (source: ${oneLine(event.source)})`;
     }

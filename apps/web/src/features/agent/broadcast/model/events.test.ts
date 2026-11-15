@@ -42,6 +42,33 @@ const claim = (id: number) => ({
   createdAt: 1_700_000_000_000 + id,
 });
 
+const derivedFactPayload = (overrides: Record<string, unknown> = {}) => ({
+  factId: "fact-1",
+  missionId: "SIM-001",
+  crewId: "ayla-reyes",
+  category: "radiation",
+  rule: "radiation_burst",
+  status: "active",
+  severity: "yellow",
+  sourceMode: "synthetic",
+  quality: "valid",
+  observedAt: "2026-11-16T09:10:00.000Z",
+  evidenceEventIds: ["evt-1", "evt-2"],
+  ...overrides,
+});
+
+const derivedFact = (id: number, overrides: Record<string, unknown> = {}) => ({
+  id,
+  astronautId: "ayla-reyes",
+  topic: "health.fact.updated",
+  source: "simulation",
+  summary: "Dose rate 30.7 µSv/h ≈ 61.6× mission trailing median (simulated burst; SRAG context, not an exposure limit)",
+  payload: derivedFactPayload(),
+  createdAt: 1_700_000_000_000 + id,
+  ...overrides,
+});
+
+
 describe("event schemas (wire-mirror)", () => {
   it("EVENT_TOPICS carries the backend topics; INJECTABLE_TOPICS stays exactly the original three", () => {
     expect(EVENT_TOPICS).toEqual([
@@ -179,5 +206,60 @@ describe("buildFactsBlock", () => {
     const block = buildFactsBlock([hazard(1, { summary: "line1\nline2" })])!;
     expect(block).not.toContain("\nline2");
     expect(block.split("\n")).toHaveLength(1);
+  });
+});
+
+describe("health.fact.updated union (legacy v1 + simulator v2)", () => {
+  it("renders a legacy v1 fact byte-identically to before", () => {
+    const block = buildFactsBlock([healthFact(1)])!;
+    expect(block).toBe("- [info|spo2] spo2: 97 % (source: osdr-feed)");
+    const withSeverity = buildFactsBlock([
+      healthFact(1, { payload: { fact: "spo2", value: 97, unit: "%", severity: "yellow" } }),
+    ])!;
+    expect(withSeverity).toBe("- [yellow|spo2] spo2: 97 % (source: osdr-feed)");
+  });
+
+  it("renders a v2 fact as one line from the event summary, never the evidence ids", () => {
+    const block = buildFactsBlock([derivedFact(1)])!;
+    expect(block.split("\n")).toHaveLength(1);
+    expect(block.startsWith("- [yellow|radiation_burst]")).toBe(true);
+    expect(block).toBe(
+      "- [yellow|radiation_burst] Dose rate 30.7 µSv/h ≈ 61.6× mission trailing median (simulated burst; SRAG context, not an exposure limit) (source: simulation)",
+    );
+    expect(block).not.toContain("evt-1");
+    expect(block).not.toContain("evt-2");
+  });
+
+  it("falls back to `rule: status` when the v2 event row carries no summary", () => {
+    const block = buildFactsBlock([derivedFact(1, { summary: null })])!;
+    expect(block).toBe("- [yellow|radiation_burst] radiation_burst: active (source: simulation)");
+  });
+
+  it("accepts crew-scoped and mission-scoped v2 rows (astronautId may be null)", () => {
+    const crewScoped = buildFactsBlock([derivedFact(1)])!;
+    const missionScoped = buildFactsBlock([
+      derivedFact(1, { astronautId: null, payload: derivedFactPayload({ crewId: undefined }) }),
+    ])!;
+    expect(crewScoped.startsWith("- [yellow|radiation_burst]")).toBe(true);
+    expect(missionScoped).toBe(crewScoped);
+  });
+
+  it("renders a resolved v2 fact with source: simulation", () => {
+    const block = buildFactsBlock([
+      derivedFact(1, { summary: "Radiation burst resolved; dose rate back to baseline", payload: derivedFactPayload({ status: "resolved" }) }),
+    ])!;
+    expect(block).toBe(
+      "- [yellow|radiation_burst] Radiation burst resolved; dose rate back to baseline (source: simulation)",
+    );
+  });
+
+  it("skips a malformed v2 row silently and still builds from the rest", () => {
+    const malformed = derivedFact(2, { payload: derivedFactPayload({ evidenceEventIds: undefined }) });
+    expect(buildFactsBlock([malformed])).toBeNull();
+    const block = buildFactsBlock([claim(1), malformed, healthFact(3)])!;
+    expect(block.split("\n")).toHaveLength(2);
+    expect(block).toContain("claims");
+    expect(block).toContain("spo2");
+    expect(block).not.toContain("radiation_burst");
   });
 });
