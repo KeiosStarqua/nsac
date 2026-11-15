@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ATTRIBUTION } from "open-anatomy-3d";
+import { EscapeChip } from "./components/EscapeChip";
 import { HoverTooltip } from "./components/HoverTooltip";
 import { LayerRail } from "./components/LayerRail";
 import { StructureCard } from "./components/StructureCard";
@@ -23,7 +24,8 @@ export interface BodyMapOverlayProps {
   /**
    * `overlay` — the HUD glass panel (header, structure card, footer). `page` —
    * the `/body` route: the canvas covers the viewport, only the floating
-   * "Body systems" rail and one attribution line stay.
+   * "Body systems" rail, one attribution line and one kbd chip (`Esc HUD`,
+   * same `onClose` as the Escape key) stay.
    */
   readonly variant?: "overlay" | "page";
 }
@@ -166,6 +168,11 @@ export function BodyMapOverlay({
           </a>
           . Simulated data, not for diagnosis.
         </p>
+
+        {/* The discrete way out: a kbd chip that calls the same `close` the
+            Escape handler uses. Desktop bottom-right; under 900px it flips to
+            the top-right corner (see EscapeChip). */}
+        <EscapeChip onActivate={close} />
       </div>
     );
   }
