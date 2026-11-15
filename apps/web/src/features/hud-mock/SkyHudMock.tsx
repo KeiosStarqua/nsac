@@ -648,6 +648,7 @@ export function SkyHudMock() {
             copy={copy.hudMock}
             holo={holo}
             holoCredit={<HoloCredit placement="footer" />}
+            onOpenBody={() => void navigate({ to: "/body" })}
           />
           <MiniCards cards={HUD_MOCK.cards} copy={copy.hudMock} />
         </div>
