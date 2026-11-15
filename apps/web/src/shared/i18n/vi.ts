@@ -89,6 +89,7 @@ export const vi: Copy = {
     deviceSwitcher: "Thiết bị",
     deviceConsole: "Bảng điều khiển",
     deviceWatch: "Đồng hồ",
+    langSwitcher: "Chuyển ngôn ngữ",
     watchCaption: "SKY · Xem thử Đồng hồ — minh họa trực tiếp",
     spacecraftButton: "TÀU VŨ TRỤ",
     spacecraftButtonAria: "Mở chế độ xem trạm ISS 3D toàn màn hình",

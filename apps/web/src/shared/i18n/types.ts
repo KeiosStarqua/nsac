@@ -111,6 +111,8 @@ export interface Copy {
     deviceSwitcher: string;
     deviceConsole: string;
     deviceWatch: string;
+    /** Chrome chip — switches the locale (`?lang=en|vi` on the same route). */
+    langSwitcher: string;
     /** Caption under the watch device frame — labels it as a live demonstration. */
     watchCaption: string;
     /** Header chrome chip linking to the `/spacecraft` cinematic ISS 3D view. */

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import DepthText from "../../shared/react-bits/DepthText/DepthText";
 import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import Particles from "../../shared/react-bits/Particles/Particles";
@@ -50,6 +50,7 @@ import { PHASE_TEXT } from "../sky-hud/voiceCopy";
 import { useVoiceChat } from "./useVoiceChat";
 import { HologramBody, HoloCredit, ListeningBar, TypeInsteadPill } from "../sky-hud/components";
 import { DeviceSwitcher } from "../sky-hud/components/DeviceSwitcher";
+import { LanguageSwitcher } from "../sky-hud/components/LanguageSwitcher";
 import { SkyChatPanel } from "../sky-hud/components/SkyChatPanel";
 import { HUD_MOCK, MISSION_DAY } from "./model/fixture";
 import { buildInsightText } from "./model/insight";
@@ -123,6 +124,10 @@ interface DetailDialogProps {
 export function SkyHudMock() {
   const copy = useCopy();
   const navigate = useNavigate();
+  // SSR always renders this mock (the `?gen=0` / `?arch=openui` opt-backs swap in after mount), so
+  // hide the locale chip for those URLs — their markup stays identical to before the chip existed.
+  const search = useSearch({ strict: false }) as { gen?: number; arch?: string };
+  const showLanguageSwitcher = search.gen !== 0 && search.arch !== "openui";
   const mounted = useMounted();
   const reduce = useReducedMotion();
   const fx = mounted && !reduce;
@@ -135,8 +140,8 @@ export function SkyHudMock() {
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState(false);
   const sessionIdRef = useRef<string | null>(null);
-  const [greeting, setGreeting] = useState(() => copy.hud.greetingFallback);
-  const [prompt, setPrompt] = useState(() => copy.hud.promptFallback);
+  // A Sky reply replaces the prompt line; null means the locale-aware fallback is shown.
+  const [promptReply, setPromptReply] = useState<string | null>(null);
   const [announcer, setAnnouncer] = useState("");
   const [bg, setBg] = useState("particles");
 
@@ -147,7 +152,6 @@ export function SkyHudMock() {
       const astro = findAstronaut(stored);
       if (astro) {
         setAstronautId(astro.id);
-        setGreeting(format(copy.astronaut.greeting, { name: firstName(astro.name) }));
       } else {
         setPickerOpen(true);
       }
@@ -235,7 +239,6 @@ export function SkyHudMock() {
       /* storage unavailable → vẫn kick */
     }
     setAstronautId(null);
-    setGreeting(copy.hud.greetingFallback);
     setPickerOpen(true);
   });
 
@@ -289,7 +292,6 @@ export function SkyHudMock() {
             /* storage unavailable → vẫn kick */
           }
           setAstronautId(null);
-          setGreeting(copy.hud.greetingFallback);
           setPickerOpen(true);
           return;
         }
@@ -308,7 +310,6 @@ export function SkyHudMock() {
           if (normalized && takenByOther) {
             window.localStorage.removeItem(ASTRONAUT_STORAGE_KEY);
             setAstronautId(null);
-            setGreeting(copy.hud.greetingFallback);
             setPickerOpen(true);
           } else if (normalized) {
             // Returning after idle: the old claim may have expired. Re-claim silently; losing the
@@ -327,7 +328,6 @@ export function SkyHudMock() {
                 try {
                   window.localStorage.removeItem(ASTRONAUT_STORAGE_KEY);
                   setAstronautId(null);
-                  setGreeting(copy.hud.greetingFallback);
                   setPickerOpen(true);
                 } catch {
                   /* storage unavailable → giữ nguyên */
@@ -384,7 +384,6 @@ export function SkyHudMock() {
       const localPick = () => {
         persistLocalPick(astro.id);
         setAstronautId(astro.id);
-        setGreeting(format(copy.astronaut.greeting, { name: firstName(astro.name) }));
         setPickerOpen(false);
       };
       try {
@@ -423,7 +422,6 @@ export function SkyHudMock() {
         /* ignore */
       }
       setAstronautId(null);
-      setGreeting(copy.hud.greetingFallback);
       const sid = sessionIdRef.current ?? getOrCreateSessionId();
       sessionIdRef.current = sid;
       await refreshClaims(sid);
@@ -460,6 +458,10 @@ export function SkyHudMock() {
   }, []);
 
   const selected = findAstronaut(astronautId, roster) ?? findAstronaut(ASTRONAUTS[0]!.id, roster) ?? ASTRONAUTS[0]!;
+  const greeting = astronautId
+    ? format(copy.astronaut.greeting, { name: firstName(selected.name) })
+    : copy.hud.greetingFallback;
+  const prompt = promptReply ?? copy.hud.promptFallback;
   const role = roleLabel(selected.role, copy.hudMock.roles);
 
   const orbNode = useMemo(
@@ -515,12 +517,7 @@ export function SkyHudMock() {
           onClick={() => {
             setDetail(null);
             setChatOpen(false);
-            setGreeting(
-              astronautId && selected
-                ? format(copy.astronaut.greeting, { name: firstName(selected.name) })
-                : copy.hud.greetingFallback,
-            );
-            setPrompt(copy.hud.promptFallback);
+            setPromptReply(null);
           }}
         >
           <span className={BRAND_RING} aria-hidden="true" />
@@ -579,6 +576,7 @@ export function SkyHudMock() {
             <span>ISS&nbsp;·&nbsp;Day {MISSION_DAY}</span>
           </button>
           <DeviceSwitcher current="console" />
+          {showLanguageSwitcher ? <LanguageSwitcher /> : null}
           <Link
             to="/spacecraft"
             className={SPACECRAFT_LINK}
@@ -744,7 +742,7 @@ export function SkyHudMock() {
           astronaut={{ id: selected.id, name: selected.name }}
           onClose={() => setChatOpen(false)}
           onReply={(text) => {
-            setPrompt(text.length > 160 ? `${text.slice(0, 157)}…` : text);
+            setPromptReply(text.length > 160 ? `${text.slice(0, 157)}…` : text);
             setAnnouncer(text);
           }}
           onUseVoice={() => {
