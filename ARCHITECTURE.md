@@ -271,7 +271,7 @@ phải bump khi `bun.lock` đổi.
 
 ### Backend (TS + Bun)
 
-`apps/backend` — HTTP API (astronauts + claims + sensors/telemetry, SQLite qua drizzle), chạy bằng Bun trực tiếp từ TypeScript:
+`apps/backend` — HTTP API (astronauts + claims + sensors/telemetry, SQLite qua drizzle), chạy bằng Bun trực tiếp từ TypeScript. Claims tự giải phóng sau 30 phút idle (`SKY_CLAIM_TTL_MINUTES` override): web heartbeat mỗi 30 s khi tab visible (`POST /api/claims/heartbeat`), backend quét hạn lười trong `list`/`claim`/`heartbeat` + interval 60 s + một lần lúc start; quay lại khi astronaut còn trống thì web tự claim lại:
 
 ```bash
 cd apps/backend
@@ -306,7 +306,7 @@ Nix: `nix build .#backend` / `nix run .#backend` (port 3200, `SKY_DB_PATH` mặc
 - Kiến trúc agent mục tiêu (per-astronaut pair, 5 hazard workers, broadcast/shared memory) mới là vision — xem `docs/AGENT_BROADCAST.md`; chưa có gì của lớp này trong code.
 - Chưa có model mở cho orthostatic tolerance ở 3/8 G; readiness là công thức minh họa.
 - Không có ECG/echo liên tục công khai; tín hiệu tim là synthetic theo paper.
-- Web↔backend hiện chỉ nối ở picker `/` (roster từ backend với fixture fallback, pick claim-locked qua `/api/claims`); `/demo` vẫn dùng scenario minh họa, không phải dữ liệu pipeline.
+- Web↔backend hiện chỉ nối ở picker `/` (roster từ backend với fixture fallback, pick claim-locked qua `/api/claims`, claim hết hạn sau 30 phút idle thì tự giải phóng và web tự claim lại nếu astronaut còn trống); `/demo` vẫn dùng scenario minh họa, không phải dữ liệu pipeline.
 - `apps/onboard`, `apps/generative-ui`, `apps/website`, `scripts/`, `assets/fixtures/` mới là chỗ giữ.
 - RAG, LangGraph, checkpointer, PDF trên máy demo (WeasyPrint/Pango) chưa hoàn tất.
 - Panel Sky cần mạng + key OpenRouter để soạn; offline chỉ giữ preset (đúng thiết kế).
