@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ATTRIBUTION } from "open-anatomy-3d";
 import { EscapeChip } from "./components/EscapeChip";
+import { BodyTree } from "./components/BodyTree";
 import { HoverTooltip } from "./components/HoverTooltip";
 import { LayerRail } from "./components/LayerRail";
 import { StructureCard } from "./components/StructureCard";
@@ -24,8 +25,9 @@ export interface BodyMapOverlayProps {
   /**
    * `overlay` — the HUD glass panel (header, structure card, footer). `page` —
    * the `/body` route: the canvas covers the viewport, only the floating
-   * "Body systems" rail, one attribution line and one kbd chip (`Esc HUD`,
-   * same `onClose` as the Escape key) stay.
+   * "Body systems" rail, one attribution line, one kbd chip (`Esc HUD`,
+   * same `onClose` as the Escape key) and the accessible Body Tree (a
+   * left-edge toggle + drawer) stay.
    */
   readonly variant?: "overlay" | "page";
 }
@@ -58,6 +60,7 @@ export function BodyMapOverlay({
   const [selected, setSelected] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerMap>(DEFAULT_LAYERS);
   const [hover, setHover] = useState<HoverPoint | null>(null);
+  const [treeOpen, setTreeOpen] = useState(false);
   const [supported, setSupported] = useState<boolean | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -147,6 +150,16 @@ export function BodyMapOverlay({
             z-10) but pointer-events-none, so neither orbit nor the toggles lose
             a click. */}
         <HoverTooltip hover={hover} />
+
+        {/* The accessible text twin of the atlas (page variant only): a
+            left-edge toggle that opens the Body Tree drawer. Same selection
+            state as the canvas — a row click eases the camera like a pick. */}
+        <BodyTree
+          open={treeOpen}
+          onToggle={() => setTreeOpen((open) => !open)}
+          selected={selected}
+          onSelect={setSelected}
+        />
 
         {/* "Body systems" rides over the canvas: right and centred on desktop, a
             bottom row under 900px (the rail itself wraps; see LayerRail). */}
