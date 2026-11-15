@@ -29,13 +29,15 @@ interface MarkerStyle {
 const MARKER_STYLE: Record<CrewPresenceState, MarkerStyle> = {
   mine: { color: "#5EEAD4", radius: 0.62, sphereOpacity: 1, labelOpacity: 1 },
   taken: { color: "#9FD8FF", radius: 0.56, sphereOpacity: 0.95, labelOpacity: 0.9 },
-  free: { color: "#5EEAD4", radius: 0.5, sphereOpacity: 0.35, labelOpacity: 0.5 },
+  free: { color: "#5EEAD4", radius: 0.5, sphereOpacity: 0.35, labelOpacity: 0.55 },
 };
 
 // 128 px reads as mush once the sprite is magnified; 256 keeps the two initials crisp and is still
 // six small textures.
 const TEXTURE_SIZE = 256;
-const LABEL_SCALE = 8;
+// Label plane in world units: big enough to read at the default fit, small enough that the two
+// closest anchors (Unity/Destiny and Tranquility/Cupola) do not stack their initials.
+const LABEL_SCALE = 5.2;
 const LABEL_OFFSET_Y = 2.4;
 const RENDER_ORDER = 20;
 const PULSE_SPEED = 2.2;
