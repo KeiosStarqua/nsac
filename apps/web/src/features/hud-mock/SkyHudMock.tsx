@@ -95,7 +95,7 @@ const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 const VOICE_SIGNAL =
   "h-[13px] w-[15px] flex-none text-[#4be6c8] [filter:drop-shadow(0_0_5px_rgba(75,230,200,.45))]";
 
-const VOICE_WAVE = "block h-[38px] w-[min(100%,260px)] max-[720px]:h-[30px]";
+const VOICE_WAVE = "block h-[30px] w-[min(100%,260px)] max-[720px]:h-[24px]";
 
 const GREETING_STACK = "flex flex-col items-center px-2 text-center";
 
