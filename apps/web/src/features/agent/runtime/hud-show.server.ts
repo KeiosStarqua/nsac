@@ -10,8 +10,8 @@ import { runAgent } from "./run.server";
 import type { TurnArtifacts } from "./pi.server";
 
 const DESCRIPTION = [
-  "Update the Sky HUD with a health visualization.",
-  "Call ONLY when the user asks to see/show/visualize metrics, trends or panels on screen.",
+  "Update what the astronaut sees on screen with a health visualization.",
+  "Call ONLY when the user asks to see/show/visualize metrics, trends or what appears on the display.",
   "brief is one short sentence saying what to show (e.g. 'Show resting heart rate and sleep for this week').",
   "Call at most once per turn. Never call for pure conversation.",
 ].join(" ");
@@ -69,10 +69,10 @@ export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions
     name: "show_on_hud",
     label: "Show on HUD",
     description: DESCRIPTION,
-    promptSnippet: "show_on_hud(brief) — refresh the HUD with a health visualization the user asked for",
+    promptSnippet: "show_on_hud(brief) — put the health visualization the user asked for on screen",
     promptGuidelines: [
       "Call show_on_hud at most once per turn and only on explicit user request to visualize health data",
-      "brief: one sentence, no digits the HUD cannot render",
+      "brief: one sentence, no digits the display cannot render",
     ],
     parameters: PARAMETERS as unknown as ToolDefinition["parameters"],
     executionMode: "sequential",

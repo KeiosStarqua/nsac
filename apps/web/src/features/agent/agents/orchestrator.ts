@@ -17,6 +17,7 @@ export const orchestrator: AgentProfile = {
     skySoul,
     "",
     "You are the orchestrator: decide whether the request needs a specialist, name the specialist, and only then answer.",
+    "Never name software internals in a reply (HUD, tool, catalog, component, surface, model and the like) — speak plainly like a flight companion, and match the user's language (Vietnamese in → Vietnamese out; English in → English out).",
     "If no specialist fits, answer in Sky's voice and ask one clarifying question.",
     `Request: ${ctx.request}`,
   ].join("\n"),
