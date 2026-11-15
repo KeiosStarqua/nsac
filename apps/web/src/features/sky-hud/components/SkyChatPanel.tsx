@@ -20,7 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useChat } from "@ai-sdk/react";
-import { LoaderCircleIcon, MessageCircleDashedIcon, MessageCircleIcon, MicIcon, SendIcon, XIcon } from "lucide-react";
+import { LoaderCircleIcon, MessageCircleDashedIcon, MessageCircleIcon, MicIcon, SendIcon, Volume2Icon, VolumeXIcon, XIcon } from "lucide-react";
 import {
   Bubble,
   BubbleContent,
@@ -94,6 +94,14 @@ const CHAT_TEXTAREA = [
   "px-4 py-[14px] text-[17px] leading-[1.5] text-[#eaf6ff] placeholder:text-[#6f89a8]",
   "focus-visible:outline-2! focus-visible:outline-offset-[2px]! focus-visible:outline-[rgba(92,240,208,.45)]!",
   "disabled:opacity-60 max-[480px]:min-h-[96px] max-[480px]:text-[16px]",
+].join(" ");
+
+// Voice-replies toggle in the card header: same glass-pill language as the close button.
+const CHAT_TTS_TOGGLE = [
+  "grid size-9 shrink-0 cursor-pointer place-items-center rounded-full border border-[rgba(140,200,255,.18)] bg-transparent p-0",
+  "text-[#9fbcd6] transition-colors hover:bg-[rgba(120,180,255,.1)] hover:text-[#eaf6ff]",
+  "aria-pressed:border-[rgba(92,240,208,.45)] aria-pressed:text-[#8ae6c8]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!",
 ].join(" ");
 
 const CHAT_USE_VOICE = [
@@ -183,6 +191,74 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram, onUseVoice }:
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const onReplyRef = useRef(onReply);
   onReplyRef.current = onReply;
+
+  // Voice replies (TTS). One <Audio> instance for the whole card; a new reply, the toggle
+  // switching off, or the card closing stops whatever is playing. Failure is silent by design:
+  // the chat must never show a TTS error banner.
+  const [ttsEnabled, setTtsEnabled] = useState(
+    () => typeof window === "undefined" || window.localStorage.getItem("nsac.tts") !== "0",
+  );
+  const ttsEnabledRef = useRef(ttsEnabled);
+  ttsEnabledRef.current = ttsEnabled;
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+  const stopAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute("src");
+    }
+    audioRef.current = null;
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+  }, []);
+  const speak = useCallback(
+    async (text: string) => {
+      // A missing or failing Audio implementation (SSR, old browsers) is not an error surface.
+      if (typeof Audio === "undefined") return;
+      stopAudio();
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text: text.slice(0, 1000) }),
+        });
+        if (!res.ok) {
+          console.warn(`[tts] playback skipped: HTTP ${res.status}`);
+          return;
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioUrlRef.current = url;
+        audioRef.current = audio;
+        audio.addEventListener("ended", stopAudio, { once: true });
+        await audio.play();
+      } catch (error) {
+        console.warn("[tts] playback skipped:", error);
+        stopAudio();
+      }
+    },
+    [stopAudio],
+  );
+  const speakRef = useRef(speak);
+  speakRef.current = speak;
+  const toggleTts = useCallback(() => {
+    setTtsEnabled((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("nsac.tts", next ? "1" : "0");
+      } catch {
+        // storage unavailable (private mode): the toggle still works for this session
+      }
+      if (!next) stopAudio();
+      return next;
+    });
+  }, [stopAudio]);
+  // The card unmounts on close and on astronaut switch — stop playback with it.
+  useEffect(() => stopAudio, [stopAudio]);
   // The transport is memoised per astronaut; a ref keeps the program callback current without
   // rebuilding the transport (and so without restarting `useChat`).
   const onUiProgramRef = useRef(onUiProgram);
@@ -203,6 +279,7 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram, onUseVoice }:
       if (isAbort || isError) return;
       const reply = messageText(message);
       if (reply) onReplyRef.current(reply);
+      if (reply && ttsEnabledRef.current) void speakRef.current(reply);
     },
   });
 
@@ -272,9 +349,25 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram, onUseVoice }:
           <MessageCircleIcon className="size-5 shrink-0 text-[#8ad8e8]" strokeWidth={1.6} aria-hidden="true" />
           <h2 className="truncate text-[20px] font-light leading-[1.25]! tracking-normal! text-white">{c.panelTitle}</h2>
         </div>
-        <button type="button" onClick={onClose} aria-label={c.close} title={c.close} className={CHAT_CLOSE}>
-          <XIcon className="size-4" />
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTts}
+            aria-pressed={ttsEnabled}
+            aria-label={ttsEnabled ? c.voiceOn : c.voiceOff}
+            title={c.voiceToggle}
+            className={CHAT_TTS_TOGGLE}
+          >
+            {ttsEnabled ? (
+              <Volume2Icon className="size-4" strokeWidth={1.7} aria-hidden="true" />
+            ) : (
+              <VolumeXIcon className="size-4" strokeWidth={1.7} aria-hidden="true" />
+            )}
+          </button>
+          <button type="button" onClick={onClose} aria-label={c.close} title={c.close} className={CHAT_CLOSE}>
+            <XIcon className="size-4" />
+          </button>
+        </div>
       </header>
 
       <div className="min-h-0 w-full flex-1 px-6">

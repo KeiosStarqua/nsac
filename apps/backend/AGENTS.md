@@ -2,11 +2,11 @@
 
 ## Purpose
 
-HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Drizzle trên `bun:sqlite`, không auth (demo). Cung cấp crew/claims, broadcast events, sensors + telemetry WS, settings, và health observation layer (năng lượng/cơ/giấc ngủ/nước) cho `apps/web`.
+HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Drizzle trên `bun:sqlite`, không auth (demo). Cung cấp crew/claims, broadcast events, sensors + telemetry WS, settings (gồm ElevenLabs key cho Sky TTS), `/api/tts`, và health observation layer (năng lượng/cơ/giấc ngủ/nước) cho `apps/web`.
 
 ## Ownership
 
-- Package này sở hữu `/health`, `/api/astronauts`, `/api/claims`, `/api/events` + `/api/cursors`, `/api/sensors/*` + `/ws/telemetry`, `/api/settings/agent-model`, `/api/health/*`.
+- Package này sở hữu `/health`, `/api/astronauts`, `/api/claims`, `/api/events` + `/api/cursors`, `/api/sensors/*` + `/ws/telemetry`, `/api/settings/agent-model`, `/api/settings/elevenlabs-key`, `/api/tts`, `/api/health/*`.
 - Không sở hữu UI: `apps/web` là consumer. Không import lẫn với backend Python `backend/src/nsac/` (layer khác, contract riêng).
 - `tests/` phản chiếu module trong `src/`; fixture DB đi qua `SKY_DB_PATH` tmp.
 
@@ -21,11 +21,16 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
 
 ### Routes
 
-- Handler dạng `handleXRequest(req): Promise<Response | null>`; trả `null` khi path/method không thuộc module để `server.ts` fall-through về 404. Thứ tự wire trong `server.ts`: claims → settings → events → sensors → health → astronauts.
+- Handler dạng `handleXRequest(req): Promise<Response | null>`; trả `null` khi path/method không thuộc module để `server.ts` fall-through về 404. Thứ tự wire trong `server.ts`: claims → settings → tts → events → sensors → health → astronauts.
 - Lỗi luôn JSON `{ ok: false, error }` với 400/404/409/413. Đọc body có cap `Content-Length` + kiểm tra lại sau khi đọc (xem `eventsRoutes.ts`).
 - `GET /api/health/performance/:astronautId` → `{ astronautId, asOf, metrics[], derived }`: mỗi metric có `latest`, `delta30d` (latest − điểm cũ nhất trong 30 điểm), `points` 30 giá trị tăng dần, `baseline`, `method`, `quality`, `source`. 404 `unknown_astronaut`; 400 `bad_astronaut`; astronaut chưa có data → 200 `metrics: []`, `derived: {}`.
 - `GET /api/health/observations?astronautId=&metric=&limit=` → mảng row thô mới nhất trước (`ts DESC`), `limit` 1..500 (mặc định 500), query sai → 400 `bad_query`. `energy_balance` không nhận làm `metric` (derived).
 - Query/param validate bằng zod ở `src/healthSchemas.ts` (query) và `src/sensors/routes.ts` (body).
+
+### ElevenLabs key + Sky TTS
+
+- `app_settings` key `elevenlabs.api_key` (hằng `ELEVENLABS_KEY` trong `src/db/repositories/settings.ts`). Write-only theo hợp đồng: `GET /api/settings/elevenlabs-key` chỉ trả `{ configured, updatedAt }` (qua `settingsRepo.getElevenLabsStatus()`, không đọc value); PUT validate `^[A-Za-z0-9_\-]{10,512}$` sau trim (→ 400 `bad_key`), upsert, không echo key; DELETE xoá row → `{ ok: true, cleared: boolean }`. Chỉ `handleTtsRequest` được gọi `settingsRepo.getElevenLabsKey()` — không caller nào khác được nhận giá trị key.
+- `POST /api/tts` `{ text 1..1000 }` (body cap 8192 bytes): chưa có key → 503 `tts_not_configured`; gọi `https://api.elevenlabs.io/v1/text-to-speech/{voiceId}` (header `xi-api-key`, body `{ text, model_id: "eleven_flash_v2_5" }`, `eleven_flash_v2_5` hỗ trợ Vietnamese); voice mặc định Rachel `21m00Tcm4TlvDq8ikWAM` — override bằng env `ELEVENLABS_VOICE_ID`; AbortController 25 s → 504 `tts_timeout`; upstream non-2xx / mất mạng → 502 `tts_upstream` (server chỉ log status code, không log key, không log body upstream); thành công → bytes `audio/mpeg` + `cache-control: no-store`. Key không bao giờ được log/echo ở bất kỳ path nào.
 
 ### Health observation layer
 
@@ -56,7 +61,7 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
 
 ## Verification
 
-- `bun test` trong `apps/backend` (hoặc `bun run test` từ root). Health layer: `tests/health-observations.test.ts`.
+- `bun test` trong `apps/backend` (hoặc `bun run test` từ root). Health layer: `tests/health-observations.test.ts`. TTS/ElevenLabs key: `tests/tts.test.ts`.
 - Known pre-existing failure: `tests/readings.test.ts` fail vì bảng `readings` không nằm trong `ensureSchema` (chưa sửa vì ngoài scope); không liên quan health layer.
 - Smoke: `SKY_DB_PATH=<tmp> PORT=3299 bun run src/server.ts` rồi `curl /api/health/performance/ayla-reyes` — seed phải tạo 11 series × 35 row.
 

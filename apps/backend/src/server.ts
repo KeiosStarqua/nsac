@@ -2,6 +2,7 @@ import { astronautsRepo } from "./db/repositories/astronauts";
 import { claimsRepo } from "./db/repositories/claims";
 import { handleClaimsRequest } from "./claimsRoutes";
 import { handleSettingsRequest } from "./settingsRoutes";
+import { handleTtsRequest } from "./ttsRoutes";
 import { eventsBus, handleEventsRequest } from "./eventsRoutes";
 import { handleSensorsRequest } from "./sensors/routes";
 import { wsHandlers } from "./sensors/ws";
@@ -60,6 +61,8 @@ Bun.serve({
     if (claims) return claims;
     const settings = await handleSettingsRequest(req);
     if (settings) return settings;
+    const tts = await handleTtsRequest(req);
+    if (tts) return tts;
     const events = await handleEventsRequest(req);
     if (events) return events;
     const sensors = await handleSensorsRequest(req);
