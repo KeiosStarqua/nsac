@@ -12,8 +12,21 @@ export const AGENT_MODEL_KEY = "agent.model";
  */
 export const CLAIMS_RESET_EPOCH_KEY = "claims.reset.epoch";
 
+/**
+ * ElevenLabs API key cho Sky TTS. Write-only theo hợp đồng: không GET nào trả về key này
+ * (`/api/settings/elevenlabs-key` chỉ trả `{ configured, updatedAt }`); chỉ route TTS nội bộ
+ * được phép đọc giá trị thật qua `getElevenLabsKey()`.
+ */
+export const ELEVENLABS_KEY = "elevenlabs.api_key";
+
 export interface AgentModelSetting {
   model: string;
+  /** Unix ms. */
+  updatedAt: number;
+}
+
+export interface ElevenLabsKeySetting {
+  key: string;
   /** Unix ms. */
   updatedAt: number;
 }
@@ -35,6 +48,42 @@ export const settingsRepo = {
       })
       .run();
     return { model, updatedAt: now };
+  },
+
+  /**
+   * Đọc key thật — CHỈ route `/api/tts` được gọi hàm này. Mọi surface khác phải dùng
+   * `getElevenLabsStatus()` (không lộ giá trị).
+   */
+  getElevenLabsKey(): ElevenLabsKeySetting | null {
+    const row = settingsDb().select().from(appSettings).where(eq(appSettings.key, ELEVENLABS_KEY)).all()[0];
+    if (!row) return null;
+    return { key: row.value, updatedAt: row.updatedAt };
+  },
+
+  /** Trạng thái không lộ giá trị — đây là thứ duy nhất được phép trả về client. */
+  getElevenLabsStatus(): { configured: boolean; updatedAt: number | null } {
+    const row = settingsDb().select({ updatedAt: appSettings.updatedAt }).from(appSettings).where(eq(appSettings.key, ELEVENLABS_KEY)).all()[0];
+    return row ? { configured: true, updatedAt: row.updatedAt } : { configured: false, updatedAt: null };
+  },
+
+  setElevenLabsKey(key: string): ElevenLabsKeySetting {
+    const now = Date.now();
+    settingsDb().insert(appSettings)
+      .values({ key: ELEVENLABS_KEY, value: key, updatedAt: now })
+      .onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: key, updatedAt: now },
+      })
+      .run();
+    return { key, updatedAt: now };
+  },
+
+  /** Xoá row; trả về `true` nếu trước đó có key. */
+  clearElevenLabsKey(): boolean {
+    const existed = settingsRepo.getElevenLabsKey() !== null;
+    if (!existed) return false;
+    settingsDb().delete(appSettings).where(eq(appSettings.key, ELEVENLABS_KEY)).run();
+    return true;
   },
 
   /**

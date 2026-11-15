@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie, setCookie, getRequestProtocol } from "@tanstack/react-start/server";
+import { setCookie, getRequestProtocol } from "@tanstack/react-start/server";
 import { z } from "zod";
 import {
   ADMIN_COOKIE,
@@ -7,32 +7,16 @@ import {
   adminConfigured,
   keyMatches,
   makeCookieValue,
-  verifyCookieValue,
 } from "../model/admin-auth";
 import { fetchOpenRouterCatalog, type CatalogModel } from "../runtime/openrouter.server";
 import { currentAgentModel } from "../../agent/runtime/agent-model.server";
+import { adminSecret, isAdminRequest, backendBase } from "./admin-gate.server";
 
 /**
  * Server functions for the hidden /admin page. Every admin function re-checks the session
  * cookie (HMAC + expiry) — never trust the client. The raw SKY_ADMIN_KEY never leaves the
  * server and never appears in any response, log line or error message.
  */
-
-function adminSecret(): string | undefined {
-  const raw = process.env.SKY_ADMIN_KEY;
-  const secret = typeof raw === "string" ? raw.trim() : "";
-  return secret.length > 0 ? secret : undefined;
-}
-
-function isAdminRequest(): boolean {
-  const secret = adminSecret();
-  if (!secret) return false;
-  return verifyCookieValue(secret, getCookie(ADMIN_COOKIE));
-}
-
-function backendBase(): string {
-  return (process.env.BACKEND_URL?.trim() || "http://127.0.0.1:3200").replace(/\/+$/, "");
-}
 
 const MODEL_ID_REGEX = /^[a-z0-9][a-z0-9/_:.-]{0,199}$/;
 

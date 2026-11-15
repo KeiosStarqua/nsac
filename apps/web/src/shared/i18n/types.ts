@@ -59,6 +59,12 @@ export interface Copy {
     emptyDescription: string;
     /** Body of the pending trace row under `thinking`. */
     thinkingDetail: string;
+    /** Header toggle: Sky speaks chat replies (Volume2/VolumeX). */
+    voiceToggle: string;
+    /** Aria label / title when the toggle is on. */
+    voiceOn: string;
+    /** Aria label / title when the toggle is off. */
+    voiceOff: string;
   };
   /** ≤480px watch layout: crew chip, tile labels, pager screens, tiny print. */
   watch: {
@@ -362,5 +368,24 @@ export interface Copy {
     resetting: string;
     resetClaimsDone: string;
     resetClaimsFailed: string;
+    /** ElevenLabs panel — Sky speaks chat replies (key is write-only, never rendered). */
+    elevenlabsTitle: string;
+    elevenlabsConfigured: string;
+    elevenlabsNotConfigured: string;
+    elevenlabsKeyLabel: string;
+    elevenlabsSave: string;
+    elevenlabsSaving: string;
+    elevenlabsSaved: string;
+    elevenlabsSaveFailed: string;
+    elevenlabsInvalidKey: string;
+    /** Clear button label; the action needs the inline 2-step confirm. */
+    elevenlabsClear: string;
+    elevenlabsClearConfirm: string;
+    elevenlabsClearCancel: string;
+    elevenlabsClearing: string;
+    elevenlabsClearDone: string;
+    elevenlabsClearFailed: string;
+    /** Note under the panel: write-only semantics. */
+    elevenlabsNote: string;
   };
 }
