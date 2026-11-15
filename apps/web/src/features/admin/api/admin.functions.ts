@@ -106,6 +106,42 @@ export const adminModelFn = createServerFn({ method: "GET" }).handler(async (): 
   }
 });
 
+export type ResetClaimsResult =
+  | { status: "unauthorized" }
+  | { status: "backend_error" }
+  | { status: "ok"; cleared: number };
+
+/**
+ * Clears every astronaut claim on the backend demo store (`POST /api/claims/reset`).
+ * The backend endpoint itself carries no auth (demo box, loopback-only); the admin session
+ * cookie here is the only gate in front of it. The backend body is never echoed back.
+ */
+export const resetClaimsFn = createServerFn({ method: "POST" }).handler(
+  async (): Promise<ResetClaimsResult> => {
+    if (!isAdminRequest()) return { status: "unauthorized" };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    try {
+      const res = await fetch(`${backendBase()}/api/claims/reset`, {
+        method: "POST",
+        signal: controller.signal,
+        headers: { accept: "application/json" },
+      });
+      if (!res.ok) return { status: "backend_error" };
+      const json: unknown = await res.json();
+      const ok = (json as { ok?: unknown })?.ok;
+      const cleared = (json as { cleared?: unknown })?.cleared;
+      if (ok !== true || typeof cleared !== "number") return { status: "backend_error" };
+      return { status: "ok", cleared };
+    } catch {
+      return { status: "backend_error" };
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+);
+
 export type SetAgentModelResult =
   | { status: "unauthorized" }
   | { status: "invalid_model" }
