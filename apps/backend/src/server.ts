@@ -4,6 +4,8 @@ import { handleSettingsRequest } from "./settingsRoutes";
 import { eventsBus, handleEventsRequest } from "./eventsRoutes";
 import { handleSensorsRequest } from "./sensors/routes";
 import { wsHandlers } from "./sensors/ws";
+import { handleHealthRequest } from "./healthRoutes";
+import { seedHealthObservations } from "./health/seed";
 
 const port = Number(process.env.PORT ?? 3200);
 
@@ -13,6 +15,13 @@ eventsBus.on("published", (event: { id: number; topic: string }) => {
 });
 
 await astronautsRepo.seed();
+
+// Health observation layer: seed idempotent một lần sau khi crew tồn tại (FK). Chỉ ghi cặp
+// (astronaut, metric) đang rỗng nên restart không nhân đôi; dữ liệu synthetic, xem health/seed.ts.
+const healthSeed = await seedHealthObservations();
+if (healthSeed.inserted > 0) {
+  console.log(`[health] seeded ${healthSeed.inserted} observation rows`);
+}
 
 Bun.serve({
   port,
@@ -36,6 +45,9 @@ Bun.serve({
     if (events) return events;
     const sensors = await handleSensorsRequest(req);
     if (sensors) return sensors;
+    // Health observation layer (energy/muscle/sleep/hydration) — trước astronauts để giữ thứ tự route.
+    const health = await handleHealthRequest(req);
+    if (health) return health;
     if (url.pathname === "/api/astronauts") {
       const rows = await astronautsRepo.list();
       return Response.json(rows);

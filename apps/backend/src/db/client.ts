@@ -37,6 +37,25 @@ function ensureSchema() {
       updated_at INTEGER NOT NULL
     );
   `);
+  // Health observation layer (năng lượng/cơ/giấc ngủ/nước) — synthetic, xem health/metrics.ts.
+  // method/quality là enum đóng; CHECK ở đây thay cho migration không tồn tại.
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS health_observations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ts TEXT NOT NULL,
+      astronaut_id TEXT NOT NULL REFERENCES astronauts(id) ON DELETE CASCADE,
+      metric TEXT NOT NULL,
+      value REAL NOT NULL,
+      unit TEXT NOT NULL,
+      source TEXT NOT NULL,
+      method TEXT NOT NULL CHECK (method IN ('sensor','measured','estimated','self_reported','simulated')),
+      quality TEXT NOT NULL CHECK (quality IN ('valid','suspect','invalid')),
+      confidence REAL NULL
+    );
+  `);
+  sqlite.exec(
+    "CREATE INDEX IF NOT EXISTS health_observations_astronaut_metric_ts ON health_observations (astronaut_id, metric, ts);",
+  );
 }
 
 ensureSchema();
