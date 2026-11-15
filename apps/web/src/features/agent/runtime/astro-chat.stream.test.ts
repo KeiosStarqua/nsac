@@ -112,6 +112,38 @@ describe("streamChatTurn", () => {
     expect(transcript().messages.filter((message) => message.role === "assistant")).toHaveLength(0);
   });
 
+  it("mode: voice appends one spoken-style answer line to the prompt suffix", async () => {
+    let seen = "";
+    setChatSessionFactory((async () => ({
+      prompt: async (text: string) => {
+        seen = text;
+        return "ok";
+      },
+      dispose: () => {},
+    })) as any);
+
+    await streamChatTurn("ayla-reyes", "How am I?", { mode: "voice" });
+
+    expect(seen).toBe(
+      "How am I?\nThe user is speaking by voice: answer in one short sentence (at most two), natural spoken style.",
+    );
+  });
+
+  it("without mode the prompt is byte-identical to the message", async () => {
+    let seen = "";
+    setChatSessionFactory((async () => ({
+      prompt: async (text: string) => {
+        seen = text;
+        return "ok";
+      },
+      dispose: () => {},
+    })) as any);
+
+    await streamChatTurn("ayla-reyes", "How am I?");
+
+    expect(seen).toBe("How am I?");
+  });
+
   it("returns unavailable and persists no assistant message on an empty reply", async () => {
     setChatSessionFactory((async () => ({ prompt: async () => "   ", dispose: () => {} })) as any);
 

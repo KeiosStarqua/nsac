@@ -209,6 +209,14 @@ export interface Copy {
     bodyHoloOpen: string;
     /** Accessible name of the detail dialog's close button. */
     detailClose: string;
+    /** Speech Engine voice chat (`/` only): the hint line under the mic control. */
+    voiceConnecting: string;
+    voiceListening: string;
+    voiceSpeaking: string;
+    /** Backend has no `ELEVENLABS_SPEECH_ENGINE_ID` — shown instead of starting the conversation. */
+    voiceNotConfigured: string;
+    /** Register/config/start failed — the conversation never began (or dropped). */
+    voiceFailed: string;
   };
   /** `/performance` — SKY / Human Performance, the fitness-style 12-metric demo face. */
   performance: {

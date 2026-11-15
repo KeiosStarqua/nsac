@@ -8,6 +8,7 @@ import { eventsBus, handleEventsRequest } from "./eventsRoutes";
 import { handleSensorsRequest } from "./sensors/routes";
 import { wsHandlers } from "./sensors/ws";
 import { handleHealthRequest } from "./healthRoutes";
+import { handleSpeechRequest, startSpeechEngine } from "./speechEngine";
 import { seedHealthObservations } from "./health/seed";
 
 const port = Number(process.env.PORT ?? 3200);
@@ -44,6 +45,10 @@ if (healthSeed.inserted > 0) {
   console.log(`[health] seeded ${healthSeed.inserted} observation rows`);
 }
 
+// Speech Engine (ElevenLabs): websocket loopback cho voice chat `/` — cùng process, port riêng.
+// Thiếu engine id / API key thì chỉ HTTP routes chạy; JWT verify luôn bật.
+startSpeechEngine();
+
 Bun.serve({
   port,
   // Mặc định chỉ lắng nghe 127.0.0.1: route ẩn (/api/claims/reset) không được lộ ra LAN/public; dev override bằng HOST.
@@ -64,6 +69,9 @@ Bun.serve({
     if (agentTraces) return agentTraces;
     const settings = await handleSettingsRequest(req);
     if (settings) return settings;
+    // Speech Engine HTTP surface (register/config) — trước tts theo thứ tự fall-through.
+    const speech = await handleSpeechRequest(req);
+    if (speech) return speech;
     const tts = await handleTtsRequest(req);
     if (tts) return tts;
     const events = await handleEventsRequest(req);

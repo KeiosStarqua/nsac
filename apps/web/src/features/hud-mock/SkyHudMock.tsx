@@ -45,9 +45,9 @@ import {
 import { DETAILS } from "../sky-hud/vitals";
 import { SkyOrb } from "../sky-hud/SkyOrb";
 import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
-import { useSkyVoice } from "../sky-hud/useSkyVoice";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
-import { MIC_ARIA, PHASE_TEXT } from "../sky-hud/voiceCopy";
+import { PHASE_TEXT } from "../sky-hud/voiceCopy";
+import { useVoiceChat } from "./useVoiceChat";
 import { HologramBody, HoloCredit, ListeningBar, TypeInsteadPill } from "../sky-hud/components";
 import { DeviceSwitcher } from "../sky-hud/components/DeviceSwitcher";
 import { SkyChatPanel } from "../sky-hud/components/SkyChatPanel";
@@ -117,10 +117,11 @@ interface DetailDialogProps {
  * synthetic fixture in `model/fixture.ts`; nothing here reads a live sensor, the analog cohort data
  * of `/research`, or a medical threshold.
  *
- * Behaviour is the console's existing behaviour, copied from the previous default screens: the one
- * `useSkyVoice` MediaStream, ⌘K chat card via `SkyChatPanel`, crew claims + picker + force release,
- * announcement channel. Only the layout is new — `?gen=0` still renders the staged HUD and
- * `?arch=openui` the declarative hud-gen tree.
+ * Behaviour is the console's existing behaviour, copied from the previous default screens: the
+ * ⌘K chat card via `SkyChatPanel`, crew claims + picker + force release, announcement channel;
+ * the mic speaks to the ElevenLabs Speech Engine (`useVoiceChat` — registration binds the pick,
+ * the SDK owns mic capture, speaker output and the frequency bins feeding `ListeningBar`).
+ * Only the layout is new — `?gen=0` still renders the staged HUD and `?arch=openui` the declarative hud-gen tree.
  */
 export function SkyHudMock() {
   const copy = useCopy();
@@ -128,7 +129,6 @@ export function SkyHudMock() {
   const mounted = useMounted();
   const reduce = useReducedMotion();
   const fx = mounted && !reduce;
-  const [hint, setHint] = useState(PHASE_TEXT.idle);
   const [detail, setDetail] = useState<DetailDialogProps | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [astronautId, setAstronautId] = useState<string | null>(null);
@@ -178,9 +178,53 @@ export function SkyHudMock() {
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
 
-  const { phase, energyRef, toggle, readEnergy, readSpectrum } = useSkyVoice((next) =>
-    setHint(PHASE_TEXT[next]),
-  );
+  // Speech Engine voice chat (ElevenLabs): owns the mic capture and the speaker output; the
+  // hook maps conversation state onto the same phase/hint surface the console already renders.
+  const {
+    status: voiceStatus,
+    mode: voiceMode,
+    notice: voiceNotice,
+    energyRef,
+    wavePhase: phase,
+    readSpectrum,
+    syncEnergy,
+    start: startVoiceChat,
+    stop: stopVoiceChat,
+    setNotice: setVoiceNotice,
+  } = useVoiceChat(astronautId);
+
+  // Quiet hints (not configured / failed) clear themselves back to the idle line.
+  useEffect(() => {
+    if (!voiceNotice) return;
+    const timer = window.setTimeout(() => setVoiceNotice(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [voiceNotice, setVoiceNotice]);
+
+  const hint =
+    voiceStatus === "connecting"
+      ? copy.hudMock.voiceConnecting
+      : voiceStatus === "live"
+        ? voiceMode === "speaking"
+          ? copy.hudMock.voiceSpeaking
+          : copy.hudMock.voiceListening
+        : voiceNotice === "notConfigured"
+          ? copy.hudMock.voiceNotConfigured
+          : voiceNotice === "failed"
+            ? copy.hudMock.voiceFailed
+            : PHASE_TEXT.idle;
+
+  // Announce voice transitions to screen readers.
+  useEffect(() => {
+    setAnnouncer(
+      voiceStatus === "connecting"
+        ? copy.hudMock.voiceConnecting
+        : voiceStatus === "live"
+          ? voiceMode === "speaking"
+            ? copy.hudMock.voiceSpeaking
+            : copy.hudMock.voiceListening
+          : "",
+    );
+  }, [voiceStatus, voiceMode, copy]);
 
   // ⌘K / Ctrl+K toggles the chat card from anywhere on the console.
   useToggleChatShortcut(() => setChatOpen((open) => !open), true);
@@ -318,11 +362,11 @@ export function SkyHudMock() {
       if (document.hidden) return;
       if (now - last < 33) return;
       last = now;
-      readEnergy();
+      syncEnergy();
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [readEnergy]);
+  }, [syncEnergy]);
 
   const persistLocalPick = useCallback((astroId: string) => {
     try {
@@ -423,11 +467,11 @@ export function SkyHudMock() {
 
   const orbNode = useMemo(
     () => (
-      <div className={`${ORB_ZONE}${phase === "thinking" ? ` ${ORB_ZONE_THINKING}` : ""}`} aria-hidden="true">
+      <div className={`${ORB_ZONE}${voiceStatus === "connecting" ? ` ${ORB_ZONE_THINKING}` : ""}`} aria-hidden="true">
         <SkyOrb phase={phase} energyRef={energyRef} />
       </div>
     ),
-    [phase, energyRef],
+    [phase, voiceStatus, energyRef],
   );
 
   const holo = useMemo(() => <HologramBody reducedMotion={!!reduce} />, [reduce]);
@@ -594,9 +638,9 @@ export function SkyHudMock() {
 
           <div className={VOICE_CONTROL}>
             <div className={chatOpen ? `${VOICE_CLUSTER} ${VOICE_CLUSTER_DIMMED}` : VOICE_CLUSTER}>
-              {phase === "listening" || phase === "requesting_permission" ? (
+              {voiceStatus !== "idle" ? (
                 <ListeningBar
-                  onStop={() => void toggle()}
+                  onStop={() => void stopVoiceChat()}
                   energyRef={energyRef}
                   readSpectrum={readSpectrum}
                   reducedMotion={!!reduce}
@@ -608,11 +652,15 @@ export function SkyHudMock() {
                   iconColor="#bfe6ef"
                   background="#0e2233"
                   className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
-                  ariaLabel={MIC_ARIA[phase]}
+                  ariaLabel={copy.watch.speakToSky}
                   onStart={() => {
-                    if (phase === "idle" || phase === "error") void toggle();
+                    if (!astronautId) {
+                      setPickerOpen(true);
+                      return;
+                    }
+                    if (voiceStatus === "idle") void startVoiceChat();
                   }}
-                  onStop={() => void toggle()}
+                  onStop={() => void stopVoiceChat()}
                 />
               )}
               <div id="voiceHint" className={VOICE_HINT} aria-live="polite">
@@ -703,9 +751,13 @@ export function SkyHudMock() {
             setAnnouncer(text);
           }}
           onUseVoice={() => {
-            // Same as tapping the idle orb: only start capture from idle/error.
+            // Same as tapping the idle orb: only start the voice chat from idle.
             setChatOpen(false);
-            if (phase === "idle" || phase === "error") void toggle();
+            if (!astronautId) {
+              setPickerOpen(true);
+              return;
+            }
+            if (voiceStatus === "idle") void startVoiceChat();
           }}
         />
       ) : null}

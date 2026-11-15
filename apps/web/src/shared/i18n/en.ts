@@ -169,6 +169,11 @@ export const en: Copy = {
     bodyHoloAria: "Simulated body composition hologram",
     bodyHoloOpen: "Open the simulated body health map",
     detailClose: "Close details",
+    voiceConnecting: "Connecting to Sky…",
+    voiceListening: "Listening…",
+    voiceSpeaking: "Sky is speaking…",
+    voiceNotConfigured: "Voice not configured",
+    voiceFailed: "Voice unavailable — type instead",
   },
   performance: {
     metaTitle: "SKY / Human Performance",
