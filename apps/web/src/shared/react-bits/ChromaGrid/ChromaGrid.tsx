@@ -1,12 +1,44 @@
 // ChromaGrid
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/ChromaGrid/ChromaGrid.jsx
+// Source: @react-bits/ChromaGrid-TS-TW — https://reactbits.dev/r/ChromaGrid-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
-import './ChromaGrid.css';
+import { useEffect, useLayoutEffect, useRef, type CSSProperties } from 'react';
 
-const THEMES = {
+export interface ChromaItem {
+  image: string;
+  title?: string;
+  subtitle?: string;
+  accent?: string;
+  url?: string;
+  alt?: string;
+  borderColor?: string;
+}
+
+export interface ChromaGridProps {
+  items?: ChromaItem[];
+  columns?: number;
+  minCardWidth?: number;
+  gap?: number;
+  radius?: number;
+  softness?: number;
+  damping?: number;
+  fadeOut?: number;
+  grayscale?: number;
+  dim?: number;
+  glow?: number;
+  borderGlow?: number;
+  reveal?: 'spotlight' | 'card';
+  aspectRatio?: string;
+  cardRadius?: number;
+  showInfo?: boolean;
+  frame?: boolean;
+  theme?: 'dark' | 'light';
+  className?: string;
+}
+
+const THEMES: Record<'dark' | 'light', Record<string, string>> = {
   dark: {
     '--chroma-frame': 'rgba(38, 35, 46, 0.66)',
     '--chroma-frame-edge': 'rgba(255, 255, 255, 0.08)',
@@ -41,7 +73,7 @@ const THEMES = {
   }
 };
 
-const DEFAULT_ITEMS = [
+const DEFAULT_ITEMS: ChromaItem[] = [
   {
     image: 'https://images.unsplash.com/photo-1514519334989-3d5c8b1a9f91?w=800&q=80&auto=format&fit=crop',
     title: 'Golden Hour',
@@ -80,9 +112,21 @@ const DEFAULT_ITEMS = [
   }
 ];
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const SPOT_MASK =
+  'radial-gradient(circle var(--chroma-r) at calc(var(--chroma-x, -9999px) - var(--chroma-ox, 0px)) calc(var(--chroma-y, -9999px) - var(--chroma-oy, 0px)), var(--chroma-stops))';
+const GRID_COLUMNS =
+  'repeat(auto-fill, minmax(min(100%, max(var(--chroma-min), calc((100% - (var(--chroma-cols) - 1) * var(--chroma-gap)) / var(--chroma-cols)))), 1fr))';
+const WASH = 'radial-gradient(130% 70% at 50% 100%, var(--chroma-accent), transparent 72%)';
+const TILE_RIM = 'inset 0 0 0 1px var(--chroma-tile-edge), inset 0 1px 0 var(--chroma-tile-highlight)';
+const GLOW_RIM = 'inset 0 0 0 1px var(--chroma-accent), inset 0 0 16px -8px var(--chroma-accent)';
+const FRAME_RIM = 'inset 0 0 0 1px var(--chroma-frame-edge), inset 0 1px 0 var(--chroma-frame-highlight)';
+const IMAGE_CLASS = 'absolute inset-0 block h-full w-full select-none object-cover [-webkit-user-drag:none]';
+const CARD_CLASS =
+  'group relative box-border flex min-w-0 flex-col gap-[10px] overflow-hidden p-2 no-underline [isolation:isolate] transition-[filter] duration-[250ms] ease-[ease] hover:[filter:var(--chroma-hover)]';
 
-const falloffStops = softness => {
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const falloffStops = (softness: number) => {
   const core = clamp(1 - softness, 0, 0.95);
   const stops = [];
   for (let i = 0; i <= 12; i++) {
@@ -114,10 +158,10 @@ export const ChromaGrid = ({
   frame = false,
   theme = 'dark',
   className = ''
-}) => {
-  const rootRef = useRef(null);
-  const settingsRef = useRef(null);
-  const placeRef = useRef(null);
+}: ChromaGridProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<{ damping: number; fadeOut: number; spotlight: boolean } | null>(null);
+  const placeRef = useRef<(() => void) | null>(null);
   const data = items?.length ? items : DEFAULT_ITEMS;
   settingsRef.current = { damping, fadeOut, spotlight: reveal !== 'card' };
 
@@ -131,7 +175,7 @@ export const ChromaGrid = ({
 
     const place = () => {
       const box = root.getBoundingClientRect();
-      root.querySelectorAll('[data-chroma-area]').forEach(node => {
+      root.querySelectorAll<HTMLElement>('[data-chroma-area]').forEach(node => {
         const rect = node.getBoundingClientRect();
         node.style.setProperty('--chroma-ox', `${rect.left - box.left}px`);
         node.style.setProperty('--chroma-oy', `${rect.top - box.top}px`);
@@ -139,7 +183,7 @@ export const ChromaGrid = ({
     };
     placeRef.current = place;
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       const s = settingsRef.current;
       if (!s) return;
@@ -170,7 +214,7 @@ export const ChromaGrid = ({
       if (!raf) raf = requestAnimationFrame(frame);
     };
 
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       if (!settingsRef.current?.spotlight) return;
       const box = root.getBoundingClientRect();
       state.tx = event.clientX - box.left;
@@ -212,6 +256,7 @@ export const ChromaGrid = ({
     placeRef.current?.();
   });
 
+  const spotlight = reveal !== 'card';
   const rootStyle = {
     ...(THEMES[theme] ?? THEMES.dark),
     '--chroma-cols': Math.max(1, Math.round(columns)),
@@ -225,44 +270,127 @@ export const ChromaGrid = ({
     '--chroma-border': clamp(borderGlow, 0, 1),
     '--chroma-fade': `${Math.max(0, fadeOut)}s`,
     '--chroma-ratio': aspectRatio,
-    '--chroma-radius': `${Math.max(0, cardRadius)}px`
-  };
+    '--chroma-radius': `${Math.max(0, cardRadius)}px`,
+    ...(frame
+      ? {
+          padding: 10,
+          borderRadius: 'calc(var(--chroma-radius) + 10px)',
+          background: 'var(--chroma-frame)',
+          boxShadow: 'var(--chroma-frame-shadow)',
+          WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+          backdropFilter: 'blur(20px) saturate(1.6)'
+        }
+      : {})
+  } as CSSProperties;
+  const washStyle: CSSProperties = spotlight
+    ? {
+        background: WASH,
+        opacity: 'calc(var(--chroma-glow) * var(--chroma-power, 0) * 0.45)',
+        WebkitMaskImage: SPOT_MASK,
+        maskImage: SPOT_MASK
+      }
+    : { background: WASH };
+  const colorStyle: CSSProperties = spotlight
+    ? { opacity: 'var(--chroma-power, 0)', WebkitMaskImage: SPOT_MASK, maskImage: SPOT_MASK }
+    : {};
+  const glowStyle: CSSProperties = spotlight
+    ? {
+        boxShadow: GLOW_RIM,
+        opacity: 'calc(var(--chroma-border) * var(--chroma-power, 0))',
+        WebkitMaskImage: SPOT_MASK,
+        maskImage: SPOT_MASK
+      }
+    : { boxShadow: GLOW_RIM };
+  const fadeClass = 'opacity-0 transition-opacity duration-[var(--chroma-fade)] ease-[ease] group-hover:duration-300';
 
   return (
     <div
       ref={rootRef}
-      className={`chroma-grid${frame ? ' has-frame' : ''}${className ? ` ${className}` : ''}`}
-      data-reveal={reveal === 'card' ? 'card' : 'spotlight'}
+      className={`relative box-border w-full [-webkit-tap-highlight-color:transparent] ${className}`.trim()}
       style={rootStyle}
     >
-      <div className="chroma-grid-inner">
+      <div className="grid" style={{ gap: 'var(--chroma-gap)', gridTemplateColumns: GRID_COLUMNS }}>
         {data.map((item, index) => {
           const accent = item.accent ?? item.borderColor ?? '#ffffff';
           const key = `${item.title}-${index}`;
-          const cardStyle = { '--chroma-accent': accent };
+          const cardStyle = {
+            '--chroma-accent': accent,
+            borderRadius: 'var(--chroma-radius)',
+            background: 'var(--chroma-tile)',
+            boxShadow: 'var(--chroma-tile-shadow)',
+            color: 'var(--chroma-ink)'
+          } as CSSProperties;
           const body = (
             <>
-              <span className="chroma-wash" aria-hidden="true" />
-              <div className="chroma-media" data-chroma-area="">
-                <img className="chroma-mono" src={item.image} alt={item.alt ?? item.title ?? ''} loading="lazy" />
-                <img className="chroma-color" src={item.image} alt="" aria-hidden="true" loading="lazy" />
-                <span className="chroma-media-rim" aria-hidden="true" />
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-0 z-0 ${spotlight ? '' : `${fadeClass} group-hover:opacity-[calc(var(--chroma-glow)*0.45)]`}`}
+                style={washStyle}
+              />
+              <div
+                data-chroma-area=""
+                className="relative z-[1] overflow-hidden"
+                style={{
+                  aspectRatio: 'var(--chroma-ratio)',
+                  borderRadius: 'max(0px, calc(var(--chroma-radius) - 8px))',
+                  background: 'var(--chroma-well)'
+                }}
+              >
+                <img
+                  className={IMAGE_CLASS}
+                  style={{ filter: 'grayscale(var(--chroma-gray)) brightness(calc(1 - var(--chroma-dim)))' }}
+                  src={item.image}
+                  alt={item.alt ?? item.title ?? ''}
+                  loading="lazy"
+                />
+                <img
+                  className={`${IMAGE_CLASS} ${spotlight ? '' : `${fadeClass} group-hover:opacity-100`}`}
+                  style={colorStyle}
+                  src={item.image}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-[inherit]"
+                  style={{ boxShadow: 'inset 0 0 0 1px var(--chroma-media-edge)' }}
+                />
               </div>
               {showInfo && (item.title || item.subtitle) && (
-                <div className="chroma-info">
-                  {item.title && <span className="chroma-title">{item.title}</span>}
-                  {item.subtitle && <span className="chroma-subtitle">{item.subtitle}</span>}
+                <div className="relative z-[1] flex min-w-0 flex-col gap-0.5 px-1.5 pt-0.5 pb-1">
+                  {item.title && (
+                    <span className="overflow-hidden text-[15px] leading-[1.3] font-semibold tracking-[-0.01em] text-ellipsis whitespace-nowrap">
+                      {item.title}
+                    </span>
+                  )}
+                  {item.subtitle && (
+                    <span
+                      className="overflow-hidden text-[13px] leading-[1.35] text-ellipsis whitespace-nowrap"
+                      style={{ color: 'var(--chroma-muted)' }}
+                    >
+                      {item.subtitle}
+                    </span>
+                  )}
                 </div>
               )}
-              <span className="chroma-card-rim" aria-hidden="true" />
-              <span className="chroma-card-glow" aria-hidden="true" />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-[2] rounded-[inherit]"
+                style={{ boxShadow: TILE_RIM }}
+              />
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-0 z-[2] rounded-[inherit] ${spotlight ? '' : `${fadeClass} group-hover:opacity-[var(--chroma-border)]`}`}
+                style={glowStyle}
+              />
             </>
           );
           return item.url ? (
             <a
               key={key}
-              className="chroma-card"
               data-chroma-area=""
+              className={`${CARD_CLASS} active:[filter:var(--chroma-press)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:[outline-color:var(--chroma-ink)]`}
               style={cardStyle}
               href={item.url}
               target="_blank"
@@ -271,13 +399,19 @@ export const ChromaGrid = ({
               {body}
             </a>
           ) : (
-            <article key={key} className="chroma-card" data-chroma-area="" style={cardStyle}>
+            <article key={key} data-chroma-area="" className={CARD_CLASS} style={cardStyle}>
               {body}
             </article>
           );
         })}
       </div>
-      {frame && <span className="chroma-frame-rim" aria-hidden="true" />}
+      {frame && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-[inherit]"
+          style={{ boxShadow: FRAME_RIM }}
+        />
+      )}
     </div>
   );
 };

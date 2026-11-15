@@ -33,11 +33,9 @@ import VoicePill from "~/shared/react-bits/VoicePill/VoicePill";
 // runtime never requires (e.g. dpr/style/fromColor/onAnimationComplete fall back to defaults).
 // Alias them to any at the boundary so the rest of this file stays type-checked.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const BlurTextAny = BlurText as any;
 const CountUpAny = CountUp as any;
 const DecryptedTextAny = DecryptedText as any;
 const DepthTextAny = DepthText as any;
-const GradientTextAny = GradientText as any;
 const ShinyTextAny = ShinyText as any;
 const VariableProximityAny = VariableProximity as any;
 import { hasDigit, type ParseProgram } from "./model/review";
@@ -246,7 +244,7 @@ const Greeting = defineComponent({
     const ctx = useHudScope();
     return (
       <h1 id="greeting">
-        {ctx.fx ? <BlurTextAny text={ctx.greeting} animationFrom={{ filter: "blur(10px)", opacity: 0 }} animationTo={[{ filter: "blur(0px)", opacity: 1 }]} color="#ecf7ff" easing="easeOut" /> : ctx.greeting}
+        {ctx.fx ? <BlurText text={ctx.greeting} animationFrom={{ filter: "blur(10px)", opacity: 0 }} animationTo={[{ filter: "blur(0px)", opacity: 1 }]} color="#ecf7ff" easing="easeOut" /> : ctx.greeting}
       </h1>
     );
   },
@@ -332,7 +330,7 @@ const WellnessCard = defineComponent({
     return (
       <button type="button" id="healthButton" className={HEALTH_SUMMARY} aria-label={h.wellnessAria} onClick={() => ctx.onAction?.({ type: "OpenWellness", params: {} })}>
         <span className={HEALTH_LABEL}>{h.wellnessLabel}</span>
-        <strong className={HEALTH_STATUS}><GradientTextAny colors={["#7fe9c9", "#5ee6ff", "#7fe9c9"]} animationSpeed={3} pointerEvents="none">{h.wellnessStatus}</GradientTextAny></strong>
+        <strong className={HEALTH_STATUS}><GradientText colors={["#7fe9c9", "#5ee6ff", "#7fe9c9"]} animationSpeed={3}>{h.wellnessStatus}</GradientText></strong>
         <span className={HEALTH_GUIDANCE}>{h.wellnessGuidance}</span>
         <span className={HEALTH_DEMO}>{ctx.fx ? <DecryptedTextAny text={h.wellnessDemo} animateOn="view" loop={false} speed={50} /> : h.wellnessDemo}</span>
       </button>

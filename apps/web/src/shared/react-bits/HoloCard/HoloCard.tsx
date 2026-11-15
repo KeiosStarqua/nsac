@@ -1,13 +1,50 @@
 // HoloCard
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/HoloCard/HoloCard.jsx
+// Source: @react-bits/HoloCard-TS-TW — https://reactbits.dev/r/HoloCard-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 
-import './HoloCard.css';
+type HoloPreset = 'bursts' | 'stars' | 'shards' | 'cosmos' | 'rainbow' | 'swirl' | 'glitter' | 'gold';
 
-const PRESETS = ['bursts', 'stars', 'shards', 'cosmos', 'rainbow', 'swirl', 'glitter', 'gold'];
+export interface HoloCardProps {
+  image?: string;
+  backImage?: string;
+  alt?: string;
+  preset?: HoloPreset;
+  intensity?: number;
+  scale?: number;
+  edgeSparkle?: number;
+  frame?: number;
+  glare?: number;
+  foilColor?: string;
+  width?: number;
+  radius?: number;
+  tiltMax?: number;
+  hoverScale?: number;
+  idle?: boolean;
+  shadow?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Settings {
+  preset: number;
+  intensity: number;
+  scale: number;
+  edgeSparkle: number;
+  frame: number;
+  glare: number;
+  foil: number[];
+  radius: number;
+  tiltMax: number;
+  hoverScale: number;
+  idle: boolean;
+}
+
+const PRESETS: HoloPreset[] = ['bursts', 'stars', 'shards', 'cosmos', 'rainbow', 'swirl', 'glitter', 'gold'];
 const PERSPECTIVE = 1100;
 const CARD_RATIO = 63 / 88;
 
@@ -282,9 +319,9 @@ void main() {
 }
 `;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const parseColor = value => {
+const parseColor = (value: string): number[] => {
   const fallback = [0.78, 0.8, 0.84];
   if (typeof document === 'undefined') return fallback;
   const ctx = document.createElement('canvas').getContext('2d');
@@ -296,7 +333,7 @@ const parseColor = value => {
   return [1, 3, 5].map(i => Math.pow(parseInt(resolved.slice(i, i + 2), 16) / 255, 2.2));
 };
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string): WebGLShader | null => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -325,15 +362,15 @@ export default function HoloCard({
   shadow = true,
   className = '',
   style
-}) {
-  const rootRef = useRef(null);
-  const rotorRef = useRef(null);
-  const shadowRef = useRef(null);
-  const canvasRef = useRef(null);
-  const settingsRef = useRef(null);
+}: HoloCardProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const rotorRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<HTMLSpanElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const settingsRef = useRef<Settings | null>(null);
   const pointerRef = useRef({ x: 0.5, y: 0.5, inside: false });
-  const wakeRef = useRef(null);
-  const loadRef = useRef(null);
+  const wakeRef = useRef<(() => void) | null>(null);
+  const loadRef = useRef<((src?: string) => void) | null>(null);
   const flipRef = useRef(false);
   const [ratio, setRatio] = useState(CARD_RATIO);
   const [ready, setReady] = useState(false);
@@ -371,10 +408,10 @@ export default function HoloCard({
 
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
-    let program = null;
-    let texture = null;
-    let buffer = null;
-    const uniforms = {};
+    let program: WebGLProgram | null = null;
+    let texture: WebGLTexture | null = null;
+    let buffer: WebGLBuffer | null = null;
+    const uniforms: Record<string, WebGLUniformLocation | null> = {};
     let textureReady = false;
 
     if (gl) {
@@ -451,7 +488,7 @@ export default function HoloCard({
 
     const draw = () => {
       if (!gl || !program) return;
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const w = canvas.width;
       const h = canvas.height;
       if (!w || !h) return;
@@ -479,17 +516,24 @@ export default function HoloCard({
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
-    const spring = (value, velocity, target, stiffness, damping, dt) => {
+    const spring = (
+      value: number,
+      velocity: number,
+      target: number,
+      stiffness: number,
+      damping: number,
+      dt: number
+    ): [number, number] => {
       const next = velocity + ((target - value) * stiffness - velocity * damping) * dt;
       return [value + next * dt, next];
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       if (!alive) return;
       const dt = Math.min(1 / 30, Math.max(1 / 240, (now - last) / 1000));
       last = now;
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const pointer = pointerRef.current;
       let targetX = 0;
       let targetY = 0;
@@ -561,7 +605,7 @@ export default function HoloCard({
       wake();
     };
 
-    loadRef.current = src => {
+    loadRef.current = (src?: string) => {
       textureReady = false;
       setReady(false);
       if (!src) return;
@@ -615,7 +659,7 @@ export default function HoloCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const track = e => {
+  const track = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'touch' && e.type === 'pointermove' && !e.buttons) return;
     const rect = e.currentTarget.getBoundingClientRect();
     pointerRef.current = {
@@ -638,7 +682,7 @@ export default function HoloCard({
   return (
     <div
       ref={rootRef}
-      className={`holo-card${className ? ` ${className}` : ''}`}
+      className={`relative inline-block w-[var(--hc-w)] max-w-full aspect-[var(--hc-ratio)] rounded-[var(--hc-radius)] outline-none select-none touch-pan-y [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] ${flippable ? 'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[6px] focus-visible:outline-current' : ''}${className ? ` ${className}` : ''}`}
       role={flippable ? 'button' : 'img'}
       tabIndex={flippable ? 0 : undefined}
       aria-label={alt || undefined}
@@ -656,22 +700,45 @@ export default function HoloCard({
         e.preventDefault();
         if (!e.repeat) toggle();
       }}
-      style={{
-        '--hc-w': `${width}px`,
-        '--hc-ratio': ratio,
-        '--hc-radius': `${radius}px`,
-        ...style
-      }}
+      style={
+        {
+          '--hc-w': `${width}px`,
+          '--hc-ratio': ratio,
+          '--hc-radius': `${radius}px`,
+          ...style
+        } as CSSProperties
+      }
     >
-      {shadow ? <span ref={shadowRef} className="holo-card__shadow" aria-hidden="true" /> : null}
-      <div ref={rotorRef} className="holo-card__rotor">
-        <div className="holo-card__face holo-card__face--front">
-          {image ? <img src={image} alt="" draggable={false} /> : null}
-          <canvas ref={canvasRef} />
+      {shadow ? (
+        <span
+          ref={shadowRef}
+          className="absolute inset-[10%_7%_-4%] rounded-[var(--hc-radius)] bg-black/40 blur-[26px] pointer-events-none will-change-transform"
+          aria-hidden="true"
+        />
+      ) : null}
+      <div ref={rotorRef} className="absolute inset-0 [transform-style:preserve-3d] will-change-transform">
+        <div className="absolute inset-0 overflow-hidden rounded-[var(--hc-radius)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
+          {image ? (
+            <img
+              src={image}
+              alt=""
+              draggable={false}
+              className="absolute inset-0 block h-full w-full object-cover pointer-events-none [-webkit-user-drag:none]"
+            />
+          ) : null}
+          <canvas
+            ref={canvasRef}
+            className={`absolute inset-0 block h-full w-full transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}
+          />
         </div>
         {flippable ? (
-          <div className="holo-card__face holo-card__face--back">
-            <img src={backImage} alt="" draggable={false} />
+          <div className="absolute inset-0 overflow-hidden rounded-[var(--hc-radius)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]">
+            <img
+              src={backImage}
+              alt=""
+              draggable={false}
+              className="absolute inset-0 block h-full w-full object-cover pointer-events-none [-webkit-user-drag:none]"
+            />
           </div>
         ) : null}
       </div>

@@ -1,44 +1,85 @@
 // BlurText
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/BlurText/BlurText.jsx
+// Source: @react-bits/BlurText-TS-TW — https://reactbits.dev/r/BlurText-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { motion, MotionConfig } from 'motion/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, MotionConfig, type Easing, type MotionStyle, type Transition } from 'motion/react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
-const AXES = {
+type Snapshot = Record<string, string | number>;
+type Keyframes = Record<string, Array<string | number>>;
+type Phase = 'from' | 'in' | 'out' | 'rest';
+
+export type BlurTextEffect = 'blur' | 'zoom' | 'tilt' | 'focus' | 'drift';
+export type BlurTextStaggerFrom = 'start' | 'center' | 'end' | 'random';
+export type BlurTextTrigger = 'view' | 'load' | 'hover' | 'click';
+
+type BlurTextProps = {
+  text?: string;
+  delay?: number;
+  className?: string;
+  animateBy?: 'words' | 'letters';
+  direction?: 'top' | 'bottom' | 'left' | 'right';
+  threshold?: number;
+  rootMargin?: string;
+  animationFrom?: Snapshot;
+  animationTo?: Snapshot[];
+  easing?: Easing | Easing[];
+  onAnimationComplete?: () => void;
+  stepDuration?: number;
+  blur?: number;
+  distance?: number;
+  effect?: BlurTextEffect;
+  staggerFrom?: BlurTextStaggerFrom;
+  trigger?: BlurTextTrigger;
+  loop?: boolean;
+  loopDelay?: number;
+  color?: string;
+  fromColor?: string;
+  focusOnHover?: boolean;
+};
+
+interface EffectConfig {
+  from: Snapshot;
+  steps: Snapshot[];
+  exit: Snapshot;
+  times: number[];
+  fade: Easing;
+  bounce: number | null;
+  settle: number;
+  origin?: { originX: number; originY: number };
+  exitEase: Easing;
+}
+
+interface Piece {
+  word: number;
+  content: string;
+  key: string;
+}
+
+const AXES: Record<NonNullable<BlurTextProps['direction']>, ['x' | 'y', number]> = {
   top: ['y', -1],
   bottom: ['y', 1],
   left: ['x', -1],
   right: ['x', 1]
 };
 
-const EASE_OUT = [0.33, 1, 0.68, 1];
-const EASE_IN_OUT = [0.65, 0, 0.35, 1];
-const EASE_IN = [0.55, 0, 0.9, 0.45];
+const EASE_OUT: Easing = [0.33, 1, 0.68, 1];
+const EASE_IN_OUT: Easing = [0.65, 0, 0.35, 1];
+const EASE_IN: Easing = [0.55, 0, 0.9, 0.45];
 const CSS_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const MOVE_KEYS = ['x', 'y', 'scale', 'rotateX', 'rotateY', 'skewX'];
-const INSTANT = { duration: 0 };
+const INSTANT: Transition = { duration: 0 };
 
-const SR_ONLY = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-  userSelect: 'none'
-};
+const blurTo = (px: number) => `blur(${Math.max(0, px)}px)`;
 
-const PIECE_STYLE = { display: 'inline-block', willChange: 'transform, filter, opacity' };
-const WORD_STYLE = { display: 'inline-flex' };
-
-const blurTo = px => `blur(${Math.max(0, px)}px)`;
-
-const buildEffect = (effect, direction, blur, distance) => {
+const buildEffect = (
+  effect: BlurTextEffect,
+  direction: NonNullable<BlurTextProps['direction']>,
+  blur: number,
+  distance: number
+): EffectConfig => {
   const [axis, sign] = AXES[direction] || AXES.top;
   const b = Math.max(0, blur);
   const d = distance;
@@ -85,7 +126,7 @@ const buildEffect = (effect, direction, blur, distance) => {
   }
 
   if (effect === 'focus') {
-    const soft = { filter: blurTo(b * 1.4), opacity: 0.32, scale: 1.12 };
+    const soft: Snapshot = { filter: blurTo(b * 1.4), opacity: 0.32, scale: 1.12 };
     return {
       from: soft,
       steps: [
@@ -134,17 +175,17 @@ const buildEffect = (effect, direction, blur, distance) => {
   };
 };
 
-const buildKeyframes = (from, steps) => {
-  const keys = new Set([...Object.keys(from), ...steps.flatMap(s => Object.keys(s))]);
+const buildKeyframes = (from: Snapshot, steps: Snapshot[]): Keyframes => {
+  const keys = new Set<string>([...Object.keys(from), ...steps.flatMap(s => Object.keys(s))]);
 
-  const keyframes = {};
+  const keyframes: Keyframes = {};
   keys.forEach(k => {
     keyframes[k] = [from[k], ...steps.map(s => s[k])];
   });
   return keyframes;
 };
 
-const buildRanks = (count, staggerFrom, seedText) => {
+const buildRanks = (count: number, staggerFrom: BlurTextStaggerFrom, seedText: string): number[] => {
   const ranks = Array.from({ length: count }, (_, i) => i);
   if (staggerFrom === 'end') return ranks.map(i => count - 1 - i);
   if (staggerFrom === 'center') {
@@ -171,7 +212,7 @@ const buildRanks = (count, staggerFrom, seedText) => {
   return ranks;
 };
 
-const startPhase = trigger =>
+const startPhase = (trigger: BlurTextTrigger): Phase =>
   trigger === 'load' ? 'in' : trigger === 'hover' || trigger === 'click' ? 'rest' : 'from';
 
 const BlurText = ({
@@ -197,9 +238,9 @@ const BlurText = ({
   color,
   fromColor,
   focusOnHover = false
-}) => {
-  const ref = useRef(null);
-  const [phase, setPhase] = useState(() => startPhase(trigger));
+}: BlurTextProps) => {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [phase, setPhase] = useState<Phase>(() => startPhase(trigger));
   const firstPhase = useRef(phase).current;
   const [focusWord, setFocusWord] = useState(-1);
   const settledRef = useRef(phase === 'rest');
@@ -229,8 +270,8 @@ const BlurText = ({
 
   const words = useMemo(() => text.split(' '), [text]);
 
-  const pieces = useMemo(() => {
-    const list = [];
+  const pieces = useMemo<Piece[]>(() => {
+    const list: Piece[] = [];
     words.forEach((word, w) => {
       const isLast = w === words.length - 1;
       if (animateBy === 'words') {
@@ -244,7 +285,7 @@ const BlurText = ({
   }, [words, animateBy]);
 
   const groups = useMemo(() => {
-    const list = words.map(() => []);
+    const list: number[][] = words.map(() => []);
     pieces.forEach((piece, index) => list[piece.word].push(index));
     return list;
   }, [words, pieces]);
@@ -307,34 +348,34 @@ const BlurText = ({
     if (settledRef.current) replay();
   };
 
-  const inTransition = rank => {
+  const inTransition = (rank: number): Transition => {
     const delayed = rank * stagger;
     if (custom) return { duration: totalDuration, times, delay: delayed, ease: easing ?? 'linear' };
-    const transition = { duration: totalDuration, delay: delayed, ease: fx.fade };
-    if (fx.bounce === null) return transition;
+    const transition: Record<string, unknown> = { duration: totalDuration, delay: delayed, ease: fx.fade };
+    if (fx.bounce === null) return transition as Transition;
     const move = { type: 'spring', visualDuration: totalDuration * fx.settle, bounce: fx.bounce, delay: delayed };
     MOVE_KEYS.forEach(key => {
       if (key in fromSnapshot) transition[key] = move;
     });
-    return transition;
+    return transition as Transition;
   };
 
   const target =
     phase === 'in' ? animateKeyframes : phase === 'out' ? exitSnapshot : phase === 'rest' ? restSnapshot : fromSnapshot;
   const tinted = Boolean(fromColor) && (phase === 'from' || phase === 'out');
   const dim = Math.min(6, Math.max(2, blur * 0.3));
-  const pieceStyle = fx.origin && !custom ? { ...PIECE_STYLE, ...fx.origin } : PIECE_STYLE;
+  const pieceStyle: MotionStyle | undefined = fx.origin && !custom ? fx.origin : undefined;
 
-  const renderPiece = index => {
+  const renderPiece = (index: number): ReactNode => {
     const piece = pieces[index];
     const rank = ranks[index];
-    const transition =
+    const transition: Transition =
       phase === 'in'
         ? inTransition(rank)
         : phase === 'out'
           ? { duration: exitDuration, ease: fx.exitEase, delay: rank * exitStagger }
           : INSTANT;
-    const style = fromColor
+    const style: MotionStyle | undefined = fromColor
       ? {
           ...pieceStyle,
           color: tinted ? fromColor : undefined,
@@ -351,6 +392,7 @@ const BlurText = ({
       <motion.span
         aria-hidden="true"
         key={piece.key}
+        className="inline-block will-change-[transform,filter,opacity]"
         style={style}
         initial={firstPhase === 'rest' ? false : fromSnapshot}
         animate={target}
@@ -361,11 +403,10 @@ const BlurText = ({
     );
   };
 
-  const wordStyle = w => {
-    if (!focusOnHover) return WORD_STYLE;
+  const wordStyle = (w: number): CSSProperties | undefined => {
+    if (!focusOnHover) return undefined;
     const dimmed = focusWord !== -1 && focusWord !== w;
     return {
-      ...WORD_STYLE,
       filter: dimmed ? `blur(${dim}px)` : 'blur(0px)',
       opacity: dimmed ? 0.3 : 1,
       transition: `filter 0.45s ${CSS_EASE}, opacity 0.45s ${CSS_EASE}`
@@ -376,15 +417,16 @@ const BlurText = ({
     <MotionConfig reducedMotion="user">
       <p
         ref={ref}
-        className={className}
-        style={{ display: 'flex', flexWrap: 'wrap', color, cursor: trigger === 'click' ? 'pointer' : undefined }}
+        className={`blur-text flex flex-wrap ${trigger === 'click' ? 'cursor-pointer' : ''} ${className}`}
+        style={{ color }}
         onPointerEnter={trigger === 'hover' ? handleEnter : undefined}
         onClick={trigger === 'click' ? replay : undefined}
       >
-        <span style={SR_ONLY}>{text}</span>
+        <span className="sr-only select-none">{text}</span>
         {groups.map((indices, w) => (
           <span
             key={`word-${w}`}
+            className="inline-flex"
             style={wordStyle(w)}
             onPointerEnter={focusOnHover ? () => setFocusWord(w) : undefined}
             onPointerLeave={focusOnHover ? () => setFocusWord(-1) : undefined}

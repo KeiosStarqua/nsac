@@ -1,12 +1,79 @@
 // PillNav
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/PillNav/PillNav.jsx
+// Source: @react-bits/PillNav-TS-TW — https://reactbits.dev/r/PillNav-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import './PillNav.css';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ElementType,
+  type FocusEvent as ReactFocusEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode
+} from 'react';
 
-const THEMES = {
+export interface PillNavItem {
+  label: string;
+  href?: string;
+  icon?: ReactNode;
+  ariaLabel?: string;
+}
+
+export interface PillNavProps {
+  logo?: string | ReactNode;
+  logoAlt?: string;
+  logoHref?: string;
+  items?: PillNavItem[];
+  activeHref?: string;
+  defaultActiveIndex?: number;
+  onItemClick?: (item: PillNavItem, index: number, event: ReactMouseEvent<HTMLElement>) => void;
+  linkComponent?: ElementType;
+  theme?: 'dark' | 'light';
+  layout?: 'split' | 'joined';
+  size?: 'sm' | 'md' | 'lg';
+  surface?: 'glass' | 'solid' | 'none';
+  itemStyle?: 'pill' | 'plain';
+  hoverEffect?: 'fill' | 'glide' | 'none';
+  indicator?: 'dot' | 'pill' | 'none';
+  highlightColor?: string;
+  highlightTextColor?: string;
+  barColor?: string;
+  textColor?: string;
+  bounce?: number;
+  stretch?: number;
+  intro?: boolean;
+  collapse?: 'auto' | 'always' | 'never';
+  onMenuToggle?: (open: boolean) => void;
+  ariaLabel?: string;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface LinkProps {
+  className: string;
+  'aria-current'?: 'page';
+  'aria-label'?: string;
+  tabIndex?: number;
+  onClick?: (event: ReactMouseEvent<HTMLElement>) => void;
+}
+
+interface Engine {
+  enter: (index: number, event?: ReactPointerEvent) => void;
+  leave: () => void;
+  focus: (index: number, event?: ReactFocusEvent) => void;
+  blur: () => void;
+  press: (event?: ReactPointerEvent) => void;
+  release: () => void;
+  refresh: () => void;
+}
+
+const THEMES: Record<string, Record<string, string>> = {
   dark: {
     '--pn-surface': 'rgba(38, 35, 46, 0.66)',
     '--pn-solid': '#26232e',
@@ -45,7 +112,7 @@ const THEMES = {
   }
 };
 
-const SIZES = {
+const SIZES: Record<string, Record<string, string>> = {
   sm: {
     '--pn-h': '36px',
     '--pn-pad': '3px',
@@ -75,36 +142,57 @@ const SIZES = {
   }
 };
 
-const ROOT = 'pill-nav';
-const SURFACE = 'pill-nav__surface';
-const RIM = 'pill-nav__rim';
-const ROOT_RIM = 'pill-nav__rim pill-nav__rim--root';
-const LOGO = 'pill-nav__logo';
-const LOGO_LINK = 'pill-nav__logo-link';
-const MARK = 'pill-nav__mark';
-const BAR = 'pill-nav__bar';
-const TRACK = 'pill-nav__track';
-const LIST = 'pill-nav__list';
-const SLOT = 'pill-nav__slot';
-const ITEM = 'pill-nav__item';
-const FACE = 'pill-nav__face';
-const FACE_ALT = 'pill-nav__face-alt';
-const FILL = 'pill-nav__fill';
-const GLIDE = 'pill-nav__glide';
-const INK = 'pill-nav__ink';
-const INK_ITEM = 'pill-nav__ink-item';
-const DOT = 'pill-nav__dot';
-const TOGGLE = 'pill-nav__toggle';
-const TOGGLE_BARE = 'pill-nav__toggle--bare';
-const BURGER = 'pill-nav__burger';
-const LINE_TOP = 'pill-nav__line pill-nav__line--top';
-const LINE_BOTTOM = 'pill-nav__line pill-nav__line--bottom';
-const PANEL = 'pill-nav__panel';
-const MENU = 'pill-nav__menu';
-const ROW = 'pill-nav__row';
-const MEASURE = 'pill-nav__measure';
+const ROOT =
+  'group/nav relative inline-flex max-w-full items-center gap-[var(--pn-gap)] text-[length:var(--pn-font)] leading-none [-webkit-tap-highlight-color:transparent] [--pn-roll:calc(var(--pn-inner)/2_+_0.7em)] data-[collapsed]:flex data-[collapsed]:w-full data-[collapsed]:justify-between data-[layout=joined]:gap-[2px] data-[layout=joined]:rounded-full data-[layout=joined]:p-[var(--pn-pad)] data-[items=pill]:[--pn-item-gap:3px] data-[panel]:[background:transparent] data-[panel]:[box-shadow:none] data-[panel]:[-webkit-backdrop-filter:none] data-[panel]:[backdrop-filter:none]';
+const SURFACE =
+  '[background:var(--pn-surface)] [box-shadow:var(--pn-shadow)] [-webkit-backdrop-filter:var(--pn-blur)] [backdrop-filter:var(--pn-blur)]';
+const RIM =
+  'pointer-events-none absolute inset-0 z-[4] rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--pn-edge),inset_0_1px_0_var(--pn-rim)]';
+const ROOT_RIM =
+  'pointer-events-none absolute inset-0 z-[4] rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--pn-edge),inset_0_1px_0_var(--pn-rim)] group-data-[panel]/nav:opacity-0';
+const LOGO =
+  'relative z-[2] inline-grid h-[var(--pn-h)] w-[var(--pn-h)] flex-none place-items-center rounded-full group-data-[layout=joined]/nav:h-[var(--pn-inner)] group-data-[layout=joined]/nav:w-[var(--pn-inner)]';
+const LOGO_LINK =
+  'absolute inset-0 grid place-items-center rounded-[inherit] text-[var(--pn-strong)] no-underline outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--pn-ring)]';
+const MARK =
+  'grid h-[var(--pn-mark)] w-[var(--pn-mark)] place-items-center [&_img]:block [&_img]:h-full [&_img]:w-full [&_img]:object-contain [&_svg]:block [&_svg]:h-full [&_svg]:w-full';
+const BAR =
+  'relative z-[1] box-border flex h-[var(--pn-h)] min-w-0 items-center rounded-full p-[var(--pn-pad)] group-data-[layout=joined]/nav:h-[var(--pn-inner)] group-data-[layout=joined]/nav:p-0';
+const TRACK = 'relative h-full';
+const LIST = 'm-0 flex h-full list-none items-stretch gap-[var(--pn-item-gap,2px)] p-0';
+const SLOT = 'group/slot flex';
+const ITEM =
+  'relative isolate inline-flex h-full cursor-pointer items-center justify-center overflow-hidden whitespace-nowrap rounded-full border-0 px-[var(--pn-x)] [background:none] [font-family:inherit] [font-size:inherit] [line-height:inherit] font-medium tracking-[-0.005em] text-[var(--pn-text)] no-underline outline-none transition-[color] duration-[250ms] ease-[ease] group-data-[lit]/slot:text-[var(--pn-strong)] aria-[current=page]:text-[var(--pn-strong)] group-data-[items=pill]/nav:[background:var(--pn-tile)] group-data-[items=pill]/nav:[box-shadow:var(--pn-tile-rim)] group-data-[items=pill]/nav:text-[var(--pn-strong)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[color:var(--pn-ring)] motion-reduce:transition-none';
+const FACE =
+  'inline-flex items-center gap-[0.45em] transition-transform duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] [&_svg]:h-[1.15em] [&_svg]:w-[1.15em] [&_svg]:flex-none group-data-[on]/slot:-translate-y-[var(--pn-roll)] group-data-[on]/slot:duration-500 group-data-[hover]/slot:-translate-y-[var(--pn-roll)] group-data-[hover]/slot:duration-500 motion-reduce:transition-none';
+const FACE_ALT =
+  'absolute inset-0 inline-flex translate-y-[var(--pn-roll)] items-center justify-center gap-[0.45em] text-[var(--pn-pill-ink)] transition-transform duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)] [&_svg]:h-[1.15em] [&_svg]:w-[1.15em] [&_svg]:flex-none group-data-[on]/slot:translate-y-0 group-data-[on]/slot:duration-500 group-data-[hover]/slot:translate-y-0 group-data-[hover]/slot:duration-500 motion-reduce:transition-none';
+const FILL =
+  'pointer-events-none absolute left-1/2 top-full z-[-1] h-[var(--pn-fill,200%)] w-[var(--pn-fill,200%)] scale-0 rounded-full [background:var(--pn-pill)] [margin:calc(var(--pn-fill,200%)/-2)_0_0_calc(var(--pn-fill,200%)/-2)] transition-transform duration-[360ms] ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[on]/slot:scale-100 group-data-[on]/slot:duration-[550ms] group-data-[on]/slot:ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[hover]/slot:scale-100 group-data-[hover]/slot:duration-[550ms] group-data-[hover]/slot:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
+const GLIDE =
+  'pointer-events-none absolute inset-y-0 left-0 w-0 origin-center rounded-full opacity-0 [background:var(--pn-pill)] [box-shadow:var(--pn-pill-shadow)] will-change-[transform,width,opacity] group-data-[focus]/nav:[box-shadow:var(--pn-pill-shadow),0_0_0_2px_var(--pn-ring)]';
+const INK =
+  'pointer-events-none absolute inset-0 flex items-stretch gap-[var(--pn-item-gap,2px)] text-[var(--pn-pill-ink)] [clip-path:inset(0_100%_0_0)]';
+const INK_ITEM =
+  'inline-flex h-full items-center justify-center gap-[0.45em] whitespace-nowrap px-[var(--pn-x)] font-medium tracking-[-0.005em] [&_svg]:h-[1.15em] [&_svg]:w-[1.15em] [&_svg]:flex-none';
+const DOT =
+  'pointer-events-none absolute bottom-[calc((var(--pn-inner)_-_var(--pn-font))/4_-_2px)] left-0 -ml-[2px] h-[4px] w-[4px] rounded-full opacity-0 [background:var(--pn-dot)] transition-[background-color] duration-300 ease-[ease] will-change-[transform,opacity] group-data-[dot-lit]/nav:[background:var(--pn-pill-ink)]';
+const TOGGLE =
+  'relative z-[3] inline-grid h-[var(--pn-h)] w-[var(--pn-h)] flex-none cursor-pointer place-items-center rounded-full border-0 p-0 text-[var(--pn-strong)] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--pn-ring)] group-data-[layout=joined]/nav:h-[var(--pn-inner)] group-data-[layout=joined]/nav:w-[var(--pn-inner)]';
+const TOGGLE_BARE = 'bg-transparent';
+const BURGER = 'relative h-[10px] w-[16px]';
+const LINE_TOP =
+  'absolute left-0 top-[1.5px] h-[1.5px] w-full rounded-[2px] bg-current transition-[top,rotate] duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[open]/nav:top-[4.25px] group-data-[open]/nav:rotate-45 motion-reduce:transition-none';
+const LINE_BOTTOM =
+  'absolute left-0 top-[7px] h-[1.5px] w-full rounded-[2px] bg-current transition-[top,rotate] duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[open]/nav:top-[4.25px] group-data-[open]/nav:-rotate-45 motion-reduce:transition-none';
+const PANEL =
+  'absolute inset-x-0 top-0 z-[1] box-border rounded-[24px] px-[6px] pb-[6px] pt-[calc(var(--pn-h)_+_10px)] group-data-[layout=joined]/nav:pt-[calc(var(--pn-h)_+_4px)]';
+const MENU = 'm-0 flex list-none flex-col gap-[2px] p-0';
+const ROW =
+  'box-border flex h-[calc(var(--pn-h)_+_2px)] w-full cursor-pointer items-center gap-[10px] rounded-[18px] border-0 px-[16px] text-left [background:none] [font-family:inherit] text-[length:calc(var(--pn-font)_+_1px)] leading-none font-medium text-[var(--pn-strong)] no-underline outline-none transition-[background-color] duration-200 ease-[ease] [&_svg]:h-[1.15em] [&_svg]:w-[1.15em] [&_svg]:flex-none hover:[background:var(--pn-row-hover)] aria-[current=page]:[background:var(--pn-pill)] aria-[current=page]:[box-shadow:var(--pn-pill-shadow)] aria-[current=page]:text-[var(--pn-pill-ink)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[color:var(--pn-ring)] motion-reduce:transition-none';
+const MEASURE = 'pointer-events-none invisible absolute left-0 top-0 flex gap-[2px]';
 
-const DEFAULT_ITEMS = [
+const DEFAULT_ITEMS: PillNavItem[] = [
   { label: 'Home', href: '#' },
   { label: 'Work', href: '#work' },
   { label: 'About', href: '#about' },
@@ -113,9 +201,9 @@ const DEFAULT_ITEMS = [
 
 const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const contrastInk = color => {
+const contrastInk = (color?: string): string | null => {
   const hex = String(color || '')
     .trim()
     .replace('#', '');
@@ -127,7 +215,7 @@ const contrastInk = color => {
           .map(c => c + c)
           .join('')
       : hex;
-  const channel = index => {
+  const channel = (index: number) => {
     const value = parseInt(full.slice(index, index + 2), 16) / 255;
     return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
   };
@@ -135,7 +223,7 @@ const contrastInk = color => {
   return luminance > 0.36 ? '#121016' : '#ffffff';
 };
 
-const readVar = (element, name) => parseFloat(getComputedStyle(element).getPropertyValue(name)) || 0;
+const readVar = (element: Element, name: string) => parseFloat(getComputedStyle(element).getPropertyValue(name)) || 0;
 
 const PillNav = ({
   logo,
@@ -145,7 +233,7 @@ const PillNav = ({
   activeHref,
   defaultActiveIndex = 0,
   onItemClick,
-  linkComponent: LinkComponent = 'a',
+  linkComponent: LinkComponentProp = 'a',
   theme = 'dark',
   layout = 'split',
   size = 'md',
@@ -165,25 +253,26 @@ const PillNav = ({
   ariaLabel = 'Main',
   className = '',
   style
-}) => {
+}: PillNavProps) => {
+  const LinkComponent = LinkComponentProp as unknown as React.FC<Record<string, unknown>>;
   const panelId = useId();
-  const rootRef = useRef(null);
-  const barRef = useRef(null);
-  const trackRef = useRef(null);
-  const glideRef = useRef(null);
-  const inkRef = useRef(null);
-  const dotRef = useRef(null);
-  const logoRef = useRef(null);
-  const markRef = useRef(null);
-  const toggleRef = useRef(null);
-  const panelRef = useRef(null);
-  const measureRef = useRef(null);
-  const measureListRef = useRef(null);
-  const slotRefs = useRef([]);
-  const engineRef = useRef(null);
+  const rootRef = useRef<HTMLElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const glideRef = useRef<HTMLSpanElement>(null);
+  const inkRef = useRef<HTMLDivElement>(null);
+  const dotRef = useRef<HTMLSpanElement>(null);
+  const logoRef = useRef<HTMLSpanElement>(null);
+  const markRef = useRef<HTMLSpanElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const measureListRef = useRef<HTMLDivElement>(null);
+  const slotRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const engineRef = useRef<Engine | null>(null);
   const introRef = useRef(intro);
   const slideRef = useRef(false);
-  const pendingRef = useRef(null);
+  const pendingRef = useRef<boolean | null>(null);
   const [selected, setSelected] = useState(defaultActiveIndex);
   const [collapsed, setCollapsed] = useState(collapse === 'always');
   const [open, setOpen] = useState(false);
@@ -207,7 +296,7 @@ const PillNav = ({
   settingsRef.current = settings;
 
   const palette = THEMES[theme] ?? THEMES.dark;
-  const vars = { ...palette, ...(SIZES[size] ?? SIZES.md) };
+  const vars: Record<string, string> = { ...palette, ...(SIZES[size] ?? SIZES.md) };
   if (surface === 'glass') vars['--pn-blur'] = 'blur(20px) saturate(1.6)';
   if (surface === 'solid') {
     vars['--pn-surface'] = palette['--pn-solid'];
@@ -260,7 +349,7 @@ const PillNav = ({
       waiting: slideRef.current && !reduce
     };
     slideRef.current = false;
-    const rects = [];
+    const rects: { left: number; width: number }[] = [];
     let trackWidth = 0;
     let trackHeight = 0;
     let raf = 0;
@@ -328,7 +417,7 @@ const PillNav = ({
       }
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       const s = settingsRef.current;
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
@@ -436,7 +525,7 @@ const PillNav = ({
       }
     };
 
-    const engine = {
+    const engine: Engine = {
       enter: (index, event) => {
         if (event?.pointerType === 'touch') return;
         state.hover = index;
@@ -566,7 +655,7 @@ const PillNav = ({
     pendingRef.current = null;
     introRef.current = false;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const pop = (element, delay) =>
+    const pop = (element: HTMLElement | null, delay: number) =>
       element?.animate(
         [
           { opacity: 0, transform: 'scale(0.6)' },
@@ -574,7 +663,7 @@ const PillNav = ({
         ],
         { duration: 700, delay, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' }
       );
-    const reveal = element => {
+    const reveal = (element: HTMLElement | null) => {
       if (!element) return;
       const width = element.offsetWidth;
       const height = element.offsetHeight;
@@ -621,7 +710,7 @@ const PillNav = ({
       : `inset(0px 0px ${Math.max(0, height - header)}px ${Math.max(0, width - header)}px round ${header / 2}px)`;
     const end = 'inset(0px 0px 0px 0px round 24px)';
     const rows = panel.querySelectorAll('li');
-    const running = [];
+    const running: Animation[] = [];
     if (open) {
       if (reduce) return undefined;
       running.push(panel.animate([{ clipPath: start }, { clipPath: end }], { duration: 560, easing: EASE_OUT }));
@@ -662,12 +751,12 @@ const PillNav = ({
 
   useEffect(() => {
     if (!open) return undefined;
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Node && rootRef.current?.contains(target)) return;
       setOpen(false);
     };
-    const onKeyDown = event => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       setOpen(false);
       toggleRef.current?.focus();
@@ -680,7 +769,7 @@ const PillNav = ({
     };
   }, [open]);
 
-  const spin = event => {
+  const spin = (event: ReactPointerEvent) => {
     const mark = markRef.current;
     if (!mark || event.pointerType === 'touch' || mark.getAnimations().length) return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -690,7 +779,7 @@ const PillNav = ({
     });
   };
 
-  const choose = (item, index, event) => {
+  const choose = (item: PillNavItem, index: number, event: ReactMouseEvent<HTMLElement>) => {
     onItemClick?.(item, index, event);
     if (!controlled) setSelected(index);
   };
@@ -702,7 +791,7 @@ const PillNav = ({
     onMenuToggle?.(next);
   };
 
-  const link = (item, props, children) => {
+  const link = (item: PillNavItem, props: LinkProps, children: ReactNode) => {
     if (!item.href) {
       return (
         <button type="button" {...props}>
@@ -717,7 +806,7 @@ const PillNav = ({
     );
   };
 
-  const face = item => (
+  const face = (item: PillNavItem) => (
     <>
       {item.icon}
       {item.label}
@@ -733,7 +822,7 @@ const PillNav = ({
       data-collapsed={collapsed ? '' : undefined}
       data-open={open ? '' : undefined}
       data-panel={panelShown ? '' : undefined}
-      style={{ ...vars, ...style }}
+      style={{ ...vars, ...style } as CSSProperties}
       aria-label={ariaLabel}
     >
       {logo && (

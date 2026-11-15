@@ -1,11 +1,44 @@
 // FlyingPosters
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/FlyingPosters/FlyingPosters.jsx
+// Source: @react-bits/FlyingPosters-TS-TW — https://reactbits.dev/r/FlyingPosters-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
-import './FlyingPosters.css';
+export type FlyingPostersItem = string | { image: string; link?: string; alt?: string };
+
+export interface FlyingPostersProps {
+  items?: FlyingPostersItem[];
+  planeWidth?: number;
+  planeHeight?: number;
+  distortion?: number;
+  scrollEase?: number;
+  cameraFov?: number;
+  cameraZ?: number;
+  gap?: number;
+  columns?: number;
+  columnGap?: number;
+  alternate?: boolean;
+  radius?: number;
+  rotation?: number;
+  axis?: 'vertical' | 'horizontal' | 'diagonal';
+  speed?: number;
+  lean?: number;
+  fade?: number;
+  shading?: number;
+  wheel?: boolean;
+  drag?: boolean;
+  pageScroll?: number;
+  onItemClick?: (item: { image: string; link?: string; alt?: string }, index: number) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+type Engine = { loadItems: (list: FlyingPostersItem[]) => void; wake: () => void };
+
+const ROOT = 'relative h-full w-full overflow-hidden';
+const CANVAS = 'absolute inset-0 block h-full w-full cursor-grab active:cursor-grabbing';
 
 const VERTEX = `#version 300 es
 in vec2 aPosition;
@@ -112,15 +145,15 @@ void main() {
   outColor = vec4(color * alpha, alpha);
 }`;
 
-const AXES = { vertical: [0, 1, 0], horizontal: [1, 0, 0], diagonal: [1, 1, 0] };
+const AXES: Record<string, number[]> = { vertical: [0, 1, 0], horizontal: [1, 0, 0], diagonal: [1, 1, 0] };
 const REFERENCE_FOV = (45 * Math.PI) / 180;
 const REFERENCE_Z = 20;
 const GRID_X = 100;
 const GRID_Y = 1;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -130,7 +163,8 @@ const compile = (gl, type, source) => {
   return null;
 };
 
-const toItem = item => (typeof item === 'string' ? { image: item } : item || { image: '' });
+const toItem = (item: FlyingPostersItem | undefined): { image: string; link?: string; alt?: string } =>
+  typeof item === 'string' ? { image: item } : item || { image: '' };
 
 const FlyingPosters = ({
   items = [],
@@ -157,10 +191,10 @@ const FlyingPosters = ({
   onItemClick,
   className = '',
   style
-}) => {
-  const rootRef = useRef(null);
-  const canvasRef = useRef(null);
-  const engineRef = useRef(null);
+}: FlyingPostersProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const engineRef = useRef<Engine | null>(null);
   const settings = {
     planeWidth: Math.max(10, planeWidth),
     planeHeight: Math.max(10, planeHeight),
@@ -206,7 +240,7 @@ const FlyingPosters = ({
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return undefined;
     gl.useProgram(program);
 
-    const uniforms = {};
+    const uniforms: Record<string, WebGLUniformLocation | null> = {};
     for (const name of [
       'uProjection',
       'uCamera',
@@ -234,8 +268,8 @@ const FlyingPosters = ({
       uniforms[name] = gl.getUniformLocation(program, name);
     }
 
-    const positions = [];
-    const indices = [];
+    const positions: number[] = [];
+    const indices: number[] = [];
     for (let y = 0; y <= GRID_Y; y++) {
       for (let x = 0; x <= GRID_X; x++) positions.push(x / GRID_X - 0.5, y / GRID_Y - 0.5);
     }
@@ -280,7 +314,7 @@ const FlyingPosters = ({
       canvas: document.createElement('canvas'),
       cells: 1,
       cell: 512,
-      images: [],
+      images: [] as (HTMLImageElement | null)[],
       aspect: 0,
       dirty: false
     };
@@ -365,7 +399,7 @@ const FlyingPosters = ({
       gl.generateMipmap(gl.TEXTURE_2D);
     };
 
-    const loadItems = list => {
+    const loadItems = (list: FlyingPostersItem[]) => {
       const current = ++request;
       const entries = list.map(toItem);
       const total = Math.max(1, entries.length);
@@ -391,7 +425,7 @@ const FlyingPosters = ({
       wake();
     };
 
-    const posterAt = (clientX, clientY) => {
+    const posterAt = (clientX: number, clientY: number) => {
       const s = settingsRef.current;
       const rect = canvas.getBoundingClientRect();
       const { spacing, scale } = metrics();
@@ -463,7 +497,7 @@ const FlyingPosters = ({
       gl.bindVertexArray(null);
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (!alive || !visible) return;
       const s = settingsRef.current;
@@ -495,7 +529,7 @@ const FlyingPosters = ({
       raf = requestAnimationFrame(frame);
     };
 
-    const onWheel = event => {
+    const onWheel = (event: WheelEvent) => {
       if (!settingsRef.current.wheel) return;
       event.preventDefault();
       const lines = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? state.height : 1;
@@ -503,7 +537,7 @@ const FlyingPosters = ({
       wake();
     };
 
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
       pointer.startX = event.clientX;
       pointer.startY = event.clientY;
@@ -516,13 +550,13 @@ const FlyingPosters = ({
       wake();
     };
 
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       if (!pointer.active || event.pointerId !== pointer.id) return;
       state.target = pointer.origin + (pointer.startY - event.clientY) * 0.1 * metrics().unit;
       wake();
     };
 
-    const onPointerUp = event => {
+    const onPointerUp = (event: PointerEvent) => {
       const tap =
         Math.hypot(event.clientX - pointer.startX, event.clientY - pointer.startY) < 6 &&
         performance.now() - pointer.start < 450;
@@ -611,10 +645,10 @@ const FlyingPosters = ({
   });
 
   return (
-    <div ref={rootRef} className={`flying-posters${className ? ` ${className}` : ''}`} style={style}>
+    <div ref={rootRef} className={`${ROOT}${className ? ` ${className}` : ''}`} style={style}>
       <canvas
         ref={canvasRef}
-        className="flying-posters__canvas"
+        className={CANVAS}
         style={{ touchAction: drag ? 'none' : 'auto', cursor: drag ? undefined : 'default' }}
       />
     </div>
