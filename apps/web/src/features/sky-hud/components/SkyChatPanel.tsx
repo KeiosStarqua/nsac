@@ -9,18 +9,18 @@
  *  - `useChat` state only; history comes from the existing `loadChatHistory` server function (the SDK
  *    never fetches it) and a turn streams through the SSE route `/api/chat-stream` (transport-owned):
  *    the reply lands token by token, no server function call from this component.
- *  - Reset clears the transcript client-side only. There is no server reset endpoint, so the stored
- *    transcript (`var/sky-sessions/<id>.json`) is left alone and comes back on the next hydration.
  *  - A failed turn shows the matching banner and never leaves an empty assistant bubble: an error
  *    before the first token throws (no bubble), an error mid-stream keeps the partial answer on screen
  *    with the banner above it.
  *  - `onReply` fires once per successful turn, so the HUD prompt + announcer keep working as before.
+ *  - `onUseVoice` hands the turn back to the microphone: the card closes and the host starts the same
+ *    capture the idle orb starts.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useChat } from "@ai-sdk/react";
-import { ArrowUpIcon, LoaderCircleIcon, MessageCircleDashedIcon, RotateCwIcon, XIcon } from "lucide-react";
+import { LoaderCircleIcon, MessageCircleDashedIcon, MessageCircleIcon, MicIcon, SendIcon, XIcon } from "lucide-react";
 import {
   Bubble,
   BubbleContent,
@@ -29,10 +29,6 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
   Markdown,
   Message,
   MessageContent,
@@ -62,29 +58,61 @@ export type SkyChatPanelProps = {
   onReply: (text: string) => void;
   /** A HUD program `show_on_hud` produced this turn (already reviewed server-side). */
   onUiProgram?: (program: string) => void;
+  /** "Use voice" pill: close the card and start the microphone (host does both). */
+  onUseVoice?: () => void;
 };
 
 // Floating card over the HUD: a dismissable backdrop below the card, card in the bottom-right corner
 // above the detail overlay (z-35) and the chrome chips. Full-bleed on phones (≤480px), where the old
-// full-screen shape is the only sensible one. Palette unchanged (Sky navy + cyan border).
+// full-screen shape is the only sensible one. Palette unchanged (Sky navy + cyan→purple rim).
 const CHAT_BACKDROP = "fixed inset-0 z-[40] bg-[rgba(2,12,28,.35)] backdrop-blur-[2px]";
 
 const CHAT_CARD = [
-  "fixed right-4 bottom-4 z-[45] flex h-[min(620px,82dvh)] w-[min(430px,94vw)] flex-col overflow-hidden",
-  "rounded-[20px] border border-[rgba(123,225,255,.35)]",
-  "bg-[color-mix(in_srgb,var(--sky-bg)_96%,transparent)]",
-  "shadow-[0_0_60px_rgba(75,151,244,.25)] text-foreground",
+  "fixed right-4 bottom-4 z-[45] flex h-[min(600px,84dvh)] w-[min(560px,94vw)] flex-col overflow-hidden",
+  "rounded-[20px] border border-transparent",
+  // Double background: navy fill in the padding box, the cyan→purple rim in the border box.
+  "[background:linear-gradient(180deg,#0b1a34,#081427)_padding-box,linear-gradient(120deg,rgba(92,240,208,.5),rgba(179,114,255,.5))_border-box]",
+  "shadow-[0_0_44px_rgba(94,240,214,.14),0_0_80px_rgba(178,112,255,.16)] text-foreground",
   // Tailwind v4 emits `translate` (not `transform`) for the 8px rise, so the transition lists it.
   "[transition:opacity_.18s_ease-out,translate_.18s_ease-out] motion-reduce:transition-none!",
   "max-[480px]:inset-0! max-[480px]:h-dvh max-[480px]:w-full max-[480px]:rounded-none! max-[480px]:border-0",
-  "max-[480px]:[transition:none]",
+  "max-[480px]:[transition:none] max-[480px]:[background:linear-gradient(180deg,#0b1a34,#081427)_padding-box]",
 ].join(" ");
 
 /** The two rAFs between mount and this state are the fade + 8px rise; skipped for reduced motion. */
 const CHAT_CARD_OPEN = "translate-y-0 opacity-100";
 const CHAT_CARD_ENTER = "translate-y-2 opacity-0 motion-reduce:translate-y-0 motion-reduce:opacity-100";
 
-export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram }: SkyChatPanelProps) {
+const CHAT_CLOSE = [
+  "grid size-9 shrink-0 place-items-center rounded-full border border-[rgba(140,200,255,.18)] bg-transparent p-0",
+  "text-[#9fbcd6] transition-colors hover:bg-[rgba(120,180,255,.1)] hover:text-[#eaf6ff]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!",
+].join(" ");
+
+const CHAT_TEXTAREA = [
+  "min-h-[110px] w-full resize-none rounded-[18px] border border-[rgba(140,200,255,.14)] bg-[rgba(6,16,36,.55)]",
+  "px-4 py-[14px] text-[17px] leading-[1.5] text-[#eaf6ff] placeholder:text-[#6f89a8]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[2px]! focus-visible:outline-[rgba(92,240,208,.45)]!",
+  "disabled:opacity-60 max-[480px]:min-h-[96px] max-[480px]:text-[16px]",
+].join(" ");
+
+const CHAT_USE_VOICE = [
+  "inline-flex h-[44px] shrink-0 cursor-pointer items-center gap-2 rounded-full border border-[rgba(140,220,255,.22)]",
+  "bg-[rgba(120,180,255,.08)] px-[18px] text-[#dceffc] transition-colors hover:bg-[rgba(120,180,255,.16)]",
+  "disabled:cursor-not-allowed disabled:opacity-40",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!",
+].join(" ");
+
+const CHAT_SEND = [
+  "grid size-[56px] shrink-0 cursor-pointer place-items-center rounded-[15px] border-0",
+  "bg-[linear-gradient(180deg,#37e0be,#1fc9a2)] text-[#07333a] shadow-[0_0_18px_rgba(55,224,190,.3)]",
+  "[transition:filter_.18s] hover:brightness-[1.06]",
+  "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!",
+  "max-[480px]:size-[48px]",
+].join(" ");
+
+export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVoice }: SkyChatPanelProps) {
   const c = useCopy().chat;
   const label = astronaut ? format(c.label, { name: firstName(astronaut.name) }) : c.title;
 
@@ -140,6 +168,7 @@ export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram }: SkyCh
           onClose={onClose}
           onReply={onReply}
           onUiProgram={onUiProgram}
+          onUseVoice={onUseVoice}
         />
       </div>
     </>,
@@ -147,7 +176,7 @@ export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram }: SkyCh
   );
 }
 
-function SkyChatThread({ astronaut, onClose, onReply, onUiProgram }: SkyChatPanelProps) {
+function SkyChatThread({ astronaut, onClose, onReply, onUiProgram, onUseVoice }: SkyChatPanelProps) {
   const c = useCopy().chat;
   const astronautId = astronaut?.id ?? null;
   const [draft, setDraft] = useState("");
@@ -204,12 +233,12 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram }: SkyChatPane
     textareaRef.current?.focus();
   }, []);
 
-  // Auto-resize the textarea (56px floor, 160px cap) — `field-sizing` is not available everywhere yet.
+  // Auto-resize the textarea (110px floor, 220px cap) — `field-sizing` is not available everywhere yet.
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(Math.max(el.scrollHeight, 56), 160)}px`;
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 110), 220)}px`;
   }, [draft]);
 
   const canSend = Boolean(astronautId) && draft.trim().length > 0 && !busy;
@@ -231,51 +260,24 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram }: SkyChatPane
     submit();
   };
 
-  const reset = () => {
-    if (busy) return;
-    // Client-side only: no server reset endpoint exists, the stored transcript is untouched.
-    setMessages([]);
-    setDraft("");
-    textareaRef.current?.focus();
-  };
-
   const errorCode = error ? chatErrorCode(error) : null;
   const errorText =
     errorCode === "missing_key" ? c.missingKey : errorCode === "timeout" ? c.timeout : errorCode ? c.unavailable : null;
-  const title = astronaut ? `${c.title} · ${firstName(astronaut.name)}` : c.title;
   const inputLabel = astronaut ? format(c.label, { name: firstName(astronaut.name) }) : c.selectFirst;
 
   return (
     <>
-      <header className="mx-auto flex w-full max-w-3xl items-start justify-between gap-4 px-6 pt-6 pb-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="truncate text-base font-medium text-foreground">{title}</h2>
-          <p className="text-sm text-muted-foreground">{c.subtitle}</p>
+      <header className="flex w-full items-center justify-between gap-3 px-6 pt-5 pb-3">
+        <div className="flex min-w-0 items-center gap-[10px]">
+          <MessageCircleIcon className="size-5 shrink-0 text-[#8ad8e8]" strokeWidth={1.6} aria-hidden="true" />
+          <h2 className="truncate text-[20px] font-light leading-[1.25]! tracking-normal! text-white">{c.panelTitle}</h2>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={reset}
-            disabled={busy}
-            aria-label={c.reset}
-            title={c.reset}
-            className="grid size-9 place-items-center rounded-full border border-border bg-transparent p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-          >
-            <RotateCwIcon className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={c.close}
-            title={c.close}
-            className="grid size-9 place-items-center rounded-full border border-border bg-transparent p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <XIcon className="size-4" />
-          </button>
-        </div>
+        <button type="button" onClick={onClose} aria-label={c.close} title={c.close} className={CHAT_CLOSE}>
+          <XIcon className="size-4" />
+        </button>
       </header>
 
-      <div className="mx-auto min-h-0 w-full max-w-3xl flex-1 px-6">
+      <div className="min-h-0 w-full flex-1 px-6">
         <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollPreviousItemPeek={48}>
           {messages.length === 0 && !busy ? (
             <Empty className="h-full">
@@ -341,7 +343,7 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram }: SkyChatPane
         </MessageScrollerProvider>
       </div>
 
-      <div className="mx-auto w-full max-w-3xl px-6 pt-3 pb-5">
+      <div className="w-full px-6 pt-3 pb-5">
         {errorText ? (
           <div
             role="alert"
@@ -351,27 +353,40 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram }: SkyChatPane
           </div>
         ) : null}
         {astronaut ? null : <p className="mb-2 text-xs text-muted-foreground">{c.selectFirst}</p>}
-        <form onSubmit={submit}>
-          <InputGroup>
-            <InputGroupTextarea
-              ref={textareaRef}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={c.placeholder}
-              aria-label={inputLabel}
-              maxLength={500}
-              rows={1}
-              disabled={!astronaut}
-              autoComplete="off"
-              className="min-h-14"
-            />
-            <InputGroupAddon align="block-end" className="justify-end">
-              <InputGroupButton type="submit" disabled={!canSend} aria-label={c.send} title={c.send}>
-                <ArrowUpIcon className="size-4" />
-              </InputGroupButton>
-            </InputGroupAddon>
-          </InputGroup>
+        <form onSubmit={submit} className="flex flex-col">
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={c.placeholder}
+            aria-label={inputLabel}
+            maxLength={500}
+            rows={1}
+            disabled={!astronaut}
+            autoComplete="off"
+            className={CHAT_TEXTAREA}
+          />
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => onUseVoice?.()}
+              disabled={!onUseVoice}
+              className={CHAT_USE_VOICE}
+              aria-label={c.useVoice}
+            >
+              <MicIcon className="size-[17px] shrink-0 text-[#9fd8e8]" strokeWidth={1.7} aria-hidden="true" />
+              <span className="whitespace-nowrap text-[15px]">{c.useVoice}</span>
+            </button>
+            <span className="text-[13px] text-[#7f96b3]">{c.enterToSend}</span>
+            <button type="submit" disabled={!canSend} aria-label={c.send} title={c.send} className={CHAT_SEND}>
+              {busy ? (
+                <LoaderCircleIcon className="size-6 animate-spin" aria-hidden="true" />
+              ) : (
+                <SendIcon className="size-5" fill="currentColor" aria-hidden="true" />
+              )}
+            </button>
+          </div>
         </form>
         <p className="mt-2 text-center text-[11px] text-muted-foreground">{c.footer}</p>
       </div>

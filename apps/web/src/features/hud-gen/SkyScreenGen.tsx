@@ -8,6 +8,7 @@ const ParticlesAny = Particles as any;
 // react-bits sources are @ts-nocheck; their inferred prop types demand props with runtime defaults.
 const LightTunnelAny = LightTunnel as any;
 import { useSkyVoice } from "../sky-hud/useSkyVoice";
+import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
 import { PHASE_TEXT, MIC_ARIA } from "../sky-hud/voiceCopy";
 import { SkyOrb } from "../sky-hud/SkyOrb";
 import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
@@ -89,7 +90,7 @@ export function SkyScreenGen() {
   const [claimError, setClaimError] = useState(false);
   const sessionIdRef = useRef<string | null>(null);
   const [greeting, setGreeting] = useState(() => copy.hud.greetingFallback);
-  const [prompt, setPrompt] = useState(() => copy.chat.placeholder);
+  const [prompt, setPrompt] = useState(() => copy.hud.promptFallback);
   const [announcer, setAnnouncer] = useState("");
   const [bg, setBg] = useState("particles");
   // Agent enhancement: the composed program, once accepted by review. Preset stays until then.
@@ -117,7 +118,10 @@ export function SkyScreenGen() {
   const previousFocus = useRef<Element | null>(null);
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
 
-  const { phase, energyRef, toggle, readEnergy } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
+  const { phase, energyRef, toggle, readEnergy, readSpectrum } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
+
+  // ⌘K / Ctrl+K anywhere on the console toggles the chat card (the watch layout has no chat card).
+  useToggleChatShortcut(() => setChatOpen((open) => !open), !isWatch);
 
   // The backend roster is metadata only: the bundled fixture renders first and stays if the
   // request fails (no network, backend down), so the picker never blocks on it.
@@ -304,7 +308,7 @@ export function SkyScreenGen() {
     setChatOpen(false);
     setOverrideProgram(null);
     setGreeting(greetingFor(findAstronaut(astronautId, roster)));
-    setPrompt(copy.chat.placeholder);
+    setPrompt(copy.hud.promptFallback);
   }, [astronautId, roster, greetingFor, copy]);
 
   // Chat → HUD: `show_on_hud` delivered a program the server already reviewed; review again on the
@@ -389,6 +393,8 @@ export function SkyScreenGen() {
       phase,
       hint,
       micAria: MIC_ARIA[phase],
+      energyRef,
+      readSpectrum,
       captions,
       greeting,
       prompt,
@@ -403,7 +409,7 @@ export function SkyScreenGen() {
       resetView,
       onAction: handleAction,
     }),
-    [copy, locale, facts, fx, phase, hint, captions, greeting, prompt, chatOpen, pickerOpen, agentProgram, composeHintDismissed, orbNode, waveNode, resetView, handleAction],
+    [copy, locale, facts, fx, phase, hint, energyRef, readSpectrum, captions, greeting, prompt, chatOpen, pickerOpen, agentProgram, composeHintDismissed, orbNode, waveNode, resetView, handleAction],
   );
 
   const program = overrideProgram ?? agentProgram ?? hudPreset(locale);
@@ -481,7 +487,17 @@ export function SkyScreenGen() {
 
       {/* Text chat — the same AI Elements overlay as the staged `/` console. */}
       {chatOpen ? (
-        <SkyChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} onUiProgram={handleChatProgram} />
+        <SkyChatPanel
+          astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null}
+          onClose={() => setChatOpen(false)}
+          onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }}
+          onUiProgram={handleChatProgram}
+          onUseVoice={() => {
+            // Same as tapping the idle orb: only start capture from idle/error.
+            setChatOpen(false);
+            if (phase === "idle" || phase === "error") handleAction({ type: "ToggleMic", params: {} });
+          }}
+        />
       ) : null}
 
       {/* Chat-composed HUD: one chip back to Sky's own view (never rendered in the watch layout). */}
