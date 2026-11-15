@@ -1,6 +1,7 @@
 // Galaxy
 // Source: https://reactbits.dev/c/backgrounds/galaxy (shadcn registry: @react-bits/Galaxy-TS-TW)
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
+// Sky fork (perf, visual unchanged): 30 fps draw cap, cached container rect, rAF-gated pointermove.
 // @ts-nocheck
 'use client';
 
@@ -75,6 +76,8 @@ type Variant = { program: WebGLProgram | null; linked: Program | null; done: boo
 const MAX_LAYERS = 8;
 const MAX_COLORS = 4;
 const INTRO_SECONDS = 2.2;
+// Sky fork (perf): the starfield drifts slowly enough that 30 draws/s look identical to 60 draws/s.
+const TARGET_FRAME_MS = 1000 / 30;
 
 const VERTEX = `#version 300 es
 in vec2 aPosition;
@@ -456,6 +459,12 @@ const Galaxy = ({
     let raf = 0;
     let last = 0;
     let visible = true;
+    // Sky fork (perf): the container rect is cached (refreshed on init/resize/scroll/pointerdown) so a
+    // pointermove never triggers a forced layout, and pointermove only records the newest coords —
+    // the frame loop applies them once per frame instead of 60–120 times a second.
+    const rect = { left: 0, top: 0, width: 0, height: 0 };
+    let pendingPointer: { x: number; y: number } | null = null;
+    let lastRenderAt = -Infinity;
 
     const render = () => {
       const s = settingsRef.current;
@@ -513,6 +522,11 @@ const Galaxy = ({
       const dt = last ? clamp((now - last) / 1000, 0.0005, 0.05) : 1 / 60;
       last = now;
       const motion = s.disableAnimation || reduce ? 0 : 1;
+      if (pendingPointer) {
+        const p = pendingPointer;
+        pendingPointer = null;
+        locate(p.x, p.y);
+      }
       if (s.intro && !reduce && state.reveal < 1) {
         state.reveal = Math.min(1, state.reveal + dt / INTRO_SECONDS);
         state.boost = Math.max(state.boost, Math.pow(1 - state.reveal, 2) * 1.4);
@@ -537,14 +551,39 @@ const Galaxy = ({
       state.active += (target - state.active) * follow;
       if (Math.abs(target - state.active) < 0.001) state.active = target;
 
-      render();
       const busy = motion > 0 || state.boost > 0 || state.active !== target || state.reveal < 1;
+      // Sky fork (perf): while busy, draw at most TARGET_FRAME_MS apart. `last` is still advanced every
+      // rAF with the real delta, so state.time/gloss/depth keep wall-clock speed and only the draw is
+      // skipped; when idle the loop ends exactly as upstream (render once, last = 0). The 1 ms slack
+      // absorbs rAF interval rounding so 120 Hz still draws a true 30 fps instead of drifting to 24.
+      if (busy && now - lastRenderAt < TARGET_FRAME_MS - 1) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      lastRenderAt = now;
+      render();
       if (busy) raf = requestAnimationFrame(frame);
       else last = 0;
     };
 
     const wake = () => {
       if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame);
+    };
+
+    const refreshRect = () => {
+      const box = container.getBoundingClientRect();
+      rect.left = box.left;
+      rect.top = box.top;
+      rect.width = box.width;
+      rect.height = box.height;
+    };
+
+    const locate = (clientX: number, clientY: number) => {
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      pointer.inside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+      pointer.x = x / Math.max(1, rect.width);
+      pointer.y = 1 - y / Math.max(1, rect.height);
     };
 
     const resize = () => {
@@ -554,27 +593,21 @@ const Galaxy = ({
       const ratio = Math.min(s.dpr || window.devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.round(width * ratio));
       canvas.height = Math.max(1, Math.round(height * ratio));
+      refreshRect();
       render();
       wake();
     };
 
-    const locate = (event: PointerEvent) => {
-      const rect = container.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      pointer.inside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
-      pointer.x = x / Math.max(1, rect.width);
-      pointer.y = 1 - y / Math.max(1, rect.height);
-    };
-
     const onPointerMove = (event: PointerEvent) => {
-      locate(event);
+      pendingPointer = { x: event.clientX, y: event.clientY };
       wake();
     };
 
     const onPointerDown = (event: PointerEvent) => {
       const s = settingsRef.current;
-      locate(event);
+      refreshRect();
+      pendingPointer = null;
+      locate(event.clientX, event.clientY);
       if (!pointer.inside || !s.clickWarp || reduce) return;
       state.boost = Math.min(1.6, state.boost + 1);
       wake();
@@ -585,6 +618,7 @@ const Galaxy = ({
     };
 
     const onPointerLeave = () => {
+      pendingPointer = null;
       pointer.inside = false;
     };
 
@@ -607,6 +641,8 @@ const Galaxy = ({
     window.addEventListener('pointerdown', onPointerDown, { passive: true });
     window.addEventListener('pointerup', onPointerUp, { passive: true });
     window.addEventListener('pointercancel', onPointerUp, { passive: true });
+    window.addEventListener('resize', refreshRect, { passive: true });
+    window.addEventListener('scroll', refreshRect, { passive: true, capture: true });
     document.documentElement.addEventListener('pointerleave', onPointerLeave);
     document.addEventListener('visibilitychange', onVisibility);
     resize();
@@ -638,6 +674,8 @@ const Galaxy = ({
       window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
+      window.removeEventListener('resize', refreshRect);
+      window.removeEventListener('scroll', refreshRect, { capture: true });
       document.documentElement.removeEventListener('pointerleave', onPointerLeave);
       document.removeEventListener('visibilitychange', onVisibility);
       programs.forEach(found => found.program && gl.deleteProgram(found.program));
