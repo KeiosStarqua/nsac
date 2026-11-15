@@ -61,6 +61,21 @@ export const SPEECH_ENGINE_ID_KEY = "speech_engine.id";
  */
 export const ELEVENLABS_KEY = "elevenlabs.api_key";
 
+/**
+ * Backdrop của dashboard `/` — admin-only setting, web đọc qua loopback GET
+ * `/api/settings/hud-background`. Chỉ hai React Bits component tồn tại: `particles` (default) và
+ * `galaxy`; precedence `?bg=`/localStorage cũ đã bị gỡ, admin luôn thắng.
+ */
+export const HUD_BACKGROUND_KEY = "hud.background";
+export const HUD_BACKGROUNDS = ["particles", "galaxy"] as const;
+export type HudBackground = (typeof HUD_BACKGROUNDS)[number];
+
+export interface HudBackgroundSetting {
+  background: HudBackground;
+  /** Unix ms. */
+  updatedAt: number;
+}
+
 export interface AgentConfigSnapshot {
   provider: AgentProvider | null;
   model: string | null;
@@ -236,6 +251,30 @@ export const settingsRepo = {
     if (!existed) return false;
     settingsDb().delete(appSettings).where(eq(appSettings.key, SPEECH_ENGINE_ID_KEY)).run();
     return true;
+  },
+
+  /**
+   * Backdrop hiệu lực của `/`, hoặc null khi chưa set / giá trị rác (hands-on DB edit, row cũ).
+   * `null` nghĩa là caller dùng default `particles` — route GET tự map.
+   */
+  getHudBackground(): HudBackgroundSetting | null {
+    const row = settingsDb().select().from(appSettings).where(eq(appSettings.key, HUD_BACKGROUND_KEY)).all()[0];
+    if (!row) return null;
+    const value = row.value.trim();
+    if (!(HUD_BACKGROUNDS as readonly string[]).includes(value)) return null;
+    return { background: value as HudBackground, updatedAt: row.updatedAt };
+  },
+
+  setHudBackground(background: HudBackground): HudBackgroundSetting {
+    const now = Date.now();
+    settingsDb().insert(appSettings)
+      .values({ key: HUD_BACKGROUND_KEY, value: background, updatedAt: now })
+      .onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: background, updatedAt: now },
+      })
+      .run();
+    return { background, updatedAt: now };
   },
 
   /**

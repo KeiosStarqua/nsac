@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import BlurText from "../../shared/react-bits/BlurText/BlurText";
-import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
+import Galaxy from "../../shared/react-bits/Galaxy/Galaxy";
 import Particles from "../../shared/react-bits/Particles/Particles";
 import Topography from "../../shared/react-bits/Topography/Topography";
 import CountUp from "../../shared/react-bits/CountUp/CountUp";
@@ -43,6 +43,7 @@ import { DeviceSwitcher } from "./components/DeviceSwitcher";
 import { HologramBody, HoloCredit } from "./components";
 import { useWatchViewport } from "../../shared/hooks/useWatchViewport";
 import { format, useCopy } from "../../shared/i18n";
+import { useHudBackground } from "../hud-bg";
 
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
@@ -98,22 +99,9 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
   const [greeting, setGreeting] = useState("Good morning.");
   const [prompt, setPrompt] = useState("How are you feeling today?");
   const [announcer, setAnnouncer] = useState("");
-  const [bg, setBg] = useState("particles");
-  useEffect(() => {
-    if (!mounted) return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const fromUrl = params.get("bg");
-      const fromStorage = window.localStorage.getItem("nsac.bg");
-      const raw = fromUrl ?? fromStorage;
-      // Only two backdrops remain (particles default, light-tunnel). A stale `bg` from an older
-      // build ("space", "stars", …) normalizes to particles and the stored value is cleaned up.
-      const chosen = raw === "light-tunnel" ? "light-tunnel" : "particles";
-      setBg(chosen);
-      if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
-      else if (raw !== null && raw !== chosen) window.localStorage.setItem("nsac.bg", chosen);
-    } catch { /* ignore */ }
-  }, [mounted]);
+  // Admin-configured console backdrop (`/admin/background`); particles is the default. The
+  // `?bg=` / `nsac.bg` precedence is retired — admin always wins.
+  const bg = useHudBackground();
   // Device views live at dedicated routes: `/` renders the console, `/watch` the full-screen watch.
   // Legacy entries bounce to `/watch`: a raw `?device=watch` in the URL or a stored `nsac.device
   // === "watch"` from before the split, and any ≤480px viewport (phone is watch-only). The legacy
@@ -490,8 +478,8 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
   return (
     <main className={SKY_APP} data-phase={phase} aria-label="SKY astronaut wellness overview">
       {/* /watch always renders the vendored Topography behind the watch device (not the
-          console's ?bg= path): deep-navy page, dim cyan topographic lines, low speed,
-          opacity <= 0.9 — the watch frame + caption stay the focal point. */}
+          console's admin-configured backdrop): deep-navy page, dim cyan topographic lines, low
+          speed, opacity <= 0.9 — the watch frame + caption stay the focal point. */}
       {variant === "watch" ? (
         <div className="absolute inset-0 z-0" aria-hidden="true">
           <Topography
@@ -507,9 +495,22 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
             intro={fx}
           />
         </div>
-      ) : bg === "light-tunnel" ? (
+      ) : bg === "galaxy" ? (
         <div className="absolute inset-0 z-0" aria-hidden="true">
-          <LightTunnel cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
+          <Galaxy
+            starColors={["#ffffff", "#78eaff", "#c8aaff"]}
+            twinkleIntensity={0.5}
+            glowIntensity={0.5}
+            flareIntensity={0.4}
+            density={0.85}
+            starSpeed={0.5}
+            saturation={0.55}
+            mouseInteraction={true}
+            dpr={1}
+            transparent
+            opacity={0.9}
+            intro={fx}
+          />
         </div>
       ) : (
         <div className="absolute inset-0 z-0" aria-hidden="true">

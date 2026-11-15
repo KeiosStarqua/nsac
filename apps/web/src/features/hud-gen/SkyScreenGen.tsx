@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
-import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
+import Galaxy from "../../shared/react-bits/Galaxy/Galaxy";
 import Particles from "../../shared/react-bits/Particles/Particles";
 import { DETAIL_ACTION, DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY, DETAIL_VALUE, CHAT_OVERRIDE_CHIP, SKY_APP, SPACE_VIGNETTE } from "../sky-hud/hud-classes";
 import { useSkyVoice } from "../sky-hud/useSkyVoice";
@@ -27,6 +27,7 @@ import { MAX_PROGRAM_CHARS, reviewProgram } from "./model/review";
 import { HUD_COMPONENT_NAMES, HUD_VITAL_KINDS } from "./model/names";
 import { composeHud } from "~/features/agent/api/hud-compose.functions";
 import type { VitalKind } from "../sky-hud/types";
+import { useHudBackground } from "../hud-bg";
 
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
@@ -90,28 +91,15 @@ export function SkyScreenGen() {
   const [greeting, setGreeting] = useState(() => copy.hud.greetingFallback);
   const [prompt, setPrompt] = useState(() => copy.hud.promptFallback);
   const [announcer, setAnnouncer] = useState("");
-  const [bg, setBg] = useState("particles");
+  // Admin-configured backdrop (`/admin/background`): particles default, Galaxy after mount when
+  // saved. `?bg=` / `nsac.bg` are retired — admin always wins.
+  const bg = useHudBackground();
   // Agent enhancement: the composed program, once accepted by review. Preset stays until then.
   const [agentProgram, setAgentProgram] = useState<string | null>(null);
   // Chat override: the program `show_on_hud` delivered on this screen. Replaces the WHOLE tree
   // (`overrideProgram ?? agentProgram ?? preset`); the chip clears it.
   const [overrideProgram, setOverrideProgram] = useState<string | null>(null);
   const [composeHintDismissed, setComposeHintDismissed] = useState(false);
-  useEffect(() => {
-    if (!mounted) return;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const fromUrl = params.get("bg");
-      const fromStorage = window.localStorage.getItem("nsac.bg");
-      const raw = fromUrl ?? fromStorage;
-      // Only two backdrops remain (particles default, light-tunnel). A stale `bg` from an older
-      // build ("space", "stars", …) normalizes to particles and the stored value is cleaned up.
-      const chosen = raw === "light-tunnel" ? "light-tunnel" : "particles";
-      setBg(chosen);
-      if (fromUrl) window.localStorage.setItem("nsac.bg", chosen);
-      else if (raw !== null && raw !== chosen) window.localStorage.setItem("nsac.bg", chosen);
-    } catch { /* ignore */ }
-  }, [mounted]);
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
@@ -525,9 +513,22 @@ export function SkyScreenGen() {
 
   return (
     <main className={SKY_APP} data-phase={phase} aria-label="SKY astronaut wellness overview">
-      {bg === "light-tunnel" ? (
+      {bg === "galaxy" ? (
         <div className="absolute inset-0 z-0" aria-hidden="true">
-          <LightTunnel cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
+          <Galaxy
+            starColors={["#ffffff", "#78eaff", "#c8aaff"]}
+            twinkleIntensity={0.5}
+            glowIntensity={0.5}
+            flareIntensity={0.4}
+            density={0.85}
+            starSpeed={0.5}
+            saturation={0.55}
+            mouseInteraction={true}
+            dpr={1}
+            transparent
+            opacity={0.9}
+            intro={fx}
+          />
         </div>
       ) : (
         <div className="absolute inset-0 z-0" aria-hidden="true">
