@@ -112,12 +112,13 @@ export function BodyMapOverlay({
               layers={layers}
               reducedMotion={reducedMotion}
               paused={paused}
+              progressPlacement={variant === "page" ? "top" : "bottomLeft"}
             />
           </Suspense>
         )}
       </>
     ),
-    [supported, selected, layers, reducedMotion, paused],
+    [supported, selected, layers, reducedMotion, paused, variant],
   );
 
   if (!open) return null;
@@ -151,8 +152,9 @@ export function BodyMapOverlay({
           <LayerRail layers={layers} setLayers={setLayers} />
         </div>
 
-        {/* CC BY 4.0: the attribution stays wherever the model appears. */}
-        <p className="pointer-events-none absolute bottom-[10px] left-[14px] z-10 m-0 max-w-[min(160ch,calc(100%_-_28px))] text-[10px] leading-[1.5] text-(--muted) opacity-[0.72] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)] max-[900px]:bottom-auto max-[900px]:top-[12px] max-[900px]:left-[12px]">
+        {/* CC BY 4.0: the attribution stays wherever the model appears. Under
+            900px it drops below the loading pill's top-left slot. */}
+        <p className="pointer-events-none absolute bottom-[10px] left-[14px] z-10 m-0 max-w-[min(160ch,calc(100%_-_28px))] text-[10px] leading-[1.5] text-(--muted) opacity-[0.85] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)] max-[900px]:bottom-auto max-[900px]:top-[46px] max-[900px]:left-[12px]">
           {ATTRIBUTION} Model licence:{" "}
           <a
             className="pointer-events-auto border-b border-b-(--accent)/40 text-(--accent) no-underline hover:text-(--text)!"

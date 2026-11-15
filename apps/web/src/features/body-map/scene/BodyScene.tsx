@@ -45,6 +45,13 @@ export interface BodySceneProps {
   readonly layers: LayerMap;
   readonly reducedMotion: boolean;
   readonly paused: boolean;
+  /**
+   * Where the loading pill sits. `bottom-left` (default, inside the overlay
+   * card) matches the canvas card's free corner; `top` is for the `/body`
+   * page, whose bottom-left carries the attribution line and bottom edge is
+   * the layer rail under 900px.
+   */
+  readonly progressPlacement?: "bottomLeft" | "top";
 }
 
 interface MeshEntry {
@@ -276,12 +283,16 @@ function BodyModel({
   );
 }
 
-function ModelProgress() {
+function ModelProgress({ placement }: { placement: "bottomLeft" | "top" }) {
   const { active } = useProgress();
   if (!active) return null;
+  const position =
+    placement === "top"
+      ? "top-[12px] right-[12px] max-[900px]:right-auto max-[900px]:left-[12px]"
+      : "bottom-[14px] left-[16px]";
   return (
     <p
-      className="absolute bottom-[14px] left-[16px] m-0 rounded-[999px] border border-(--accent)/22 bg-(--bg)/72 px-[12px] py-[6px] font-(family-name:--mono) text-[10px] tracking-[0.16em] uppercase text-(--muted)"
+      className={`absolute ${position} m-0 rounded-[999px] border border-(--accent)/22 bg-(--bg)/72 px-[12px] py-[6px] font-(family-name:--mono) text-[10px] tracking-[0.16em] uppercase text-(--muted)`}
       role="status"
     >
       Loading the anatomy model…
@@ -320,7 +331,7 @@ function SceneFallback({
  * The canvas and the model loader. Mounted only from the overlay, behind a lazy
  * import, so three.js never reaches the HUD entry chunk.
  */
-export default function BodyScene({ webglAvailable, onHover, ...props }: BodySceneProps) {
+export default function BodyScene({ webglAvailable, onHover, progressPlacement = "bottomLeft", ...props }: BodySceneProps) {
   // The pointer fires far more often than a tooltip needs to move; only a new
   // structure or a real step across the body reaches the chrome.
   const lastHover = useRef<HoverPoint | null>(null);
@@ -381,7 +392,7 @@ export default function BodyScene({ webglAvailable, onHover, ...props }: BodySce
           autoRotateSpeed={0.55}
         />
       </Canvas>
-      <ModelProgress />
+      <ModelProgress placement={progressPlacement} />
     </SceneBoundary>
   );
 }
