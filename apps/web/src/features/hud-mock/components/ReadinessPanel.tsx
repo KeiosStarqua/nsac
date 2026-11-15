@@ -38,6 +38,7 @@ import {
   GAUGE_SLASH,
   GAUGE_WRAP,
   HOLO_FRAME,
+  HOLO_FRAME_BUTTON,
   MINI_CARD,
   MINI_CHIP,
   MINI_DELTA,
@@ -179,6 +180,11 @@ export interface ReadinessTabsProps {
   readonly holo?: ReactNode;
   /** CC BY 4.0 credit line, rendered under the frame (outside it, so nothing is clipped). */
   readonly holoCredit?: ReactNode;
+  /**
+   * When provided, the Body-tab hologram frame is a real button that opens `/body`
+   * (the host passes its router navigation). Omit to keep the inert, non-interactive frame.
+   */
+  readonly onOpenBody?: () => void;
 }
 
 function Rows({ rows }: { rows: readonly PanelRow[] }) {
@@ -204,7 +210,7 @@ function Rows({ rows }: { rows: readonly PanelRow[] }) {
  * Readiness detail: four pill tabs (Body • Recovery • Cognitive • Energy) switching local state, all
  * four panels present, no routing. The Body tab keeps the existing holographic body on the left.
  */
-export function ReadinessDetail({ fixture, copy, holo, holoCredit }: ReadinessTabsProps) {
+export function ReadinessDetail({ fixture, copy, holo, holoCredit, onOpenBody }: ReadinessTabsProps) {
   const [tab, setTab] = useState<TabId>("body");
   const labels = {
     bodyWeight: copy.metricBodyWeight,
@@ -261,9 +267,21 @@ export function ReadinessDetail({ fixture, copy, holo, holoCredit }: ReadinessTa
         {tab === "body" ? (
           <div className={PANEL_BODY}>
             <div className="relative pb-[20px]">
-              <div className={HOLO_FRAME} aria-label={copy.bodyHoloAria} role="img">
-                {holo}
-              </div>
+              {onOpenBody ? (
+                <button
+                  type="button"
+                  data-testid="mock-holo-open"
+                  onClick={onOpenBody}
+                  aria-label={copy.bodyHoloOpen}
+                  className={`${HOLO_FRAME} ${HOLO_FRAME_BUTTON}`}
+                >
+                  {holo}
+                </button>
+              ) : (
+                <div className={HOLO_FRAME} aria-label={copy.bodyHoloAria} role="img">
+                  {holo}
+                </div>
+              )}
               {holoCredit}
             </div>
             <Rows rows={panels.body.rows} />

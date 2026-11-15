@@ -118,6 +118,20 @@ describe("hud-mock console — render smoke", () => {
     expect(html).toContain(copy.panelBody);
   });
 
+  test("the Body-tab hologram renders as a button opening /body when a callback is given", () => {
+    const html = renderToStaticMarkup(
+      createElement(ReadinessDetail, {
+        fixture: HUD_MOCK,
+        copy,
+        holo: createElement("div", { "data-testid": "holo-stub" }),
+        onOpenBody: () => {},
+      }),
+    );
+    expect(html).toContain('data-testid="mock-holo-open"');
+    expect(html).toContain('aria-label="Open the simulated body health map"');
+    expect(html).toContain('type="button"');
+  });
+
   test("the three mini cards carry activity, energy burned and energy intake with the balance chip", () => {
     const html = render();
     expect((html.match(/data-card="/g) ?? []).length).toBe(3);

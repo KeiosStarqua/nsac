@@ -222,6 +222,16 @@ export const HOLO_FRAME = [
   "max-[430px]:mx-auto max-[430px]:max-h-[180px] max-[430px]:w-[140px]",
 ].join(" ");
 
+// Button path of the Body-tab hologram frame: same dimensions as HOLO_FRAME plus cursor, a subtle
+// border/glow shift on hover/active (no layout movement) and a brand-cyan focus-visible ring.
+export const HOLO_FRAME_BUTTON = [
+  "block cursor-pointer p-0!",
+  "[transition:border-color_.18s,box-shadow_.18s]",
+  "hover:border-[rgba(94,234,212,.4)] hover:shadow-[0_0_18px_rgba(94,234,212,.22)]",
+  "active:border-[rgba(94,234,212,.6)] active:shadow-[0_0_10px_rgba(94,234,212,.3)]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#5eead4]!",
+].join(" ");
+
 export const ROW_LIST = "m-0! flex list-none flex-col gap-[9px] p-0!";
 
 export const ROW = "flex flex-col gap-[5px]";

@@ -199,6 +199,8 @@ export interface Copy {
     insightOpen: string;
     simulatedCrew: string;
     bodyHoloAria: string;
+    /** Accessible name of the Body-tab hologram button that opens `/body`. */
+    bodyHoloOpen: string;
     /** Accessible name of the detail dialog's close button. */
     detailClose: string;
   };

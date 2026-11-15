@@ -164,6 +164,7 @@ export const en: Copy = {
     insightOpen: "Open Human Performance",
     simulatedCrew: "SIMULATED CREW DATA (P0)",
     bodyHoloAria: "Simulated body composition hologram",
+    bodyHoloOpen: "Open the simulated body health map",
     detailClose: "Close details",
   },
   performance: {
