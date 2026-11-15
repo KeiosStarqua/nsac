@@ -13,16 +13,18 @@ import "@tanstack/react-start/server-only";
  *   1. Backend `agent.models[profile]` — chỉ khi `profile` truyền vào và có trong map
  *      (validate regex lần nữa; rác ⇒ bỏ qua)
  *   2. Backend legacy `agent.model`
- *   3. `SKY_AGENT_MODEL` (global, cả 2 provider) → provider-specific
- *      `SKY_OPENCODE_MODEL` (go) / `SKY_OPENROUTER_MODEL` (openrouter)
- *   4. Provider default: opencode-go → `deepseek-v4.1-flash`; openrouter → `thinkingmachines/inkling-2-small:free`
+ *   3. `SKY_AGENT_MODEL` (global, cả 3 provider) → provider-specific
+ *      `SKY_OPENCODE_MODEL` (go) / `SKY_OPENROUTER_MODEL` (openrouter) / `SKY_BEDROCK_MODEL` (amazon-bedrock)
+ *   4. Provider default: opencode-go → `deepseek-v4.1-flash`; openrouter → `thinkingmachines/inkling-2-small:free`;
+ *      amazon-bedrock → `global.amazon.nova-2-lite-v1:0`
  *
  * `currentAgentProviderInfo()` thêm `source` cho /health (backend | env | default).
  */
-export type AgentProvider = "opencode-go" | "openrouter";
+export type AgentProvider = "opencode-go" | "openrouter" | "amazon-bedrock";
 
 const DEFAULT_GO_MODEL = "deepseek-v4.1-flash";
 const DEFAULT_OPENROUTER_MODEL = "thinkingmachines/inkling-2-small:free";
+const DEFAULT_BEDROCK_MODEL = "global.amazon.nova-2-lite-v1:0";
 
 const BACKEND_TIMEOUT_MS = 1200; // Trong khoảng 1000–1500ms theo spec
 const CACHE_TTL_MS = 2000; // Cache tạm cho burst (composer + orchestrator + chat cùng turn)
@@ -41,7 +43,7 @@ function backendBase(): string {
 
 function envProvider(): AgentProvider | null {
   const raw = process.env.SKY_AGENT_PROVIDER?.trim().toLowerCase();
-  if (raw === "opencode-go" || raw === "openrouter") return raw;
+  if (raw === "opencode-go" || raw === "openrouter" || raw === "amazon-bedrock") return raw;
   return null; // Giá trị lạ ⇒ bỏ qua, rơi về default
 }
 
@@ -50,13 +52,17 @@ function envModel(provider: AgentProvider): string | undefined {
     process.env.SKY_AGENT_MODEL?.trim() ||
     (provider === "opencode-go"
       ? process.env.SKY_OPENCODE_MODEL?.trim()
-      : process.env.SKY_OPENROUTER_MODEL?.trim()) ||
+      : provider === "openrouter"
+        ? process.env.SKY_OPENROUTER_MODEL?.trim()
+        : process.env.SKY_BEDROCK_MODEL?.trim()) ||
     undefined
   );
 }
 
 function providerDefault(provider: AgentProvider): string {
-  return provider === "opencode-go" ? DEFAULT_GO_MODEL : DEFAULT_OPENROUTER_MODEL;
+  if (provider === "opencode-go") return DEFAULT_GO_MODEL;
+  if (provider === "openrouter") return DEFAULT_OPENROUTER_MODEL;
+  return DEFAULT_BEDROCK_MODEL;
 }
 
 type BackendSettings =
@@ -76,7 +82,10 @@ function parseBackendSettings(json: unknown): {
   model: string | null;
 } {
   const rawProvider = (json as { provider?: unknown } | null)?.provider;
-  const provider = rawProvider === "opencode-go" || rawProvider === "openrouter" ? rawProvider : null;
+  const provider =
+    rawProvider === "opencode-go" || rawProvider === "openrouter" || rawProvider === "amazon-bedrock"
+      ? rawProvider
+      : null;
   const model = parseLegacyModel(json);
   const rawModels = (json as { models?: unknown } | null)?.models;
   if (!rawModels || typeof rawModels !== "object" || Array.isArray(rawModels)) {

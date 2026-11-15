@@ -16,8 +16,21 @@ export function readOpenCodeKey(): string | null {
   return raw.trim();
 }
 
-export function readProviderKey(provider: "opencode-go" | "openrouter"): string | null {
-  return provider === "opencode-go" ? readOpenCodeKey() : readOpenRouterKey();
+export function readBedrockKey(): string | null {
+  const raw = process.env.AWS_BEARER_TOKEN_BEDROCK;
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  return raw.trim();
+}
+
+export function readProviderKey(provider: "opencode-go" | "openrouter" | "amazon-bedrock"): string | null {
+  if (provider === "opencode-go") return readOpenCodeKey();
+  if (provider === "amazon-bedrock") return readBedrockKey();
+  return readOpenRouterKey();
+}
+
+/** Bedrock runtime baseUrl: SKY_BEDROCK_BASE_URL override, else ap-southeast-1 (independent of AWS_REGION). */
+export function bedrockBaseUrl(): string {
+  return process.env.SKY_BEDROCK_BASE_URL?.trim() || "https://bedrock-runtime.ap-southeast-1.amazonaws.com";
 }
 
 /** Key của provider đang hiệu lực; chỉ dùng cho check nhanh (vd. missing_key trước khi vào turn). */
@@ -50,7 +63,7 @@ function piCacheDir(): string {
 const SKY_MAX_TOKENS = 2048;
 
 type ModelsFileParts = {
-  provider: "opencode-go" | "openrouter";
+  provider: "opencode-go" | "openrouter" | "amazon-bedrock";
   model: string;
   withModelEntry: boolean;
   maxTokens?: number;
@@ -94,10 +107,13 @@ export async function createSession(
   if (!key) throw new Error("missing_key");
   // Model resolution: backend agent.models[profile] → legacy agent.model → env → provider default.
   const model = await currentAgentModel(profile?.id);
+  // Bedrock is pinned to ap-southeast-1 unless SKY_BEDROCK_BASE_URL overrides it (never derived from AWS_REGION).
   const baseUrl =
     (provider === "opencode-go"
       ? process.env.SKY_OPENCODE_BASE_URL?.trim()
-      : process.env.SKY_OPENROUTER_BASE_URL?.trim()) || undefined;
+      : provider === "openrouter"
+        ? process.env.SKY_OPENROUTER_BASE_URL?.trim()
+        : bedrockBaseUrl()) || undefined;
   const pi = await loadPiSdk();
   const probePath = ensureModelsFile({ provider, model, withModelEntry: false, baseUrl });
   const probe = await pi.ModelRuntime.create({ modelsPath: probePath, authPath: join(piCacheDir(), "auth.json") });

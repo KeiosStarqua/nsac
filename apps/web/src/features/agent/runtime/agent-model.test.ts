@@ -11,6 +11,7 @@ import {
 // Mọi test ở đây stub global fetch nên không bao giờ chạm mạng/DB thật.
 const ENV_KEY = "SKY_OPENROUTER_MODEL";
 const GO_ENV_KEY = "SKY_OPENCODE_MODEL";
+const BEDROCK_ENV_KEY = "SKY_BEDROCK_MODEL";
 const GLOBAL_ENV_KEY = "SKY_AGENT_MODEL";
 const PROVIDER_ENV_KEY = "SKY_AGENT_PROVIDER";
 const BACKEND_KEY = "BACKEND_URL";
@@ -34,6 +35,7 @@ afterEach(() => {
   delete process.env[BACKEND_KEY];
   delete process.env[ENV_KEY];
   delete process.env[GO_ENV_KEY];
+  delete process.env[BEDROCK_ENV_KEY];
   delete process.env[GLOBAL_ENV_KEY];
   delete process.env[PROVIDER_ENV_KEY];
 });
@@ -107,6 +109,73 @@ describe("currentAgentProvider", () => {
     resetAgentModelCacheForTests();
     delete process.env[PROVIDER_ENV_KEY];
     expect((await currentAgentProviderInfo()).source).toBe("default");
+  });
+});
+
+describe("currentAgentProvider — amazon-bedrock", () => {
+  it("backend set provider=amazon-bedrock → bedrock", async () => {
+    stubBackend({ provider: "amazon-bedrock", model: null, models: null, updatedAt: 1 });
+    expect(await currentAgentProvider()).toBe("amazon-bedrock");
+    expect((await currentAgentProviderInfo()).source).toBe("backend");
+  });
+
+  it("env SKY_AGENT_PROVIDER=amazon-bedrock → bedrock (không thắng backend)", async () => {
+    stubBackend({ provider: null, model: null, models: null, updatedAt: null });
+    process.env[PROVIDER_ENV_KEY] = "amazon-bedrock";
+    expect(await currentAgentProvider()).toBe("amazon-bedrock");
+    expect((await currentAgentProviderInfo()).source).toBe("env");
+    resetAgentModelCacheForTests();
+    stubBackend({ provider: "opencode-go", model: null, models: null, updatedAt: 1 });
+    expect(await currentAgentProvider()).toBe("opencode-go");
+  });
+
+  it("env giá trị gần giống nhưng sai (amazon_bedrock, Amazon-Bedrock kiểu hoa) → bị coi là lạ", async () => {
+    stubBackend({ provider: null, model: null, models: null, updatedAt: null });
+    process.env[PROVIDER_ENV_KEY] = "amazon_bedrock";
+    expect(await currentAgentProvider()).toBe("opencode-go");
+    resetAgentModelCacheForTests();
+    process.env[PROVIDER_ENV_KEY] = "  Amazon-Bedrock  "; // hợp lệ sau trim/lowercase
+    expect(await currentAgentProvider()).toBe("amazon-bedrock");
+  });
+});
+
+describe("currentAgentModel — amazon-bedrock", () => {
+  it("provider bedrock + SKY_BEDROCK_MODEL, backend unreachable → model từ env", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("conn refused"); }));
+    process.env[PROVIDER_ENV_KEY] = "amazon-bedrock";
+    process.env[BEDROCK_ENV_KEY] = "global.moonshotai.kimi-k3";
+    expect(await currentAgentModel()).toBe("global.moonshotai.kimi-k3");
+  });
+
+  it("SKY_AGENT_MODEL (global) thắng SKY_BEDROCK_MODEL", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("conn refused"); }));
+    process.env[PROVIDER_ENV_KEY] = "amazon-bedrock";
+    process.env[GLOBAL_ENV_KEY] = "global/model";
+    process.env[BEDROCK_ENV_KEY] = "global.moonshotai.kimi-k3";
+    expect(await currentAgentModel()).toBe("global/model");
+  });
+
+  it("provider bedrock + không env model → default Nova 2 Lite", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("conn refused"); }));
+    process.env[PROVIDER_ENV_KEY] = "amazon-bedrock";
+    expect(await currentAgentModel()).toBe("global.amazon.nova-2-lite-v1:0");
+  });
+
+  it("per-profile agent.models thắng legacy + env (provider bedrock)", async () => {
+    stubBackend({
+      provider: "amazon-bedrock",
+      model: "legacy/model",
+      models: { "sky-chat": "global.moonshotai.kimi-k3.1" },
+      updatedAt: 1,
+    });
+    process.env[GLOBAL_ENV_KEY] = "env/model";
+    expect(await currentAgentModel("sky-chat")).toBe("global.moonshotai.kimi-k3.1");
+    expect(await currentAgentModel("sky-orchestrator")).toBe("legacy/model");
+  });
+
+  it("inference-profile id có dấu chấm/colon đi qua regex hợp lệ", async () => {
+    stubBackend({ provider: "amazon-bedrock", model: "global.amazon.nova-2-lite-v1:0", models: null, updatedAt: 1 });
+    expect(await currentAgentModel()).toBe("global.amazon.nova-2-lite-v1:0");
   });
 });
 

@@ -392,6 +392,10 @@ export interface Copy {
     providerOpenrouterDesc: string;
     /** One line kept for the legacy OpenRouter branch. */
     legacyNote: string;
+    providerAmazonBedrock: string;
+    providerAmazonBedrockDesc: string;
+    /** Bedrock verified footer note — deliberately identical in en/vi (untranslated). */
+    bedrockVerifiedNote: string;
     /** "Default (all agents)" dropdown + the unset option. */
     defaultAllLabel: string;
     defaultAllHint: string;
