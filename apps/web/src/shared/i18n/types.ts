@@ -120,6 +120,8 @@ export interface Copy {
     simulatedTag: string;
     backToHud: string;
     bodyMap: string;
+    /** Small tertiary footer link to `/research`. */
+    researchEvidence: string;
     metricsAria: string;
     /** Caption under every delta. */
     deltaVs: string;
@@ -154,6 +156,77 @@ export interface Copy {
     metricHydration: string;
     metricExerciseDuration: string;
     metricHeartRate: string;
+  };
+  /** `/research` — SKY / Research Evidence, read-only view of the NASA analog cohort datasets in the `data/` submodule. Analog research, never the fictional crew. */
+  research: {
+    metaTitle: string;
+    brand: string;
+    brandSub: string;
+    backToHud: string;
+    backPerformance: string;
+    /** Mono badge chip in the header. */
+    badge: string;
+    /** Header context line naming the analog cohorts. */
+    contextLine: string;
+    /** Header line: research data, not this crew, not clinical guidance. */
+    disclaimerLine: string;
+    /** Plain-text legend above the grid explaining the two stat kinds. */
+    legend: string;
+    groups: {
+      cardiometabolic: string;
+      musculoskeletal: string;
+      neuro: string;
+      sleepBehavior: string;
+      fitnessDose: string;
+    };
+    /** Card titles stay Vietnamese, with the English metric name beneath; both locales render the same pair. Keys are the task ids. */
+    cards: {
+      lv_mass: { title: string; subtitle: string };
+      lv_diastolic_volume: { title: string; subtitle: string };
+      lipid_ldl: { title: string; subtitle: string };
+      glucose: { title: string; subtitle: string };
+      vitals_sbp: { title: string; subtitle: string };
+      vitals_dbp: { title: string; subtitle: string };
+      vitals_pulse: { title: string; subtitle: string };
+      vitals_temp: { title: string; subtitle: string };
+      vitals_weight: { title: string; subtitle: string };
+      hr: { title: string; subtitle: string };
+      bone_mineral: { title: string; subtitle: string };
+      lean_mass_legs: { title: string; subtitle: string };
+      muscle_quadriceps: { title: string; subtitle: string };
+      muscle_soleus: { title: string; subtitle: string };
+      cognition_cpt_rt: { title: string; subtitle: string };
+      cognition_math_acc: { title: string; subtitle: string };
+      sleep_act: { title: string; subtitle: string };
+      sleep_act_duration: { title: string; subtitle: string };
+      fatigue: { title: string; subtitle: string };
+      mood: { title: string; subtitle: string };
+      cpet: { title: string; subtitle: string };
+      dose: { title: string; subtitle: string };
+    };
+    /** Stat-kind chip: distribution across overlapping windows. */
+    statWindow: string;
+    /** Stat-kind chip: Day-0→Day-70 change vs baseline. */
+    statDelta: string;
+    rowsLabel: string;
+    subjectsLabel: string;
+    medianLabel: string;
+    iqrLabel: string;
+    rangeLabel: string;
+    /** Link label to the per-task data card on GitHub. */
+    dataCard: string;
+    /** Line on every card: analog cohort research, not this crew. */
+    notThisCrew: string;
+    provenanceTitle: string;
+    provenanceBody: string;
+    provenanceCatalog: string;
+    provenancePipeline: string;
+    /** Licence line listing the analog source licences + the repo licence. */
+    provenanceLicences: string;
+    /** Shown when the bundled research data fails zod validation. */
+    emptyState: string;
+    disclaimer: string;
+    notMedicalAdvice: string;
   };
   /** Hidden /admin page — operator-only model switch. */
   admin: {
