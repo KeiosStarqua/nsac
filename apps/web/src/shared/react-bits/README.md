@@ -14,6 +14,13 @@
 
 Fetched 2026-11-14. Changes: JSX to TSX, `'use client'` removed, `@ts-nocheck` added.
 
+Galaxy fetched 2026-11-16 (`@react-bits/Galaxy-TS-TW`), same changes; zero dependencies, WebGL2 + Tailwind utilities.
+Sky fork: the registry stays the source of truth, but Galaxy carries three CPU/GPU-only optimizations with an
+unchanged visual result — a 30 fps draw cap in the rAF loop (slow star drift, state still advances on the real
+delta), the container rect cached in a ref and refreshed on init/resize/scroll/pointerdown instead of a forced
+layout per `pointermove`, and `pointermove` reduced to storing the latest coords plus a wake (the frame loop
+applies them once per frame). Do not lower layers/density or replace the shader when re-syncing the registry.
+
 VoicePill fetched 2026-11-15, same changes; it needs `@hugeicons/react` + `@hugeicons/core-free-icons` (already direct dependencies of this package).
 Sky fork: `--vp-cancel` initialized to `0` in the root button style (upstream leaves it unset → the Cancel affordance renders at rest).
 MIT + Commons Clause. Vendored for this app only, never republished as a library.
