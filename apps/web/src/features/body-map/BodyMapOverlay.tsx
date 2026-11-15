@@ -2,6 +2,8 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import { ATTRIBUTION } from "open-anatomy-3d";
 import { EscapeChip } from "./components/EscapeChip";
 import { BodyTree } from "./components/BodyTree";
+import { ViewControls } from "./components/ViewControls";
+import type { ViewBridgeApi } from "./scene/BodyScene";
 import { HoverTooltip } from "./components/HoverTooltip";
 import { LayerRail } from "./components/LayerRail";
 import { StructureCard } from "./components/StructureCard";
@@ -62,6 +64,7 @@ export function BodyMapOverlay({
   const [hover, setHover] = useState<HoverPoint | null>(null);
   const [treeOpen, setTreeOpen] = useState(false);
   const [supported, setSupported] = useState<boolean | null>(null);
+  const viewRef = useRef<ViewBridgeApi | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const reducedMotion = useReducedMotion();
@@ -70,6 +73,7 @@ export function BodyMapOverlay({
   const close = useCallback(() => {
     setSelected(null);
     setHover(null);
+    setTreeOpen(false);
     onClose();
   }, [onClose]);
 
@@ -81,7 +85,14 @@ export function BodyMapOverlay({
     document.body.style.overflow = "hidden";
     dialogRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
+      if (event.key !== "Escape") return;
+      // The drawer closes first; only the next Escape leaves the page.
+      if (treeOpen) {
+        event.stopPropagation();
+        setTreeOpen(false);
+        return;
+      }
+      close();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
@@ -89,7 +100,7 @@ export function BodyMapOverlay({
       window.removeEventListener("keydown", onKeyDown);
       openerRef.current?.focus();
     };
-  }, [open, close]);
+  }, [open, close, treeOpen]);
 
   // The scene subtree both variants share: the 3D canvas, its preparation state
   // and the WebGL/GLB fallbacks. Nothing else lives in here. Memoised so a hover
@@ -118,12 +129,13 @@ export function BodyMapOverlay({
               reducedMotion={reducedMotion}
               paused={paused}
               progressPlacement={variant === "page" ? "top" : "bottomLeft"}
+              viewRef={variant === "page" ? viewRef : undefined}
             />
           </Suspense>
         )}
       </>
     ),
-    [supported, selected, layers, reducedMotion, paused, variant],
+    [supported, selected, layers, reducedMotion, paused, variant, viewRef],
   );
 
   if (!open) return null;
@@ -141,8 +153,14 @@ export function BodyMapOverlay({
           Body hologram
         </h1>
 
-        {/* The canvas owns the viewport: the panel's #050c16 radial, no frame. */}
-        <div className="absolute inset-0 overflow-hidden rounded-none border-0 [background:radial-gradient(80%_70%_at_50%_18%,color-mix(in_srgb,var(--surface)_48%,transparent),transparent_70%),#050c16] [box-shadow:inset_0_0_90px_rgba(0,0,0,0.45)]">
+        {/* The canvas owns the viewport: the panel's #050c16 radial, no frame.
+            The interactive model is not itself a screen-reader surface — the
+            Body tree is its text equivalent. */}
+        <div
+          className="absolute inset-0 overflow-hidden rounded-none border-0 [background:radial-gradient(80%_70%_at_50%_18%,color-mix(in_srgb,var(--surface)_48%,transparent),transparent_70%),#050c16] [box-shadow:inset_0_0_90px_rgba(0,0,0,0.45)]"
+          role="img"
+          aria-label="Interactive 3D hologram of the Open Anatomy male model; drag to rotate, scroll to zoom, or use the Body tree to pick a structure."
+        >
           {scene}
         </div>
 
@@ -150,6 +168,22 @@ export function BodyMapOverlay({
             z-10) but pointer-events-none, so neither orbit nor the toggles lose
             a click. */}
         <HoverTooltip hover={hover} />
+
+        {/* Drag-free camera (DESIGN.md, BodyVolume rule): rotate, zoom and a
+            Reset View. Only with WebGL — a failed 3D path has nothing to
+            rotate. */}
+        {supported === true ? (
+          <ViewControls
+            onRotateLeft={() => viewRef.current?.rotateLeft()}
+            onRotateRight={() => viewRef.current?.rotateRight()}
+            onZoomIn={() => viewRef.current?.zoomIn()}
+            onZoomOut={() => viewRef.current?.zoomOut()}
+            onReset={() => {
+              setSelected(null);
+              viewRef.current?.reset();
+            }}
+          />
+        ) : null}
 
         {/* The accessible text twin of the atlas (page variant only): a
             left-edge toggle that opens the Body Tree drawer. Same selection
@@ -169,7 +203,7 @@ export function BodyMapOverlay({
 
         {/* CC BY 4.0: the attribution stays wherever the model appears. Under
             900px it drops below the loading pill's top-left slot. */}
-        <p className="pointer-events-none absolute bottom-[10px] left-[14px] z-10 m-0 max-w-[min(160ch,calc(100%_-_28px))] text-[10px] leading-[1.5] text-(--muted) opacity-[0.85] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)] max-[900px]:bottom-auto max-[900px]:top-[46px] max-[900px]:left-[12px]">
+        <p className="pointer-events-none absolute bottom-[10px] left-[14px] z-10 m-0 max-w-[min(160ch,calc(100%_-_28px))] text-[12px] leading-[1.5] text-(--muted) opacity-[0.9] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)] max-[900px]:bottom-auto max-[900px]:top-[46px] max-[900px]:left-[12px]">
           {ATTRIBUTION} Model licence:{" "}
           <a
             className="pointer-events-auto border-b border-b-(--accent)/40 text-(--accent) no-underline hover:text-(--text)!"

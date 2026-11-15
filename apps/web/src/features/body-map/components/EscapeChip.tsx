@@ -21,7 +21,7 @@ export function EscapeChip({ onActivate }: EscapeChipProps) {
       type="button"
       onClick={onActivate}
       aria-label="Back to HUD (Escape)"
-      className="absolute right-[14px] bottom-[10px] z-10 inline-flex cursor-pointer items-center gap-[7px] rounded-[999px]! border border-(--accent)/22 bg-(--surface)/62 py-[5px] pr-[12px] pl-[6px] text-[10px]! leading-none! tracking-[0.18em] text-(--muted) backdrop-blur-[6px] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)] transition-colors duration-200 hover:border-(--accent)/44 hover:text-(--text) motion-reduce:transition-none max-[900px]:top-[12px] max-[900px]:right-[12px] max-[900px]:bottom-auto"
+      className="absolute right-[14px] bottom-[10px] z-10 inline-flex cursor-pointer items-center gap-[7px] rounded-[999px]! border border-(--accent)/22 bg-(--surface)/62 py-[5px] pr-[12px] pl-[6px] text-[11px]! leading-none! tracking-[0.18em] text-(--muted) backdrop-blur-[6px] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)] transition-colors duration-200 hover:border-(--accent)/44 hover:text-(--text) motion-reduce:transition-none max-[900px]:top-[12px] max-[900px]:right-[12px] max-[900px]:bottom-auto"
     >
       <kbd
         aria-hidden="true"

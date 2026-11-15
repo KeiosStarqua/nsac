@@ -1,5 +1,5 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import { Suspense, useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useProgress } from "@react-three/drei";
 import {
   ATTRIBUTION,
@@ -33,6 +33,58 @@ const MODEL_URL = modelUrl("male", "/models/");
 const DEFAULT_CAMERA: [number, number, number] = [0, 0.92, 3.25];
 const DEFAULT_TARGET: [number, number, number] = [0, 0.88, 0];
 
+interface ViewBridgeControls {
+  readonly target: THREE.Vector3;
+  readonly minDistance: number;
+  readonly maxDistance: number;
+  readonly update: () => void;
+}
+
+/**
+ * Hands the non-drag camera actions to DOM buttons outside the canvas. Zoom is
+ * clamped to the OrbitControls distance limits, rotation is a fixed azimuth
+ * step and Reset returns to the default camera and target.
+ */
+function ViewBridge({ bridge }: { readonly bridge: MutableRefObject<ViewBridgeApi | null> }) {
+  const camera = useThree((state) => state.camera);
+  const controls = useThree((state) => state.controls) as unknown as ViewBridgeControls | null;
+
+  useEffect(() => {
+    if (!controls) return;
+    const ROTATION_STEP_DEGREES = 22.5;
+    const rotate = (degrees: number) => {
+      const offset = camera.position
+        .clone()
+        .sub(controls.target)
+        .applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(degrees));
+      camera.position.copy(controls.target).add(offset);
+      controls.update();
+    };
+    const zoom = (factor: number) => {
+      const offset = camera.position.clone().sub(controls.target);
+      const length = THREE.MathUtils.clamp(offset.length() * factor, controls.minDistance, controls.maxDistance);
+      camera.position.copy(controls.target).add(offset.setLength(length));
+      controls.update();
+    };
+    bridge.current = {
+      rotateLeft: () => rotate(-ROTATION_STEP_DEGREES),
+      rotateRight: () => rotate(ROTATION_STEP_DEGREES),
+      zoomIn: () => zoom(0.8),
+      zoomOut: () => zoom(1.25),
+      reset: () => {
+        camera.position.set(...DEFAULT_CAMERA);
+        controls.target.set(...DEFAULT_TARGET);
+        controls.update();
+      },
+    };
+    return () => {
+      bridge.current = null;
+    };
+  }, [camera, controls, bridge]);
+
+  return null;
+}
+
 export interface BodySceneProps {
   readonly webglAvailable: boolean;
   readonly selected: string | null;
@@ -52,6 +104,20 @@ export interface BodySceneProps {
    * the layer rail under 900px.
    */
   readonly progressPlacement?: "bottomLeft" | "top";
+  /**
+   * Optional bridge to the imperative camera. The `/body` page fills this to
+   * expose rotate/zoom/reset buttons; the HUD overlay leaves it unset.
+   */
+  readonly viewRef?: MutableRefObject<ViewBridgeApi | null>;
+}
+
+/** The non-drag camera actions the page's view buttons call. */
+export interface ViewBridgeApi {
+  readonly rotateLeft: () => void;
+  readonly rotateRight: () => void;
+  readonly zoomIn: () => void;
+  readonly zoomOut: () => void;
+  readonly reset: () => void;
 }
 
 interface MeshEntry {
@@ -331,7 +397,7 @@ function SceneFallback({
  * The canvas and the model loader. Mounted only from the overlay, behind a lazy
  * import, so three.js never reaches the HUD entry chunk.
  */
-export default function BodyScene({ webglAvailable, onHover, progressPlacement = "bottomLeft", ...props }: BodySceneProps) {
+export default function BodyScene({ webglAvailable, onHover, progressPlacement = "bottomLeft", viewRef, ...props }: BodySceneProps) {
   // The pointer fires far more often than a tooltip needs to move; only a new
   // structure or a real step across the body reaches the chrome.
   const lastHover = useRef<HoverPoint | null>(null);
@@ -380,6 +446,7 @@ export default function BodyScene({ webglAvailable, onHover, progressPlacement =
         <Suspense fallback={null}>
           <BodyModel {...props} reportHover={reportHover} />
         </Suspense>
+        {viewRef ? <ViewBridge bridge={viewRef} /> : null}
         <OrbitControls
           makeDefault
           target={DEFAULT_TARGET}
