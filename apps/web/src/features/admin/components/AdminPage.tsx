@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Bot, KeyRound, RotateCcw, Volume2 } from "lucide-react";
 import { useCopy } from "~/shared/i18n";
+import { MorphingTabs } from "~/shared/beui/morphing-tabs";
 import {
   unlockAdminFn,
   isAdminFn,
@@ -473,346 +475,386 @@ export function AdminPage() {
       <div className={panel}>
         <h1 className="mb-3! text-[20px]">{copy.title}</h1>
 
-        <section
-          aria-label={copy.currentEffective}
-          className="mb-4 rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
-        >
-          <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
-            {copy.currentEffective}
-          </div>
-          <div className={`${mono} mt-1 text-[13px] break-all`}>{effectiveLine}</div>
-          <ul className={`${mono} mt-2 list-none p-0 text-[12px] leading-6`}>
-            <li>default={effectiveModels?.default ?? "…"}</li>
-            <li>sky-chat={effectiveModels?.chat ?? "…"}</li>
-            <li>sky-orchestrator={effectiveModels?.orchestrator ?? "…"}</li>
-            <li>sky-generative-ui={effectiveModels?.["generative-ui"] ?? "…"}</li>
-            <li>sky-hud-composer={effectiveModels?.["hud-composer"] ?? "…"}</li>
-          </ul>
-          <div className={`${muted} mt-1.5 text-[12px]`}>
-            {(() => {
-              const parts = [
-                setting?.provider ? `provider=${setting.provider}` : null,
-                setting?.model ? `model=${setting.model}` : null,
-                setting?.models && Object.keys(setting.models).length > 0
-                  ? `models=${Object.keys(setting.models).join(",")}`
-                  : null,
-              ].filter((part): part is string => part !== null);
-              if (parts.length === 0) return copy.envFallback;
-              const stamp = setting?.updatedAt
-                ? ` · ${new Date(setting.updatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC`
-                : "";
-              return `${copy.backendSetting} (${providerSource}): ${parts.join(" · ")}${stamp}`;
-            })()}
-          </div>
-          <div className={`${muted} mt-1 text-[12px]`}>{copy.appliesNote}</div>
-        </section>
-
-        {/* Provider */}
-        <label htmlFor="admin-provider" className="mb-1.5 block text-[13px]">
-          {copy.providerLabel}
-        </label>
-        <select
-          id="admin-provider"
-          value={provider}
-          onChange={(e) => setProvider(e.target.value as AgentProvider)}
-          className={selectClasses}
-        >
-          <option value="opencode-go">{copy.providerOpencodeGo}</option>
-          <option value="openrouter">{copy.providerOpenrouter}</option>
-          <option value="amazon-bedrock">{copy.providerAmazonBedrock}</option>
-        </select>
-        <p className={`${muted} mt-1.5 text-[12px]`}>
-          {provider === "opencode-go"
-            ? copy.providerOpencodeGoDesc
-            : provider === "amazon-bedrock"
-              ? copy.providerAmazonBedrockDesc
-              : copy.providerOpenrouterDesc}
-        </p>
-        {provider === "amazon-bedrock" && <p className={`${muted} mt-1 text-[12px]`}>{copy.bedrockVerifiedNote}</p>}
-        {provider === "openrouter" && <p className={`${muted} mt-1 text-[12px]`}>{copy.legacyNote}</p>}
-
-        {!catalogReady && (
-          <p role="alert" className="mt-2 text-[13px] text-(--yellow)">
-            {copy.catalogError}
-          </p>
-        )}
-
-        {/* Default (all agents) */}
-        <label htmlFor="admin-default-model" className="mt-4 mb-1.5 block text-[13px]">
-          {copy.defaultAllLabel}
-        </label>
-        <p className={`${muted} mb-1.5 text-[12px]`}>{copy.defaultAllHint}</p>
-        <select
-          id="admin-default-model"
-          value={defaultModel}
-          onChange={(e) => setDefaultModel(e.target.value)}
-          className={selectClasses}
-          disabled={loadingModels}
-        >
-          <option value="">{copy.inheritDefault}</option>
-          {optionsFor(defaultModel).map((m) => (
-            <option key={m.id} value={m.id}>
-              {optionLabel(m)}
-            </option>
-          ))}
-        </select>
-
-        {/* Per-profile overrides */}
-        {profileFields.map((field) => (
-          <div key={field.id} className="mt-4">
-            <label htmlFor={`admin-model-${field.id}`} className="block text-[13px]">
-              {field.label}
-            </label>
-            <p className={`${muted} mt-0.5 mb-1.5 text-[12px]`}>{field.hint}</p>
-            <select
-              id={`admin-model-${field.id}`}
-              value={profileModels[field.id] ?? ""}
-              onChange={(e) => setProfileModels((prev) => ({ ...prev, [field.id]: e.target.value }))}
-              className={selectClasses}
-              disabled={loadingModels}
-            >
-              <option value="">
-                {copy.inheritProfile} — {effectiveModels ? (field.effective ?? effectiveModels.default) : "…"}
-              </option>
-              {optionsFor(profileModels[field.id] ?? "").map((m) => (
-                <option key={m.id} value={m.id}>
-                  {optionLabel(m)}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
-
-        <div className="mt-5 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={apply}
-            disabled={applying || loadingModels || !catalogReady}
-            className={buttonClasses}
-          >
-            {applying ? copy.applying : copy.apply}
-          </button>
-          <div aria-live="polite" className="text-[13px]">
-            {applyState?.kind === "ok" && <span className="text-(--green)">{copy.saved}</span>}
-            {applyState?.kind === "error" && <span className="text-(--red)">{applyState.message}</span>}
-          </div>
-        </div>
-
-        <section
-          aria-label={copy.resetClaims}
-          className="mt-6 rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
-        >
-          <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>{copy.resetClaims}</div>
-          <div className="mt-2 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={resetClaims}
-              disabled={resetBusy}
-              className={dangerButtonClasses}
-            >
-              {resetBusy ? copy.resetting : copy.resetClaims}
-            </button>
-            <div aria-live="polite" className="text-[13px]">
-              {resetState?.kind === "ok" && (
-                <span className="text-(--green)">
-                  {copy.resetClaimsDone.replace("{count}", String(resetState.cleared))}
-                </span>
-              )}
-              {resetState?.kind === "error" && (
-                <span className="text-(--red)">{resetState.message}</span>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section
-          aria-label={copy.goKeyTitle}
-          className="mt-6 rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
-              {copy.goKeyTitle}
-            </div>
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-[1px] ${
-                goStatus?.source && goStatus.source !== "none"
-                  ? "border-(--green) text-(--green)"
-                  : "border-(--border) text-(--muted)"
-              }`}
-            >
-              {goStatus == null
-                ? copy.checking
-                : goStatus.source === "env"
-                  ? copy.goKeyConfiguredEnv
-                  : goStatus.source === "file"
-                    ? copy.goKeyConfiguredFile
-                    : copy.goKeyNotConfigured}
-            </span>
-          </div>
-          {goStatus?.source === "env" && (
-            <p className={`${muted} mt-2 text-[12px]`}>{copy.goKeyEnvHint}</p>
-          )}
-          <form
-            className="mt-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void saveGoKey();
-            }}
-          >
-            <label
-              htmlFor="sky-opencode-key"
-              className="mb-1.5 block text-[13px] text-(--muted)"
-            >
-              {copy.goKeyLabel}
-            </label>
-            <input
-              id="sky-opencode-key"
-              type="password"
-              autoComplete="off"
-              placeholder={goStatus?.source === "file" ? copy.goKeyPlaceholderStored : copy.goKeyPlaceholder}
-              value={goKey}
-              onChange={(e) => setGoKey(e.target.value)}
-              className={inputClasses}
-            />
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                disabled={goBusy || !GO_KEY_REGEX.test(goKey.trim())}
-                className={buttonClasses}
-              >
-                {goBusy ? copy.goKeySaving : copy.goKeySave}
-              </button>
-              {goConfirmClear ? (
+        <MorphingTabs
+          defaultValue="models"
+          ariaLabel={copy.tabsLabel}
+          classNames={{ content: "p-4 sm:p-5" }}
+          items={[
+            {
+              id: "models",
+              label: copy.tabModels,
+              icon: <Bot aria-hidden className="size-5" />,
+              content: (
                 <>
-                  <button
-                    type="button"
-                    onClick={clearGoKey}
-                    disabled={goClearBusy}
-                    className={dangerButtonClasses}
-                  >
-                    {goClearBusy ? copy.goKeyClearing : copy.goKeyClearConfirm}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGoConfirmClear(false)}
-                    disabled={goClearBusy}
-                    className={ghostButtonClasses}
-                  >
-                    {copy.goKeyClearCancel}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setGoConfirmClear(true)}
-                  disabled={goClearBusy}
-                  className={dangerButtonClasses}
+                <section
+                  aria-label={copy.currentEffective}
+                  className="mb-4 rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
                 >
-                  {copy.goKeyClear}
-                </button>
-              )}
-              <div aria-live="polite" className="text-[13px]">
-                {goState?.kind === "ok" && (
-                  <span className="text-(--green)">{goState.message}</span>
-                )}
-                {goState?.kind === "error" && (
-                  <span className="text-(--red)">{goState.message}</span>
-                )}
-              </div>
-            </div>
-          </form>
-          <p className={`${muted} mt-2 text-[12px]`}>{copy.goKeyNote}</p>
-        </section>
+                  <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
+                    {copy.currentEffective}
+                  </div>
+                  <div className={`${mono} mt-1 text-[13px] break-all`}>{effectiveLine}</div>
+                  <ul className={`${mono} mt-2 list-none p-0 text-[12px] leading-6`}>
+                    <li>default={effectiveModels?.default ?? "…"}</li>
+                    <li>sky-chat={effectiveModels?.chat ?? "…"}</li>
+                    <li>sky-orchestrator={effectiveModels?.orchestrator ?? "…"}</li>
+                    <li>sky-generative-ui={effectiveModels?.["generative-ui"] ?? "…"}</li>
+                    <li>sky-hud-composer={effectiveModels?.["hud-composer"] ?? "…"}</li>
+                  </ul>
+                  <div className={`${muted} mt-1.5 text-[12px]`}>
+                    {(() => {
+                      const parts = [
+                        setting?.provider ? `provider=${setting.provider}` : null,
+                        setting?.model ? `model=${setting.model}` : null,
+                        setting?.models && Object.keys(setting.models).length > 0
+                          ? `models=${Object.keys(setting.models).join(",")}`
+                          : null,
+                      ].filter((part): part is string => part !== null);
+                      if (parts.length === 0) return copy.envFallback;
+                      const stamp = setting?.updatedAt
+                        ? ` · ${new Date(setting.updatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC`
+                        : "";
+                      return `${copy.backendSetting} (${providerSource}): ${parts.join(" · ")}${stamp}`;
+                    })()}
+                  </div>
+                  <div className={`${muted} mt-1 text-[12px]`}>{copy.appliesNote}</div>
+                </section>
 
-        <section
-          aria-label={copy.elevenlabsTitle}
-          className="mt-6 rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
-              {copy.elevenlabsTitle}
-            </div>
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-[1px] ${
-                elevenStatus?.configured
-                  ? "border-(--green) text-(--green)"
-                  : "border-(--border) text-(--muted)"
-              }`}
-            >
-              {elevenStatus?.configured ? copy.elevenlabsConfigured : copy.elevenlabsNotConfigured}
-            </span>
-          </div>
-          <form
-            className="mt-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void saveElevenLabsKey();
-            }}
-          >
-            <label
-              htmlFor="sky-elevenlabs-key"
-              className="mb-1.5 block text-[13px] text-(--muted)"
-            >
-              {copy.elevenlabsKeyLabel}
-            </label>
-            <input
-              id="sky-elevenlabs-key"
-              type="password"
-              autoComplete="off"
-              placeholder="sk_…"
-              value={elevenKey}
-              onChange={(e) => setElevenKey(e.target.value)}
-              className={inputClasses}
-            />
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                disabled={elevenBusy || elevenKey.trim().length === 0}
-                className={buttonClasses}
-              >
-                {elevenBusy ? copy.elevenlabsSaving : copy.elevenlabsSave}
-              </button>
-              {elevenConfirmClear ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={clearElevenLabsKey}
-                    disabled={elevenClearBusy}
-                    className={dangerButtonClasses}
-                  >
-                    {elevenClearBusy ? copy.elevenlabsClearing : copy.elevenlabsClearConfirm}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setElevenConfirmClear(false)}
-                    disabled={elevenClearBusy}
-                    className={ghostButtonClasses}
-                  >
-                    {copy.elevenlabsClearCancel}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setElevenConfirmClear(true)}
-                  disabled={elevenClearBusy}
-                  className={dangerButtonClasses}
+                {/* Provider */}
+                <label htmlFor="admin-provider" className="mb-1.5 block text-[13px]">
+                  {copy.providerLabel}
+                </label>
+                <select
+                  id="admin-provider"
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value as AgentProvider)}
+                  className={selectClasses}
                 >
-                  {copy.elevenlabsClear}
-                </button>
-              )}
-              <div aria-live="polite" className="text-[13px]">
-                {elevenState?.kind === "ok" && (
-                  <span className="text-(--green)">{elevenState.message}</span>
+                  <option value="opencode-go">{copy.providerOpencodeGo}</option>
+                  <option value="openrouter">{copy.providerOpenrouter}</option>
+                  <option value="amazon-bedrock">{copy.providerAmazonBedrock}</option>
+                </select>
+                <p className={`${muted} mt-1.5 text-[12px]`}>
+                  {provider === "opencode-go"
+                    ? copy.providerOpencodeGoDesc
+                    : provider === "amazon-bedrock"
+                      ? copy.providerAmazonBedrockDesc
+                      : copy.providerOpenrouterDesc}
+                </p>
+                {provider === "amazon-bedrock" && <p className={`${muted} mt-1 text-[12px]`}>{copy.bedrockVerifiedNote}</p>}
+                {provider === "openrouter" && <p className={`${muted} mt-1 text-[12px]`}>{copy.legacyNote}</p>}
+
+                {!catalogReady && (
+                  <p role="alert" className="mt-2 text-[13px] text-(--yellow)">
+                    {copy.catalogError}
+                  </p>
                 )}
-                {elevenState?.kind === "error" && (
-                  <span className="text-(--red)">{elevenState.message}</span>
-                )}
-              </div>
-            </div>
-          </form>
-          <p className={`${muted} mt-2 text-[12px]`}>{copy.elevenlabsNote}</p>
-        </section>
+
+                {/* Default (all agents) */}
+                <label htmlFor="admin-default-model" className="mt-4 mb-1.5 block text-[13px]">
+                  {copy.defaultAllLabel}
+                </label>
+                <p className={`${muted} mb-1.5 text-[12px]`}>{copy.defaultAllHint}</p>
+                <select
+                  id="admin-default-model"
+                  value={defaultModel}
+                  onChange={(e) => setDefaultModel(e.target.value)}
+                  className={selectClasses}
+                  disabled={loadingModels}
+                >
+                  <option value="">{copy.inheritDefault}</option>
+                  {optionsFor(defaultModel).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {optionLabel(m)}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Per-profile overrides */}
+                {profileFields.map((field) => (
+                  <div key={field.id} className="mt-4">
+                    <label htmlFor={`admin-model-${field.id}`} className="block text-[13px]">
+                      {field.label}
+                    </label>
+                    <p className={`${muted} mt-0.5 mb-1.5 text-[12px]`}>{field.hint}</p>
+                    <select
+                      id={`admin-model-${field.id}`}
+                      value={profileModels[field.id] ?? ""}
+                      onChange={(e) => setProfileModels((prev) => ({ ...prev, [field.id]: e.target.value }))}
+                      className={selectClasses}
+                      disabled={loadingModels}
+                    >
+                      <option value="">
+                        {copy.inheritProfile} — {effectiveModels ? (field.effective ?? effectiveModels.default) : "…"}
+                      </option>
+                      {optionsFor(profileModels[field.id] ?? "").map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {optionLabel(m)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+
+                <div className="mt-5 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={apply}
+                    disabled={applying || loadingModels || !catalogReady}
+                    className={buttonClasses}
+                  >
+                    {applying ? copy.applying : copy.apply}
+                  </button>
+                  <div aria-live="polite" className="text-[13px]">
+                    {applyState?.kind === "ok" && <span className="text-(--green)">{copy.saved}</span>}
+                    {applyState?.kind === "error" && <span className="text-(--red)">{applyState.message}</span>}
+                  </div>
+                </div>
+                </>
+              ),
+            },
+            {
+              id: "opencode",
+              label: copy.tabOpencode,
+              icon: <KeyRound aria-hidden className="size-5" />,
+              content: (
+                <>
+                <section
+                  aria-label={copy.goKeyTitle}
+                  className="rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
+                      {copy.goKeyTitle}
+                    </div>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-[1px] ${
+                        goStatus?.source && goStatus.source !== "none"
+                          ? "border-(--green) text-(--green)"
+                          : "border-(--border) text-(--muted)"
+                      }`}
+                    >
+                      {goStatus == null
+                        ? copy.checking
+                        : goStatus.source === "env"
+                          ? copy.goKeyConfiguredEnv
+                          : goStatus.source === "file"
+                            ? copy.goKeyConfiguredFile
+                            : copy.goKeyNotConfigured}
+                    </span>
+                  </div>
+                  {goStatus?.source === "env" && (
+                    <p className={`${muted} mt-2 text-[12px]`}>{copy.goKeyEnvHint}</p>
+                  )}
+                  <form
+                    className="mt-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void saveGoKey();
+                    }}
+                  >
+                    <label
+                      htmlFor="sky-opencode-key"
+                      className="mb-1.5 block text-[13px] text-(--muted)"
+                    >
+                      {copy.goKeyLabel}
+                    </label>
+                    <input
+                      id="sky-opencode-key"
+                      type="password"
+                      autoComplete="off"
+                      placeholder={goStatus?.source === "file" ? copy.goKeyPlaceholderStored : copy.goKeyPlaceholder}
+                      value={goKey}
+                      onChange={(e) => setGoKey(e.target.value)}
+                      className={inputClasses}
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <button
+                        type="submit"
+                        disabled={goBusy || !GO_KEY_REGEX.test(goKey.trim())}
+                        className={buttonClasses}
+                      >
+                        {goBusy ? copy.goKeySaving : copy.goKeySave}
+                      </button>
+                      {goConfirmClear ? (
+                    <>
+                          <button
+                            type="button"
+                            onClick={clearGoKey}
+                            disabled={goClearBusy}
+                            className={dangerButtonClasses}
+                          >
+                            {goClearBusy ? copy.goKeyClearing : copy.goKeyClearConfirm}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setGoConfirmClear(false)}
+                            disabled={goClearBusy}
+                            className={ghostButtonClasses}
+                          >
+                            {copy.goKeyClearCancel}
+                          </button>
+                    </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setGoConfirmClear(true)}
+                          disabled={goClearBusy}
+                          className={dangerButtonClasses}
+                        >
+                          {copy.goKeyClear}
+                        </button>
+                      )}
+                      <div aria-live="polite" className="text-[13px]">
+                        {goState?.kind === "ok" && (
+                          <span className="text-(--green)">{goState.message}</span>
+                        )}
+                        {goState?.kind === "error" && (
+                          <span className="text-(--red)">{goState.message}</span>
+                        )}
+                      </div>
+                    </div>
+                  </form>
+                  <p className={`${muted} mt-2 text-[12px]`}>{copy.goKeyNote}</p>
+                </section>
+                </>
+              ),
+            },
+            {
+              id: "elevenlabs",
+              label: copy.tabElevenlabs,
+              icon: <Volume2 aria-hidden className="size-5" />,
+              content: (
+                <>
+                <section
+                  aria-label={copy.elevenlabsTitle}
+                  className="rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
+                      {copy.elevenlabsTitle}
+                    </div>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-[1px] ${
+                        elevenStatus?.configured
+                          ? "border-(--green) text-(--green)"
+                          : "border-(--border) text-(--muted)"
+                      }`}
+                    >
+                      {elevenStatus?.configured ? copy.elevenlabsConfigured : copy.elevenlabsNotConfigured}
+                    </span>
+                  </div>
+                  <form
+                    className="mt-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void saveElevenLabsKey();
+                    }}
+                  >
+                    <label
+                      htmlFor="sky-elevenlabs-key"
+                      className="mb-1.5 block text-[13px] text-(--muted)"
+                    >
+                      {copy.elevenlabsKeyLabel}
+                    </label>
+                    <input
+                      id="sky-elevenlabs-key"
+                      type="password"
+                      autoComplete="off"
+                      placeholder="sk_…"
+                      value={elevenKey}
+                      onChange={(e) => setElevenKey(e.target.value)}
+                      className={inputClasses}
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <button
+                        type="submit"
+                        disabled={elevenBusy || elevenKey.trim().length === 0}
+                        className={buttonClasses}
+                      >
+                        {elevenBusy ? copy.elevenlabsSaving : copy.elevenlabsSave}
+                      </button>
+                      {elevenConfirmClear ? (
+                    <>
+                          <button
+                            type="button"
+                            onClick={clearElevenLabsKey}
+                            disabled={elevenClearBusy}
+                            className={dangerButtonClasses}
+                          >
+                            {elevenClearBusy ? copy.elevenlabsClearing : copy.elevenlabsClearConfirm}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setElevenConfirmClear(false)}
+                            disabled={elevenClearBusy}
+                            className={ghostButtonClasses}
+                          >
+                            {copy.elevenlabsClearCancel}
+                          </button>
+                    </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setElevenConfirmClear(true)}
+                          disabled={elevenClearBusy}
+                          className={dangerButtonClasses}
+                        >
+                          {copy.elevenlabsClear}
+                        </button>
+                      )}
+                      <div aria-live="polite" className="text-[13px]">
+                        {elevenState?.kind === "ok" && (
+                          <span className="text-(--green)">{elevenState.message}</span>
+                        )}
+                        {elevenState?.kind === "error" && (
+                          <span className="text-(--red)">{elevenState.message}</span>
+                        )}
+                      </div>
+                    </div>
+                  </form>
+                  <p className={`${muted} mt-2 text-[12px]`}>{copy.elevenlabsNote}</p>
+                </section>
+                </>
+              ),
+            },
+            {
+              id: "claims",
+              label: copy.tabClaims,
+              icon: <RotateCcw aria-hidden className="size-5" />,
+              content: (
+                <>
+                <section
+                  aria-label={copy.resetClaims}
+                  className="rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
+                >
+                  <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>{copy.resetClaims}</div>
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={resetClaims}
+                      disabled={resetBusy}
+                      className={dangerButtonClasses}
+                    >
+                      {resetBusy ? copy.resetting : copy.resetClaims}
+                    </button>
+                    <div aria-live="polite" className="text-[13px]">
+                      {resetState?.kind === "ok" && (
+                        <span className="text-(--green)">
+                          {copy.resetClaimsDone.replace("{count}", String(resetState.cleared))}
+                        </span>
+                      )}
+                      {resetState?.kind === "error" && (
+                        <span className="text-(--red)">{resetState.message}</span>
+                      )}
+                    </div>
+                  </div>
+                </section>
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
     </main>
   );

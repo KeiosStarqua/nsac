@@ -406,5 +406,10 @@ export const en: Copy = {
     goKeyClearDone: "Stored key cleared.",
     goKeyClearFailed: "Could not clear the key. Try again.",
     goKeyNote: "Stored on the server only, never shown again. Used when the box does not set OPENCODE_API_KEY/SKY_OPENCODE_API_KEY.",
+    tabModels: "Agent models",
+    tabOpencode: "OpenCode Go key",
+    tabElevenlabs: "ElevenLabs key",
+    tabClaims: "Reset claims",
+    tabsLabel: "Admin sections",
   },
 };
