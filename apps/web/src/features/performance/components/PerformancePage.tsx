@@ -8,6 +8,7 @@ import {
 } from "../../astronaut";
 import { format, useCopy, useLocale } from "../../../shared/i18n";
 import { getPerformance } from "../api/health.functions";
+import { ClinicalPanel } from "./ClinicalPanel";
 import { InsightPanel } from "./InsightPanel";
 import { MetricGrid } from "./MetricGrid";
 import { selectSkyInsight } from "../model/insight";
@@ -191,6 +192,10 @@ export function PerformancePage({ initial }: PerformancePageProps) {
             ]}
             note={note}
           />
+        </div>
+
+        <div className="mt-5">
+          <ClinicalPanel astronautId={astronautId} />
         </div>
 
         <footer className="mt-8 flex flex-col gap-4 border-t border-white/8 pt-5 text-[11px] text-(--muted) sm:flex-row sm:items-center sm:justify-between">
