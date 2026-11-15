@@ -104,13 +104,17 @@ fi
 
 echo "deploy.sh: verify public routes"
 BASE="${DEPLOY_BASE_URL:-https://nasa.taquangkhoi.com}"
-ROUTES=("/" "/watch" "/?gen=1" "/?gen=0" "/spacecraft" "/body" "/health" "/admin" "/data")
+ROUTES=("/" "/watch" "/?gen=1" "/?gen=0" "/spacecraft" "/body" "/health" "/admin/models" "/data")
 FAILED=0
 for p in "${ROUTES[@]}"; do
   code="$(curl -s -o /dev/null -w '%{http_code}' -m 30 "$BASE$p")"
   printf '  %s -> %s\n' "$p" "$code"
   [ "$code" = "200" ] || FAILED=1
 done
+# /admin is a permanent redirect to /admin/models (per-tab routes, 2026-11-16)
+code="$(curl -s -o /dev/null -w '%{http_code}' -m 30 "$BASE/admin")"
+printf '  %s -> %s\n' "/admin" "$code"
+[ "$code" = "307" ] || FAILED=1
 for p in "/models/iss/streamed/manifest.json" "/watch/mockup-futuristic-space-gray.png" "/models/anatomy-male.glb"; do
   code="$(curl -s -o /dev/null -w '%{http_code}' -m 30 "$BASE$p")"
   printf '  %s -> %s\n' "$p" "$code"
