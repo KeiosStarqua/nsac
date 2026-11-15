@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { format, useCopy } from "../../../shared/i18n";
 import {
   ASTRONAUTS,
@@ -156,6 +157,45 @@ const HINT =
 
 const FOOTER = "text-center text-[12px] text-[rgba(95,108,130,.85)] [.watch-screen_&]:text-[8px] max-[480px]:text-[10px]";
 
+// Force release: tertiary text button (never the primary CONFIRM look), its 2-step inline confirm
+// row and the failure line. Muted by default, warms to a warning tint on hover/focus.
+const FORCE_RELEASE = [
+  "mx-auto mb-[10px] flex cursor-pointer items-center justify-center gap-[6px] rounded-[4px]! border-0 bg-transparent p-[4px_6px]",
+  "text-[11px] uppercase tracking-[.12em] text-[#98a6bd] hover:text-[#ffd9d0]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#e7edf7]!",
+  "[.watch-screen_&]:mb-[6px] [.watch-screen_&]:text-[8px] max-[480px]:mb-[8px] max-[480px]:text-[10px]",
+].join(" ");
+
+const FORCE_CONFIRM_ROW = [
+  "mx-auto mb-[10px]! max-w-[440px] rounded-[6px] border border-[rgba(252,165,165,.35)] bg-[rgba(252,165,165,.08)]",
+  "px-[10px] py-[8px] text-center",
+  "[.watch-screen_&]:mx-0 [.watch-screen_&]:mb-[6px]! [.watch-screen_&]:max-w-none [.watch-screen_&]:px-[8px] [.watch-screen_&]:py-[5px]",
+  "max-[480px]:mx-0 max-[480px]:mb-[8px]! max-[480px]:max-w-none",
+].join(" ");
+
+const FORCE_CONFIRM_TEXT = "m-0 text-[12px] text-[#fca5a5] [.watch-screen_&]:text-[9px] max-[480px]:text-[11px]";
+
+const FORCE_CONFIRM_ACTIONS = "mt-[8px] flex items-center justify-center gap-[8px] [.watch-screen_&]:mt-[5px]";
+
+const FORCE_CONFIRM_ACTION = [
+  "cursor-pointer rounded-[4px]! border border-[rgba(252,165,165,.55)] bg-[rgba(252,165,165,.12)]",
+  "p-[6px_12px] text-[11px]! font-semibold! text-[#fecaca] hover:border-[#fca5a5] hover:bg-[rgba(252,165,165,.2)]",
+  "disabled:cursor-not-allowed disabled:opacity-[.5]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[2px]! focus-visible:outline-[#e7edf7]!",
+  "[.watch-screen_&]:p-[4px_8px] [.watch-screen_&]:text-[8px]! max-[480px]:p-[9px_14px] max-[480px]:text-[12px]!",
+].join(" ");
+
+const FORCE_CANCEL = [
+  "cursor-pointer rounded-[4px]! border border-[#1e293b] bg-transparent p-[6px_12px]",
+  "text-[11px]! text-[#98a6bd] hover:border-[#5eead4] hover:text-[#5eead4]",
+  "disabled:cursor-not-allowed disabled:opacity-[.5]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[2px]! focus-visible:outline-[#e7edf7]!",
+  "[.watch-screen_&]:p-[4px_8px] [.watch-screen_&]:text-[8px]! max-[480px]:p-[9px_14px] max-[480px]:text-[12px]!",
+].join(" ");
+
+const FORCE_ERROR =
+  "mx-auto mb-[8px]! max-w-[440px] text-center text-[11px] text-[#fca5a5] [.watch-screen_&]:mb-[5px]! [.watch-screen_&]:text-[8px] max-[480px]:mb-[6px]! max-[480px]:text-[10px]";
+
 interface Props {
   /** Rendered by the parent only when the picker should be visible. */
   readonly open: boolean;
@@ -174,6 +214,13 @@ interface Props {
   readonly onSelect: (id: string) => void;
   /** Omitted on the first visit: there is no valid state to return to yet. */
   readonly onClose?: () => void;
+  /**
+   * Force-release every pick (demo escape hatch when the crew is full and a new user cannot
+   * join). Rendered only when some crew member is currently claimed by someone else.
+   */
+  readonly onForceRelease?: () => Promise<{ ok: boolean; cleared?: number; epoch?: number }>;
+  /** Called after a successful `onForceRelease` so the parent can refresh its claim list. */
+  readonly onReleased?: (epoch?: number) => void;
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -183,7 +230,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
 }
 
-export function AstronautPicker({ open, roster, initialId, takenIds, mineId, claiming = false, error, onSelect, onClose }: Props) {
+export function AstronautPicker({ open, roster, initialId, takenIds, mineId, claiming = false, error, onSelect, onClose, onForceRelease, onReleased }: Props) {
   const copy = useCopy();
   const crew = roster && roster.length > 0 ? roster : ASTRONAUTS;
   const isTaken = useCallback(
@@ -195,14 +242,25 @@ export function AstronautPicker({ open, roster, initialId, takenIds, mineId, cla
     [initialId, crew],
   );
   const [selected, setSelected] = useState<string>(defaultId);
+  const [forceConfirming, setForceConfirming] = useState(false);
+  const [forceBusy, setForceBusy] = useState(false);
+  const [forceFailed, setForceFailed] = useState(false);
   const panelRef = useRef<HTMLElement | null>(null);
   const returnFocusRef = useRef<Element | null>(null);
   const cardRefs = useRef(new Map<string, HTMLButtonElement>());
 
-  // Reset to the saved astronaut (or Ayla) each time the dialog opens.
+  // Reset to the saved astronaut (or Ayla) each time the dialog opens, and drop any half-finished
+  // force-release confirm so reopening never shows a stale confirm row.
   useEffect(() => {
     if (open) setSelected(defaultId);
   }, [open, defaultId]);
+  useEffect(() => {
+    if (!open) {
+      setForceConfirming(false);
+      setForceBusy(false);
+      setForceFailed(false);
+    }
+  }, [open]);
 
   // Keep the selection valid when the API roster replaces the fixture.
   useEffect(() => {
@@ -242,6 +300,28 @@ export function AstronautPicker({ open, roster, initialId, takenIds, mineId, cla
     [claiming, isTaken, onSelect],
   );
 
+  // Force release (demo escape hatch): the confirm row is inline, so nothing runs on the first tap.
+  const showForceRelease = !!onForceRelease && taken.size > 0;
+  const runForceRelease = useCallback(async () => {
+    if (!onForceRelease || forceBusy) return;
+    setForceBusy(true);
+    setForceFailed(false);
+    try {
+      const res = await onForceRelease();
+      if (res?.ok) {
+        setForceConfirming(false);
+        setForceFailed(false);
+        onReleased?.(res.epoch);
+      } else {
+        setForceFailed(true);
+      }
+    } catch {
+      setForceFailed(true);
+    } finally {
+      setForceBusy(false);
+    }
+  }, [onForceRelease, onReleased, forceBusy]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
@@ -249,6 +329,9 @@ export function AstronautPicker({ open, roster, initialId, takenIds, mineId, cla
       if (isTypingTarget(event.target)) return;
       // Let the explicit close control handle its own activation.
       if ((event.target as HTMLElement | null)?.closest?.("[data-picker-close]")) return;
+      // Same for the force-release row: real buttons, native Enter/Space activation must win over
+      // the picker-wide Enter = confirm shortcut.
+      if ((event.target as HTMLElement | null)?.closest?.("[data-force-release]")) return;
 
       if (event.key === "Enter") {
         event.preventDefault();
@@ -384,6 +467,57 @@ export function AstronautPicker({ open, roster, initialId, takenIds, mineId, cla
               : format(copy.astronaut.confirm, { name: chosen.name })}
         </button>
         <p className={HINT}>{copy.astronaut.hint}</p>
+        {showForceRelease ? (
+          forceConfirming ? (
+            <div className={FORCE_CONFIRM_ROW} data-force-release>
+              <p className={FORCE_CONFIRM_TEXT}>{copy.astronaut.forceReleaseConfirm}</p>
+              <div className={FORCE_CONFIRM_ACTIONS}>
+                <button
+                  type="button"
+                  className={FORCE_CONFIRM_ACTION}
+                  disabled={forceBusy}
+                  onClick={() => void runForceRelease()}
+                >
+                  {forceBusy ? (
+                    <span className="inline-flex items-center gap-[6px]">
+                      <LoaderCircle aria-hidden="true" size={12} className="animate-spin" />
+                      {copy.astronaut.claiming}
+                    </span>
+                  ) : (
+                    copy.astronaut.forceReleaseConfirmAction
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className={FORCE_CANCEL}
+                  disabled={forceBusy}
+                  onClick={() => {
+                    setForceConfirming(false);
+                    setForceFailed(false);
+                  }}
+                >
+                  {copy.astronaut.forceReleaseCancel}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={FORCE_RELEASE}
+              data-force-release
+              onClick={() => {
+                setForceFailed(false);
+                setForceConfirming(true);
+              }}
+            >
+              <TriangleAlert aria-hidden="true" size={13} />
+              {copy.astronaut.forceRelease}
+            </button>
+          )
+        ) : null}
+        {forceFailed ? (
+          <p className={FORCE_ERROR} role="alert">{copy.astronaut.forceReleaseFailed}</p>
+        ) : null}
         <p className={FOOTER}>{copy.astronaut.footer}</p>
       </section>
     </div>

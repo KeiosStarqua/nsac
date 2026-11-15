@@ -29,6 +29,22 @@ export function parseClaims(input: unknown): ClaimEntry[] {
 }
 
 /**
+ * Body của `GET /api/claims`. Bản force-release trả `{ claims, epoch }`; bản cũ trả mảng trần —
+ * vẫn đọc được, chỉ là không có epoch (null ⇒ không bao giờ kick). Garbage → rỗng, epoch null;
+ * không bao giờ throw.
+ */
+export function parseClaimsState(input: unknown): { claims: ClaimEntry[]; epoch: number | null } {
+  if (Array.isArray(input)) return { claims: parseClaims(input), epoch: null };
+  if (typeof input !== "object" || input === null) return { claims: [], epoch: null };
+  const record = input as { claims?: unknown; epoch?: unknown };
+  if (!Array.isArray(record.claims)) return { claims: [], epoch: null };
+  const raw = record.epoch;
+  const epoch =
+    typeof raw === "number" && Number.isInteger(raw) && raw >= 0 ? raw : null;
+  return { claims: parseClaims(record.claims), epoch };
+}
+
+/**
  * Crew ids held by *other* sessions. My own claim is excluded (re-claiming it is always
  * allowed); the optional `mineAstronautId` restates that when no `mine` flag is available
  * (e.g. before the first refresh).
