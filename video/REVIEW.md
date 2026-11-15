@@ -1,71 +1,67 @@
-# REVIEW — Sky · Never Alone in Space (30 s launch film) — v1
+# REVIEW — SKY · 30-Second Product Launch — v3
 
-Version 1 review. Render output: `out/sky-launch-30s-v1.mp4` (25.5 MB, h264, 1920×1080,
-30 fps, 900 frames, 30.000 s).
-
-Review pass on the committed composition (`video/index.html` @ `c56eca1`), run after
-`npx hyperframes check` came back clean. Frames were inspected as stills
-(`snapshot --at 2, 7.5, 11, 14.2, 15.4, 18, 21, 24, 28.5, 28.9, 29.3, 29.9`); the film was
-**not** watched back at full speed, and there is no sound to hear.
+Review pass on the v3 composition (`video/index-v3.html`), run before and after the first
+render. Frames inspected as stills (`ffmpeg -ss <t> -frames:v 1`: 1.5, 4.5, 7.0, 12.2, 15.6,
+20.9, 21.6, 23.4, 28.4 s). The film was **not** watched back at full speed; audio was
+loudness-normalized but not listened to by anyone but the authoring pipeline.
 
 ## Creative calls
 
-- **Silent, captions carry the words** — the person asked for no music and no voiceover. Every
-  beat therefore has to read as a still; the caption is the narration, not a subtitle of one.
-- **Six shots, no seventh.** The storylines not built: a crew-day arc (morning → sim → sleep)
-  and a "ground team" arc (report → 20-minute delay → Earth). Both were possible and both were
-  dropped to keep the film inside one promise: the astronaut is guarded.
-- **The product is the picture.** All plates are real captures of the app (`/`, `/body`,
-  `/spacecraft`) rather than drawn UI; the only synthetic elements on screen are the orb and the
-  reveal, which the app also renders itself.
-- **Accent discipline.** Teal (`#5eead4`) is used only where the viewer is meant to look: orb
-  core, ping rings, the "Sky" label, the wordmark ring. Everything else is ink or micro grey.
-- **The film ends on a fade to black** starting at 29.56 s, so the last ~0.4 s is black. Kept: it
-  closes the loop opened by the black first frame. Cost: the last frame is empty, so a social
-  player that freezes the final frame freezes on nothing.
+- **Brief-literal scene order.** Intro → Monitoring → Clinical → Surgeon → Closing, with the
+  screenplay's own tracker labels ("01 / CONTINUOUS MONITORING", "02 / INTELLIGENT CLINICAL
+  ASSISTANCE", "03 / CONNECTED MEDICAL SUPPORT") as the recurring motif.
+- **The product plate is the monitoring scene; concept mocks carry the rest.** Scenes 03–04
+  render as on-camera CSS mocks because the clinical-guidance and flight-surgeon screens do not
+  exist in the app. They are labeled on screen ("SIMULATED", "CONCEPT · SIMULATED", "NOT A LIVE
+  SYSTEM", "not medical diagnosis") per the brief's honesty requirement — nothing implies
+  autonomous diagnosis or a shipped surgeon console.
+- **Voiceover is synthesized, not performed.** ffmpeg libflite (CMU Festvox `slt` narrator,
+  `kal` for "Sky, I'm feeling dizzy."). Robotic by construction. This is fine for timing reference
+  and internal review; **replace with a human read or a production TTS before any public submission.**
+- **Every on-screen number is the app's fixture** (62 / 118/76 / 98 % / 7 h 42 m / 32.1 kg muscle,
+  Day 170, Ayla R.). No new clinical claim was introduced. The amber "unusual trend" is a
+  fixture moment, labeled amber — not a severity story.
+- **No music.** The brief asked for energy, not a bed; kept the v1 silent-VO register.
 
-## What was measured vs. what was only looked at
+## Measured vs. looked at
 
-- Measured: `check` (contract, runtime, layout, motion, contrast, craft) — 0 errors, 0 lint
-  warnings; the two remaining craft warnings are deliberate (below). Frame times, beat cuts,
-  plate content, safe-box placement, and the render (`1920×1080`, `30 fps`, `900` frames,
-  `30.000 s`).
-- Only looked at: the motion between stills (eases, seam smoothness), and whether the captions
-  land on the beat in motion.
-- Not checked by anyone: audio — there is none, by design.
+- Measured: `hyperframes check` **in an isolated copy** (v3-only project) → `ok: true`,
+  0 errors. (The repo keeps `index-v1.html` beside `index-v3.html`; `check` on the shared folder
+  fails with `multiple_root_compositions`, so v3 is verified isolated. Rendering uses `-c index-v3.html`.)
+  Render: 1920×1080, 30 fps, 900 frames, 30.000 s, h264; mux AAC 160 kbps; loudnorm −16 LUFS.
+- Only looked at: pacing between stills; caption/VO legibility at distance.
+- Not checked: full-speed watch; phonetic quality of the flite render.
 
-## Weakest shot, and what to change with more time
+## What this pass fixed (v3 first render)
 
-**00:16–00:22 · CONNECTION (chat).** The card is a captured plate, so the reply can only live as
-a caption beside it — the SPEC wanted the reply bubble rising *inside* the card. As a result the
-card keeps its empty state ("What should we look at?" / "Sky answers with a short reply you can
-act on") while the caption underneath says Sky already answered; a stranger can read that as the
-product not answering. With more time: re-capture the chat plate with the reply rendered inside
-the card (the app can be driven to that state), then drop the outside "Sky" caption to one line.
+1. **Arrows vanished mid-scene** — `.flow-arrow` clips had `data-duration` ≈ draw time, so the
+   arrows disappeared as soon as they finished (20.85 s / 21.65 s). Extended to 5.5 s / 4.5 s.
+2. **`#earthLine` struck through the closing tagline** — moved from 55.5 % to 50.2 % of height;
+   horizon now sits under the wordmark, tagline reads clean.
+3. **HyperFrames StaticGuard rejects hidden→keyframe pings** — removed `opacity: 0` from the
+   three ping rings (same pattern v1 uses); convergence tween on the three closing panels now
+   animates `x/y/scale` transforms instead of `left/top` (layout snapping warning).
+4. **Contrast** — `.tracker .dim` ("01 /"…) raised from `rgba(232,238,249,.42)` to `.58` (≥4.5:1).
+5. **Step marker wrap** — `1 ·` in the guidance panel wrapped its dot onto a second line; now
+   `&nbsp;·` non-breaking.
 
-Second weakest: 00:10–00:13 INTELLIGENCE. The HUD plate is dense, and the three ping rings are
-the only thing saying "look here". With more time: a slightly longer hold on the first ring, and
-one shallow push into the vitals column instead of the whole plate.
+## Known gaps / weakest points
 
-## Fixed in this pass
+- **VO is robotic** (flite) — biggest quality risk before submission. Swap in a human or
+  production TTS; re-run the mix command in SPEC.md (adelay timings unchanged).
+- **Scene 02 chips overlap the plate's own text** ("Good morning, Ayla" / "How are you feeling
+  today?") — deliberate density of a HUD, but busy at distance; a future pass could duck the plate
+  or reposition chips to empty zones.
+- **Closing hold**: `#revealTag` on screen 1.4 s (craft floor for its line ~2.0 s); `#triConnect`
+  0.97 s (floor 1.7 s). Kept: 30 s budget; the closing still lands (wordmark holds 27.9–29.6 s).
+- **`line_unread` / `first_frame_empty` / `film_silent` craft warnings kept deliberately** — the
+  film was asked to open on black and VO carries the words; no score by design.
+- **`nested_structure_needs_subcomposition`** lint warnings (11) are the same accepted class as v1.
+- Motion between stills was not verified at full speed; seams (10.0 / 19.0 / 26.0 s cuts) were
+  checked only as adjacent frames.
 
-| t | was | change | stays |
-|---|---|---|---|
-| 19.6–22.5 s | "SKY" label sat on top of the first reply line | label lifted (`bottom` 96→152 px), reply block lifted out of the bottom edge (22→56 px), "You" pair raised to match (168/230→196/258 px) | copy, type sizes, timing |
-| 16.0–22.5 s | teal "SIMULATED TELEMETRY" chip sat over the card's "Enter to send" footer | second chip instance at top-right for the chat shot; the HUD-shot chip keeps its bottom-right corner | chip wording, colour, 9.5 s start |
+## Not done / explicitly out of scope
 
-## Warnings kept on purpose
-
-- `film_silent` — the film is silent by design (captions are the voice). A music bed would change
-  what the person asked for.
-- `text_below_floor` — the micro type (NASA credit 14 px, URL/disclaimer 11–14 px) is below the
-  28 px phone floor on purpose: it is credit and disclaimer, read at desk size, and it is the
-  same micro style the product uses. Enlarging it would put a second focal point on screen.
-- `nested_structure_needs_subcomposition` (cleared in the committed revision) — the composition is
-  a single flat file with one timeline; splitting it into `compositions/*` scenes would make the
-  desktop app's timeline prettier but adds eight files for a 30-second film.
-
-## Render
-
-`npx hyperframes render --video-frame-format png -q delivery -o out/sky-launch-30s-v1.mp4`
-→ `1920×1080`, 30 fps, 900 frames, 30.000 s, h264. Output is not committed (`.gitignore`).
+- No music bed, no sound design (not asked for in this brief).
+- No localization; copy is English, matching the screenplay.
+- `index-v1.html` intentionally untouched and archived; do not delete.

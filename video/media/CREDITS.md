@@ -1,6 +1,6 @@
 # CREDITS — video/media (Sky launch film)
 
-Film: **Sky — Never Alone in Space** · silent + captions · NASA Space Apps 2026 · https://nasa.taquangkhoi.com
+Film v1: **Sky — Never Alone in Space** · v3: **SKY — 30-Second Product Launch** · NASA Space Apps 2026 · https://nasa.taquangkhoi.com
 
 ## NASA (public domain, used with credit)
 
@@ -28,3 +28,15 @@ No personal data; the crew is fictional. Never send/save anything to the demo ba
 
 Third-party components visible in plates: React Bits (MIT + Commons Clause, attribution kept),
 shadcn AI Elements (MIT, adapted), beui avatar group (MIT, adapted). Sky app code: Apache-2.0.
+
+## v3 voiceover (synthesized locally, no external assets)
+
+Generated 2026-11-15 with ffmpeg `libflite` (CMU Flite, Festvox voices) — narrator `slt`, astronaut question `kal`. No recordings, no third-party voices, no music.
+Robotic by design; replace with a human/production TTS before public submission (mix recipe in
+`../SPEC.md`). v3 uses **no NASA media** (it is product plates + CSS only); the NASA photo above
+is v1-only.
+
+| File | Voice | Line |
+|---|---|---|
+| voice/vo-1.wav … vo-6.wav | `slt` (vo-3: `kal`) | screenplay v3 VO lines, in scene order |
+| voice/vo-mix.m4a | mixed | adelay 0.1/3.25/10.6/12.9/19.3/26.6 s → loudnorm −16 LUFS |
