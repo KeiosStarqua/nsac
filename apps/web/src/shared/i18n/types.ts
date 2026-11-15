@@ -401,9 +401,15 @@ export interface Copy {
   /** Hidden /admin page — operator-only model switch. */
   admin: {
     title: string;
+    /** One-line orientation under the header (what this page is, write-only semantics). */
+    pageDescription: string;
+    /** Lock button in the header — clears the session cookie and returns to the unlock screen. */
+    lock: string;
     notConfigured: string;
     checking: string;
     unlockTitle: string;
+    /** Explanation inside the unlock card — where SKY_ADMIN_KEY lives and how long the session lasts. */
+    unlockDescription: string;
     keyLabel: string;
     unlock: string;
     unlocking: string;
@@ -447,10 +453,10 @@ export interface Copy {
     profileGenerativeUiHint: string;
     profileHudComposerLabel: string;
     profileHudComposerHint: string;
-    /** Provider + effective model of the Default dropdown, shown after Apply/load. */
-    effectiveLine: string;
-    /** Section kicker above the model pickers — `{provider}` is the display name. */
+    /** Section title of the Agent models card — `{provider}` is the display name. */
     modelsSectionKicker: string;
+    /** Shown in the Provider card when Bedrock is selected — where the token is configured. */
+    bedrockKeyNote: string;
     /** Caption above the default-model select — `{provider}` is the display name. */
     catalogScopedNote: string;
     /** Inline notice after a provider switch dropped foreign-provider picks — `{count}`. */
@@ -460,6 +466,41 @@ export interface Copy {
     resetting: string;
     resetClaimsDone: string;
     resetClaimsFailed: string;
+    /** Intro line on the API Keys tab — write-only semantics, env precedence. */
+    keysIntro: string;
+    /** Explanation on the Reset claims card — what a claim is and what reset clears. */
+    claimsDescription: string;
+    /** AWS Bedrock panel — bearer token is write-only, region pinned to ap-southeast-1. */
+    bedrockTitle: string;
+    bedrockConfiguredEnv: string;
+    bedrockConfiguredFile: string;
+    bedrockNotConfigured: string;
+    /** Hint shown when the token comes from the environment (env wins over the stored file). */
+    bedrockEnvHint: string;
+    bedrockTokenLabel: string;
+    bedrockPlaceholder: string;
+    /** Placeholder while a stored token exists — the token itself is never shown. */
+    bedrockPlaceholderStored: string;
+    bedrockSave: string;
+    bedrockSaving: string;
+    bedrockSaved: string;
+    bedrockSaveFailed: string;
+    bedrockInvalidKey: string;
+    /** Clear button label; the action needs the inline 2-step confirm. */
+    bedrockClear: string;
+    bedrockClearConfirm: string;
+    bedrockClearCancel: string;
+    bedrockClearing: string;
+    bedrockClearDone: string;
+    bedrockClearFailed: string;
+    /** Note under the panel: write-only semantics + when the stored token is used. */
+    bedrockNote: string;
+    /** Read-only region line — the region is not configurable from the UI by design. */
+    bedrockRegionLabel: string;
+    /** Label of the read-only "where to switch provider" hint row. */
+    bedrockProviderHintLabel: string;
+    /** Points the operator at the Models tab to actually use the token. */
+    bedrockProviderHint: string;
     /** ElevenLabs panel — Sky speaks chat replies (key is write-only, never rendered). */
     elevenlabsTitle: string;
     elevenlabsConfigured: string;
@@ -548,14 +589,14 @@ export interface Copy {
       retry: string;
       genericError: string;
     };
-    /** Tab labels for the six /admin sections. */
+    /** Tab labels for the five /admin sections. */
     tabModels: string;
-    tabOpencode: string;
-    tabElevenlabs: string;
+    /** API Keys — OpenCode Go + AWS Bedrock + ElevenLabs in one tab. */
+    tabKeys: string;
     tabSpeech: string;
     tabClaims: string;
     tabBackground: string;
-    /** aria-label of the tablist above the six sections. */
+    /** aria-label of the tablist above the five sections. */
     tabsLabel: string;
     /** Background tab (`/admin/background`) — the `/` backdrop picker. */
     backgroundTitle: string;

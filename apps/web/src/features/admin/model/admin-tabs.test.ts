@@ -9,11 +9,10 @@ import {
 } from "./admin-tabs";
 
 describe("ADMIN_TABS", () => {
-  it("has the six tabs in display order", () => {
+  it("has the five tabs in display order", () => {
     expect(ADMIN_TABS.map((tab) => tab.id)).toEqual([
       "models",
-      "opencode",
-      "elevenlabs",
+      "keys",
       "speech",
       "claims",
       "background",
@@ -36,11 +35,16 @@ describe("ADMIN_TABS", () => {
 describe("adminTabFromPathname", () => {
   it("maps each tab route to its id", () => {
     expect(adminTabFromPathname("/admin/models")).toBe("models");
-    expect(adminTabFromPathname("/admin/opencode")).toBe("opencode");
-    expect(adminTabFromPathname("/admin/elevenlabs")).toBe("elevenlabs");
+    expect(adminTabFromPathname("/admin/keys")).toBe("keys");
     expect(adminTabFromPathname("/admin/speech")).toBe("speech");
     expect(adminTabFromPathname("/admin/claims")).toBe("claims");
     expect(adminTabFromPathname("/admin/background")).toBe("background");
+  });
+
+  it("folds the legacy key routes into keys", () => {
+    expect(adminTabFromPathname("/admin/opencode")).toBe("keys");
+    expect(adminTabFromPathname("/admin/elevenlabs")).toBe("keys");
+    expect(adminTabFromPathname("/admin/opencode/")).toBe("keys");
   });
 
   it("falls back to the default tab for /admin and unknown paths", () => {
@@ -53,8 +57,9 @@ describe("adminTabFromPathname", () => {
 
 describe("adminTabRoute", () => {
   it("resolves known ids and rejects anything else", () => {
-    expect(adminTabRoute("elevenlabs")).toBe("/admin/elevenlabs");
+    expect(adminTabRoute("keys")).toBe("/admin/keys");
     expect(adminTabRoute(null)).toBeNull();
     expect(adminTabRoute("bogus")).toBeNull();
+    expect(adminTabRoute("opencode")).toBeNull();
   });
 });

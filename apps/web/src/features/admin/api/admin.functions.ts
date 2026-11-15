@@ -102,6 +102,18 @@ export const isAdminFn = createServerFn({ method: "GET" }).handler(async () => {
   return { configured, admin: configured && isAdminRequest() };
 });
 
+/** Locks the operator session: clears the admin cookie so the next /admin visit asks for the key again. */
+export const lockAdminFn = createServerFn({ method: "POST" }).handler(async () => {
+  setCookie(ADMIN_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+    secure: getRequestProtocol() === "https",
+  });
+  return { status: "ok" as const };
+});
+
 export type AdminModelPayload =
   | { status: "unauthorized" }
   | {
