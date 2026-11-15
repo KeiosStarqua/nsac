@@ -4,15 +4,21 @@
 // cyan/violet accents, glass panels. Two cascade facts carry over:
 //   * `styles/global.css` resets are UNLAYERED and outrank `@layer utilities` — anything that must
 //     beat `p`/`h1..h3` margins or `button{font:inherit}` carries the `!` suffix;
-//   * the screen is a real page (not the fixed 1672×941 stage), so it scrolls: `overflow-x-hidden`
-//     is the only horizontal rule, and the grid never widens past the viewport (`minmax(0,1fr)`).
+//   * below 1101px the screen is a real page and scrolls vertically: `overflow-x-hidden` is the
+//     only horizontal rule, and the grid never widens past the viewport (`minmax(0,1fr)`);
 //
 // Grid behaviour (the ordered contract): three columns from 1101px (400 / flex / 560), the right
 // column drops under the centre between 721 and 1100, and a single column below 721 — no horizontal
 // scroll at any width.
+//
+// Vertical contract (2026-11-15): from 1101px the root is pinned to `h-dvh` with `overflow-hidden`,
+// the grid is `flex-1 min-h-0` and each column is `min-h-0 overflow-y-auto`, so the document never
+// scrolls — a too-short viewport degrades to per-column internal scroll instead. Below 1101px the
+// page keeps the previous document flow. Spacing is compressed so 1280×800 and the taller targets
+// show every card without internal scrollbars.
 
 export const MOCK_ROOT = [
-  "relative isolate flex min-h-dvh w-full flex-col overflow-x-hidden",
+  "relative isolate flex min-h-dvh w-full flex-col overflow-x-hidden min-[1101px]:h-dvh min-[1101px]:overflow-hidden",
   "text-[#edf8ff]",
   "[font-family:Inter,Manrope,ui-sans-serif,system-ui,-apple-system,'Segoe_UI',sans-serif]",
   "[font-synthesis:none]",
@@ -27,8 +33,8 @@ const FOCUS_RING = "focus-visible:outline-2! focus-visible:outline-offset-[3px]!
 // ---- Header --------------------------------------------------------------------------------------
 
 export const MOCK_HEADER = [
-  "relative z-[3] flex w-full flex-wrap items-center justify-between gap-3 px-4 pt-4",
-  "border-b border-[rgba(122,222,255,.12)] pb-4",
+  "relative z-[3] flex w-full flex-wrap items-center justify-between gap-3 px-4 pt-3",
+  "border-b border-[rgba(122,222,255,.12)] pb-3",
   "min-[1101px]:px-6",
 ].join(" ");
 
@@ -44,24 +50,25 @@ export const MOCK_MISSION = [
 // ---- Layout --------------------------------------------------------------------------------------
 
 export const MOCK_GRID = [
-  "relative z-[2] mx-auto grid w-full max-w-[1720px] grid-cols-1 items-start gap-4 px-4 pb-[86px] pt-4",
+  "relative z-[2] mx-auto grid w-full max-w-[1720px] grid-cols-1 items-start gap-4 px-4 pb-[56px] pt-3",
   "min-[721px]:grid-cols-[minmax(0,400px)_minmax(0,1fr)]",
   "min-[721px]:[grid-template-areas:'left_center'_'right_right']",
   "min-[1101px]:grid-cols-[400px_minmax(0,1fr)_560px]",
   "min-[1101px]:[grid-template-areas:'left_center_right']",
   "min-[1101px]:gap-5 min-[1101px]:px-6",
+  "min-[1101px]:flex-1 min-[1101px]:min-h-0 min-[1101px]:items-stretch",
 ].join(" ");
 
-export const MOCK_LEFT = "flex min-w-0 flex-col gap-4 min-[721px]:[grid-area:left]";
-export const MOCK_CENTER = "flex min-w-0 flex-col items-center gap-5 min-[721px]:[grid-area:center]";
-export const MOCK_RIGHT = "flex min-w-0 flex-col gap-4 min-[721px]:[grid-area:right]";
+export const MOCK_LEFT = "flex min-w-0 flex-col gap-3 min-[721px]:[grid-area:left] min-[1101px]:min-h-0 min-[1101px]:overflow-x-clip min-[1101px]:overflow-y-auto";
+export const MOCK_CENTER = "flex min-w-0 flex-col items-center gap-3 min-[721px]:[grid-area:center] min-[1101px]:min-h-0 min-[1101px]:overflow-x-clip min-[1101px]:overflow-y-auto";
+export const MOCK_RIGHT = "flex min-w-0 flex-col gap-3 min-[721px]:[grid-area:right] min-[1101px]:min-h-0 min-[1101px]:overflow-x-clip min-[1101px]:overflow-y-auto";
 
 // ---- Cards ---------------------------------------------------------------------------------------
 
 export const CARD = [
   "relative rounded-[18px] border border-[rgba(122,222,255,.15)]",
   "bg-[linear-gradient(160deg,rgba(13,31,54,.86),rgba(7,18,33,.92))]",
-  "p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] backdrop-blur-[8px]",
+  "p-[14px] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] backdrop-blur-[8px]",
 ].join(" ");
 
 export const CARD_HEAD = "flex items-center justify-between gap-2";
@@ -80,7 +87,7 @@ export const MUTED = "text-[#8ba9be]";
 // ---- Vitals + trends -----------------------------------------------------------------------------
 
 export const VITAL_ROW = [
-  "grid grid-cols-[26px_minmax(0,1fr)_auto_66px] items-center gap-[10px] py-[7px]",
+  "grid grid-cols-[26px_minmax(0,1fr)_auto_66px] items-center gap-[10px] py-[5px]",
   "border-b border-[rgba(122,222,255,.08)] last:border-b-0",
 ].join(" ");
 
@@ -95,7 +102,7 @@ export const VITAL_VALUE =
 export const VITAL_SPARK = "block h-[26px] w-[66px] [filter:drop-shadow(0_0_4px_rgba(94,234,212,.35))]";
 
 export const TREND_BLOCK =
-  "flex flex-col gap-[6px] border-b border-[rgba(122,222,255,.08)] py-[9px] last:border-b-0 last:pb-0";
+  "flex flex-col gap-[6px] border-b border-[rgba(122,222,255,.08)] py-[7px] last:border-b-0 last:pb-0";
 
 export const TREND_HEAD = "flex items-center justify-between gap-2";
 
@@ -103,14 +110,14 @@ export const TREND_LABEL = "m-0! text-[11.5px] font-light text-[#cfe4f4]";
 
 export const TREND_CAPTION = "text-[11px] tabular-nums text-[#8ef0d9]";
 
-export const TREND_SPARK = "block h-[34px] w-full";
+export const TREND_SPARK = "block h-[24px] w-full";
 
 /** Segmented sleep bar: five blocks whose relative widths come from the fixture. */
 export const SLEEP_BAR = "flex h-[18px] w-full gap-[3px] overflow-hidden rounded-[5px]";
 
 export const SLEEP_BLOCK = "h-full rounded-[3px] bg-[linear-gradient(180deg,#a78bfa,#7c5cf0)]";
 
-export const ACTIVITY_BARS = "flex h-[34px] items-end gap-[2px]";
+export const ACTIVITY_BARS = "flex h-[24px] items-end gap-[2px]";
 
 export const ACTIVITY_BAR = "min-w-[2px] flex-1 rounded-[1px] bg-[linear-gradient(180deg,#5eead4,#2f9fd0)]";
 
@@ -119,7 +126,7 @@ export const ACTIVITY_BAR = "min-w-[2px] flex-1 rounded-[1px] bg-[linear-gradien
 export const PROFILE_ROW = "flex items-center gap-3";
 
 export const AVATAR = [
-  "relative grid size-[58px] flex-none place-items-center overflow-hidden rounded-full border",
+  "relative grid size-[52px] flex-none place-items-center overflow-hidden rounded-full border",
   "border-[rgba(94,234,212,.45)] bg-[rgba(7,18,33,.9)]",
   "shadow-[0_0_22px_-4px_rgba(94,234,212,.45)]",
 ].join(" ");
@@ -144,7 +151,7 @@ export const CHANGE_BUTTON = [
 // ---- Voice column --------------------------------------------------------------------------------
 
 export const ORB_ZONE = [
-  "relative aspect-square w-[min(100%,360px)]",
+  "relative aspect-square w-[min(100%,clamp(210px,26dvh,330px))]",
   "[filter:drop-shadow(0_0_26px_rgba(68,172,255,.24))]",
   "[&_canvas]:relative [&_canvas]:z-[2] [&_canvas]:block [&_canvas]:h-full [&_canvas]:w-full",
   "min-[721px]:max-[1100px]:w-[min(100%,320px)]",
@@ -155,7 +162,7 @@ export const ORB_ZONE = [
 export const ORB_ZONE_THINKING = "[filter:drop-shadow(0_0_34px_rgba(171,142,255,.33))]";
 
 export const GREETING = [
-  "m-0! text-center text-[clamp(22px,2.4vw,32px)] font-light leading-[1.25] tracking-[.013em] text-[#ecf7ff]",
+  "m-0! text-center text-[clamp(19px,2vw,28px)] font-light leading-[1.25] tracking-[.013em] text-[#ecf7ff]",
   "[text-shadow:0_2px_23px_rgba(10,25,62,.6)]",
 ].join(" ");
 
@@ -166,7 +173,7 @@ export const PROMPT = [
 export const VOICE_CONTROL = "flex w-full flex-col items-center";
 
 export const VOICE_HINT = [
-  "mt-[12px] inline-flex items-center gap-[9px] whitespace-nowrap text-[15px] font-light text-[#f0f7ff]",
+  "mt-[8px] inline-flex items-center gap-[9px] whitespace-nowrap text-[15px] font-light text-[#f0f7ff]",
   "[text-shadow:0_0_14px_rgba(88,232,211,.28)]",
   "max-[720px]:text-[13px]",
 ].join(" ");
@@ -217,7 +224,7 @@ export const PANEL_BODY =
   "grid grid-cols-[minmax(132px,176px)_minmax(0,1fr)] items-center gap-3 max-[430px]:grid-cols-1";
 
 export const HOLO_FRAME = [
-  "relative aspect-[2/3] w-full max-h-[210px] overflow-hidden rounded-[14px]",
+  "relative aspect-[2/3] w-full max-h-[min(210px,24dvh)] overflow-hidden rounded-[14px]",
   "border border-[rgba(122,222,255,.14)] bg-[radial-gradient(ellipse_at_50%_38%,rgba(41,207,246,.14),rgba(9,27,48,.5)_70%,transparent_100%)]",
   "max-[430px]:mx-auto max-[430px]:max-h-[180px] max-[430px]:w-[140px]",
 ].join(" ");
@@ -274,7 +281,7 @@ export const MINI_CHIP =
 
 export const INSIGHT_BAND = [
   "flex w-full cursor-pointer items-center gap-3 rounded-full! border border-[rgba(122,222,255,.24)]",
-  "bg-[linear-gradient(100deg,rgba(13,40,66,.9),rgba(21,26,58,.9))] px-4 py-3 text-left text-[#eaf8ff]",
+  "bg-[linear-gradient(100deg,rgba(13,40,66,.9),rgba(21,26,58,.9))] px-4 py-[10px] text-left text-[#eaf8ff]",
   "shadow-[0_0_24px_-8px_rgba(94,234,212,.45)]",
   "[transition:border-color_.18s,background_.18s] hover:border-[rgba(139,233,255,.6)]",
   FOCUS_RING,
@@ -292,7 +299,7 @@ export const INSIGHT_CHEVRON = "ml-auto size-[18px] flex-none text-[#8ef0d9]";
 
 export const FOOTER = [
   "pointer-events-none absolute inset-x-0 bottom-0 z-[3] flex items-center justify-between gap-3",
-  "px-4 py-3 min-[1101px]:px-6",
+  "px-4 py-2 min-[1101px]:px-6",
 ].join(" ");
 
 export const FOOTER_NOTE = "m-0! text-[10px] tracking-[.04em] text-[rgba(168,187,206,.62)]";

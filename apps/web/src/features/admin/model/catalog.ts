@@ -1,7 +1,8 @@
 import { GO_CATALOG } from "./goCatalog";
+import { BEDROCK_CATALOG } from "./bedrockCatalog";
 
 /**
- * Picker shape used by /admin for both providers (id, display name, context window, prices).
+ * Picker shape used by /admin for all providers (id, display name, context window, prices).
  * Structurally identical to `CatalogModel` in `runtime/openrouter.server.ts` — duplicated on
  * purpose so client bundles never touch the server-only OpenRouter runtime module.
  */
@@ -19,6 +20,18 @@ export type PickerModel = {
 /** OpenCode Go snapshot → picker models (prices as $/token; `$/MTok = value × 1e6`). */
 export function goAsPickerModels(): PickerModel[] {
   return GO_CATALOG.map((m) => ({
+    id: m.id,
+    name: m.name,
+    contextLength: m.contextWindow,
+    prompt: String(m.inputCostPerMTok / 1e6),
+    completion: String(m.outputCostPerMTok / 1e6),
+    created: null,
+  }));
+}
+
+/** Bedrock verified snapshot → picker models (same shape; ids bare, provider stored separately). */
+export function bedrockAsPickerModels(): PickerModel[] {
+  return BEDROCK_CATALOG.map((m) => ({
     id: m.id,
     name: m.name,
     contextLength: m.contextWindow,

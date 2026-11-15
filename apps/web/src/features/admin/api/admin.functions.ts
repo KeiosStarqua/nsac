@@ -9,7 +9,7 @@ import {
   makeCookieValue,
 } from "../model/admin-auth";
 import { fetchOpenRouterCatalog, type CatalogModel } from "../runtime/openrouter.server";
-import { goAsPickerModels, type PickerModel } from "../model/catalog";
+import { goAsPickerModels, bedrockAsPickerModels, type PickerModel } from "../model/catalog";
 import {
   currentAgentModel,
   currentAgentProviderInfo,
@@ -61,7 +61,7 @@ async function fetchBackendSettings(timeoutMs = 1500): Promise<AgentModelsSettin
           )
         : null;
     return {
-      provider: provider === "opencode-go" || provider === "openrouter" ? provider : null,
+      provider: provider === "opencode-go" || provider === "openrouter" || provider === "amazon-bedrock" ? provider : null,
       model: typeof model === "string" ? model : null,
       models: cleanModels,
       updatedAt: typeof updatedAt === "number" ? updatedAt : null,
@@ -73,9 +73,10 @@ async function fetchBackendSettings(timeoutMs = 1500): Promise<AgentModelsSettin
   }
 }
 
-/** Catalog cho provider đang chọn. Throws khi OpenRouter catalog lỗi (caller ⇒ catalog_unavailable). */
+/** Catalog cho provider đang chọn. OpenCode Go / Bedrock: static snapshot (no network). Throws khi OpenRouter catalog lỗi (caller ⇒ catalog_unavailable). */
 async function catalogFor(provider: AgentProvider): Promise<PickerModel[]> {
   if (provider === "opencode-go") return goAsPickerModels();
+  if (provider === "amazon-bedrock") return bedrockAsPickerModels();
   return fetchOpenRouterCatalog(5000);
 }
 
@@ -120,7 +121,7 @@ export type AdminModelPayload =
       setting: AgentModelsSetting | null;
       /**
        * Catalog of the effective provider. `catalogOk` is false only when that catalog is the live
-       * OpenRouter fetch and it failed (the Go snapshot is always ok). The live OpenRouter catalog is
+       * OpenRouter fetch and it failed (the Go/Bedrock snapshots are always ok). The live OpenRouter catalog is
        * always fetched once (reused for the dropdowns) and reported separately as `openrouterModels`.
        */
       catalogOk: boolean;
@@ -155,8 +156,8 @@ export const adminModelFn = createServerFn({ method: "GET" }).handler(async (): 
   } catch {
     openrouterOk = false;
   }
-  if (info.provider === "opencode-go") {
-    const models = goAsPickerModels();
+  if (info.provider !== "openrouter") {
+    const models = info.provider === "opencode-go" ? goAsPickerModels() : bedrockAsPickerModels();
     return {
       status: "ok",
       provider: info.provider,
@@ -234,13 +235,13 @@ export type SetAgentConfigResult =
 /**
  * Apply the full agent configuration in one shot: provider + legacy global model + per-profile map.
  * `model: null` deletes the legacy `agent.model` key; `models: {}` deletes the `agent.models` key.
- * Every written id must belong to the selected provider's catalog (OpenCode Go: bundled snapshot;
+ * Every written id must belong to the selected provider's catalog (OpenCode Go / Bedrock: bundled snapshot;
  * OpenRouter: live fetch) — a model id outside the catalog is `invalid_model`.
  */
 export const setAgentConfigFn = createServerFn({ method: "POST" })
   .validator(
     z.object({
-      provider: z.enum(["opencode-go", "openrouter"]),
+      provider: z.enum(["opencode-go", "openrouter", "amazon-bedrock"]),
       model: z.string().max(512).nullable(),
       models: z.record(z.string(), z.string().max(512)),
     }),
@@ -261,7 +262,7 @@ export const setAgentConfigFn = createServerFn({ method: "POST" })
       models[key] = v;
     }
 
-    // Catalog check cho provider đích (một catalog — không trộn lẫn fallback giữa 2 provider).
+    // Catalog check cho provider đích (một catalog — không trộn lẫn fallback giữa các provider).
     let catalog: PickerModel[];
     try {
       catalog = await catalogFor(provider);

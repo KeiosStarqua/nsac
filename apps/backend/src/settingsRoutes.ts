@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { settingsRepo, AGENT_PROVIDERS, type AgentProvider } from "./db/repositories/settings";
 
-// Model id OpenRouter/OpenCode Go: không khoảng trắng, không ký tự lạ — chống injection/giá trị rác.
+// Model id OpenRouter/OpenCode Go/Amazon Bedrock: không khoảng trắng, không ký tự lạ — chống injection/giá trị rác.
+// Bedrock inference-profile ids (vd. `global.amazon.nova-2-lite-v1:0`) đều khớp regex này.
 // Không kiểm tra catalog ở đây: backend không gọi mạng, caller (trang admin) chịu trách nhiệm tra catalog.
 export const MODEL_ID_REGEX = /^[a-z0-9][a-z0-9/_:.-]{0,199}$/;
 const modelIdSchema = z.string().trim().regex(MODEL_ID_REGEX);

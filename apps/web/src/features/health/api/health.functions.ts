@@ -12,7 +12,7 @@ import {
   currentAgentProvider,
   currentAgentProviderInfo,
 } from "../../agent/runtime/agent-model.server";
-import { readOpenCodeKey, readOpenRouterKey } from "../../agent/runtime/pi.server";
+import { readOpenCodeKey, readOpenRouterKey, readBedrockKey } from "../../agent/runtime/pi.server";
 
 export type Snapshot = {
   checks: Check[];
@@ -46,21 +46,25 @@ export const getSnapshot = createServerFn({ method: "GET" }).handler(async (): P
     ),
   );
 
-  const keyInfo =
-    provider === "opencode-go"
-      ? redactEnv(process.env.SKY_OPENCODE_API_KEY ?? process.env.OPENCODE_API_KEY)
-      : redactEnv(process.env.SKY_OPENROUTER_API_KEY);
+  // Three-way provider keys (booleans only — never values) + the effective provider's state.
+  const providerKeys = [
+    ["opencode-go", redactEnv(process.env.SKY_OPENCODE_API_KEY ?? process.env.OPENCODE_API_KEY).configured],
+    ["openrouter", redactEnv(process.env.SKY_OPENROUTER_API_KEY).configured],
+    ["amazon-bedrock", redactEnv(process.env.AWS_BEARER_TOKEN_BEDROCK).configured],
+  ] as const;
+  const effectiveKeyOk = providerKeys.find(([p]) => p === provider)?.[1] ?? false;
+  const providerKeysDetail = providerKeys
+    .map(([p, configured]) => `${p}: ${configured ? "configured" : "missing"}`)
+    .join(" · ");
   checks.push(
     makeCheck(
-      provider === "opencode-go" ? "go.key" : "openrouter.key",
-      provider === "opencode-go" ? "OpenCode Go API key" : "OpenRouter API key",
-      keyInfo.configured ? "ok" : "fail",
-      keyInfo.configured ? `configured (length ${keyInfo.length})` : "not configured",
-      keyInfo.configured
+      "agent.keys",
+      "Agent provider keys",
+      effectiveKeyOk ? "ok" : "fail",
+      providerKeysDetail,
+      effectiveKeyOk
         ? undefined
-        : provider === "opencode-go"
-          ? "Set SKY_OPENCODE_API_KEY (or OPENCODE_API_KEY) in /etc/nsac-web/env or .env"
-          : "Set SKY_OPENROUTER_API_KEY in /etc/nsac-web/env or .env",
+        : "Set the env var for the effective provider in /etc/nsac-web/env (SKY_OPENCODE_API_KEY or OPENCODE_API_KEY · SKY_OPENROUTER_API_KEY · AWS_BEARER_TOKEN_BEDROCK) plus AWS_REGION=ap-southeast-1 for Bedrock, then systemctl restart nsac-web",
     ),
   );
 
@@ -166,12 +170,18 @@ export const getSnapshot = createServerFn({ method: "GET" }).handler(async (): P
 /**
  * Live check (thủ công): xác nhận key của provider đang chọn. OpenCode Go dùng `GET /inference/v1/models`
  * với bearer key (endpoint danh sách models cần auth theo docs OpenCode); OpenRouter giữ probe `/api/v1/key` cũ.
+ * Bedrock: không có probe rẻ (Converse là inference call — CEO đã loại), trả về `unsupported`.
  */
 export const validateKey = createServerFn({ method: "POST" }).handler(async () => {
   const provider = await currentAgentProvider();
-  const key = provider === "opencode-go" ? readOpenCodeKey() : readOpenRouterKey();
+  const key =
+    provider === "opencode-go" ? readOpenCodeKey() : provider === "amazon-bedrock" ? readBedrockKey() : readOpenRouterKey();
   if (!key) {
     return { provider, status: "missing" as const, httpStatus: null, credit: null, limit: null };
+  }
+  if (provider === "amazon-bedrock") {
+    // Bedrock has no key-validation endpoint that is not an inference call; report honestly.
+    return { provider, status: "unsupported" as const, httpStatus: null, credit: null, limit: null };
   }
   try {
     const controller = new AbortController();
@@ -205,12 +215,17 @@ export const validateKey = createServerFn({ method: "POST" }).handler(async () =
   }
 });
 
-/** Live check (thủ công): model id hiệu lực có nằm trong catalog của provider đang chọn không. */
+/** Live check (thủ công): model id hiệu lực có nằm trong catalog của provider đang chọn không. Bedrock: `unsupported`. */
 export const checkModel = createServerFn({ method: "POST" }).handler(async () => {
   const provider = await currentAgentProvider();
-  const key = provider === "opencode-go" ? readOpenCodeKey() : readOpenRouterKey();
+  const key =
+    provider === "opencode-go" ? readOpenCodeKey() : provider === "amazon-bedrock" ? readBedrockKey() : readOpenRouterKey();
   const modelId = await currentAgentModel();
   if (!key) return { provider, result: "missing" as const };
+  if (provider === "amazon-bedrock") {
+    // No unauthenticated models list on the Bedrock runtime; do not guess.
+    return { provider, result: "unsupported" as const };
+  }
   try {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), 6000);

@@ -6,7 +6,7 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
 
 ## Ownership
 
-- Package này sở hữu `/health`, `/api/astronauts`, `/api/claims`, `/api/events` + `/api/cursors`, `/api/sensors/*` + `/ws/telemetry`, `/api/settings/agent-model` + `/api/settings/agent-models`, `/api/settings/elevenlabs-key`, `/api/tts`, `/api/health/*`.
+- Package này sở hữu `/health`, `/api/astronauts`, `/api/claims`, `/api/agent-traces`, `/api/events` + `/api/cursors`, `/api/sensors/*` + `/ws/telemetry`, `/api/settings/agent-model` + `/api/settings/agent-models`, `/api/settings/elevenlabs-key`, `/api/tts`, `/api/health/*`.
 - Không sở hữu UI: `apps/web` là consumer. Không import lẫn với backend Python `backend/src/nsac/` (layer khác, contract riêng).
 - `tests/` phản chiếu module trong `src/`; fixture DB đi qua `SKY_DB_PATH` tmp (`tests/settings-agent-models.test.ts` cover route mới).
 
@@ -15,8 +15,9 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
 ### DB ownership
 
 - `src/db/client.ts` là connection chính (`db`): `astronauts`, `astronaut_claims`, `app_settings`, `health_observations`. `ensureSchema()` tạo bảng + index idempotent; repo không có lịch sử migration nên không chạy `drizzle-kit generate`/`push`, DDL ở `ensureSchema` là nguồn sự thật.
-- Connection riêng (cùng `SKY_DB_PATH`): `claimsClient`, `eventsClient`, `sensorsClient`, `settingsClient`. Lý do: `bun test` chia sẻ module cache trong một process, file test cần DB riêng phải bind qua connection riêng trước khi module load.
+- Connection riêng (cùng `SKY_DB_PATH`): `claimsClient`, `eventsClient`, `sensorsClient`, `settingsClient`, `traceClient`. Lý do: `bun test` chia sẻ module cache trong một process, file test cần DB riêng phải bind qua connection riêng trước khi module load.
 - Thêm bảng: schema `src/db/schema/<name>.ts` + export ở `schema/index.ts` + DDL/index trong `ensureSchema` + repo ở `src/db/repositories/`. Không sửa/xoá block `ensureSchema` của bảng cũ.
+- `agent_traces` (debug telemetry mỗi agent turn, ghi bởi web qua HTTP loopback — xem HARNESSING §16): schema `schema/agentTraces.ts`, DDL + 2 index trong `ensureSchema` của `traceClient` (`(astronaut_id, id)` và `(agent_id, created_at)`), repo `repositories/agentTraces.ts`. Retention: giữ tối đa 5000 rows mới nhất VÀ xoá rows cũ hơn 7 ngày — prune chạy trong `insertTrace` mỗi 50 insert (theo id), best-effort, không bao giờ làm hỏng turn. Redaction trước khi insert: `sk_…` / `sk-…` / `oc_sk_…` / `Bearer …` → `[redacted]` (repo `redactText`, áp cho `user_text`/`reply_text`/`tools_json`); không bao giờ ghi API keys, headers hay secrets. `tools_json` chỉ `{name, ok?, ms?}` — tool arguments không bao giờ được lưu.
 - `health_observations` dùng chung `db` như `readingsRepo` — không mở connection thứ ba (một writer, WAL).
 
 ### Routes
@@ -26,9 +27,10 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
   (`provider`/`models` null khi chưa set, `model` = legacy raw, `updatedAt` = max của 2 key mới hoặc null).
   `PUT { provider?, model?, models? }` — mỗi field optional, `null` = xoá key tương ứng; `models` là thay thế
   **toàn bộ** map `{profileId: modelId}` (`{}`/null xoá key): keys `^[a-z0-9-]{1,64}$`, ≤16 entries, values MODEL_ID_REGEX;
-  provider enum strict `opencode-go|openrouter`. Mọi field ghi trong **một** transaction.
+  provider enum strict `opencode-go|openrouter|amazon-bedrock`. Mọi field ghi trong **một** transaction.
   DB keys: `agent.provider`, `agent.models` (JSON string) trong `app_settings`.
-- Handler dạng `handleXRequest(req): Promise<Response | null>`; trả `null` khi path/method không thuộc module để `server.ts` fall-through về 404. Thứ tự wire trong `server.ts`: claims → settings → tts → events → sensors → health → astronauts.
+- `/api/agent-traces` (debug telemetry, mở như `/api/events`, bind 127.0.0.1): `POST { astronautId, agentId, sessionId?, provider?, model?, ok, errorCode?, latencyMs, userText, replyText?, tools? }` (strict, body cap 12 KB → 413; `userText`/`replyText` ≤ 4000 chars; `tools` ≤ 20 entries `{name ≤ 64, ok?, ms?}` — arguments không nhận) → 201 `{ id }`; repo redact + prune trước khi insert. `GET ?astronautId=&agentId=&ok=&since=&limit=` — newest first (`id DESC`), `limit` mặc định 50, clamp ≤ 200, `since` = unix ms, `ok` chỉ nhận `true|false|1|0` → `{ rows, limit }` (camelCase, tools đã parse). `GET /api/agent-traces/:id` → row hoặc 404 `not_found`. Không phải chat history — chỉ debug telemetry (HARNESSING §16).
+- Handler dạng `handleXRequest(req): Promise<Response | null>`; trả `null` khi path/method không thuộc module để `server.ts` fall-through về 404. Thứ tự wire trong `server.ts`: claims → agent-traces → settings → tts → events → sensors → health → astronauts.
 - Lỗi luôn JSON `{ ok: false, error }` với 400/404/409/413. Đọc body có cap `Content-Length` + kiểm tra lại sau khi đọc (xem `eventsRoutes.ts`).
 - `GET /api/health/performance/:astronautId` → `{ astronautId, asOf, metrics[], derived }`: mỗi metric có `latest`, `delta30d` (latest − điểm cũ nhất trong 30 điểm), `points` 30 giá trị tăng dần, `baseline`, `method`, `quality`, `source`. 404 `unknown_astronaut`; 400 `bad_astronaut`; astronaut chưa có data → 200 `metrics: []`, `derived: {}`.
 - `GET /api/health/observations?astronautId=&metric=&limit=` → mảng row thô mới nhất trước (`ts DESC`), `limit` 1..500 (mặc định 500), query sai → 400 `bad_query`. `energy_balance` không nhận làm `metric` (derived).
@@ -68,7 +70,7 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
 
 ## Verification
 
-- `bun test` trong `apps/backend` (hoặc `bun run test` từ root). Health layer: `tests/health-observations.test.ts`. TTS/ElevenLabs key: `tests/tts.test.ts`.
+- `bun test` trong `apps/backend` (hoặc `bun run test` từ root). Health layer: `tests/health-observations.test.ts`. TTS/ElevenLabs key: `tests/tts.test.ts`. Agent traces: `tests/agent-traces.test.ts`.
 - Known pre-existing failure: `tests/readings.test.ts` fail vì bảng `readings` không nằm trong `ensureSchema` (chưa sửa vì ngoài scope); không liên quan health layer.
 - Smoke: `SKY_DB_PATH=<tmp> PORT=3299 bun run src/server.ts` rồi `curl /api/health/performance/ayla-reyes` — seed phải tạo 11 series × 35 row.
 

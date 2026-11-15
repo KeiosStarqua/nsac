@@ -162,3 +162,61 @@ describe("agent-models setting", () => {
     expect(other).toBeNull();
   });
 });
+
+describe("agent-models — amazon-bedrock", () => {
+  test("PUT roundtrip provider + legacy model + per-profile models", async () => {
+    const res = await put({
+      provider: "amazon-bedrock",
+      model: "global.amazon.nova-2-lite-v1:0",
+      models: {
+        "sky-chat": "global.moonshotai.kimi-k3",
+        "sky-hud-composer": "global.moonshotai.kimi-k3.1",
+      },
+    });
+    expect(res?.status).toBe(200);
+    const body = (await res?.json()) as {
+      ok: boolean;
+      provider: string | null;
+      model: string | null;
+      models: Record<string, string> | null;
+      updatedAt: number | null;
+    };
+    expect(body.ok).toBe(true);
+    expect(body.provider).toBe("amazon-bedrock");
+    expect(body.model).toBe("global.amazon.nova-2-lite-v1:0");
+    expect(body.models).toEqual({
+      "sky-chat": "global.moonshotai.kimi-k3",
+      "sky-hud-composer": "global.moonshotai.kimi-k3.1",
+    });
+    expect(typeof body.updatedAt).toBe("number");
+
+    const after = (await (await get())?.json()) as typeof body;
+    expect(after.provider).toBe("amazon-bedrock");
+    expect(after.model).toBe("global.amazon.nova-2-lite-v1:0");
+    expect(after.models).toEqual({
+      "sky-chat": "global.moonshotai.kimi-k3",
+      "sky-hud-composer": "global.moonshotai.kimi-k3.1",
+    });
+  });
+
+  test("bedrock inference-profile ids pass the model regex (dots, colon)", async () => {
+    for (const id of ["global.amazon.nova-2-lite-v1:0", "global.moonshotai.kimi-k3", "global.moonshotai.kimi-k3.1"]) {
+      expect((await put({ model: id }))?.status).toBe(200);
+      expect((await put({ models: { "sky-chat": id } }))?.status).toBe(200);
+    }
+  });
+
+  test("provider enum is strict: near-miss spellings are rejected", async () => {
+    for (const bad of ["amazon_bedrock", "Amazon-Bedrock", "amazonbedrock", "bedrock", "amazon-bedrock-", 42]) {
+      expect((await put({ provider: bad }))?.status).toBe(400);
+    }
+    expect(((await put({ provider: "amazon-bedrock" }))?.status)).toBe(200);
+  });
+
+  test("cleanup: delete the keys again", async () => {
+    const res = await put({ provider: null, model: null, models: null });
+    expect(res?.status).toBe(200);
+    const after = (await (await get())?.json()) as { provider: unknown; model: unknown; models: unknown; updatedAt: unknown };
+    expect(after).toEqual({ provider: null, model: null, models: null, updatedAt: null });
+  });
+});

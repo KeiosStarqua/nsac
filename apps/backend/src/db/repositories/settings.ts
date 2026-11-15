@@ -4,11 +4,11 @@ import { appSettings } from "../schema/appSettings";
 
 /** Key chứa model global legacy dùng cho Sky agent (fallback khi không có profile override). */
 export const AGENT_MODEL_KEY = "agent.model";
-/** Key chứa provider của Sky agent: opencode-go | openrouter. */
+/** Key chứa provider của Sky agent: opencode-go | openrouter | amazon-bedrock. */
 export const AGENT_PROVIDER_KEY = "agent.provider";
 /** Key chứa JSON map `{profileId: modelId}` — model riêng cho từng agent profile. */
 export const AGENT_MODELS_KEY = "agent.models";
-export const AGENT_PROVIDERS = ["opencode-go", "openrouter"] as const;
+export const AGENT_PROVIDERS = ["opencode-go", "openrouter", "amazon-bedrock"] as const;
 export type AgentProvider = (typeof AGENT_PROVIDERS)[number];
 
 // Bản sao cố ý của MODEL_ID_REGEX ở settingsRoutes (repo không import layer route).
@@ -85,7 +85,7 @@ export const settingsRepo = {
   getAgentProvider(): { provider: AgentProvider; updatedAt: number } | null {
     const row = settingsDb().select().from(appSettings).where(eq(appSettings.key, AGENT_PROVIDER_KEY)).all()[0];
     if (!row) return null;
-    if (row.value !== "opencode-go" && row.value !== "openrouter") return null;
+    if (row.value !== "opencode-go" && row.value !== "openrouter" && row.value !== "amazon-bedrock") return null;
     return { provider: row.value, updatedAt: row.updatedAt };
   },
 

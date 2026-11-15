@@ -23,7 +23,7 @@ runtime/pi.server.ts                     (Pi SDK boundary — duy nhất chỗ i
         ▼
 @earendil-works/pi-coding-agent          (lazy dynamic import, không nằm trong client bundle)
         ▼
-OpenCode Go (OpenAI-compatible, mặc định) / OpenRouter (legacy)  (provider + model chỉnh qua /admin → backend SQLite)
+OpenCode Go (OpenAI-compatible, mặc định) / OpenRouter (legacy) / Amazon Bedrock  (provider + model chỉnh qua /admin → backend SQLite)
 ```
 
 Song song là kênh dữ liệu nội bộ (không phải agent→agent):
@@ -105,7 +105,7 @@ composeHud(astronautId, locale)                     [api/hud-compose.functions.t
 sendChatTurn(astronautId, message)                   [api/chat.functions.ts — dùng bởi /watch]
   → sanitize id → findAstronaut → validateMessage (1..500 ký tự)
   → thiếu key của provider đang chọn (mặc định OpenCode Go: SKY_OPENCODE_API_KEY/OPENCODE_API_KEY;
-    legacy OpenRouter: SKY_OPENROUTER_API_KEY) → { status: "missing_key" }
+    legacy OpenRouter: SKY_OPENROUTER_API_KEY; Amazon Bedrock: AWS_BEARER_TOKEN_BEDROCK) → { status: "missing_key" }
   → append user message vào var/sky-sessions/<id>.json (trim 40 message, mode 0600)
   → enqueue theo id (mỗi astronaut một hàng đợi)
   → getSession: reuse nếu còn hạn + `provider:model` không đổi; ngược lại tạo mới
@@ -242,9 +242,12 @@ Những gì `createSession()` làm, theo thứ tự:
 
 1. **Provider**: `currentAgentProvider()` (backend `agent.provider` → `SKY_AGENT_PROVIDER` →
    `"opencode-go"`; xem §5). **Key**: provider `opencode-go` đọc `SKY_OPENCODE_API_KEY` ?? `OPENCODE_API_KEY`;
-   provider `openrouter` đọc `SKY_OPENROUTER_API_KEY` (chỉ env; trim; rỗng ⇒ throw `missing_key`).
+   provider `openrouter` đọc `SKY_OPENROUTER_API_KEY`; provider `amazon-bedrock` đọc `AWS_BEARER_TOKEN_BEDROCK`
+   (chỉ env; trim; rỗng ⇒ throw `missing_key`).
 2. **Model**: `currentAgentModel(profile?.id)` (xem §5); `SKY_OPENCODE_BASE_URL` (go) / `SKY_OPENROUTER_BASE_URL`
-   (openrouter) trỏ `/v1` tương thích OpenAI (dùng cho smoke test với mock server).
+   (openrouter) trỏ `/v1` tương thích OpenAI (dùng cho smoke test với mock server). Bedrock: runtime baseUrl luôn là
+   `SKY_BEDROCK_BASE_URL` hoặc mặc định `https://bedrock-runtime.ap-southeast-1.amazonaws.com` (`bedrockBaseUrl()`,
+   không phụ thuộc `AWS_REGION`).
 3. **Lazy import**: `await import("@earendil-works/pi-coding-agent")` — cache promise, SDK không
    bao giờ nằm trên critical path lúc module load hay trong client bundle.
 4. **models.json tạm** (`tmpdir()/nsac-pi-models-<pid>/models-<hash>.json`, sha256 16 ký tự):
@@ -285,7 +288,7 @@ Constant: `SKY_MAX_TOKENS = 2048` (Sky trả lời vài câu ngắn; không kế
 
 **Provider** (`currentAgentProvider()`):
 
-1. Backend SQLite `app_settings.agent.provider` (`opencode-go` | `openrouter`) đọc qua
+1. Backend SQLite `app_settings.agent.provider` (`opencode-go` | `openrouter` | `amazon-bedrock`) đọc qua
    `GET /api/settings/agent-models` (timeout 1200 ms; `PUT` từ `/admin` với `SKY_ADMIN_KEY`)
 2. `lastGood` provider gần nhất (backend lỗi tạm thời)
 3. `SKY_AGENT_PROVIDER` (case/trim, giá trị lạ bỏ qua)
@@ -295,8 +298,11 @@ Constant: `SKY_MAX_TOKENS = 2048` (Sky trả lời vài câu ngắn; không kế
 
 1. Backend `agent.models[profile]` — chỉ khi `profile` được truyền và có trong map (regex validate lại; rác ⇒ bỏ qua)
 2. Backend legacy `agent.model`
-3. `SKY_AGENT_MODEL` (global) → provider-specific `SKY_OPENCODE_MODEL` (go) / `SKY_OPENROUTER_MODEL` (openrouter)
-4. Provider default: opencode-go → `deepseek-v4.1-flash`; openrouter → `thinkingmachines/inkling-2-small:free`
+3. `SKY_AGENT_MODEL` (global) → provider-specific `SKY_OPENCODE_MODEL` (go) / `SKY_OPENROUTER_MODEL` (openrouter) / `SKY_BEDROCK_MODEL` (amazon-bedrock)
+4. Provider default: opencode-go → `deepseek-v4.1-flash`; openrouter → `thinkingmachines/inkling-2-small:free`; amazon-bedrock → `global.amazon.nova-2-lite-v1:0`
+
+Bedrock inference profiles đã verify Converse live 2026-11-15 trên account 229446390715 (ap-southeast-1):
+`global.moonshotai.kimi-k3`, `global.moonshotai.kimi-k3.1`, `global.amazon.nova-2-lite-v1:0`.
 
 Fetch backend một lần cho cả provider + model (`GET /api/settings/agent-models`, cache burst).
 Backward compat: nếu `/api/settings/agent-models` lỗi/404 ⇒ thử `GET /api/settings/agent-model` cho legacy
@@ -443,10 +449,14 @@ mọi layer (runner → function → UI). Không có retry tự động; lỗi l
 
 | Biến / file | Ý nghĩa |
 |---|---|
-| `SKY_AGENT_PROVIDER` | Provider: `opencode-go` (mặc định) \| `openrouter` (legacy) |
+| `SKY_AGENT_PROVIDER` | Provider: `opencode-go` (mặc định) \| `openrouter` (legacy) \| `amazon-bedrock` |
 | `SKY_OPENCODE_API_KEY` | Key OpenCode Go (env-only; đặt qua `/etc/nsac-web/env` trên box). Fallback: `OPENCODE_API_KEY` |
 | `OPENCODE_API_KEY` | Fallback key OpenCode Go nếu `SKY_OPENCODE_API_KEY` không có |
-| `SKY_AGENT_MODEL` | Override global cho mọi agent (cả 2 provider) |
+| `AWS_BEARER_TOKEN_BEDROCK` | Key Bedrock (IAM Console → Bedrock → API keys), provider `amazon-bedrock`; đặt qua `/etc/nsac-web/env` trên box |
+| `AWS_REGION` | Region Bedrock (box: `ap-southeast-1`); KHÔNG quyết định baseUrl (baseUrl luôn `SKY_BEDROCK_BASE_URL` hoặc mặc định `https://bedrock-runtime.ap-southeast-1.amazonaws.com`) |
+| `SKY_BEDROCK_BASE_URL` | Override Bedrock runtime endpoint (default `https://bedrock-runtime.ap-southeast-1.amazonaws.com`) |
+| `SKY_BEDROCK_MODEL` | Override model khi provider = `amazon-bedrock` |
+| `SKY_AGENT_MODEL` | Override global cho mọi agent (cả 3 provider) |
 | `SKY_OPENCODE_MODEL` | Override model khi provider = `opencode-go` |
 | `SKY_OPENCODE_BASE_URL` | Override base Go (smoke test với mock OpenAI-compatible) |
 | `SKY_OPENROUTER_API_KEY` | Key OpenRouter (legacy provider; đặt qua `/etc/nsac-web/env` trên box) |
@@ -460,6 +470,8 @@ mọi layer (runner → function → UI). Không có retry tự động; lỗi l
 | `var/sky-sessions/<id>.json` | Transcript UI (trim 40 message, 0600) |
 | `tmpdir()/nsac-pi-models-<pid>/` | models.json + auth.json tạm (0600/0700) |
 | Backend `change_events`, `consumer_cursors` (`SKY_DB_PATH`) | Events broadcast + cursor từng consumer; web không mở file trực tiếp, chỉ qua HTTP loopback |
+| `SKY_TRACE_DISABLED` | Đặt `1` để tắt ghi agent turn traces (mặc định bật) |
+| Backend `agent_traces` (`SKY_DB_PATH`) | Debug telemetry mỗi agent turn; web ghi qua HTTP loopback, web không mở file trực tiếp |
 
 ## 13. Giới hạn & điểm cần biết
 
@@ -538,3 +550,32 @@ và SHARED CONTEXT. Trách nhiệm của orchestrator là một tập con của 
   `sky-workflow-orchestrator` riêng.
 - Danh sách snapshot sau khi build xong: registry còn 3 profile; `listAgents()` gửi `/health`
   còn 3 dòng; broadcast docs đồng bộ tên consumer.
+
+## 16. Agent turn traces (debug telemetry)
+
+Mỗi agent turn (`sky-chat` qua `astro-chat.server.ts`, `sky-hud-composer` qua `hud-compose.server.ts`)
+ghi **một** row vào bảng `agent_traces` của backend SQLite (`SKY_DB_PATH`, cùng file với
+`change_events`). Row gồm: `astronaut_id`, `agent_id`, `session_id` (stem của session file, vd.
+`ayla-reyes` / `ayla-reyes.hud`), `provider`, `model`, `ok`, `error_code`
+(`timeout` | `empty_reply` | `session_failed` | `turn_error` | `missing_key` | `rejected`),
+`latency_ms`, `user_text`, `reply_text`, `tools_json` (chỉ `{name, ok?, ms?}` — tool arguments
+không bao giờ được lưu) và `created_at` (unix ms). Text fields được cap (≤ 4000 chars) và redact
+(`sk_…` / `sk-…` / `oc_sk_…` / `Bearer …` → `[redacted]`) trước khi insert; retention: tối đa 5000
+rows mới nhất và rows cũ hơn 7 ngày bị xoá (prune mỗi 50 insert, best-effort).
+
+**Đây là debug telemetry, không phải nguồn sự thật của chat history** (đó là `var/sky-sessions/*`).
+Dùng để coding agent truy vấn lỗi/độ trễ/provider/model/tool calls trên một turn cụ thể.
+
+Đọc:
+
+```
+scripts/agent-traces.sh [limit] [astronautId] [agentId]   # jq nếu có, plain JSON nếu không
+curl -s http://127.0.0.1:3200/api/agent-traces?ok=false&limit=20
+curl -s http://127.0.0.1:3200/api/agent-traces/123
+```
+
+Web ghi best-effort qua `features/agent/runtime/agent-trace.server.ts` (`recordTurnTrace`,
+timeout 1200 ms, không bao giờ throw, `setTraceFetch` là test seam, tắt hoàn toàn bằng
+`SKY_TRACE_DISABLED=1`). Trace write không chặn hay làm hỏng reply. Tool outcomes đến từ event
+`tool_execution_end` của Pi SDK (capture trong `pi.server.ts`); fallback: `show_on_hud` có mặt ⇔
+`artifacts.hudProgram` được set. Composer trace có `replyText` = program đã qua review (truncated).

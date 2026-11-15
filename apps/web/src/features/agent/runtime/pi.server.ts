@@ -16,8 +16,21 @@ export function readOpenCodeKey(): string | null {
   return raw.trim();
 }
 
-export function readProviderKey(provider: "opencode-go" | "openrouter"): string | null {
-  return provider === "opencode-go" ? readOpenCodeKey() : readOpenRouterKey();
+export function readBedrockKey(): string | null {
+  const raw = process.env.AWS_BEARER_TOKEN_BEDROCK;
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  return raw.trim();
+}
+
+export function readProviderKey(provider: "opencode-go" | "openrouter" | "amazon-bedrock"): string | null {
+  if (provider === "opencode-go") return readOpenCodeKey();
+  if (provider === "amazon-bedrock") return readBedrockKey();
+  return readOpenRouterKey();
+}
+
+/** Bedrock runtime baseUrl: SKY_BEDROCK_BASE_URL override, else ap-southeast-1 (independent of AWS_REGION). */
+export function bedrockBaseUrl(): string {
+  return process.env.SKY_BEDROCK_BASE_URL?.trim() || "https://bedrock-runtime.ap-southeast-1.amazonaws.com";
 }
 
 /** Key của provider đang hiệu lực; chỉ dùng cho check nhanh (vd. missing_key trước khi vào turn). */
@@ -50,7 +63,7 @@ function piCacheDir(): string {
 const SKY_MAX_TOKENS = 2048;
 
 type ModelsFileParts = {
-  provider: "opencode-go" | "openrouter";
+  provider: "opencode-go" | "openrouter" | "amazon-bedrock";
   model: string;
   withModelEntry: boolean;
   maxTokens?: number;
@@ -79,10 +92,16 @@ export type SessionFacade = {
 };
 
 /**
+ * Tool call outcome captured from the SDK's `tool_execution_end` event. Name/ok/ms only —
+ * tool arguments never land in artifacts (and from there never in traces or logs).
+ */
+export type ToolOutcome = { name: string; ok: boolean; ms?: number };
+
+/**
  * Per-turn side effects a tool may produce. `prompt()` clears them when the turn starts, so a turn
  * can only report what its own tool calls did; the chat pipeline reads them once the reply settles.
  */
-export type TurnArtifacts = { hudProgram?: string };
+export type TurnArtifacts = { hudProgram?: string; tools?: ToolOutcome[] };
 
 export async function createSession(
   profile: AgentProfile,
@@ -94,10 +113,13 @@ export async function createSession(
   if (!key) throw new Error("missing_key");
   // Model resolution: backend agent.models[profile] → legacy agent.model → env → provider default.
   const model = await currentAgentModel(profile?.id);
+  // Bedrock is pinned to ap-southeast-1 unless SKY_BEDROCK_BASE_URL overrides it (never derived from AWS_REGION).
   const baseUrl =
     (provider === "opencode-go"
       ? process.env.SKY_OPENCODE_BASE_URL?.trim()
-      : process.env.SKY_OPENROUTER_BASE_URL?.trim()) || undefined;
+      : provider === "openrouter"
+        ? process.env.SKY_OPENROUTER_BASE_URL?.trim()
+        : bedrockBaseUrl()) || undefined;
   const pi = await loadPiSdk();
   const probePath = ensureModelsFile({ provider, model, withModelEntry: false, baseUrl });
   const probe = await pi.ModelRuntime.create({ modelsPath: probePath, authPath: join(piCacheDir(), "auth.json") });
@@ -158,6 +180,7 @@ export async function createSession(
       // Turn artifacts belong to the turn that produces them: clearing at the start keeps a stale
       // program from a previous turn out of this turn's reply.
       if (overrides?.artifacts) delete overrides.artifacts.hudProgram;
+      if (overrides?.artifacts) delete overrides.artifacts.tools;
       let total = "";
       let turnError: string | null = null;
       const unsub = session.subscribe((event: any) => {
@@ -168,6 +191,21 @@ export async function createSession(
             opts.onDelta?.(e.delta);
           } else if (e?.type === "error") {
             turnError = e.error?.errorMessage ?? e.error?.stopReason ?? e.reason ?? "error";
+          }
+        } else if (event.type === "tool_execution_end") {
+          // Real SDK events (verified in pi-coding-agent dist/core/extensions/types.d.ts):
+          // tool_execution_end carries toolName/isError/durationMs. Arguments are ignored on purpose.
+          const artifacts = overrides?.artifacts;
+          if (artifacts) {
+            const name = typeof event.toolName === "string" ? event.toolName.slice(0, 64) : "unknown";
+            const ms =
+              typeof event.durationMs === "number" && Number.isFinite(event.durationMs)
+                ? Math.max(0, Math.round(event.durationMs))
+                : undefined;
+            const arr = (artifacts.tools ??= []);
+            if (arr.length < 20) {
+              arr.push({ name, ok: event.isError !== true, ...(ms !== undefined ? { ms } : {}) });
+            }
           }
         } else if (event.type === "message_end") {
           const m = event.message;
