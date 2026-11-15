@@ -39,7 +39,7 @@ is v1-only.
 
 | File | Voice | Line |
 |---|---|---|
-| voice/vo-1.wav … vo-6.wav | `slt` (vo-3: `kal`) | screenplay v3 VO lines, in scene order |
+| voice/vo-1.wav … vo-6.wav | `slt` (vo-3: `kal`) | **archived — not used**: standing rule forbids voiceover |
 | voice/vo-mix.m4a | mixed | adelay 0.1/3.25/10.6/12.9/19.3/26.6 s → loudnorm −16 LUFS |
 
 ## v3 music and sound effects (ElevenLabs CLI)

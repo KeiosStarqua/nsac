@@ -33,6 +33,9 @@ Voiceover, music, and SFX are mixed after rendering (`media/voice/`, `media/audi
 
 ## Work Guidance
 
+- **No voiceover — never.** Keios' standing rule (2026-11-15): no VO track in any version of this
+  film. Narration is on-screen text only; audio = music + SFX. `media/voice/` flite stems are
+  archived and must not be mixed into an output.
 - Format: 1920×1080, 30 fps (unless changed intentionally).
 - Facts shown on screen must carry a source or be marked SIMULATED (same rule as the app).
 - Beats (v3): 00:00 intro → 00:03 01/Continuous Monitoring → 00:10 02/Clinical Assistance →

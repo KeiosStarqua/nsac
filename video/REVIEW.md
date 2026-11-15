@@ -7,6 +7,9 @@ loudness-normalized but not listened to by anyone but the authoring pipeline.
 
 ## Creative calls
 
+- **No voiceover (standing rule, Keios 2026-11-15).** All narration is on-screen text; the audio
+  bed is music + SFX only. Earlier flite VO stems stay archived in `media/voice/` and are not mixed.
+
 - **Brief-literal scene order.** Intro → Monitoring → Clinical → Surgeon → Closing, with the
   screenplay's own tracker labels ("01 / CONTINUOUS MONITORING", "02 / INTELLIGENT CLINICAL
   ASSISTANCE", "03 / CONNECTED MEDICAL SUPPORT") as the recurring motif.

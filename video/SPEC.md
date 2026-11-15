@@ -1,6 +1,6 @@
 # SPEC — SKY · 30-Second Product Launch Screenplay — v3
 
-VERSION: 3 (current; outputs: `out/sky-launch-30s-v3.mp4` — VO + music + SFX; `out/sky-launch-30s-v3-silent.mp4` — same picture, no audio). Composed from the Keios brief
+VERSION: 3 (current; outputs: `out/sky-launch-30s-v3.mp4` — music + SFX, no VO (standing rule); `out/sky-launch-30s-v3-silent.mp4` — same picture, no audio). Composed from the Keios brief
 "SKY — 30-Second Product Launch Screenplay · Product Demo · NASA Space Apps · 16:9 · 30 seconds"
 (received 2026-11-15). v1 (Isolation / Meet Sky cut) is preserved: composition `index-v1.html`,
 spec `SPEC-v1.md`, review `REVIEW-v1.md`.
@@ -8,7 +8,7 @@ spec `SPEC-v1.md`, review `REVIEW-v1.md`.
 GOAL:    One AI. Three essential capabilities. Safer space exploration.
          Product-demo energy (Apple-style), not a fictional astronaut film.
 OUTPUT:  HyperFrames composition `index-v3.html` → MP4, 1920×1080, 30 fps, 30.000 s (900 frames).
-         H.264 + AAC. Full mix: synthesized VO (flite) + ElevenLabs music bed + four ElevenLabs SFX.
+         H.264 + AAC. Audio = ElevenLabs music bed + four ElevenLabs SFX. **No voiceover, ever** (rule).
 FLOW:    0–3s Intro · 3–10s 01 / Continuous Monitoring · 10–19s 02 / Intelligent Clinical
          Assistance · 19–26s 03 / Connected Medical Support · 26–30s Closing. Apple-style
          cuts, tracker label top-center per scene.
@@ -50,17 +50,17 @@ SHOTS:   f 0–90    INTRO     black; SKY wordmark materializes with cyan glow 0
                   enter 26.0s, converge into orb bloom 26.75s; black; SKY wordmark +
                   Earth-outline ring + horizon line 27.6s; tagline "SAFER SPACE EXPLORATION,
                   WITH SKY" 28.25s; URL + disclaimer micro 28.6/28.9s; VO 26.6s.
-AUDIO:   VO media/voice/vo-1..6.wav (flite `slt`; astronaut line `kal`). ElevenLabs assets in
-         media/audio/ (music bed + whoosh/ping/shimmer/bloom). Final mix media/audio/soundtrack-v3.m4a:
-         VO offsets 0.1/3.25/10.6/12.9/19.3/26.6 s; music 30 s (fade 0.6 s in / 1.8 s out, 16% gain);
+AUDIO:   No VO (standing rule); flite stems in media/voice/ are archived only. ElevenLabs assets
+         in media/audio/ (music bed + whoosh/ping/shimmer/bloom). Mix media/audio/soundtrack-v3-novo.m4a:
+         music 30 s (fade 0.6 s in / 1.8 s out, 45% gain);
          whoosh 2.95/9.95/18.95/25.9 s; ping 4.05/5.95/6.75 s; shimmer 14.3/21.8 s; bloom 0.15/27.85 s;
          loudnorm I=-16 TP=-1.5 LRA=11.
-BANNED:  no invented readiness number; no capability claims beyond the demo; no real-person
+BANNED:  no voiceover track (standing rule); no invented readiness number; no capability claims beyond the demo; no real-person
          likeness; no "diagnosis" or treatment wording; no NASA imagery in v3 (v1 used
          s134e010062 — retired with the v1 cut).
 BUILD:   Run check in an isolated v3-only copy (repo keeps multiple root compositions). Render
          `npx hyperframes render -c index-v3.html --video-frame-format png -q delivery
-         -o out/sky-launch-30s-v3-silent.mp4`, then mux `media/audio/soundtrack-v3.m4a` into
+         -o out/sky-launch-30s-v3-silent.mp4`, then mux `media/audio/soundtrack-v3-novo.m4a` into
          `out/sky-launch-30s-v3.mp4` (ffmpeg `-c:v copy -c:a aac -b:a 192k -t 30`). Silent output
          stays the HyperFrames render (video-only).
 QA:      frames 1.5 (intro), 4.5 (callouts), 7.0 (amber), 12.2 (question), 15.6 (guidance),
