@@ -9,6 +9,7 @@ import { handleSensorsRequest } from "./sensors/routes";
 import { wsHandlers } from "./sensors/ws";
 import { handleHealthRequest } from "./healthRoutes";
 import { handleSpeechRequest, startSpeechEngine } from "./speechEngine";
+import { handleSpeechAdminRequest } from "./speechAdmin";
 import { seedHealthObservations } from "./health/seed";
 
 const port = Number(process.env.PORT ?? 3200);
@@ -69,6 +70,9 @@ Bun.serve({
     if (agentTraces) return agentTraces;
     const settings = await handleSettingsRequest(req);
     if (settings) return settings;
+    // Speech Engine admin surface (loopback-only) — trước speech fall-through.
+    const speechAdmin = await handleSpeechAdminRequest(req);
+    if (speechAdmin) return speechAdmin;
     // Speech Engine HTTP surface (register/config) — trước tts theo thứ tự fall-through.
     const speech = await handleSpeechRequest(req);
     if (speech) return speech;

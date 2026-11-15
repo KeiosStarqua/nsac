@@ -474,12 +474,57 @@ export interface Copy {
     goKeyClearFailed: string;
     /** Note under the panel: write-only semantics + when the stored key is used. */
     goKeyNote: string;
-    /** Tab labels for the four /admin sections. */
+    /** Speech Engine panel — manage the ElevenLabs Speech Engine instance behind the / mic voice chat. */
+    speech: {
+      title: string;
+      statusConnected: string;
+      statusNotConfigured: string;
+      engineIdLabel: string;
+      engineIdMissing: string;
+      sourceLabel: string;
+      sourceEnv: string;
+      sourceDb: string;
+      wsRunning: string;
+      wsStopped: string;
+      portLabel: string;
+      envShadowWarning: string;
+      lastErrorLabel: string;
+      apiKeyLabel: string;
+      apiKeyConfigured: string;
+      apiKeyMissing: string;
+      apiKeyHint: string;
+      probe: string;
+      probing: string;
+      probeOk: string;
+      probeFailed: string;
+      create: string;
+      creating: string;
+      /** Technical constants (name + wsUrl) — identical in en/vi. */
+      createSubline: string;
+      createConfirm: string;
+      createDisabledNoKey: string;
+      createDone: string;
+      createEnvShadowNote: string;
+      wsToggleStop: string;
+      wsToggleStart: string;
+      wsWorking: string;
+      wsToggleDone: string;
+      delete: string;
+      deleting: string;
+      /** `{id}` is the effective engine id, substituted in the component. */
+      deleteConfirm: string;
+      deleteDone: string;
+      backendDown: string;
+      retry: string;
+      genericError: string;
+    };
+    /** Tab labels for the five /admin sections. */
     tabModels: string;
     tabOpencode: string;
     tabElevenlabs: string;
+    tabSpeech: string;
     tabClaims: string;
-    /** aria-label of the tablist above the four sections. */
+    /** aria-label of the tablist above the five sections. */
     tabsLabel: string;
   };
 }

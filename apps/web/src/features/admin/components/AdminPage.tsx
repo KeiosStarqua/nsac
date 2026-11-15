@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Bot, KeyRound, RotateCcw, Volume2 } from "lucide-react";
+import { Bot, KeyRound, Mic, RotateCcw, Volume2 } from "lucide-react";
 import { useCopy } from "~/shared/i18n";
 import { MorphingTabs } from "~/shared/beui/morphing-tabs";
 import {
@@ -14,6 +14,7 @@ import {
   setElevenLabsKeyFn,
   clearElevenLabsKeyFn,
 } from "../api/elevenlabs.functions";
+import { SpeechEnginePanel } from "./SpeechEnginePanel";
 import {
   getOpenCodeKeyInfoFn,
   saveOpenCodeKeyFn,
@@ -817,6 +818,12 @@ export function AdminPage() {
                 </section>
                 </>
               ),
+            },
+            {
+              id: "speech",
+              label: copy.tabSpeech,
+              icon: <Mic aria-hidden className="size-5" />,
+              content: <SpeechEnginePanel onSessionExpired={() => setPhase("locked")} />,
             },
             {
               id: "claims",
