@@ -6,6 +6,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { DRACO_DECODER_PATH } from "../model/models";
 import { frameBox, type Box3Like, type Framing } from "../model/framing";
 import { ISSStreamer, type ISSFramingBox, type ISSStreamStats } from "~/features/iss";
+import { CrewMarkers, type CrewMarkersPresence } from "./CrewMarkers";
 import { SceneBoundary } from "./SceneBoundary";
 
 const FOV = 38;
@@ -22,6 +23,8 @@ export interface SpacecraftSceneProps {
   readonly autoRotate: boolean;
   readonly reducedMotion: boolean;
   readonly paused: boolean;
+  /** Resolved crew presence (`model/presence.ts`) — the markers use the same states as the avatars. */
+  readonly crewPresence: ReadonlyArray<CrewMarkersPresence>;
 }
 
 function boxToLike(box: THREE.Box3): Box3Like {
@@ -251,6 +254,7 @@ export default function SpacecraftScene({
   autoRotate,
   reducedMotion,
   paused,
+  crewPresence,
 }: SpacecraftSceneProps) {
   const [streamStats, setStreamStats] = useState<ISSStreamStats | null>(null);
   const retryRef = useRef<(() => void) | null>(null);
@@ -286,6 +290,8 @@ export default function SpacecraftScene({
         <pointLight position={[0, 8, -40]} intensity={3000} color="#9fd8ff" distance={260} decay={2} />
         <RoomLighting />
         <DriftingStars reducedMotion={reducedMotion} />
+        {/* Simulated crew positions: display-only markers, independent of the stream progress. */}
+        <CrewMarkers presence={crewPresence} reducedMotion={reducedMotion} />
         <Suspense fallback={null}>
           {stream ? (
             <StreamedModel
