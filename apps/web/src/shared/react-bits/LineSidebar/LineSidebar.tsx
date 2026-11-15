@@ -1,12 +1,36 @@
 // LineSidebar
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/LineSidebar/LineSidebar.jsx
+// Source: @react-bits/LineSidebar-TS-TW — https://reactbits.dev/r/LineSidebar-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
-import './LineSidebar.css';
+import { useRef, useState, useCallback, useEffect, type CSSProperties } from 'react';
 
-const FALLOFF_CURVES = {
+type Falloff = 'linear' | 'smooth' | 'sharp';
+
+export interface LineSidebarProps {
+  items?: string[];
+  accentColor?: string;
+  textColor?: string;
+  markerColor?: string;
+  showIndex?: boolean;
+  showMarker?: boolean;
+  proximityRadius?: number;
+  maxShift?: number;
+  falloff?: Falloff;
+  markerLength?: number;
+  markerGap?: number;
+  tickScale?: number;
+  scaleTick?: boolean;
+  itemGap?: number;
+  fontSize?: number;
+  smoothing?: number;
+  defaultActive?: number | null;
+  onItemClick?: (index: number, label: string) => void;
+  className?: string;
+}
+
+const FALLOFF_CURVES: Record<Falloff, (p: number) => number> = {
   linear: p => p,
   smooth: p => p * p * (3 - 2 * p),
   sharp: p => p * p * p
@@ -47,16 +71,16 @@ const LineSidebar = ({
   defaultActive = null,
   onItemClick,
   className = ''
-}) => {
-  const listRef = useRef(null);
-  const itemRefs = useRef([]);
-  const targetsRef = useRef([]);
-  const currentRef = useRef([]);
-  const rafRef = useRef(null);
+}: LineSidebarProps) => {
+  const listRef = useRef<HTMLUListElement>(null);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const targetsRef = useRef<number[]>([]);
+  const currentRef = useRef<number[]>([]);
+  const rafRef = useRef<number | null>(null);
   const lastRef = useRef(0);
-  const activeRef = useRef(defaultActive);
+  const activeRef = useRef<number | null>(defaultActive);
   const smoothingRef = useRef(smoothing);
-  const [activeIndex, setActiveIndex] = useState(defaultActive);
+  const [activeIndex, setActiveIndex] = useState<number | null>(defaultActive);
 
   activeRef.current = activeIndex;
   smoothingRef.current = smoothing;
@@ -64,7 +88,7 @@ const LineSidebar = ({
   // Single rAF loop that eases every item's --effect toward its target using
   // frame-rate independent exponential smoothing, so color, shift and scale
   // all move together without staggering CSS transitions.
-  const runFrame = useCallback(now => {
+  const runFrame = useCallback((now: number) => {
     const dt = Math.min((now - lastRef.current) / 1000, 0.05);
     lastRef.current = now;
     const tau = Math.max(smoothingRef.current, 1) / 1000;
@@ -92,13 +116,12 @@ const LineSidebar = ({
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
     }
-
     lastRef.current = performance.now();
     rafRef.current = requestAnimationFrame(runFrame);
   }, [runFrame]);
 
   const handlePointerMove = useCallback(
-    e => {
+    (e: React.PointerEvent<HTMLUListElement>) => {
       const list = listRef.current;
       if (!list) return;
       const rect = list.getBoundingClientRect();
@@ -123,7 +146,7 @@ const LineSidebar = ({
   }, [startLoop]);
 
   const handleClick = useCallback(
-    (index, label) => {
+    (index: number, label: string) => {
       setActiveIndex(index);
       onItemClick?.(index, label);
     },
@@ -142,37 +165,61 @@ const LineSidebar = ({
     []
   );
 
+  const tickClass = showMarker
+    ? `after:absolute after:left-[calc(-1*var(--marker-length)-var(--marker-gap))] after:top-[calc(100%+var(--item-gap)/2)] after:h-px after:opacity-50 after:content-[''] last:after:content-none after:[background-color:var(--marker-color)] after:[width:calc(var(--marker-length)*var(--tick-scale))] ${
+        scaleTick
+          ? "after:origin-left after:[transform:translateY(-50%)_scaleX(calc(0.7+var(--effect,0)*0.6))]"
+          : 'after:-translate-y-1/2'
+      }`
+    : '';
+
   return (
     <nav
-      className={`line-sidebar${showMarker ? ' line-sidebar--markers' : ''}${scaleTick ? ' line-sidebar--scale-tick' : ''}${className ? ` ${className}` : ''}`}
-      style={{
-        '--accent-color': accentColor,
-        '--text-color': textColor,
-        '--marker-color': markerColor,
-        '--marker-length': `${markerLength}px`,
-        '--marker-gap': `${markerGap}px`,
-        '--tick-scale': tickScale,
-        '--max-shift': `${maxShift}px`,
-        '--item-gap': `${itemGap}px`,
-        '--font-size': `${fontSize}rem`,
-        '--smoothing': `${smoothing}ms`
-      }}
+      className={`relative flex justify-start${showMarker ? ' [padding-left:calc(var(--marker-length)+var(--marker-gap))]' : ''}${className ? ` ${className}` : ''}`}
+      style={
+        {
+          '--accent-color': accentColor,
+          '--text-color': textColor,
+          '--marker-color': markerColor,
+          '--marker-length': `${markerLength}px`,
+          '--marker-gap': `${markerGap}px`,
+          '--tick-scale': tickScale,
+          '--max-shift': `${maxShift}px`,
+          '--item-gap': `${itemGap}px`,
+          '--font-size': `${fontSize}rem`,
+          '--smoothing': `${smoothing}ms`
+        } as CSSProperties
+      }
     >
-      <ul ref={listRef} className="line-sidebar__list" onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave}>
+      <ul
+        ref={listRef}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
+        className="m-0 flex list-none flex-col py-4 [gap:var(--item-gap)]"
+      >
         {items.map((label, index) => (
           <li
             key={`${label}-${index}`}
             ref={el => {
               itemRefs.current[index] = el;
             }}
-            className="line-sidebar__item"
             aria-current={activeIndex === index ? 'true' : undefined}
             onClick={() => handleClick(index, label)}
+            className={`relative cursor-pointer before:absolute before:-inset-x-12 before:-inset-y-[6px] before:content-[''] ${tickClass}`}
           >
-            {showMarker && <span className="line-sidebar__marker" aria-hidden="true" />}
-            <span className="line-sidebar__label">
-              {showIndex && <span className="line-sidebar__index">{String(index + 1).padStart(2, '0')}</span>}
-              <span className="line-sidebar__text">{label}</span>
+            {showMarker && (
+              <span
+                aria-hidden="true"
+                className="absolute left-[calc(-1*var(--marker-length)-var(--marker-gap))] top-1/2 h-px w-[length:var(--marker-length)] origin-left [background-color:color-mix(in_srgb,var(--accent-color)_calc(var(--effect,0)*100%),var(--marker-color))] [transform:translateY(-50%)_scaleX(calc(0.7+var(--effect,0)*0.5))]"
+              />
+            )}
+            <span className="relative inline-flex items-baseline leading-[1.2] [color:color-mix(in_srgb,var(--accent-color)_calc(var(--effect,0)*100%),var(--text-color))] [font-size:var(--font-size)] [transform:translateX(calc(var(--effect,0)*var(--max-shift)))]">
+              {showIndex && (
+                <span className="mr-[0.6rem] font-mono text-[0.85em] [opacity:calc(0.55+var(--effect,0)*0.45)]">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+              )}
+              <span>{label}</span>
             </span>
           </li>
         ))}

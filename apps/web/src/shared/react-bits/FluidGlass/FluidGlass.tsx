@@ -1,16 +1,108 @@
 // FluidGlass
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/FluidGlass/FluidGlass.jsx
+// Source: @react-bits/FluidGlass-TS-TW — https://reactbits.dev/r/FluidGlass-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import './FluidGlass.css';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+
+type Shape = 'lens' | 'blob' | 'cube' | 'pill' | 'torus' | 'prism' | 'diamond';
+type Interaction = 'follow' | 'drag' | 'static';
+type Uniforms = Record<string, WebGLUniformLocation | null>;
+
+export interface FluidGlassProps {
+  text?: string;
+  textColor?: string;
+  fontFamily?: string;
+  fontWeight?: number | string;
+  fontSize?: number;
+  src?: string;
+  fit?: 'cover' | 'contain';
+  background?: string;
+  shape?: Shape;
+  shapes?: Shape[];
+  size?: number;
+  refraction?: number;
+  dispersion?: number;
+  reflection?: number;
+  frost?: number;
+  color?: string;
+  tint?: number;
+  shadow?: number;
+  elevation?: number;
+  interaction?: Interaction;
+  smoothness?: number;
+  wobble?: number;
+  spin?: number;
+  idle?: boolean;
+  morphOnClick?: boolean;
+  onShapeChange?: (shape: Shape) => void;
+  position?: [number, number];
+  intro?: boolean;
+  maxDevicePixelRatio?: number;
+  className?: string;
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+
+interface Settings {
+  text: string;
+  textColor?: string;
+  fontFamily?: string;
+  fontWeight: number | string;
+  fontSize?: number;
+  src?: string;
+  fit: 'cover' | 'contain';
+  background: number[];
+  shape: Shape;
+  cycle: Shape[];
+  size: number;
+  ior: number;
+  dispersion: number;
+  reflection: number;
+  frost: number;
+  color: number[];
+  tint: number;
+  shadow: number;
+  elevation: number;
+  interaction: Interaction;
+  smoothness: number;
+  wobble: number;
+  spin: number;
+  idle: boolean;
+  morphOnClick: boolean;
+  onShapeChange?: (shape: Shape) => void;
+  position: number[];
+  intro: boolean;
+  maxRatio: number;
+}
+
+interface ProgramEntry {
+  program: WebGLProgram;
+  fragment: WebGLShader;
+  uniforms: Uniforms | null;
+  failed: boolean;
+}
+
+const HANDLE: Record<'none' | 'drag' | 'button', string> = {
+  none: 'pointer-events-none absolute left-0 top-0 h-0 w-0 rounded-full will-change-transform',
+  drag: 'absolute left-0 top-0 h-0 w-0 cursor-grab touch-none rounded-full will-change-transform group-data-[grabbing]:cursor-grabbing',
+  button: 'absolute left-0 top-0 h-0 w-0 cursor-pointer rounded-full will-change-transform'
+};
 
 const PIXEL_BUDGET = 5e6;
 const SHADOW_SIZE = 160;
-const SHAPES = ['lens', 'blob', 'cube', 'pill', 'torus', 'prism', 'diamond'];
-const EXTENT = { lens: 1.02, blob: 1.08, cube: 1.32, pill: 1.02, torus: 1.0, prism: 1.18, diamond: 1.05 };
-const BASE = {
+const SHAPES: Shape[] = ['lens', 'blob', 'cube', 'pill', 'torus', 'prism', 'diamond'];
+const EXTENT: Record<Shape, number> = {
+  lens: 1.02,
+  blob: 1.08,
+  cube: 1.32,
+  pill: 1.02,
+  torus: 1.0,
+  prism: 1.18,
+  diamond: 1.05
+};
+const BASE: Record<Shape, [number, number, number]> = {
   lens: [0, 0, 0],
   blob: [0.2, 0, 0],
   cube: [-0.48, 0.62, 0.0],
@@ -19,7 +111,7 @@ const BASE = {
   prism: [-0.3, 0.45, 0.0],
   diamond: [-0.35, 0.5, 0.0]
 };
-const SPIN = {
+const SPIN: Record<Shape, [number, number]> = {
   lens: [0, 0],
   blob: [1, 0],
   cube: [1, 0],
@@ -66,7 +158,7 @@ void main() {
   fragColor = color;
 }`;
 
-const SDF = {
+const SDF: Record<Shape, string> = {
   lens: `{
     float a = length(p - vec3(0.0, 0.0, -1.85)) - 2.13;
     float b = length(p - vec3(0.0, 0.0, 1.85)) - 2.13;
@@ -122,7 +214,7 @@ const SUPERSAMPLE = `
     color *= 0.25;
   }`;
 
-const fragmentFor = (a, b, supersample) => `#version 300 es
+const fragmentFor = (a: Shape, b: Shape, supersample: boolean) => `#version 300 es
 precision highp float;
 uniform vec2 uView;
 uniform float uRatio;
@@ -466,9 +558,9 @@ void main() {
   fragColor = color;
 }`;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const parseColor = value => {
+const parseColor = (value: string | undefined): number[] | null => {
   const text = String(value || '').trim();
   const hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text);
   if (hex) {
@@ -483,7 +575,7 @@ const parseColor = value => {
   return null;
 };
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -491,12 +583,12 @@ const compile = (gl, type, source) => {
   return shader;
 };
 
-const smoother = t => {
+const smoother = (t: number) => {
   const x = clamp(t, 0, 1);
   return x * x * x * (x * (x * 6 - 15) + 10);
 };
 
-const quaternion = (x, y, z) => {
+const quaternion = (x: number, y: number, z: number): number[] => {
   const cx = Math.cos(x / 2);
   const sx = Math.sin(x / 2);
   const cy = Math.cos(y / 2);
@@ -511,14 +603,14 @@ const quaternion = (x, y, z) => {
   ];
 };
 
-const multiply = (a, b) => [
+const multiply = (a: number[], b: number[]): number[] => [
   a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
   a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
   a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
   a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]
 ];
 
-const slerp = (a, b, t) => {
+const slerp = (a: number[], b: number[], t: number): number[] => {
   let dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
   const target = dot < 0 ? b.map(value => -value) : b;
   dot = Math.abs(dot);
@@ -534,12 +626,12 @@ const slerp = (a, b, t) => {
   return a.map((value, index) => value * wa + target[index] * wb);
 };
 
-const driftAt = (clock, size) => [
+const driftAt = (clock: number, size: number): number[] => [
   Math.sin(clock * 0.37) * size * 0.35 + Math.sin(clock * 0.71 + 1.3) * size * 0.12,
   Math.sin(clock * 0.29 + 0.8) * size * 0.2 + Math.cos(clock * 0.53) * size * 0.08
 ];
 
-const toMatrix = ([x, y, z, w]) => [
+const toMatrix = ([x, y, z, w]: number[]): number[] => [
   1 - 2 * (y * y + z * z),
   2 * (x * y + z * w),
   2 * (x * z - y * w),
@@ -584,15 +676,15 @@ const FluidGlass = ({
   className = '',
   style,
   children
-}) => {
-  const containerRef = useRef(null);
-  const canvasRef = useRef(null);
-  const handleRef = useRef(null);
-  const wakeRef = useRef(null);
+}: FluidGlassProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
   const [generation, setGeneration] = useState(0);
 
   const cycle = Array.isArray(shapes) && shapes.length ? shapes.filter(name => SHAPES.includes(name)) : SHAPES;
-  const settings = {
+  const settings: Settings = {
     text: String(text ?? ''),
     textColor,
     fontFamily,
@@ -645,27 +737,27 @@ const FluidGlass = ({
     if (!gl) return;
     const parallel = gl.getExtension('KHR_parallel_shader_compile');
     const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
-    const programs = new Map();
+    const programs = new Map<string, ProgramEntry>();
 
-    const request = name => {
+    const request = (name: string): ProgramEntry => {
       const key = name === 'content' ? name : `${name}>${view.ratio < 1.75 ? 1 : 0}`;
-      if (programs.has(key)) return programs.get(key);
+      if (programs.has(key)) return programs.get(key) as ProgramEntry;
       const [a, b, sampled] = key.split('>');
       const fragment = compile(
         gl,
         gl.FRAGMENT_SHADER,
-        key === 'content' ? CONTENT : fragmentFor(a, b, sampled === '1')
+        key === 'content' ? CONTENT : fragmentFor(a as Shape, b as Shape, sampled === '1')
       );
-      const program = gl.createProgram();
-      gl.attachShader(program, vertex);
-      gl.attachShader(program, fragment);
+      const program = gl.createProgram() as WebGLProgram;
+      gl.attachShader(program, vertex as WebGLShader);
+      gl.attachShader(program, fragment as WebGLShader);
       gl.linkProgram(program);
-      const entry = { program, fragment, uniforms: null, failed: false };
+      const entry: ProgramEntry = { program, fragment: fragment as WebGLShader, uniforms: null, failed: false };
       programs.set(key, entry);
       return entry;
     };
 
-    const ready = entry => {
+    const ready = (entry: ProgramEntry) => {
       if (entry.failed) return false;
       if (entry.uniforms) return true;
       if (parallel && !gl.getProgramParameter(entry.program, parallel.COMPLETION_STATUS_KHR)) return false;
@@ -674,7 +766,7 @@ const FluidGlass = ({
         entry.failed = true;
         return false;
       }
-      const uniforms = {};
+      const uniforms: Uniforms = {};
       const count = gl.getProgramParameter(entry.program, gl.ACTIVE_UNIFORMS);
       for (let index = 0; index < count; index++) {
         const info = gl.getActiveUniform(entry.program, index);
@@ -687,7 +779,7 @@ const FluidGlass = ({
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const vao = gl.createVertexArray();
     const makeTexture = () => {
-      const texture = gl.createTexture();
+      const texture = gl.createTexture() as WebGLTexture;
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -712,7 +804,14 @@ const FluidGlass = ({
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     const textCanvas = document.createElement('canvas');
     const view = { width: 1, height: 1, ratio: 1 };
-    const media = { src: null, clip: null, image: null, ready: false, width: 1, height: 1 };
+    const media: {
+      src: string | null | undefined;
+      clip: HTMLVideoElement | null;
+      image: HTMLImageElement | null;
+      ready: boolean;
+      width: number;
+      height: number;
+    } = { src: null, clip: null, image: null, ready: false, width: 1, height: 1 };
     const textState = { key: '', ready: false };
 
     const pointer = {
@@ -738,10 +837,24 @@ const FluidGlass = ({
       anchorX: 0,
       anchorY: 0
     };
-    const spring = { stretch: 1, vstretch: 0, tiltX: 0, vtiltX: 0, tiltY: 0, vtiltY: 0, scale: 0, vscale: 0 };
+    const spring: Record<string, number> = {
+      stretch: 1,
+      vstretch: 0,
+      tiltX: 0,
+      vtiltX: 0,
+      tiltY: 0,
+      vtiltY: 0,
+      scale: 0,
+      vscale: 0
+    };
     let placed = false;
     let flying = false;
-    const morph = { from: settingsRef.current.shape, to: settingsRef.current.shape, t: 1, pending: null };
+    const morph: { from: Shape; to: Shape; t: number; pending: Shape | null } = {
+      from: settingsRef.current.shape,
+      to: settingsRef.current.shape,
+      t: 1,
+      pending: null
+    };
     let requested = settingsRef.current.shape;
     let presence = settingsRef.current.intro && !reduced && generation === 0 ? 0 : 1;
     if (presence === 1) spring.scale = 1;
@@ -757,7 +870,7 @@ const FluidGlass = ({
     let visible = true;
     let pageVisible = document.visibilityState !== 'hidden';
     let lost = false;
-    let current = null;
+    let current: ProgramEntry | null = null;
 
     const drawText = () => {
       const s = settingsRef.current;
@@ -771,12 +884,12 @@ const FluidGlass = ({
       textState.key = key;
       textCanvas.width = width;
       textCanvas.height = height;
-      const ctx = textCanvas.getContext('2d');
+      const ctx = textCanvas.getContext('2d') as CanvasRenderingContext2D;
       ctx.clearRect(0, 0, width, height);
       const lines = s.text.split('\n');
       if (s.text.trim()) {
         const ratio = view.ratio;
-        const font = px => `${s.fontWeight} ${px}px ${family}`;
+        const font = (px: number) => `${s.fontWeight} ${px}px ${family}`;
         let px = s.fontSize ? s.fontSize * ratio : height * 0.36;
         if (!s.fontSize) {
           ctx.font = font(100);
@@ -906,7 +1019,7 @@ const FluidGlass = ({
       return Math.min(s.size / 2, Math.min(view.width, view.height) * 0.36);
     };
 
-    const bindContent = (u, s) => {
+    const bindContent = (u: Uniforms, s: Settings) => {
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, mediaTexture);
       gl.uniform1i(u.uMedia, 0);
@@ -943,7 +1056,7 @@ const FluidGlass = ({
       body.anchorY = clamp(body.y, edge, Math.max(edge, view.height - edge)) - drift[1];
     };
 
-    const step = (key, target, omega, zeta, dt) => {
+    const step = (key: string, target: number, omega: number, zeta: number, dt: number) => {
       const velocity = `v${key}`;
       const steps = Math.max(1, Math.ceil(dt / (1 / 240)));
       const h = dt / steps;
@@ -959,7 +1072,7 @@ const FluidGlass = ({
       return !settled;
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (resizePending) {
         resizePending = false;
@@ -1114,7 +1227,7 @@ const FluidGlass = ({
           gl.clear(gl.COLOR_BUFFER_BIT);
           gl.useProgram(fallback.program);
           gl.bindVertexArray(vao);
-          bindContent(fallback.uniforms, s);
+          bindContent(fallback.uniforms as Uniforms, s);
           gl.drawArrays(gl.TRIANGLES, 0, 3);
         }
         if (visible && pageVisible) raf = requestAnimationFrame(frame);
@@ -1177,7 +1290,7 @@ const FluidGlass = ({
         handle.style.transform = `translate3d(${(body.x - reach / 2).toFixed(1)}px, ${(body.y - reach / 2).toFixed(1)}px, 0)`;
       }
 
-      const u = current.uniforms;
+      const u = current.uniforms as Uniforms;
       gl.useProgram(current.program);
       gl.bindVertexArray(vao);
       bindContent(u, s);
@@ -1246,7 +1359,7 @@ const FluidGlass = ({
       wake();
     };
 
-    const locate = event => {
+    const locate = (event: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       return {
         x: event.clientX - rect.left,
@@ -1259,7 +1372,7 @@ const FluidGlass = ({
       };
     };
 
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       const spot = locate(event);
       pointer.x = spot.x;
       pointer.y = spot.y;
@@ -1267,7 +1380,7 @@ const FluidGlass = ({
       if (spot.inside || pointer.grabbed) calm = false;
       wake();
     };
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       const s = settingsRef.current;
       const spot = locate(event);
       if (!spot.inside) return;
@@ -1288,7 +1401,7 @@ const FluidGlass = ({
       calm = false;
       wake();
     };
-    const onPointerUp = event => {
+    const onPointerUp = (event: PointerEvent) => {
       const s = settingsRef.current;
       if (!pointer.down) return;
       pointer.down = false;
@@ -1329,7 +1442,7 @@ const FluidGlass = ({
     window.addEventListener('pointercancel', onLeave, { passive: true });
     document.documentElement.addEventListener('pointerleave', onLeave);
 
-    const onLost = event => {
+    const onLost = (event: Event) => {
       event.preventDefault();
       lost = true;
       cancelAnimationFrame(raf);
@@ -1418,15 +1531,23 @@ const FluidGlass = ({
   return (
     <div
       ref={containerRef}
-      className={`fluid-glass${className ? ` ${className}` : ''}`}
+      className={`group relative h-full w-full overflow-hidden ${className}`.trim()}
       style={style}
       data-interaction={interaction}
       data-clickable={morphOnClick ? '' : undefined}
     >
-      <canvas ref={canvasRef} className="fluid-glass__canvas" aria-hidden="true" />
-      <div ref={handleRef} className="fluid-glass__handle" aria-hidden="true" />
-      {text ? <p className="fluid-glass__label">{text}</p> : null}
-      {children ? <div className="fluid-glass__content">{children}</div> : null}
+      <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" aria-hidden="true" />
+      <div
+        ref={handleRef}
+        className={
+          HANDLE[interaction === 'drag' ? 'drag' : interaction === 'static' && morphOnClick ? 'button' : 'none']
+        }
+        aria-hidden="true"
+      />
+      {text ? <p className="sr-only whitespace-pre-line">{text}</p> : null}
+      {children ? (
+        <div className="pointer-events-none absolute inset-0 [&>*]:pointer-events-auto">{children}</div>
+      ) : null}
     </div>
   );
 };

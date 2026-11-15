@@ -1,15 +1,140 @@
 // GlassIcons
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/GlassIcons/GlassIcons.jsx
+// Source: @react-bits/GlassIcons-TS-TW — https://reactbits.dev/r/GlassIcons-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-
-import './GlassIcons.css';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode
+} from 'react';
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const GRADIENTS = {
+export interface GlassIconsItem {
+  icon: ReactNode;
+  label?: string;
+  color?: string;
+  href?: string;
+  target?: string;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
+  id?: string | number;
+  className?: string;
+}
+
+export interface GlassIconsProps {
+  items?: GlassIconsItem[];
+  size?: number;
+  gap?: number;
+  columns?: number;
+  roundness?: number;
+  refraction?: number;
+  bevel?: number;
+  dispersion?: number;
+  frost?: number;
+  shine?: number;
+  tint?: string;
+  tintOpacity?: number;
+  iconColor?: string;
+  plate?: 'tilt' | 'offset' | 'circle' | 'none';
+  tilt?: number;
+  spread?: number;
+  hover?: 'lift' | 'float' | 'press' | 'none';
+  parallax?: number;
+  labels?: 'hover' | 'always' | 'none';
+  intro?: boolean;
+  theme?: 'dark' | 'light';
+  className?: string;
+  style?: CSSProperties;
+}
+
+type Maps = { refractionUrl: string; shineUrl: string; shadeUrl: string };
+
+type Gradient = { angle: number; stops: [number, string][] };
+
+type Motion = {
+  h: number;
+  hv: number;
+  ht: number;
+  p: number;
+  pv: number;
+  pt: number;
+  x: number;
+  xv: number;
+  xt: number;
+  y: number;
+  yv: number;
+  yt: number;
+  e: number;
+  ev: number;
+  et: number;
+  at: number;
+};
+
+type Settings = {
+  count: number;
+  tile: number;
+  radius: number;
+  edge: number;
+  strength: number;
+  split: number;
+  soft: number;
+  shine: number;
+  shade: number;
+  tint: string;
+  tintOpacity: number;
+  plate: string;
+  hover: string;
+  labels: string;
+  tilt: number;
+  spread: number;
+  parallax: number;
+  intro: boolean;
+  colors: string[];
+  colorKey: string;
+};
+
+type Engine = {
+  hover: (index: number, on: boolean) => void;
+  aim: (index: number, x: number, y: number) => void;
+  press: (index: number, on: boolean) => void;
+  sync: () => void;
+};
+
+const INTRO_HIDE = 'group-data-[intro]/root:opacity-0';
+const ROOT =
+  'group/root relative isolate mx-auto box-border flex flex-wrap justify-center [gap:var(--glass-icons-row-gap)_var(--glass-icons-gap)] max-w-[calc(var(--glass-icons-columns)*var(--glass-icons-size)+(var(--glass-icons-columns)-1)*var(--glass-icons-gap))]';
+const DEFS = 'pointer-events-none absolute h-0 w-0 overflow-hidden';
+const CANVAS = 'pointer-events-none absolute z-[1] block';
+const ICON =
+  'group/icon relative m-0 h-[var(--glass-icons-size)] w-[var(--glass-icons-size)] flex-none cursor-pointer border-0 bg-transparent p-0 text-inherit no-underline outline-none [font:inherit] [-webkit-tap-highlight-color:transparent]';
+const PLATE_BASE = `absolute z-0 will-change-[transform,opacity] ${INTRO_HIDE}`;
+const PLATE_SHAPES: Record<string, string> = {
+  tilt: `${PLATE_BASE} inset-0 origin-bottom-right rounded-[var(--glass-icons-radius)] [transform:rotate(var(--glass-icons-tilt))]`,
+  offset: `${PLATE_BASE} inset-0 rounded-[var(--glass-icons-radius)] [transform:translate(calc(var(--glass-icons-spread)*26%),calc(var(--glass-icons-spread)*-26%))]`,
+  circle: `${PLATE_BASE} inset-[9%] rounded-full [transform:translate(calc(var(--glass-icons-spread)*29%),calc(var(--glass-icons-spread)*-29%))]`
+};
+const GLASS = `absolute inset-0 z-0 overflow-hidden rounded-[var(--glass-icons-radius)] [background:linear-gradient(var(--glass-icons-tint),var(--glass-icons-tint))] [box-shadow:0_12px_24px_-14px_var(--glass-icons-drop)] will-change-[transform,opacity] ${INTRO_HIDE}`;
+const SHADE =
+  'pointer-events-none absolute inset-0 rounded-[inherit] bg-[length:100%_100%] opacity-[var(--glass-icons-shade)]';
+const SHINE =
+  'pointer-events-none absolute inset-0 rounded-[inherit] bg-[length:100%_100%] opacity-[var(--glass-icons-shine)]';
+const FACE = `pointer-events-none absolute inset-0 z-[2] grid place-items-center rounded-[var(--glass-icons-radius)] will-change-[transform,opacity] group-focus-visible/icon:outline-2 group-focus-visible/icon:outline-offset-4 group-focus-visible/icon:outline-[var(--glass-icons-label)] ${INTRO_HIDE}`;
+const GLYPH =
+  'grid h-[40%] w-[40%] place-items-center text-[var(--glass-icons-ink)] [filter:drop-shadow(0_1px_3px_var(--glass-icons-glyph-shadow))] [&>svg]:h-full [&>svg]:w-full';
+const LABEL_BASE =
+  'pointer-events-none absolute left-1/2 top-[calc(100%+10px)] z-[2] whitespace-nowrap text-[13px] font-medium leading-[1.2] text-[var(--glass-icons-label)] [transition:opacity_0.3s_cubic-bezier(0.22,1,0.36,1),transform_0.3s_cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
+const LABEL_ALWAYS = `${LABEL_BASE} [transform:translateX(-50%)] ${INTRO_HIDE}`;
+const LABEL_HOVER = `${LABEL_BASE} opacity-0 [transform:translate(-50%,-4px)] group-hover/icon:opacity-100 group-hover/icon:[transform:translate(-50%,0)] group-focus-visible/icon:opacity-100 group-focus-visible/icon:[transform:translate(-50%,0)]`;
+
+const GRADIENTS: Record<string, string> = {
   blue: 'linear-gradient(135deg, hsl(214, 95%, 66%), hsl(226, 80%, 50%))',
   purple: 'linear-gradient(135deg, hsl(276, 84%, 70%), hsl(262, 66%, 52%))',
   red: 'linear-gradient(135deg, hsl(354, 95%, 68%), hsl(342, 80%, 52%))',
@@ -22,7 +147,7 @@ const GRADIENTS = {
   silver: 'linear-gradient(135deg, hsl(240, 6%, 92%), hsl(240, 5%, 70%))'
 };
 
-const THEMES = {
+const THEMES: Record<string, Record<string, string>> = {
   dark: {
     '--glass-icons-label': 'rgba(244, 244, 245, 0.86)',
     '--glass-icons-edge': 'rgba(255, 255, 255, 0.16)',
@@ -42,10 +167,10 @@ const THEMES = {
 const PLATES = ['tilt', 'offset', 'circle', 'none'];
 const HOVERS = ['lift', 'float', 'press', 'none'];
 const LABELS = ['hover', 'always', 'none'];
-const PLATE_CODES = { none: 0, tilt: 1, offset: 2, circle: 3 };
-const SIDES = { top: 0, right: 90, bottom: 180, left: 270 };
+const PLATE_CODES: Record<string, number> = { none: 0, tilt: 1, offset: 2, circle: 3 };
+const SIDES: Record<string, number> = { top: 0, right: 90, bottom: 180, left: 270 };
 const STAGGER = 0.07;
-const MAPS = new Map();
+const MAPS = new Map<string, Maps>();
 
 const VERTEX = `#version 300 es
 in vec2 aCorner;
@@ -183,19 +308,26 @@ const UNIFORMS = [
   'uPixel'
 ];
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const ease = t => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
-const fade = (from, to, t) => {
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const ease = (t: number) => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
+const fade = (from: number, to: number, t: number) => {
   const x = clamp((t - from) / (to - from), 0, 1);
   return x * x * (3 - 2 * x);
 };
 
-const drive = (value, velocity, target, stiffness, damping, dt) => {
+const drive = (
+  value: number,
+  velocity: number,
+  target: number,
+  stiffness: number,
+  damping: number,
+  dt: number
+): [number, number] => {
   const next = velocity + (stiffness * (target - value) - damping * velocity) * dt;
   return [value + next * dt, next];
 };
 
-const isDark = color => {
+const isDark = (color: string) => {
   const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(color).trim())?.[1];
   if (!hex) return false;
   const full = hex.length === 3 ? [...hex].map(c => c + c).join('') : hex;
@@ -203,8 +335,8 @@ const isDark = color => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.5;
 };
 
-const splitTopLevel = text => {
-  const parts = [];
+const splitTopLevel = (text: string) => {
+  const parts: string[] = [];
   let depth = 0;
   let start = 0;
   for (let i = 0; i < text.length; i++) {
@@ -219,7 +351,7 @@ const splitTopLevel = text => {
   return parts;
 };
 
-const parseGradient = value => {
+const parseGradient = (value: string): Gradient => {
   const text = String(value).trim();
   const match = /^linear-gradient\((.*)\)$/is.exec(text);
   if (!match) {
@@ -248,7 +380,7 @@ const parseGradient = value => {
     angle = sides.length === 1 ? (SIDES[sides[0]] ?? 180) : (Math.atan2(horizontal, -vertical) * 180) / Math.PI;
     parts.shift();
   }
-  const stops = parts.map(part => {
+  const stops = parts.map((part): [number | null, string] => {
     const stop = /^(.*?)\s+(-?[\d.]+)%$/.exec(part);
     return stop ? [Number(stop[2]) / 100, stop[1].trim()] : [null, part];
   });
@@ -259,15 +391,16 @@ const parseGradient = value => {
     if (stops[i][0] !== null) continue;
     let next = i + 1;
     while (stops[next][0] === null) next++;
-    const from = stops[i - 1][0];
-    stops[i][0] = from + (stops[next][0] - from) / (next - i + 1);
+    const from = stops[i - 1][0] as number;
+    stops[i][0] = from + ((stops[next][0] as number) - from) / (next - i + 1);
   }
-  return { angle, stops };
+  return { angle, stops: stops as [number, string][] };
 };
 
-const buildMaps = (size, radius, bevel) => {
+const buildMaps = (size: number, radius: number, bevel: number): Maps | null => {
   const key = `${size}:${radius}:${bevel}`;
-  if (MAPS.has(key)) return MAPS.get(key);
+  const cached = MAPS.get(key);
+  if (cached) return cached;
   const res = 2;
   const w = Math.max(8, Math.round(size * res));
   const canvas = document.createElement('canvas');
@@ -328,7 +461,7 @@ const buildMaps = (size, radius, bevel) => {
   const shineUrl = canvas.toDataURL();
   ctx.putImageData(shade, 0, 0);
   const shadeUrl = canvas.toDataURL();
-  const maps = { refractionUrl, shineUrl, shadeUrl };
+  const maps: Maps = { refractionUrl, shineUrl, shadeUrl };
   MAPS.set(key, maps);
   return maps;
 };
@@ -341,7 +474,7 @@ const supportsLiquid = () => {
   return window.CSS?.supports?.('backdrop-filter', 'url(#a)') ?? false;
 };
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -351,7 +484,7 @@ const compile = (gl, type, source) => {
   return null;
 };
 
-const poseOf = (state, s) => {
+const poseOf = (state: Motion, s: Settings) => {
   const size = s.tile;
   const enter = clamp(state.e, 0, 1);
   const swing = ease((enter - 0.18) / 0.82);
@@ -370,7 +503,7 @@ const poseOf = (state, s) => {
   const glyphRise = (1 - ease((enter - 0.25) / 0.75)) * 0.1 * size;
   const shift = [-state.x * s.parallax * 0.07 * size, -state.y * s.parallax * 0.07 * size];
   let angle = 0;
-  let offset = [0, 0];
+  let offset: [number, number] = [0, 0];
   let grow = 1;
   if (s.plate === 'tilt') {
     angle = (s.tilt + 10 * lift) * swing;
@@ -428,18 +561,18 @@ const GlassIcons = ({
   theme = 'dark',
   className = '',
   style
-}) => {
+}: GlassIconsProps) => {
   const filterId = `glass-icons-${useId().replace(/[^a-zA-Z0-9-]/g, '')}`;
-  const rootRef = useRef(null);
-  const canvasRef = useRef(null);
-  const plateRefs = useRef([]);
-  const glassRefs = useRef([]);
-  const faceRefs = useRef([]);
-  const labelRefs = useRef([]);
-  const engineRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const plateRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const glassRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const faceRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const labelRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const engineRef = useRef<Engine | null>(null);
   const [gpu, setGpu] = useState(false);
   const [liquid, setLiquid] = useState(false);
-  const [maps, setMaps] = useState(null);
+  const [maps, setMaps] = useState<Maps | null>(null);
   const tile = Math.max(24, Math.round(size));
   const radius = Math.round((tile / 2) * clamp(roundness, 0, 1));
   const edge = Math.max(2, Math.round(tile * 0.26 * clamp(bevel, 0, 1)));
@@ -447,8 +580,8 @@ const GlassIcons = ({
   const hoverMode = HOVERS.includes(hover) ? hover : 'lift';
   const labelMode = LABELS.includes(labels) ? labels : 'hover';
   const ink = iconColor ?? (theme === 'light' && plateMode === 'none' ? '#27272a' : '#ffffff');
-  const colors = items.map(item => GRADIENTS[item.color] ?? item.color ?? GRADIENTS.blue);
-  const settings = {
+  const colors = items.map(item => (item.color && GRADIENTS[item.color]) || item.color || GRADIENTS.blue);
+  const settings: Settings = {
     count: items.length,
     tile,
     radius,
@@ -486,19 +619,19 @@ const GlassIcons = ({
     const canvas = canvasRef.current;
     if (!root || !canvas) return undefined;
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const states = [];
-    const layout = { width: 1, height: 1, margin: 0, dpr: 1, centers: [] };
+    const states: Motion[] = [];
+    const layout = { width: 1, height: 1, margin: 0, dpr: 1, centers: [] as number[][] };
     const paint = document.createElement('canvas');
     const paintContext = paint.getContext('2d');
     let gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
-    let program = null;
-    let buffer = null;
-    let texture = null;
-    let vertex = null;
-    let fragment = null;
-    const uniforms = {};
+    let program: WebGLProgram | null = null;
+    let buffer: WebGLBuffer | null = null;
+    let texture: WebGLTexture | null = null;
+    let vertex: WebGLShader | null = null;
+    let fragment: WebGLShader | null = null;
+    const uniforms: Record<string, WebGLUniformLocation | null> = {};
     let gradientKey = '';
-    let gradients = [];
+    let gradients: Gradient[] = [];
     let tintKey = '';
     let tintColor = [1, 1, 1];
     let raf = 0;
@@ -540,7 +673,7 @@ const GlassIcons = ({
     }
     setGpu(Boolean(gl));
 
-    const stateOf = index => {
+    const stateOf = (index: number): Motion => {
       while (states.length <= index) {
         const start = settingsRef.current.intro && !reduce ? 0 : 1;
         states.push({
@@ -614,7 +747,7 @@ const GlassIcons = ({
       const height = Math.round(layout.height * layout.dpr);
       if (canvas.width !== width) canvas.width = width;
       if (canvas.height !== height) canvas.height = height;
-      layout.centers = Array.from(root.querySelectorAll('[data-glass-icon]')).map(icon => [
+      layout.centers = Array.from(root.querySelectorAll<HTMLElement>('[data-glass-icon]')).map(icon => [
         icon.offsetLeft + icon.offsetWidth / 2 + margin,
         icon.offsetTop + icon.offsetHeight / 2 + margin
       ]);
@@ -698,7 +831,7 @@ const GlassIcons = ({
       }
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       if (!alive) return;
       const s = settingsRef.current;
@@ -729,7 +862,7 @@ const GlassIcons = ({
           [state.y, state.yv] = drive(state.y, state.yv, state.yt, 90, 19, h);
           [state.e, state.ev] = drive(state.e, state.ev, state.et, 60, 15.5, h);
         }
-        const pairs = [
+        const pairs: [keyof Motion, keyof Motion, keyof Motion][] = [
           ['h', 'hv', 'ht'],
           ['p', 'pv', 'pt'],
           ['x', 'xv', 'xt'],
@@ -774,7 +907,7 @@ const GlassIcons = ({
     });
     resizeObserver.observe(root);
 
-    const onContextLost = event => {
+    const onContextLost = (event: Event) => {
       event.preventDefault();
       gl = null;
       setGpu(false);
@@ -782,7 +915,7 @@ const GlassIcons = ({
     canvas.addEventListener('webglcontextlost', onContextLost);
 
     engineRef.current = {
-      hover: (index, on) => {
+      hover: (index: number, on: boolean) => {
         const state = stateOf(index);
         state.ht = on ? 1 : 0;
         if (!on) {
@@ -792,13 +925,13 @@ const GlassIcons = ({
         }
         wake();
       },
-      aim: (index, x, y) => {
+      aim: (index: number, x: number, y: number) => {
         const state = stateOf(index);
         state.xt = x;
         state.yt = y;
         wake();
       },
-      press: (index, on) => {
+      press: (index: number, on: boolean) => {
         stateOf(index).pt = on ? 1 : 0;
         wake();
       },
@@ -832,7 +965,7 @@ const GlassIcons = ({
     engineRef.current?.sync();
   });
 
-  const point = (index, event) => {
+  const point = (index: number, event: ReactPointerEvent<HTMLElement>) => {
     if (event.pointerType === 'touch') return;
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -840,7 +973,7 @@ const GlassIcons = ({
     engineRef.current?.aim(index, clamp(x, -1, 1), clamp(y, -1, 1));
   };
 
-  const focusVisible = element => {
+  const focusVisible = (element: HTMLElement) => {
     try {
       return element.matches(':focus-visible');
     } catch {
@@ -858,25 +991,28 @@ const GlassIcons = ({
   return (
     <div
       ref={rootRef}
-      className={`glass-icons${intro ? ' is-intro' : ''} glass-icons--labels-${labelMode}${className ? ` ${className}` : ''}`}
-      style={{
-        ...(THEMES[theme] ?? THEMES.dark),
-        '--glass-icons-size': `${tile}px`,
-        '--glass-icons-radius': `${radius}px`,
-        '--glass-icons-gap': `${Math.max(0, gap)}px`,
-        '--glass-icons-row-gap': `${Math.max(0, gap) + (labelMode === 'always' ? 26 : 0)}px`,
-        '--glass-icons-columns': columns > 0 ? Math.round(columns) : Math.max(1, items.length),
-        '--glass-icons-tint': `color-mix(in srgb, ${tint} ${Math.round(clamp(tintOpacity, 0, 1) * 100)}%, transparent)`,
-        '--glass-icons-ink': ink,
-        '--glass-icons-glyph-shadow': isDark(ink) ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.28)',
-        '--glass-icons-tilt': `${tilt}deg`,
-        '--glass-icons-spread': clamp(spread, 0, 1),
-        '--glass-icons-shine': clamp(shine, 0, 1),
-        ...style
-      }}
+      className={`${ROOT}${className ? ` ${className}` : ''}`}
+      data-intro={intro ? '' : undefined}
+      style={
+        {
+          ...(THEMES[theme] ?? THEMES.dark),
+          '--glass-icons-size': `${tile}px`,
+          '--glass-icons-radius': `${radius}px`,
+          '--glass-icons-gap': `${Math.max(0, gap)}px`,
+          '--glass-icons-row-gap': `${Math.max(0, gap) + (labelMode === 'always' ? 26 : 0)}px`,
+          '--glass-icons-columns': columns > 0 ? Math.round(columns) : Math.max(1, items.length),
+          '--glass-icons-tint': `color-mix(in srgb, ${tint} ${Math.round(clamp(tintOpacity, 0, 1) * 100)}%, transparent)`,
+          '--glass-icons-ink': ink,
+          '--glass-icons-glyph-shadow': isDark(ink) ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.28)',
+          '--glass-icons-tilt': `${tilt}deg`,
+          '--glass-icons-spread': clamp(spread, 0, 1),
+          '--glass-icons-shine': clamp(shine, 0, 1),
+          ...style
+        } as CSSProperties
+      }
     >
       {clearGlass && liquid && maps && (
-        <svg className="glass-icons-defs" aria-hidden="true" focusable="false">
+        <svg className={DEFS} aria-hidden="true" focusable="false">
           <filter id={filterId} colorInterpolationFilters="sRGB" x="0" y="0" width="100%" height="100%">
             <feImage
               href={maps.refractionUrl}
@@ -936,14 +1072,14 @@ const GlassIcons = ({
         </svg>
       )}
 
-      <canvas ref={canvasRef} className="glass-icons-canvas" aria-hidden="true" />
+      <canvas ref={canvasRef} className={CANVAS} aria-hidden="true" />
 
       {items.map((item, index) => {
-        const Tag = item.href ? 'a' : 'button';
+        const Tag = (item.href ? 'a' : 'button') as 'a';
         return (
           <Tag
             key={item.id ?? index}
-            className={`glass-icon${item.className ? ` ${item.className}` : ''}`}
+            className={`${ICON}${item.className ? ` ${item.className}` : ''}`}
             data-glass-icon=""
             aria-label={item.label}
             {...(item.href
@@ -968,7 +1104,7 @@ const GlassIcons = ({
                 ref={element => {
                   plateRefs.current[index] = element;
                 }}
-                className={`glass-icon-plate glass-icon-plate--${plateMode}`}
+                className={PLATE_SHAPES[plateMode]}
                 style={{ background: settings.colors[index] }}
               />
             )}
@@ -976,23 +1112,19 @@ const GlassIcons = ({
               ref={element => {
                 glassRefs.current[index] = element;
               }}
-              className="glass-icon-glass"
+              className={GLASS}
               style={{ backdropFilter: glassFilter, WebkitBackdropFilter: glassFilter }}
             >
-              {!gpu && maps && (
-                <span className="glass-icon-shade" style={{ backgroundImage: `url(${maps.shadeUrl})` }} />
-              )}
-              {!gpu && maps && (
-                <span className="glass-icon-shine" style={{ backgroundImage: `url(${maps.shineUrl})` }} />
-              )}
+              {!gpu && maps && <span className={SHADE} style={{ backgroundImage: `url(${maps.shadeUrl})` }} />}
+              {!gpu && maps && <span className={SHINE} style={{ backgroundImage: `url(${maps.shineUrl})` }} />}
             </span>
             <span
               ref={element => {
                 faceRefs.current[index] = element;
               }}
-              className="glass-icon-face"
+              className={FACE}
             >
-              <span className="glass-icon-glyph" aria-hidden="true">
+              <span className={GLYPH} aria-hidden="true">
                 {item.icon}
               </span>
             </span>
@@ -1001,7 +1133,7 @@ const GlassIcons = ({
                 ref={element => {
                   labelRefs.current[index] = element;
                 }}
-                className="glass-icon-label"
+                className={labelMode === 'always' ? LABEL_ALWAYS : LABEL_HOVER}
               >
                 {item.label}
               </span>
