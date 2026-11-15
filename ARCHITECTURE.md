@@ -96,6 +96,12 @@ Reading[] (current)   ─┴─► detect() ──► Deviation[] ──► reco
 Deviation[] + ActionTaken[] + ReadinessScore ──► GroundReport ──► Outbox (deliver_at = +20 phút)
 ```
 
+Ngoài flow Python trên, `apps/backend` (TS + Bun) có một pipeline deterministic song song,
+xây 2026-11-16 (branch clinical-p0-backend): `telemetry_events` → clinical routine engine
+(`apps/backend/src/clinical/` — quality gate → median/MAD + EWMA detector `cardio-v1`, routine
+scheduler bucket-idempotent) → `clinical_findings` → topics `medical.finding.created|resolved|review.requested`
+qua `change_events`. Không LLM, không PI SDK; findings chờ human confirm (không có medical action endpoint).
+
 Các bước được điều phối bởi `MissionPipeline` (`apps/src/nsac/api/pipeline.ts`):
 
 | Method | Việc làm |
@@ -285,6 +291,14 @@ Sensor simulation (theo `SENSOR_SIMULATION_SPEC.md`): `src/sensors/` — `regist
 `store.ts` + `src/db/sensorsClient.ts` + `src/db/schema/telemetryEvents.ts` + `src/db/repositories/telemetry.ts`,
 `routes.ts` (`handleSensorsRequest` — `/api/sensors/*`), `ws.ts` (WS `/ws/telemetry`, subscribe filter).
 Ghi vào bảng `telemetry_events`; broadcast WS qua bus riêng `telemetryBus`, KHÔNG đụng `change_events`.
+
+Clinical routine engine (`apps/backend/src/clinical/`, HARNESSING §17 — 2026-11-16): deterministic, không LLM.
+`cardio-v1` detector (median/MAD z + EWMA slope, engineering demo policy — KHÔNG phải clinical guidance) chạy trên
+HR samples trong `telemetry_events`; findings persist vào `clinical_findings` (connection riêng
+`src/db/clinicalClient.ts`); publish `medical.finding.*` vào `change_events`; routine scheduler tick
+`CLINICAL_TICK_SECONDS` (default 30) với bucket idempotency qua UNIQUE(routine_id, astronaut_id, bucket).
+Routes `/api/clinical/*` (findings list/get/review, routines list/run manual; review/ack only — không medical action).
+Bảng: `clinical_findings`, `routine_runs`, `clinical_audit`, `clinical_state`.
 
 Nix: `nix build .#backend` / `nix run .#backend` (port 3200, `SKY_DB_PATH` mặc định
 `/home/ec2-user/nsac/var/sky.db`, GC-root/deploy do box quyết định).

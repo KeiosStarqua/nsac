@@ -583,3 +583,101 @@ timeout 1200 ms, không bao giờ throw, `setTraceFetch` là test seam, tắt ho
 `SKY_TRACE_DISABLED=1`). Trace write không chặn hay làm hỏng reply. Tool outcomes đến từ event
 `tool_execution_end` của Pi SDK (capture trong `pi.server.ts`); fallback: `show_on_hud` có mặt ⇔
 `artifacts.hudProgram` được set. Composer trace có `replyText` = program đã qua review (truncated).
+
+## 17. Clinical multi-agent space medical system — APPROVED V1, IMPLEMENTED (2026-11-16, branch clinical-p0-backend)
+
+**Đã build (backend).** V1 là Clinical Routine Engine deterministic — không có LLM, không có PI SDK
+trong engine. Specialist đầu tiên `sky-cardio` chạy end-to-end trên telemetry simulated.
+Anomaly detection là rule engine; medical actions không tồn tại như HTTP endpoint (chỉ review/ack).
+LLM sau này (P1+) chỉ giải thích/soạn draft; phi hành gia xác nhận — chưa có trong V1.
+
+**Quyết định đã chốt (user-approved):**
+
+- P0 foundation + `sky-cardio` end-to-end trước; các specialist khác (Sleep/Musculoskeletal/Environment)
+  là P1, chưa build.
+- Sim telemetry là primary source; Sky ML analog artifacts (`data/4_predictions/`, hr ridge model)
+  là reference-only, KHÔNG BAO GIỜ mix vào runtime path — V1 không wire artifact nào
+  (`evidence.sourceIds` chỉ chứa `telemetry:<first>..<last>`).
+- `sky-medical-officer` Pi SDK profile: on-demand only, sống ở phía web — KHÔNG build trong branch này.
+- MedicalAgentDefinition / RoutineDefinition là contracts; engine generic, specialists là config.
+- NASA-STD-3001 Vol 1 active rev là **Rev C (2023-09-15)**; clinical thresholds hoàn toàn out of scope.
+  Mọi con số trong cardio-v1 là ENGINEERING DEMO POLICY — không phải clinical guidance, không chẩn đoán.
+
+**Architecture as built** (`apps/backend/src/clinical/`):
+
+| Piece | Role |
+|---|---|
+| `types.ts` | MedicalAgentDefinition, RoutineDefinition (union `event`\|`interval`\|`daily`\|`manual`), ClinicalFinding, severities `green\|yellow\|red\|unknown`, dataKinds, SEVERITY_RANK |
+| `agents.ts` | cardioAgent: id `sky-cardio`, specialty `cardiovascular`, metrics `["heart_rate_bpm"]`, modelTask `hr` (provenance only), policyId `cardio-v1`, routines interval 5 min + daily 07:00 + manual |
+| `quality.ts` | Quality gate HR: payload parse, technical range 30–220 bpm (tasks.yaml `valid_hr_range` — technical sensor-range, NOT clinical); good/suspect/invalid → valid/degraded/missing; fail khi <12 valid, >30% degraded/missing, hoặc sample valid mới nhất cũ hơn 10 phút (stale) |
+| `baseline.ts` | median/MAD (Leys et al. 2013, DOI 10.1016/j.jesp.2013.03.013), EWMA α=0.3, `ewmaSlopePerMinute`; MAD==0 → fallback EWMA-residual vs mean abs residual; degenerate → `unknown` (silence is not safety) |
+| `cardio.ts` | cardio-v1 detector (pure) + runner đọc `telemetry_events` (crew_id = astronautId, payload có numeric `heart_rate_bpm`, cap 240) + evidence builder (dataKind luôn `simulated`) + plain-language summary |
+| `scheduler.ts` | Tick `CLINICAL_TICK_SECONDS` (default 30, unref, tắt khi `CLINICAL_DISABLED=1`); bucket idempotency qua UNIQUE(routine_id, astronaut_id, bucket); retry ≤3 cho `failed`; watermark `clinical_state` (informative only) |
+| `findings.ts` | Service create/list/get/review + audit + publish; cooldown `CLINICAL_COOLDOWN_MINUTES` (default 30) |
+| `routes.ts` | `handleClinicalRequest(req): Promise<Response\|null>` — wire sau sensors, trước health |
+| `publish.ts` | Direct drizzle insert vào `change_events` (mirror `postEvent`) + `eventsBus.emit` parity; KHÔNG HTTP-loopback |
+| `src/db/clinicalClient.ts` | Connection riêng (cùng SKY_DB_PATH) — clinical tables ONLY; không đụng `db/client.ts` / sensors / events cho clinical tables |
+| `src/db/schema/clinical.ts` | `clinical_findings`, `routine_runs`, `clinical_audit`, `clinical_state` (indexes: findings `(astronaut_id,status,created_at)` + `(specialist_id,created_at)`; unique runs bucket) |
+
+**Tables** (chi tiết cột: `src/db/clinicalClient.ts` ensureSchema — nguồn sự thật, không migration):
+
+- `clinical_findings` — id TEXT PK; astronaut_id/specialist_id/observed_at/metric_ids(JSON)/severity CHECK(green|yellow|red|unknown)/status CHECK(new|reviewed|resolved) DEFAULT 'new'/summary/evidence(JSON)/requires_medical_review INTEGER/created_at/updated_at INTEGER ms.
+- `routine_runs` — id PK; routine_id/astronaut_id NULL(fleet)/bucket/status CHECK(running|ok|skipped_quality|cooldown|failed)/attempts DEFAULT 1/detail/started_at/finished_at; UNIQUE(routine_id, astronaut_id, bucket).
+- `clinical_audit` — id PK; finding_id/action/detail/created_at.
+- `clinical_state` — key PK / value TEXT (giữ `sky-cardio.last_observed_at:<astronautId>` — informative only).
+
+**Routes** (envelope `{ ok: false, error }`, zod strict, body cap 4 KB):
+
+- `GET /api/clinical/findings?astronautId=&status=new|reviewed|resolved|all&limit=1..100` — newest first, evidence parsed, camelCase.
+- `GET /api/clinical/findings/:id` — 404 `not_found`.
+- `POST /api/clinical/findings/:id/review` `{ action: reviewed|resolved, note?: ≤300 }` — status update + `updated_at`, audit row; `resolved` publish `medical.finding.resolved`; 400 `bad_action`/`bad_body`. **Không có review nào thực thi hành động y khoa** — chỉ ack/status.
+- `GET /api/clinical/routines` — `[{ ...definition, routineId, lastRuns: [...] }]`, no secrets/guidance text.
+- `POST /api/clinical/routines/:id/run` `{ astronautId?: ≤64 }` — forced manual run (bucket `manual-yyyymmddThhmm`, cooldown VẪN áp dụng); unknown → 404. `{ ok, results: [{ astronautId, status, findingId? }] }`.
+
+**Event topics** (`eventsRoutes.ts`, payloads `.strict()`): `medical.finding.created`
+`{findingId ≤64, specialistId ≤64, severity green|yellow|red|unknown, requiresMedicalReview bool}` (+astronautId envelope);
+`medical.finding.resolved` `{findingId ≤64, action:'resolved'}`; `medical.review.requested` `{reason ≤300}`
+— topic reserved, chỉ future web Medical Officer phát; backend không bao giờ tự emit.
+
+**Scheduler semantics:**
+
+- Interval: bucket = UTC `yyyymmddThhmm` truncate theo everyMinutes; due = bucket HOÀN THÀNH
+  gần nhất (currentBucketStart − size); claim atomique INSERT `running` — conflict → skip
+  (hoặc retry nếu row cũ `failed` và attempts < 3 → attempts+1). Restart recovery = hệ quả của
+  unique index (pre-inserted `ok` row → không re-run).
+- Daily: bucket = server-local `yyyymmdd`; due khi local time ≥ `at` (07:00).
+- Manual: chỉ qua POST route; bucket `manual-...` không đụng interval bucket.
+- `event`: RESERVED trong union, KHÔNG implement ở V1 — telemetry chưa có bus topic; khi WS
+  path wire xong sẽ subscribe telemetry/change_events. cardio V1 được phục vụ bởi interval watermark.
+- Watermark `clinical_state` chỉ informative; không dùng để gate.
+- Multi-astronaut: iterate 6 crew (astronautsRepo.list(), fallback constant khi rỗng).
+- Publish fail KHÔNG rollback finding (log + continue); routine handler throw → `failed` + detail 300 chars; timer không bao giờ throw.
+
+**cardio-v1 policy (ENGINEERING DEMO POLICY — NOT CLINICAL GUIDANCE):** yellow = |z| ≥ 2.5
+sustained ≥5 samples hoặc single |z| ≥ 3.5; red = |z| ≥ 3.0 sustained ≥5 hoặc single |z| ≥ 4.5;
+otherwise green (không persist). Persist chỉ yellow/red/unknown; `requiresMedicalReview = severity !== green`.
+Method: Leys et al. 2013 (DOI 10.1016/j.jesp.2013.03.013) — Lưu ý task prompt ghi DOI Journal of
+Neuroscience Methods 2013;03.016 là bài proteomics khác, DOI đúng của Leys et al. là jesp.2013.03.013.
+HRP Evidence Reports + Circulation 2026 (CIRCULATIONAHA.125.078665) là context, KHÔNG phải threshold.
+`thresholdSource` trong evidence = DOI method + ghi chú "values are engineering demo tuning".
+HRP site trả lỗi khi fetch tự động 2026-11-16; Circulation URL 403 bot-protection — citation context giữ nguyên.
+
+**Safety invariants:**
+
+- Severity chỉ từ rule engine — không bao giờ từ model; không có code path nào model quyết định.
+- Không medical action endpoints; findings cần con người confirm (web side, P2).
+- dataKind luôn `simulated` cho V1 telemetry; analog-study KHÔNG trộn vào runtime values.
+- Medical topics KHÔNG inject vào SHARED CONTEXT blocks (privacy/minimization) — web không gửi medical events vào prompt.
+- 6 fictional crew only; không personal data.
+
+**Implemented vs planned:**
+
+- ✅ P0 foundation (tables, engine, routes, events, cooldown, scheduler) — branch này
+- ✅ sky-cardio end-to-end (sim telemetry → finding → broadcast topic) — branch này
+- ✅ Medical Officer profile (web branch, separate, on-demand)
+- ✅ HUD/broadcast surface qua topics — topics tồn tại; V1 web panel ở /performance (web branch)
+- ⬜ P1 — Sleep/Musculoskeletal/Environment workers + Sky ML wiring (analog artifacts)
+- ⬜ P2 — Medical Officer review flow + HUD panel
+- ⬜ P3 — Metabolic/Neuro/Respiratory specialists
+- ⬜ P4 — clinical validation (ngoài scope demo)
+- **Event-driven cardio** (subscribe bus thay vì watermark poll) — deferred theo §5.

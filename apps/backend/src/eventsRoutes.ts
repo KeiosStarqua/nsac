@@ -6,7 +6,15 @@ import { and, asc, eq, gt, inArray, isNull, or } from "drizzle-orm";
 
 // Blog/demo single-box: endpoint mở, không auth theo thiết kế demo (giống /api/claims).
 // Broadcast chỉ mang facts/events — không mệnh lệnh, không dữ liệu cá nhân.
-export const EVENT_TOPICS = ["hazard.detected", "health.fact.updated", "claims.changed", "agent.turn.completed"] as const;
+export const EVENT_TOPICS = [
+  "hazard.detected",
+  "health.fact.updated",
+  "claims.changed",
+  "agent.turn.completed",
+  "medical.finding.created",
+  "medical.finding.resolved",
+  "medical.review.requested",
+] as const;
 export type EventTopic = (typeof EVENT_TOPICS)[number];
 
 const EVENT_TOPIC_SET = new Set<string>(EVENT_TOPICS);
@@ -39,6 +47,32 @@ const claimsChangedPayload = z
   })
   .strict();
 
+// Medical payloads dùng severity 4 giá trị (thêm "unknown" — silence is not safety).
+const medicalSeveritySchema = z.enum(["green", "yellow", "red", "unknown"]);
+
+const medicalFindingCreatedPayload = z
+  .object({
+    findingId: z.string().trim().min(1).max(64),
+    specialistId: z.string().trim().min(1).max(64),
+    severity: medicalSeveritySchema,
+    requiresMedicalReview: z.boolean(),
+  })
+  .strict();
+
+const medicalFindingResolvedPayload = z
+  .object({
+    findingId: z.string().trim().min(1).max(64),
+    action: z.enum(["resolved"]),
+  })
+  .strict();
+
+// Reserved: chỉ web Medical Officer tương lai mới phát topic này; backend chỉ chấp nhận + lưu.
+const medicalReviewRequestedPayload = z
+  .object({
+    reason: z.string().trim().min(1).max(300),
+  })
+  .strict();
+
 const agentTurnCompletedPayload = z
   .object({
     astronautId: z.string().trim().min(1).max(64),
@@ -52,6 +86,9 @@ export const eventPayloadSchemas = {
   "health.fact.updated": healthFactUpdatedPayload,
   "claims.changed": claimsChangedPayload,
   "agent.turn.completed": agentTurnCompletedPayload,
+  "medical.finding.created": medicalFindingCreatedPayload,
+  "medical.finding.resolved": medicalFindingResolvedPayload,
+  "medical.review.requested": medicalReviewRequestedPayload,
 } as const;
 
 const postBodyShape = z
