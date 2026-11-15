@@ -1,14 +1,7 @@
-/* The only residual CSS of the HUD feature: the two decorative keyframes the utilities in
+/* The only residual CSS of the HUD feature: the one decorative keyframe the utilities in
    `hud-classes.ts` reference through `[animation:…]`. Everything else — sizes,
    positions, colours, glows, media rules — is Tailwind utilities in `className`.
    Reduced motion is handled by `motion-reduce:animate-none!` on each animated element. */
-
-/* Mic orb while listening (`.sky-app[data-phase="listening"] .mic-button`). */
-@keyframes micPulse {
-  50% {
-    box-shadow: 0 0 18px #67efff, 0 0 45px rgba(69, 156, 253, 0.7), inset 0 0 30px rgba(87, 232, 255, 0.46);
-  }
-}
 
 /* Hologram chest illumination. */
 @keyframes chestGlow {

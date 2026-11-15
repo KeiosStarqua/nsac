@@ -11,7 +11,7 @@
 //     (0,2,0) reproduces the old `.watch-screen …` descendant selectors — including winning over
 //     the ≤480px and short-viewport media variants, exactly as the old files did.
 //
-// Keyframes (chestGlow, micPulse) stay in `hud-keyframes.css`.
+// The chestGlow keyframe stays in `hud-keyframes.css`.
 /** Console-wide focus ring (was `button:focus-visible,input:focus-visible` in hud-screen.css). */
 const FOCUS_RING = "focus-visible:outline-2! focus-visible:outline-offset-[5px]! focus-visible:outline-[#f5fcff]!";
 

@@ -118,7 +118,7 @@ const WATCH_VITAL = [
   "hover:bg-[rgba(242,244,252,.13)] active:bg-[rgba(242,244,252,.16)] motion-reduce:transition-none",
   "focus-visible:outline-2! focus-visible:outline-offset-[2px]! focus-visible:outline-[#F2F4FC]!",
   "[@media(max-height:560px)]:min-h-[56px] [@media(max-height:560px)]:gap-[2px] [@media(max-height:560px)]:rounded-[12px]! [@media(max-height:560px)]:p-[6px_10px]",
-  "[@media(max-height:560px)_and_(orientation:landscape)]:min-h-[42px] [@media(max-height:560px)_and_(orientation:landscape)]:items-center [@media(max-height:560px)_and_(orientation:landscape)]:text-center",
+  "[@media(max-height:560px)_and_(orientation:landscape)]:min-h-[42px] [@media(max-height:560px)_and_(orientation:landscape)]:items-center [@media(max-height:560px)_and_(orientation:landscape)]:text-center [@media(max-height:560px)_and_(orientation:landscape)]:[&_svg]:hidden",
   "[.watch-screen_&]:min-h-[21cqh] [.watch-screen_&]:gap-[.9cqh] [.watch-screen_&]:rounded-[3.6cqw]! [.watch-screen_&]:p-[2.3cqh_2.4cqw]",
 ].join(" ");
 
