@@ -162,4 +162,77 @@ describe("sensors REST API", () => {
     const body = (await res.json()) as { count: number };
     expect(body.count).toBeLessThanOrEqual(500);
   });
+
+  test("admin gate: mutating sim endpoints cần x-admin-key khi env set", async () => {
+    process.env.SKY_SENSORS_ADMIN_KEY = "test-sensors-admin-key";
+    try {
+      const denied = await post("/api/sensors/sim/stop");
+      expect(denied!.status).toBe(401);
+      expect(((await denied!.json()) as { error: string }).error).toBe("unauthorized");
+
+      const wrong = await handleSensorsRequest(
+        new Request("http://test/api/sensors/sim/stop", { method: "POST", headers: { "x-admin-key": "nope" } }),
+      );
+      expect(wrong!.status).toBe(401);
+
+      const allowed = await handleSensorsRequest(
+        new Request("http://test/api/sensors/sim/stop", {
+          method: "POST",
+          headers: { "x-admin-key": "test-sensors-admin-key" },
+        }),
+      );
+      expect(allowed!.status).toBe(200);
+
+      // GET (read-only) không bị gate.
+      const status = await get("/api/sensors/sim/status");
+      expect(status!.status).toBe(200);
+    } finally {
+      delete process.env.SKY_SENSORS_ADMIN_KEY;
+    }
+
+    // Không set env ⇒ mở như v1 (local dev).
+    const openAgain = await post("/api/sensors/sim/stop");
+    expect(openAgain!.status).toBe(200);
+  });
+
+  test("admin gate đọc SKY_ADMIN_KEY như fallback", async () => {
+    process.env.SKY_ADMIN_KEY = "shared-admin-key";
+    try {
+      const denied = await post("/api/sensors/sim/reset");
+      expect(denied!.status).toBe(401);
+      const allowed = await handleSensorsRequest(
+        new Request("http://test/api/sensors/sim/reset", {
+          method: "POST",
+          headers: { "x-admin-key": "shared-admin-key" },
+        }),
+      );
+      expect(allowed!.status).toBe(200);
+    } finally {
+      delete process.env.SKY_ADMIN_KEY;
+    }
+  });
+
+  test("POST /api/sensors/sim/scenario: 409 khi chưa chạy, 400 body sai, 200 khi đang chạy", async () => {
+    const notRunning = await post("/api/sensors/sim/scenario", { scenario: "exercise" });
+    expect(notRunning!.status).toBe(409);
+    expect(((await notRunning!.json()) as { error: string }).error).toBe("not_running");
+
+    await post("/api/sensors/sim/start", { scenario: "normal", speed: 100, seed: "scenario-route" });
+
+    const bad = await post("/api/sensors/sim/scenario", { scenario: "not-a-scenario" });
+    expect(bad!.status).toBe(400);
+    expect(((await bad!.json()) as { error: string }).error).toBe("bad_body");
+
+    const switched = await post("/api/sensors/sim/scenario", { scenario: "co2_accumulation", crewId: "lena-fischer" });
+    expect(switched!.status).toBe(200);
+    const body = (await switched!.json()) as { ok: boolean; scenario: string; simTimeMs: number };
+    expect(body.ok).toBe(true);
+    expect(body.scenario).toBe("co2_accumulation");
+    expect(typeof body.simTimeMs).toBe("number");
+
+    const statusBody = (await (await get("/api/sensors/sim/status")).json()) as { scenario: string };
+    expect(statusBody.scenario).toBe("co2_accumulation");
+
+    await post("/api/sensors/sim/stop");
+  });
 });

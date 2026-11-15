@@ -227,6 +227,18 @@ Ghép vào prompt SAU user message, rõ ràng là data:
 - `agent.turn.completed` sau mỗi turn của chat (`web-astro-chat`) và composer (`web-hud-compose`), payload `{astronautId, agentId, ok}` — telemetry, nuốt mọi lỗi.
 - `claims.changed` action `claimed` từ `features/astronaut/api/claims.server.ts` (claim thành công).
 
+**Publish side từ backend (v2, 2026-11-16 — SENSOR_SIMULATION_SPEC §14):** simulator chạy liên tục
+(`src/sensors/runtime.ts`) → frame telemetry đã persist → `src/health/projector.ts` (health_current +
+rollups) → `src/health/rules.ts` (5 rule deterministic trên cửa sổ trượt: HR vs trailing baseline,
+RR/SpO₂, radiation burst, CO₂, O₂ — có hysteresis, dedupe, cooldown) → publish `health.fact.updated`
+với `source: "simulation"` qua `publishChangeEvent` (`clinical/publish.ts`), astronaut-scoped khi fact
+thuộc một crew và `astronaut_id = NULL` khi mission-scoped (CO₂/O₂/radiation). Web đọc facts này qua
+`GET /api/events` như mọi fact khác rồi ghép vào SHARED CONTEXT; payload chỉ gồm
+`{factId, missionId, crewId?, category, rule, status, severity, sourceMode, quality, observedAt,
+evidenceEventIds}` — không raw reading, không stream 1 Hz, evidence tối đa 8 event id. Payload legacy
+`{fact, value, unit?, severity?}` vẫn được backend chấp nhận (zod union), nên mirror schema phía web
+phải chấp nhận shape v2 để facts vào được prompt.
+
 **Chưa publish:** action `reset` — cả auto-release claim idle 30 phút (`claimsRepo`, commit
 `6f78118`) lẫn nút reset `/admin` (`resetClaimsFn` → `POST /api/claims/reset`) đều KHÔNG bắn event.
 
