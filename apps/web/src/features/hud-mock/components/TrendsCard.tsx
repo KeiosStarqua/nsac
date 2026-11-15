@@ -16,6 +16,7 @@ import {
   TREND_HEAD,
   TREND_LABEL,
   TREND_SPARK,
+  FILL_CARD,
 } from "../mock-classes";
 import { Sparkline } from "./Sparkline";
 
@@ -33,13 +34,13 @@ export function TrendsCard({ trends, copy }: TrendsCardProps) {
   const activityText = `${trends.activityMinutes} min`;
 
   return (
-    <section className={CARD} aria-label={copy.trendsAria} data-testid="mock-trends">
+    <section className={`${CARD} ${FILL_CARD}`} aria-label={copy.trendsAria} data-testid="mock-trends">
       <div className={CARD_HEAD}>
         <h2 className={CARD_TITLE}>{copy.trendsTitle}</h2>
         <span className={TAG}>{copy.trendsLast24h}</span>
       </div>
 
-      <div className="mt-[4px]">
+      <div className="mt-[4px] flex min-h-0 flex-1 flex-col justify-evenly">
         <div className={TREND_BLOCK} data-trend="heartRate">
           <div className={TREND_HEAD}>
             <p className={TREND_LABEL}>{copy.trendHeartRate}</p>

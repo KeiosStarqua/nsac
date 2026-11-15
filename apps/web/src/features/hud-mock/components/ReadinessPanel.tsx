@@ -58,6 +58,7 @@ import {
   ROW_VALUE,
   TABS,
   TAG,
+  FILL_CARD,
   tabClass,
 } from "../mock-classes";
 
@@ -236,12 +237,12 @@ export function ReadinessDetail({ fixture, copy, holo, holoCredit, onOpenBody }:
   }, fixture);
 
   return (
-    <section className={CARD} aria-label={copy.tabsAria} data-testid="mock-readiness-detail">
-      <div className={CARD_HEAD}>
+    <section className={`${CARD} ${FILL_CARD}`} aria-label={copy.tabsAria} data-testid="mock-readiness-detail">
+      <div className={`${CARD_HEAD} flex-none`}>
         <h2 className={CARD_TITLE}>{copy[PANEL_TITLES[tab]]}</h2>
       </div>
 
-      <div className={`${TABS} mt-3 mb-3`} role="tablist" aria-label={copy.tabsAria}>
+      <div className={`${TABS} mt-3 mb-3 flex-none`} role="tablist" aria-label={copy.tabsAria}>
         {TAB_IDS.map((id) => (
           <button
             key={id}
@@ -263,10 +264,11 @@ export function ReadinessDetail({ fixture, copy, holo, holoCredit, onOpenBody }:
         id={`hudMockPanel-${tab}`}
         aria-labelledby={`hudMockTab-${tab}`}
         data-active-tab={tab}
+        className="flex min-h-0 flex-1 flex-col"
       >
         {tab === "body" ? (
           <div className={PANEL_BODY}>
-            <div className="relative pb-[20px]">
+            <div className="relative flex flex-col justify-center pb-[20px] min-[1101px]:pb-[42px]">
               {onOpenBody ? (
                 <button
                   type="button"
