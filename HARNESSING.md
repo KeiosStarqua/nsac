@@ -104,7 +104,7 @@ composeHud(astronautId, locale)                     [api/hud-compose.functions.t
 ```
 sendChatTurn(astronautId, message)                   [api/chat.functions.ts — dùng bởi /watch]
   → sanitize id → findAstronaut → validateMessage (1..500 ký tự)
-  → thiếu key của provider đang chọn (mặc định OpenCode Go: SKY_OPENCODE_API_KEY/OPENCODE_API_KEY;
+  → thiếu key của provider đang chọn (mặc định OpenCode Go: `SKY_OPENCODE_API_KEY`/`OPENCODE_API_KEY` env, hoặc `var/sky-opencode.json`;
     legacy OpenRouter: SKY_OPENROUTER_API_KEY; Amazon Bedrock: AWS_BEARER_TOKEN_BEDROCK) → { status: "missing_key" }
   → append user message vào var/sky-sessions/<id>.json (trim 40 message, mode 0600)
   → enqueue theo id (mỗi astronaut một hàng đợi)
@@ -241,9 +241,11 @@ Ghép vào prompt SAU user message, rõ ràng là data:
 Những gì `createSession()` làm, theo thứ tự:
 
 1. **Provider**: `currentAgentProvider()` (backend `agent.provider` → `SKY_AGENT_PROVIDER` →
-   `"opencode-go"`; xem §5). **Key**: provider `opencode-go` đọc `SKY_OPENCODE_API_KEY` ?? `OPENCODE_API_KEY`;
-   provider `openrouter` đọc `SKY_OPENROUTER_API_KEY`; provider `amazon-bedrock` đọc `AWS_BEARER_TOKEN_BEDROCK`
-   (chỉ env; trim; rỗng ⇒ throw `missing_key`).
+   `"opencode-go"`; xem §5). **Key**: provider `opencode-go` đọc `SKY_OPENCODE_API_KEY` ?? `OPENCODE_API_KEY`,
+   fallback `var/sky-opencode.json` (0600, write-only, nhập qua `/admin`, `NSAC_OPENCODE_KEY_PATH` override;
+   env thắng khi có; `readOpenCodeKey()` re-exported từ `runtime/opencode-key.server.ts`);
+   provider `openrouter` đọc `SKY_OPENROUTER_API_KEY` (chỉ env); provider `amazon-bedrock` đọc `AWS_BEARER_TOKEN_BEDROCK`
+   (chỉ env; trim; rỗng/file hỏng ⇒ throw `missing_key`).
 2. **Model**: `currentAgentModel(profile?.id)` (xem §5); `SKY_OPENCODE_BASE_URL` (go) / `SKY_OPENROUTER_BASE_URL`
    (openrouter) trỏ `/v1` tương thích OpenAI (dùng cho smoke test với mock server). Bedrock: runtime baseUrl luôn là
    `SKY_BEDROCK_BASE_URL` hoặc mặc định `https://bedrock-runtime.ap-southeast-1.amazonaws.com` (`bedrockBaseUrl()`,
@@ -413,7 +415,7 @@ Phần còn lại của SDK **vẫn chưa bật** ở đây:
 | Status | Nghĩa | Xử lý phía caller |
 |---|---|---|
 | `ok` | Turn xong, text non-empty | Dùng kết quả |
-| `missing_key` | Không có key của provider đang chọn (Go: `SKY_OPENCODE_API_KEY`/`OPENCODE_API_KEY`; OpenRouter: `SKY_OPENROUTER_API_KEY`) | UI báo cấu hình; không retry |
+| `missing_key` | Không có key của provider đang chọn (Go: env `SKY_OPENCODE_API_KEY`/`OPENCODE_API_KEY` hoặc `var/sky-opencode.json`; OpenRouter: `SKY_OPENROUTER_API_KEY`) | UI báo cấu hình; không retry |
 | `unavailable` | SDK lỗi / provider lỗi / `empty_reply` / input không hợp lệ | Session bị huỷ; HUD giữ preset |
 | `timeout` | Quá `profile.timeoutMs` (AbortController + Promise.race) | Session bị huỷ; báo timeout |
 | `rejected` | OpenUI program không qua gate | Không cache; preset giữ nguyên |
@@ -450,8 +452,10 @@ mọi layer (runner → function → UI). Không có retry tự động; lỗi l
 | Biến / file | Ý nghĩa |
 |---|---|
 | `SKY_AGENT_PROVIDER` | Provider: `opencode-go` (mặc định) \| `openrouter` (legacy) \| `amazon-bedrock` |
-| `SKY_OPENCODE_API_KEY` | Key OpenCode Go (env-only; đặt qua `/etc/nsac-web/env` trên box). Fallback: `OPENCODE_API_KEY` |
+| `SKY_OPENCODE_API_KEY` | Key OpenCode Go (đặt qua `/etc/nsac-web/env` trên box hoặc dán trong `/admin` → `var/sky-opencode.json`). Fallback: `OPENCODE_API_KEY` |
 | `OPENCODE_API_KEY` | Fallback key OpenCode Go nếu `SKY_OPENCODE_API_KEY` không có |
+| `var/sky-opencode.json` | Key OpenCode Go lưu 0600 (write-only, nhập qua `/admin`; env thắng khi có; không đọc ra client; xóa từ `/admin` chỉ xóa file, không đụng env) |
+| `NSAC_OPENCODE_KEY_PATH` | Override đường dẫn `sky-opencode.json` (mặc định `<cwd>/var/sky-opencode.json`; dùng cho test) |
 | `AWS_BEARER_TOKEN_BEDROCK` | Key Bedrock (IAM Console → Bedrock → API keys), provider `amazon-bedrock`; đặt qua `/etc/nsac-web/env` trên box |
 | `AWS_REGION` | Region Bedrock (box: `ap-southeast-1`); KHÔNG quyết định baseUrl (baseUrl luôn `SKY_BEDROCK_BASE_URL` hoặc mặc định `https://bedrock-runtime.ap-southeast-1.amazonaws.com`) |
 | `SKY_BEDROCK_BASE_URL` | Override Bedrock runtime endpoint (default `https://bedrock-runtime.ap-southeast-1.amazonaws.com`) |

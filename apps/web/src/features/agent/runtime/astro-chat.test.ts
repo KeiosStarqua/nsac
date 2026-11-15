@@ -13,6 +13,9 @@ describe("astro-chat", () => {
   const prevKey = process.env.SKY_OPENROUTER_API_KEY;
   const prevProvider = process.env.SKY_AGENT_PROVIDER;
   const prevBackend = process.env.BACKEND_URL;
+  const prevKeyPath = process.env.NSAC_OPENCODE_KEY_PATH;
+  const prevGoKey = process.env.SKY_OPENCODE_API_KEY;
+  const prevGoFallback = process.env.OPENCODE_API_KEY;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "nsac-sky-sessions-"));
@@ -20,6 +23,10 @@ describe("astro-chat", () => {
     process.env.SKY_OPENROUTER_API_KEY = "sk-or-test-fake";
     process.env.SKY_AGENT_PROVIDER = "openrouter";
     process.env.BACKEND_URL = "http://127.0.0.1:1";
+    // Stored-key file must not leak into these tests: point at a path that does not exist.
+    process.env.NSAC_OPENCODE_KEY_PATH = join(dir, "no-such-opencode-key.json");
+    delete process.env.SKY_OPENCODE_API_KEY;
+    delete process.env.OPENCODE_API_KEY;
     resetChatStateForTests();
   });
 
@@ -28,6 +35,16 @@ describe("astro-chat", () => {
     else process.env.NSAC_SKY_SESSIONS_DIR = prevSessions;
     if (prevKey === undefined) delete process.env.SKY_OPENROUTER_API_KEY;
     else process.env.SKY_OPENROUTER_API_KEY = prevKey;
+    if (prevProvider === undefined) delete process.env.SKY_AGENT_PROVIDER;
+    else process.env.SKY_AGENT_PROVIDER = prevProvider;
+    if (prevBackend === undefined) delete process.env.BACKEND_URL;
+    else process.env.BACKEND_URL = prevBackend;
+    if (prevKeyPath === undefined) delete process.env.NSAC_OPENCODE_KEY_PATH;
+    else process.env.NSAC_OPENCODE_KEY_PATH = prevKeyPath;
+    if (prevGoKey === undefined) delete process.env.SKY_OPENCODE_API_KEY;
+    else process.env.SKY_OPENCODE_API_KEY = prevGoKey;
+    if (prevGoFallback === undefined) delete process.env.OPENCODE_API_KEY;
+    else process.env.OPENCODE_API_KEY = prevGoFallback;
     setChatSessionFactory(null);
     resetChatStateForTests();
     resetAgentModelCacheForTests();
