@@ -8,3 +8,4 @@ export * from "./astronauts";
 export * from "./astronautClaims";
 export * from "./appSettings";
 export * from "./healthObservations";
+export * from "./agentTraces";

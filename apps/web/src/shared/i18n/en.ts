@@ -313,8 +313,8 @@ export const en: Copy = {
     colProvider: "Provider",
     fixTitle: "How to fix",
     fixBox:
-      "On the box: edit /etc/nsac-web/env (OPENCODE_API_KEY=..., or SKY_OPENCODE_API_KEY; legacy OpenRouter: SKY_OPENROUTER_API_KEY), then systemctl restart nsac-web.",
-    fixLocal: "Locally: create .env with OPENCODE_API_KEY (legacy: SKY_OPENROUTER_API_KEY).",
+      "On the box: edit /etc/nsac-web/env (OPENCODE_API_KEY=..., or SKY_OPENCODE_API_KEY; legacy OpenRouter: SKY_OPENROUTER_API_KEY; AWS Bedrock: AWS_BEARER_TOKEN_BEDROCK with AWS_REGION=ap-southeast-1), then systemctl restart nsac-web.",
+    fixLocal: "Locally: create .env with OPENCODE_API_KEY (legacy: SKY_OPENROUTER_API_KEY; AWS Bedrock: AWS_BEARER_TOKEN_BEDROCK).",
   },
   admin: {
     title: "Admin",
@@ -336,6 +336,10 @@ export const en: Copy = {
     providerOpenrouter: "OpenRouter (legacy)",
     providerOpenrouterDesc: "OpenRouter — kept for rollback; the live OpenRouter catalog is fetched on each load.",
     legacyNote: "OpenRouter is legacy — kept to roll back without a redeploy; the catalog is fetched live.",
+    providerAmazonBedrock: "AWS Bedrock",
+    providerAmazonBedrockDesc:
+      "AWS Bedrock — 3 verified global inference profiles (account 229446390715, ap-southeast-1). Kimi K3.1 is a reasoning model: reasoning eats the maxTokens budget, so cheap calls need maxTokens ≥16.",
+    bedrockVerifiedNote: "Verified for account 229446390715 · region ap-southeast-1 · 2026-11-15",
     defaultAllLabel: "Default (all agents)",
     defaultAllHint: "Global fallback model; per-agent overrides below win over it.",
     inheritDefault: "Not set — env / provider default",

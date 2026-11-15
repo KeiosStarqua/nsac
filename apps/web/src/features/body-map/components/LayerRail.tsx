@@ -26,7 +26,7 @@ export function LayerRail({ layers, setLayers }: LayerRailProps) {
           <li key={key}>
             <button
               type="button"
-              className="group flex w-full cursor-pointer items-center gap-[10px] rounded-(--radius-sm)! border border-transparent bg-transparent px-[10px] py-[8px] text-left text-[13px]! text-(--text) transition-[border-color,background-color,opacity] duration-200 ease-[ease] hover:border-(--accent)/26 hover:bg-(--accent)/7 data-[on=false]:text-(--muted) data-[on=false]:opacity-[0.62] max-[900px]:w-auto max-[900px]:rounded-[999px]! max-[900px]:border-(--accent)/18 max-[900px]:px-[12px] max-[900px]:py-[6px] max-[900px]:text-[12px]! motion-reduce:transition-none"
+              className="group flex min-h-[44px] w-full cursor-pointer items-center gap-[10px] rounded-(--radius-sm)! border border-transparent bg-transparent px-[10px] py-[8px] text-left text-[13px]! text-(--text) transition-[border-color,background-color,opacity] duration-200 ease-[ease] hover:border-(--accent)/26 hover:bg-(--accent)/7 data-[on=false]:text-(--muted) data-[on=false]:opacity-[0.75] max-[900px]:w-auto max-[900px]:rounded-[999px]! max-[900px]:border-(--accent)/18 max-[900px]:px-[12px] max-[900px]:text-[12px]! motion-reduce:transition-none"
               aria-pressed={layers[key]}
               data-on={layers[key] ? "true" : "false"}
               onClick={() => setLayers((previous: LayerMap) => toggleLayer(previous, key))}

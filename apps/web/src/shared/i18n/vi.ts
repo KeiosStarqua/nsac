@@ -314,8 +314,8 @@ export const vi: Copy = {
     colProvider: "Nhà cung cấp",
     fixTitle: "Cách sửa",
     fixBox:
-      "Trên box: sửa /etc/nsac-web/env (OPENCODE_API_KEY=..., hoặc SKY_OPENCODE_API_KEY; OpenRouter legacy: SKY_OPENROUTER_API_KEY), rồi systemctl restart nsac-web.",
-    fixLocal: "Máy local: tạo .env với OPENCODE_API_KEY (legacy: SKY_OPENROUTER_API_KEY).",
+      "Trên box: sửa /etc/nsac-web/env (OPENCODE_API_KEY=..., hoặc SKY_OPENCODE_API_KEY; OpenRouter legacy: SKY_OPENROUTER_API_KEY; AWS Bedrock: AWS_BEARER_TOKEN_BEDROCK kèm AWS_REGION=ap-southeast-1), rồi systemctl restart nsac-web.",
+    fixLocal: "Máy local: tạo .env với OPENCODE_API_KEY (legacy: SKY_OPENROUTER_API_KEY; AWS Bedrock: AWS_BEARER_TOKEN_BEDROCK).",
   },
   admin: {
     title: "Admin",
@@ -337,6 +337,10 @@ export const vi: Copy = {
     providerOpenrouter: "OpenRouter (legacy)",
     providerOpenrouterDesc: "OpenRouter — giữ lại để rollback; catalog OpenRouter được tải trực tiếp mỗi lần mở trang.",
     legacyNote: "OpenRouter là nhánh legacy — giữ lại để rollback không cần deploy lại; catalog tải trực tiếp.",
+    providerAmazonBedrock: "AWS Bedrock",
+    providerAmazonBedrockDesc:
+      "AWS Bedrock — 3 profile suy luận global đã kiểm chứng (account 229446390715, ap-southeast-1). Kimi K3.1 là reasoning model: reasoning ăn maxTokens, nên call rẻ cần maxTokens ≥16.",
+    bedrockVerifiedNote: "Verified for account 229446390715 · region ap-southeast-1 · 2026-11-15",
     defaultAllLabel: "Mặc định (mọi agent)",
     defaultAllHint: "Model fallback toàn cục; các override từng agent bên dưới thắng nó.",
     inheritDefault: "Chưa đặt — dùng env / mặc định của nhà cung cấp",

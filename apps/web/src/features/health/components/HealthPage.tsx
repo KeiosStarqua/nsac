@@ -10,8 +10,8 @@ function Badge({ state }: { state: string }) {
 }
 
 type LiveResult = {
-  provider: "opencode-go" | "openrouter";
-  status: "valid" | "invalid" | "unreachable" | "missing";
+  provider: "opencode-go" | "openrouter" | "amazon-bedrock";
+  status: "valid" | "invalid" | "unreachable" | "missing" | "unsupported";
   httpStatus: number | null;
   credit: number | null;
   limit: number | null;

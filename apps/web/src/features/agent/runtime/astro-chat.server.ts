@@ -11,6 +11,7 @@ import type { SessionFactory } from "./run.server";
 import { sanitizeAstronautId, validateMessage, trimTranscript, MAX_REPLY } from "../model/chat";
 import type { TranscriptMessage } from "../model/chat";
 import { sharedEventsBlock, publishEvent } from "../broadcast";
+import { recordTurnTrace, type AgentTraceTool } from "./agent-trace.server";
 
 type SessionFacade = { prompt: (text: string, opts: { onDelta?: (d: string) => void; signal?: AbortSignal }) => Promise<string>; dispose: () => void };
 
@@ -67,7 +68,7 @@ function evictOldest() {
 async function getSession(
   id: string,
   astronaut: { name: string; role: string; callsign: string },
-): Promise<{ session: SessionFacade; artifacts: TurnArtifacts }> {
+): Promise<{ session: SessionFacade; artifacts: TurnArtifacts; provider: string; model: string }> {
   // Provider gắn với session lúc tạo; admin đổi provider/model → huỷ session cũ và tạo lại.
   // Lịch sử hội thoại vẫn nằm trong SessionManager files (var/sky-sessions).
   const provider = await currentAgentProvider();
@@ -79,7 +80,9 @@ async function getSession(
     cache.delete(id);
   } else if (existing && Date.now() - existing.lastUsed < IDLE_TTL) {
     existing.lastUsed = Date.now();
-    return { session: existing.session, artifacts: existing.artifacts };
+    // modelKey vẫn là ${provider}:${model} vừa đọc — trace dùng đúng model của session,
+    // không đọc lại sau turn (admin có thể vừa đổi).
+    return { session: existing.session, artifacts: existing.artifacts, provider, model };
   } else if (existing) {
     existing.session.dispose();
     cache.delete(id);
@@ -99,7 +102,7 @@ async function getSession(
     customTools: [createShowHudTool(artifacts)],
   });
   cache.set(id, { session: sess, lastUsed: Date.now(), modelKey, artifacts });
-  return { session: sess, artifacts };
+  return { session: sess, artifacts, provider, model };
 }
 
 function enqueue(id: string, fn: () => Promise<any>): Promise<any> {
@@ -122,6 +125,35 @@ async function publishTurnCompleted(id: string, agentId: string, source: string,
   } catch {
     // swallow — telemetry không được phép làm hỏng turn
   }
+}
+
+// Trace mỗi turn vào backend SQLite (HARNESSING §16) — debug telemetry cho coding agents.
+// recordTurnTrace không throw và bị chặn cứng bởi timeout 1200 ms; await để thứ tự ghi
+// deterministic (test assert được). Telemetry không bao giờ làm hỏng reply.
+async function traceChatTurn(args: {
+  id: string;
+  userText: string;
+  startedAt: number;
+  ok: boolean;
+  replyText?: string;
+  errorCode?: string;
+  provider?: string | null;
+  model?: string | null;
+  tools?: AgentTraceTool[];
+}): Promise<void> {
+  await recordTurnTrace({
+    astronautId: args.id,
+    agentId: "sky-chat",
+    sessionId: args.id,
+    provider: args.provider ?? undefined,
+    model: args.model ?? undefined,
+    ok: args.ok,
+    errorCode: args.errorCode,
+    latencyMs: Date.now() - args.startedAt,
+    userText: args.userText,
+    replyText: args.replyText,
+    tools: args.tools,
+  });
 }
 
 export type ChatStatus = "ok" | "missing_key" | "unavailable" | "timeout";
@@ -170,27 +202,43 @@ export type ChatTurnHooks = {
  * handling (trim, write the assistant message ONCE, publish `ok=true`).
  */
 async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: ChatTurnHooks = {}): Promise<ChatTurnResult> {
+  const startedAt = Date.now();
   const id = sanitizeAstronautId(astronautIdRaw);
   if (!id) return { status: "unavailable" as ChatStatus };
   const astronaut = findAstronaut(id);
   if (!astronaut) return { status: "unavailable" as ChatStatus };
   const message = validateMessage(messageRaw);
   if (!message) return { status: "unavailable" as ChatStatus };
-  if (!(await readAgentKey())) return { status: "missing_key" as ChatStatus };
+  if (!(await readAgentKey())) {
+    await traceChatTurn({ id, userText: message, startedAt, ok: false, errorCode: "missing_key" });
+    return { status: "missing_key" as ChatStatus };
+  }
   const ctx = { name: astronaut.name, role: astronaut.role, callsign: astronaut.callsign };
   const msgs = readTranscript(id);
   msgs.push({ role: "user", text: message, at: new Date().toISOString() });
   writeTranscript(id, msgs);
   return enqueue(id, async () => {
-    let live: { session: SessionFacade; artifacts: TurnArtifacts };
+    let live: { session: SessionFacade; artifacts: TurnArtifacts; provider: string; model: string };
     try {
       live = await getSession(id, ctx);
     } catch {
       cache.delete(id);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", false);
+      await traceChatTurn({ id, userText: message, startedAt, ok: false, errorCode: "session_failed" });
       return { status: "unavailable" as ChatStatus };
     }
-    const session = live.session;
+    const { session, provider, model } = live;
+    // Mọi exit path của turn đi qua finish() → đúng một chỗ ghi trace. Tool outcomes là event thật
+    // của SDK (pi.server); fallback honest: show_on_hud có mặt ⇔ artifacts.hudProgram được set.
+    const finish = async (
+      result: ChatTurnResult,
+      extra: { ok: boolean; replyText?: string; errorCode?: string },
+    ): Promise<ChatTurnResult> => {
+      const tools =
+        live.artifacts.tools ?? (live.artifacts.hudProgram ? [{ name: "show_on_hud", ok: true }] : undefined);
+      await traceChatTurn({ id, userText: message, startedAt, provider, model, tools, ...extra });
+      return result;
+    };
     // Shared context (v1 broadcast): events since this consumer's last turn, appended AFTER
     // the user message and clearly delimited. Any failure → null → message unchanged.
     const sharedBlock = await sharedEventsBlock(id, `${id}-orchestrator`);
@@ -223,7 +271,7 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
         cached?.session.dispose();
         cache.delete(id);
         await publishTurnCompleted(id, "sky-chat", "web-astro-chat", false);
-        return { status: "unavailable" as ChatStatus };
+        return finish({ status: "unavailable" as ChatStatus }, { ok: false, errorCode: "empty_reply" });
       }
       const current = readTranscript(id);
       current.push({ role: "assistant", text: trimmed, at: new Date().toISOString() });
@@ -234,12 +282,17 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
       const hudProgram = live.artifacts.hudProgram;
       if (hudProgram) hooks.onUiProgram?.(hudProgram);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", true);
-      return { status: "ok" as ChatStatus, reply: trimmed, messages: readTranscript(id), uiProgram: hudProgram };
+      return finish(
+        { status: "ok" as ChatStatus, reply: trimmed, messages: readTranscript(id), uiProgram: hudProgram },
+        { ok: true, replyText: trimmed },
+      );
     } catch (e) {
       const cached = cache.get(id); cached?.session.dispose(); cache.delete(id);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", false);
-      if ((e as { message?: string })?.message === "timeout" || ac.signal.aborted) return { status: "timeout" as ChatStatus };
-      return { status: "unavailable" as ChatStatus };
+      if ((e as { message?: string })?.message === "timeout" || ac.signal.aborted) {
+        return finish({ status: "timeout" as ChatStatus }, { ok: false, errorCode: "timeout" });
+      }
+      return finish({ status: "unavailable" as ChatStatus }, { ok: false, errorCode: "turn_error" });
     } finally {
       clearTimeout(timer);
       hooks.signal?.removeEventListener("abort", onExternalAbort);
