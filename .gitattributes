@@ -8,3 +8,4 @@ video/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
 video/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
 video/**/*.mov filter=lfs diff=lfs merge=lfs -text
 video/**/*.wav filter=lfs diff=lfs merge=lfs -text
+video/**/*.m4a filter=lfs diff=lfs merge=lfs -text

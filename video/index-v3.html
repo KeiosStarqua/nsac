@@ -52,18 +52,12 @@
   .chip-plain { border-color: var(--line); color: var(--mute); }
 
   /* intro */
-  #introWord { left: 0; right: 0; top: 31%; text-align: center; font-size: 236px; font-weight: 265;
+  #introWord { left: 0; right: 0; top: 2.5%; text-align: center; font-size: 124px; font-weight: 265;
                letter-spacing: .36em; text-indent: .36em; color: var(--ink); line-height: 1;
                text-shadow: 0 0 60px rgba(94,234,212,.55), 0 0 180px rgba(94,234,212,.3); }
-  #introTag { left: 0; right: 0; top: 51.5%; text-align: center; }
+  #introTag { left: 0; right: 0; top: 15%; text-align: center; }
 
   /* scene 02 callouts */
-  .hud-chip { position: absolute; left: 96px; width: 300px; padding: 12px 18px 11px; border-radius: 12px;
-              background: rgba(10,17,32,.72); border: 1px solid var(--line); backdrop-filter: blur(6px); }
-  .hud-chip .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .2em; color: var(--mute); text-transform: uppercase; }
-  .hud-chip .v { margin-top: 4px; font-size: 26px; font-weight: 650; letter-spacing: -0.01em; color: var(--ink); }
-  .hud-chip .v small { font-size: 13px; font-weight: 500; color: var(--mute); letter-spacing: .08em; }
-  .hud-chip.teal .v { color: var(--accent); }
   .ping { position: absolute; width: 92px; height: 92px; border-radius: 50%; border: 2.5px solid rgba(94,234,212,.95); }
   .ping-amber { border-color: rgba(251,191,36,.95); }
 
@@ -192,7 +186,7 @@
 <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
 
   <!-- ═════════ SCENE 01 — INTRODUCING SKY (0–3.0s) ═════════ -->
-  <video id="vidHud" class="clip plate" style="z-index:2; opacity:0" data-start="0" data-duration="10.0" data-track-index="1" src="media/clips/hud-loop-slow.mp4" muted playsinline preload="auto"></video>
+  <video id="vidHud" class="clip plate plate-mock" style="z-index:2; opacity:0" data-start="0" data-duration="9.75" data-track-index="1" src="media/clips/hud-mock-loop-10s.mp4" muted playsinline preload="auto"></video>
   <div id="scrim-intro" class="clip scrim-intro" style="z-index:3; opacity:0" data-start="0" data-duration="3.0" data-track-index="2"></div>
   <div id="scrim-hud" class="clip scrim-hud" style="z-index:3; opacity:0" data-start="3.0" data-duration="6.7" data-track-index="3"></div>
   <div id="vig-hud" class="clip vignette" style="z-index:4; opacity:0" data-start="0" data-duration="10.0" data-track-index="4"></div>
@@ -203,17 +197,11 @@
   <!-- ═════════ SCENE 02 — CONTINUOUS MONITORING (3–10s) ═════════ -->
   <div id="lblMonitor" class="clip tracker" style="z-index:7; opacity:0" data-start="3.3" data-duration="6.4" data-track-index="10"><span class="dim">01 /</span> Continuous Monitoring</div>
 
-  <div id="chipHR" class="clip hud-chip teal" style="z-index:7; top:262px; opacity:0" data-start="3.8" data-duration="6.0" data-track-index="11"><div class="k">Heart Rate</div><div class="v">62 <small>BPM</small></div></div>
-  <div id="chipBP" class="clip hud-chip" style="z-index:7; top:412px; opacity:0" data-start="4.3" data-duration="5.5" data-track-index="12"><div class="k">Blood Pressure</div><div class="v">118<small> / </small>76 <small>MMHG</small></div></div>
-  <div id="chipSPO2" class="clip hud-chip" style="z-index:7; top:562px; opacity:0" data-start="4.8" data-duration="5.0" data-track-index="13"><div class="k">Oxygen Saturation</div><div class="v">98 <small>%</small></div></div>
-  <div id="chipSLEEP" class="clip hud-chip" style="z-index:7; top:712px; opacity:0" data-start="5.3" data-duration="4.5" data-track-index="14"><div class="k">Sleep</div><div class="v">7<small>h</small> 42<small>m</small></div></div>
-  <div id="chipMuscle" class="clip hud-chip" style="z-index:7; left:1500px; top:262px; width:330px; opacity:0" data-start="5.7" data-duration="4.1" data-track-index="15"><div class="k">Body Composition</div><div class="v">32.1 <small>KG MUSCLE</small></div></div>
+  <div id="pingHR" class="clip ping" style="z-index:6; left:344px; top:356px; width:72px; height:72px;" data-start="4.0" data-duration="1.6" data-track-index="16"></div>
+  <div id="pingMuscle" class="clip ping" style="z-index:6; left:1696px; top:604px; width:80px; height:80px;" data-start="5.9" data-duration="1.6" data-track-index="17"></div>
+  <div id="pingAmber" class="clip ping ping-amber" style="z-index:6; left:1696px; top:604px; width:80px; height:80px;" data-start="6.7" data-duration="1.8" data-track-index="18"></div>
 
-  <div id="pingHR" class="clip ping" style="z-index:6; left:300px; top:170px;" data-start="4.0" data-duration="1.6" data-track-index="16"></div>
-  <div id="pingMuscle" class="clip ping" style="z-index:6; left:1660px; top:330px;" data-start="5.9" data-duration="1.6" data-track-index="17"></div>
-  <div id="pingAmber" class="clip ping ping-amber" style="z-index:6; left:1660px; top:330px;" data-start="6.7" data-duration="1.8" data-track-index="18"></div>
-
-  <div id="amberRisk" class="clip chip chip-amber" style="z-index:7; left:96px; right:auto; bottom:44px; opacity:0" data-start="6.6" data-duration="3.1" data-track-index="19">Unusual trend — Amber</div>
+  <div id="amberRisk" class="clip chip chip-amber" style="z-index:7; left:96px; right:auto; bottom:120px; opacity:0" data-start="6.6" data-duration="3.1" data-track-index="19">Unusual trend — Amber</div>
 
   <!-- ═════════ SCENE 03 — INTELLIGENT CLINICAL ASSISTANCE (10–19s) ═════════ -->
   <div id="stageClinical" class="clip stage" style="z-index:2; opacity:0" data-start="10.0" data-duration="9.0" data-track-index="20"></div>
@@ -239,13 +227,13 @@
 
   <div id="guidePanel" class="clip guide" style="z-index:5; opacity:0" data-start="14.3" data-duration="4.7" data-track-index="28">
     <div class="guide-head"><span class="listen-dot" style="width:10px;height:10px"></span><span class="t">Clinical Guidance — Simulated</span></div>
-    <div class="guide-vitals"><span>HR 62 <small>BPM</small></span><span>BP 118/76 <small>MMHG</small></span><span>SpO₂ 98 <small>%</small></span><span style="color:var(--mute); font-weight:500">within your range</span></div>
+    <div class="guide-vitals"><span>HR 62 <small>BPM</small></span><span>BP 118/76 <small>MMHG</small></span><span>SpO₂ 98 <small>%</small></span><span style="color:var(--mute); font-weight:500">fixture values</span></div>
     <div class="guide-steps">
-      <div class="row"><b>1&nbsp;·</b><span><b>Sit or lie flat now</b> — dizziness on orbit is often positional.</span></div>
-      <div class="row"><b>2&nbsp;·</b><span><b>Sip fluids</b> — you’re trending low on hydration this week.</span></div>
-      <div class="row"><b>3&nbsp;·</b><span><b>Re-check in 10 min</b> — if dizziness persists or HR rises, <b>one tap alerts your flight surgeon</b>.</span></div>
+      <div class="row"><b>1&nbsp;·</b><span><b>Record symptom onset and duration</b> — draft only; astronaut confirms.</span></div>
+      <div class="row"><b>2&nbsp;·</b><span><b>Review available readings</b> against the mission checklist.</span></div>
+      <div class="row"><b>3&nbsp;·</b><span><b>Prepare a draft update</b> for flight-surgeon review; no action is sent automatically.</span></div>
     </div>
-    <div class="guide-foot"><b>REF · ISS Medical Checklist · Orthostatic Screen</b><br/>AI-generated, not a substitute for a physician — not medical diagnosis</div>
+    <div class="guide-foot"><b>PROTOCOL REF · ISS Medical Checklist — placeholder, not retrieved</b><br/>AI-generated, not a substitute for a physician — concept only, not medical advice</div>
   </div>
 
   <div id="simChipC" class="clip chip" style="z-index:7; right:96px; bottom:44px; opacity:0" data-start="13.0" data-duration="5.9" data-track-index="29">Simulated guidance</div>
@@ -259,19 +247,19 @@
 
   <div id="nodeAstr" class="clip flow-node" style="z-index:4; left:120px; opacity:0" data-start="19.7" data-duration="6.0" data-track-index="34"><span class="k">Astronaut · Sol 170</span><span class="v">AYLA R.</span><span class="s">Commander · ISS</span></div>
   <div id="arrow1" class="clip flow-arrow" style="z-index:3; left:520px; width:0px" data-start="20.3" data-duration="5.5" data-track-index="35"></div>
-  <div id="linkTag1" class="clip link-tag" style="z-index:4; left:515px; width:230px; opacity:0" data-start="20.5" data-duration="4.8" data-track-index="36">Sky · Encrypted<br/>~20 min delay</div>
+  <div id="linkTag1" class="clip link-tag" style="z-index:4; left:515px; width:230px; opacity:0" data-start="20.5" data-duration="4.8" data-track-index="36">Sky · Demo outbox<br/>~20 min delay</div>
   <div id="nodeSky" class="clip flow-node sky-node" style="z-index:4; left:770px; opacity:0" data-start="20.8" data-duration="5.0" data-track-index="37"><span class="k">AI Companion</span><span class="v">SKY</span><span class="s">Telemetry · Protocols · Reports</span></div>
   <div id="arrow2" class="clip flow-arrow" style="z-index:3; left:1170px; width:0px" data-start="21.15" data-duration="4.5" data-track-index="38"></div>
   <div id="linkTag2" class="clip link-tag" style="z-index:4; left:1165px; width:230px; opacity:0" data-start="21.3" data-duration="4.2" data-track-index="39">Auto report<br/>to ground</div>
-  <div id="nodeGround" class="clip flow-node" style="z-index:4; left:1420px; opacity:0" data-start="21.35" data-duration="4.5" data-track-index="40"><span class="k">Flight Surgeon · Ground</span><span class="v">DR. OKONKWO</span><span class="s">NASA Flight Medicine</span></div>
+  <div id="nodeGround" class="clip flow-node" style="z-index:4; left:1420px; opacity:0" data-start="21.35" data-duration="4.5" data-track-index="40"><span class="k">Flight Surgeon · Ground</span><span class="v">FLIGHT SURGEON</span><span class="s">Ground medical team</span></div>
 
   <div id="surgeonPanel" class="clip surgeon-panel" style="z-index:5; opacity:0" data-start="21.8" data-duration="4.0" data-track-index="41">
     <div class="sp-head"><span class="t">Flight Surgeon — Crew Health Overview</span><span class="sim-mini" style="color:var(--mute); border-color:var(--line)">Concept · Simulated</span></div>
     <div class="sp-sub">Crew: Ayla R. · Commander · Sol 170 · Updated 11:41 UTC</div>
     <div class="sp-rows">
-      <div class="sp-row"><span class="dot dot-green"></span><span>LATEST CHECK — HR 62 · BP 118/76 · SpO₂ 98% · SLEEP 7H 42M <span class="meta">— all within personal range</span></span></div>
-      <div class="sp-row"><span class="dot dot-amber"></span><span>AMBER TREND — ACTIVITY −18% VS 14-DAY BASELINE <span class="meta">— coached dose liều tập review suggested</span></span></div>
-      <div class="sp-row"><span class="dot dot-teal"></span><span>GROUND REPORT QUEUED — GENERATED 11:41 UTC <span class="meta">— delivery in ~20 min (outbox)</span></span></div>
+      <div class="sp-row"><span class="dot dot-green"></span><span>LATEST CHECK — HR 62 · BP 118/76 · SpO₂ 98% · SLEEP 7H 42M <span class="meta">— simulated fixture values</span></span></div>
+      <div class="sp-row"><span class="dot dot-amber"></span><span>AMBER TREND — SIMULATED ACTIVITY −18% <span class="meta">— demo signal for clinician review</span></span></div>
+      <div class="sp-row"><span class="dot dot-teal"></span><span>GROUND REPORT — CONCEPT QUEUED 11:41 UTC <span class="meta">— ~20 min demo delay</span></span></div>
     </div>
     <div class="sp-actions"><span class="ghost-btn">Acknowledge</span><span class="ghost-btn dim">Request detail</span></div>
   </div>
@@ -293,25 +281,7 @@
   <div id="revealUrl" class="clip micro micro-teal reveal-url" style="z-index:7; opacity:0" data-start="28.6" data-duration="1.4" data-track-index="59">nasa.taquangkhoi.com · NASA Space Apps 2026</div>
   <div id="revealDisc" class="clip micro reveal-disc" style="z-index:7; opacity:0" data-start="28.9" data-duration="1.1" data-track-index="60">AI-generated, not a substitute for a physician · Simulated telemetry</div>
 
-  <!-- ═════════ simulated chip (scenes 01–02) ═════════ -->
-  <div id="simChip" class="clip chip" style="z-index:8; right:96px; bottom:44px; opacity:0" data-start="3.2" data-duration="6.5" data-track-index="70">Simulated telemetry</div>
 
-  <!-- ═════════ captions (VO lines, verbatim) ═════════ -->
-  <div id="captions" data-track-kind="captions">
-    <div id="cap-1a" class="clip cap-md" style="z-index:9; left:96px; bottom:170px;" data-start="0.1" data-duration="2.8" data-track-index="80">Meet Sky.</div>
-    <div id="cap-1b" class="clip cap-md" style="z-index:9; left:96px; bottom:96px; font-weight:500; font-size:30px; color:var(--mute);" data-start="0.75" data-duration="2.15" data-track-index="81">Your AI clinical companion in space.</div>
-
-    <div id="cap-2a" class="clip cap-md" style="z-index:9; left:96px; bottom:170px;" data-start="3.4" data-duration="6.3" data-track-index="82">Continuously monitoring astronaut health,</div>
-    <div id="cap-2b" class="clip cap-md" style="z-index:9; left:96px; bottom:96px; font-weight:500; font-size:30px; color:var(--mute);" data-start="4.15" data-duration="5.55" data-track-index="83">detecting changes, identifying potential risks.</div>
-
-    <div id="cap-3a" class="clip cap-md" style="z-index:9; left:96px; bottom:170px;" data-start="12.9" data-duration="5.9" data-track-index="84">Sky connects symptoms, health data,</div>
-    <div id="cap-3b" class="clip cap-md" style="z-index:9; left:96px; bottom:96px; font-weight:500; font-size:30px; color:var(--mute);" data-start="13.6" data-duration="5.2" data-track-index="85">and medical protocols, when it matters most.</div>
-
-    <div id="cap-4a" class="clip cap-md" style="z-index:9; left:96px; bottom:170px;" data-start="19.4" data-duration="6.3" data-track-index="86">Keeping flight surgeons informed</div>
-    <div id="cap-4b" class="clip cap-md" style="z-index:9; left:96px; bottom:96px; font-weight:500; font-size:30px; color:var(--mute);" data-start="20.15" data-duration="5.55" data-track-index="87">health updates, risk alerts, synchronized medical info.</div>
-
-    <div id="cap-5a" class="clip cap-md" style="z-index:9; left:96px; bottom:170px;" data-start="26.6" data-duration="3.3" data-track-index="88">Safer space exploration,</div>
-    <div id="cap-5b" class="clip cap-md" style="z-index:9; left:96px; bottom:96px; font-weight:500; font-size:30px; color:var(--mute);" data-start="27.1" data-duration="2.8" data-track-index="89">with Sky.</div>
   </div>
 </div>
 
@@ -319,7 +289,7 @@
 const tl = gsap.timeline({ paused: true });
 
 /* ── SCENE 01 — INTRODUCING SKY ──────────────────────── */
-tl.fromTo("#vidHud", { scale: 1.42, opacity: 0 }, { scale: 1.02, opacity: 1, duration: 2.6, ease: "power2.out" }, 0.35);
+tl.fromTo("#vidHud", { opacity: 0 }, { opacity: 1, duration: 1.1, ease: "power2.out" }, 0.25);
 tl.fromTo("#scrim-intro", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0.35);
 tl.fromTo("#vig-hud", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, 0.4);
 tl.fromTo("#introWord", { scale: 0.82, opacity: 0, filter: "blur(18px)" }, { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.9, ease: "expo.out" }, 0.2);
@@ -329,11 +299,7 @@ tl.to("#introTag", { opacity: 0, duration: 0.4, ease: "power1.in" }, 2.25);
 
 /* ── SCENE 02 — CONTINUOUS MONITORING ────────────────── */
 tl.fromTo("#scrim-hud", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 3.0);
-tl.to("#vidHud", { scale: 1.09, duration: 7.0, ease: "power1.inOut" }, 3.0);
 tl.fromTo("#lblMonitor", { y: -14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 3.3);
-[["#chipHR", 3.8], ["#chipBP", 4.3], ["#chipSPO2", 4.8], ["#chipSLEEP", 5.3], ["#chipMuscle", 5.7]].forEach(([id, at]) => {
-  tl.fromTo(id, { x: -34, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, at);
-});
 function ping(id, at, color) {
   tl.fromTo(id, { scale: 0.5, opacity: 0.95 }, { keyframes: [
     { scale: 1.0, opacity: 0.55, duration: 0.28, ease: "power3.out" },
@@ -344,10 +310,8 @@ ping("#pingHR", 4.0);
 ping("#pingMuscle", 5.9);
 ping("#pingAmber", 6.7);
 tl.fromTo("#amberRisk", { x: -22, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 6.6);
-tl.fromTo("#simChip", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 3.2);
-tl.to("#simChip", { opacity: 0, duration: 0.3, ease: "power1.in" }, 9.65);
 tl.to(["#vidHud", "#scrim-hud", "#scrim-intro", "#vig-hud"], { opacity: 0, duration: 0.4, ease: "power1.in" }, 9.75);
-tl.to(["#lblMonitor", "#chipHR", "#chipBP", "#chipSPO2", "#chipSLEEP", "#chipMuscle", "#amberRisk", "#cap-2a", "#cap-2b"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 9.75);
+tl.to(["#lblMonitor", "#amberRisk", "#pingHR", "#pingMuscle"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 9.75);
 
 /* ── SCENE 03 — INTELLIGENT CLINICAL ASSISTANCE ──────── */
 tl.fromTo("#stageClinical", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 10.0);
@@ -369,7 +333,7 @@ tl.fromTo("#skyBubble", { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5
 tl.fromTo("#guidePanel", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "expo.out" }, 14.3);
 tl.fromTo("#simChipC", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 14.45);
 tl.to(["#simChipC"], { opacity: 0, duration: 0.3 }, 18.8);
-tl.to(["#stageClinical", "#gridClinical", "#lblClinical", "#orbRingC2", "#orbRingC", "#orbCoreC", "#listenChip", "#chatCard", "#guidePanel", "#cap-3a", "#cap-3b"], { opacity: 0, duration: 0.35, ease: "power1.in" }, 18.7);
+tl.to(["#stageClinical", "#gridClinical", "#lblClinical", "#orbRingC2", "#orbRingC", "#orbCoreC", "#listenChip", "#chatCard", "#guidePanel"], { opacity: 0, duration: 0.35, ease: "power1.in" }, 18.7);
 
 /* ── SCENE 04 — CONNECTED MEDICAL SUPPORT ────────────── */
 tl.fromTo("#stageSurgeon", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 19.0);
@@ -385,7 +349,7 @@ tl.fromTo("#linkTag2", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power
 tl.fromTo("#nodeGround", { x: 48, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 21.35);
 tl.fromTo("#surgeonPanel", { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "expo.out" }, 21.8);
 tl.fromTo("#simChipS", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 22.0);
-tl.to(["#simChipS", "#cap-4a", "#cap-4b"], { opacity: 0, duration: 0.3 }, 25.5);
+tl.to(["#simChipS"], { opacity: 0, duration: 0.3 }, 25.5);
 tl.to(["#stageSurgeon", "#gridSurgeon", "#horizon", "#lblSurgeon", "#nodeAstr", "#arrow1", "#linkTag1", "#nodeSky", "#arrow2", "#linkTag2", "#nodeGround", "#surgeonPanel"], { opacity: 0, duration: 0.32, ease: "power1.in" }, 25.7);
 
 /* ── SCENE 05 — CLOSING ──────────────────────────────── */
@@ -404,18 +368,6 @@ tl.fromTo("#revealUrl", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "powe
 tl.fromTo("#revealDisc", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 28.9);
 tl.to(["#earthRing", "#earthLine", "#revealWord", "#revealTag", "#revealUrl", "#revealDisc"], { opacity: 0, duration: 0.36, ease: "power1.in" }, 29.62);
 
-/* ── captions across scenes ───────────────────────────── */
-tl.fromTo("#cap-1a", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "expo.out" }, 0.1);
-tl.fromTo("#cap-1b", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 0.75);
-tl.to("#cap-1a, #cap-1b", { opacity: 0, duration: 0.3 }, 2.6);
-tl.fromTo("#cap-2a", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "expo.out" }, 3.4);
-tl.fromTo("#cap-2b", { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 4.15);
-tl.fromTo("#cap-3a", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "expo.out" }, 12.9);
-tl.fromTo("#cap-3b", { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 13.6);
-tl.fromTo("#cap-4a", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "expo.out" }, 19.4);
-tl.fromTo("#cap-4b", { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 20.15);
-tl.fromTo("#cap-5a", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "expo.out" }, 26.6);
-tl.fromTo("#cap-5b", { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 27.1);
 
 window.__timelines["main"] = tl;
 tl.seek(0);
