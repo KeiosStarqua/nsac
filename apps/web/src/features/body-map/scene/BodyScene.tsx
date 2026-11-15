@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, useGLTF, useProgress } from "@react-three/drei";
 import {
@@ -23,6 +23,7 @@ try {
   // ignore — decoder may already be set
 }
 import { flattenPubis, isPubisMesh, shouldHidePenis } from "../model/genitalia";
+import { pickStructureKey, shouldReportHover, type HoverPoint } from "../model/hover";
 import { structureKeyForMesh, type LayerMap } from "../model/layers";
 import { materialSpec, selectedSpec, type MaterialSpec } from "../model/materials";
 import { OrganFocus } from "./OrganFocus";
@@ -36,6 +37,11 @@ export interface BodySceneProps {
   readonly webglAvailable: boolean;
   readonly selected: string | null;
   readonly onSelect: (key: string) => void;
+  /**
+   * The catalog structure under the pointer, or null when it left the body.
+   * Optional: the scene works without chrome listening.
+   */
+  readonly onHover?: (hover: HoverPoint | null) => void;
   readonly layers: LayerMap;
   readonly reducedMotion: boolean;
   readonly paused: boolean;
@@ -168,7 +174,10 @@ function BodyModel({
   onSelect,
   layers,
   reducedMotion,
-}: Omit<BodySceneProps, "webglAvailable" | "paused">) {
+  reportHover,
+}: Omit<BodySceneProps, "webglAvailable" | "paused" | "onHover"> & {
+  readonly reportHover: (hover: HoverPoint | null) => void;
+}) {
   const { scene } = useGLTF(MODEL_URL, false, true);
   const groupRef = useRef<THREE.Group>(null);
   const prepared = useMemo(() => prepareModel(scene), [scene]);
@@ -194,6 +203,12 @@ function BodyModel({
     }
   }, [prepared, layers]);
 
+  // A rail toggle changes what sits under a still pointer; drop the old facts
+  // instead of describing a mesh that is no longer drawn.
+  useEffect(() => {
+    reportHover(null);
+  }, [layers, reportHover]);
+
   useEffect(() => {
     const geometries = prepared.cloned;
     return () => {
@@ -201,27 +216,58 @@ function BodyModel({
     };
   }, [prepared]);
 
+  const downRef = useRef<{ x: number; y: number; touch: boolean } | null>(null);
+
+  /** The hits the picking rule reads, in raycast order (closest first). */
+  const hoverHits = (event: ThreeEvent<MouseEvent | PointerEvent>) =>
+    event.intersections.map((hit) => ({ name: hit.object.name, visible: hit.object.visible }));
+
+  /** Report whatever is under the pointer, or that the pointer left the body. */
+  const hoverAt = (event: ThreeEvent<MouseEvent | PointerEvent>) => {
+    const key = pickStructureKey(hoverHits(event));
+    const { clientX, clientY } = event.nativeEvent;
+    reportHover(key ? { key, x: clientX, y: clientY } : null);
+  };
+
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
     if (event.delta > 4) return; // an orbit drag, not a pick
-    let skinKey: string | null = null;
-    for (const hit of event.intersections) {
-      if (!hit.object.visible) continue; // a layer the rail switched off
-      const key = structureKeyForMesh(hit.object.name);
-      if (!key) continue;
-      if (getStructure(key)?.system === "skin") {
-        skinKey ??= key;
-        continue;
-      }
-      onSelect(key);
-      return;
-    }
-    if (skinKey) onSelect(skinKey);
+    const key = pickStructureKey(hoverHits(event));
+    if (key) onSelect(key);
+  };
+
+  const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
+    // A finger never hovers: a tap pins the tooltip, a drag orbits.
+    if (event.nativeEvent.pointerType === "touch") return;
+    hoverAt(event);
+  };
+
+  const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
+    const touch = event.nativeEvent.pointerType === "touch";
+    downRef.current = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY, touch };
+    if (touch) reportHover(null); // a new touch drops the previous pin
+  };
+
+  const handlePointerUp = (event: ThreeEvent<PointerEvent>) => {
+    const down = downRef.current;
+    downRef.current = null;
+    if (!down?.touch) return; // the mouse already follows the cursor
+    const { clientX, clientY } = event.nativeEvent;
+    if (Math.hypot(clientX - down.x, clientY - down.y) > 4) return; // an orbit drag
+    hoverAt(event); // a tap pins the facts where the finger landed
   };
 
   return (
     <>
-      <group ref={groupRef} onClick={handleClick}>
+      <group
+        ref={groupRef}
+        onClick={handleClick}
+        onPointerMove={handlePointerMove}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerOut={() => reportHover(null)}
+        onPointerMissed={() => reportHover(null)}
+      >
         <primitive object={prepared.object} />
         {layers.joints ? <JointHotspots onSelect={onSelect} /> : null}
       </group>
@@ -274,7 +320,19 @@ function SceneFallback({
  * The canvas and the model loader. Mounted only from the overlay, behind a lazy
  * import, so three.js never reaches the HUD entry chunk.
  */
-export default function BodyScene({ webglAvailable, ...props }: BodySceneProps) {
+export default function BodyScene({ webglAvailable, onHover, ...props }: BodySceneProps) {
+  // The pointer fires far more often than a tooltip needs to move; only a new
+  // structure or a real step across the body reaches the chrome.
+  const lastHover = useRef<HoverPoint | null>(null);
+  const reportHover = useCallback(
+    (next: HoverPoint | null) => {
+      if (!shouldReportHover(lastHover.current, next)) return;
+      lastHover.current = next;
+      onHover?.(next);
+    },
+    [onHover],
+  );
+
   if (!webglAvailable) {
     return (
       <SceneFallback
@@ -309,7 +367,7 @@ export default function BodyScene({ webglAvailable, ...props }: BodySceneProps) 
         <directionalLight position={[2.4, 4.2, 2.8]} intensity={1.35} color="#f4fbff" />
         <pointLight position={[-1.8, 2.2, -1.8]} intensity={14} color="#5eead4" distance={7} decay={2} />
         <Suspense fallback={null}>
-          <BodyModel {...props} />
+          <BodyModel {...props} reportHover={reportHover} />
         </Suspense>
         <OrbitControls
           makeDefault
