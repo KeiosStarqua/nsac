@@ -356,8 +356,10 @@ export const WATCH_SCREEN = [
 
 export const WATCH_FRAME = "pointer-events-none absolute inset-0 z-[2] h-full w-full [object-fit:fill]";
 
+// ≤480px: drop the nowrap and shrink the ramp so the caption wraps to two balanced lines instead of
+// clipping at the viewport edge (160×240 watch-sized viewports were overflowing).
 export const WATCH_CAPTION =
-  "m-0 whitespace-nowrap! text-center text-[10px] tracking-[.3em] indent-[.3em] uppercase text-[#7d99ad] max-[480px]:text-[9px] max-[480px]:tracking-[.24em] max-[480px]:indent-[.24em]";
+  "m-0 max-w-full text-center text-[10px] leading-[1.6] tracking-[.3em] indent-[.3em] uppercase text-[#7d99ad] max-[480px]:text-[8px] max-[480px]:leading-[1.5] max-[480px]:tracking-[.16em] max-[480px]:indent-[.16em] [text-wrap:balance]";
 
 // ---- Detail dialog (shared by the staged screen, the declarative screen and the watch face) ---------
 

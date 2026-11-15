@@ -79,7 +79,7 @@ const WATCH_CLOCK = [
 ].join(" ");
 
 // One caption line: mission day left, SIMULATED right. watchOS 26 tokens.json — Label/tertiary dark
-// @ .6 (left) and Label/quaternary dark @ .32 (right).
+// @ .6 for both (SIMULATED is the fixture label and MUST stay visibly readable, DESIGN.md §0).
 const WATCH_STATUS_CAPTION = [
   "flex flex-none items-center justify-between gap-[2cqw] text-[9px] leading-none tracking-[.16em] uppercase",
   "[@media(max-height:560px)]:text-[7.5px]",
@@ -87,7 +87,7 @@ const WATCH_STATUS_CAPTION = [
 ].join(" ");
 
 const WATCH_MISSION = "text-[rgba(242,244,252,.6)]";
-const WATCH_TAG = "text-[rgba(242,244,252,.32)]";
+const WATCH_TAG = "text-[rgba(242,244,252,.6)]";
 
 const WATCH_PAGER = "relative flex min-h-0 flex-auto";
 
@@ -215,10 +215,10 @@ const WATCH_HINT = [
 ].join(" ");
 
 // Chevrons stay (they page the screens) but recede to a hint: watchOS 26 tokens.json — Label/tertiary
-// @ .6, dimmed to .3 until hover/focus; white on interaction.
+// @ .6, dimmed to .4 at rest (still ≥3:1 non-text) until hover/focus; white on interaction.
 const WATCH_CHEVRON = [
   "absolute top-1/2 z-[2] inline-flex size-[44px] cursor-pointer items-center justify-center rounded-full! border-0",
-  "bg-transparent text-[rgba(242,244,252,.7)] opacity-30",
+  "bg-transparent text-[rgba(242,244,252,.7)] opacity-40",
   "[transform:translateY(-50%)] [transition:opacity_.18s,color_.18s] motion-reduce:transition-none",
   "hover:text-[#F2F4FC] hover:opacity-100",
   "focus-visible:text-[#F2F4FC] focus-visible:opacity-100 focus-visible:outline-2! focus-visible:outline-offset-[2px]! focus-visible:outline-[#F2F4FC]!",
@@ -249,8 +249,10 @@ const WATCH_DOT_MARK_IDLE = "bg-[rgba(242,244,252,.22)]";
 /** Was `.watch-dot[aria-current="true"] .watch-dot-mark`. */
 const WATCH_DOT_MARK_ACTIVE = "bg-[#F2F4FC] [transform:scale(1.3)]";
 
+// The disclaimer line carries the physician caveat, so it sits one step above Label/quaternary —
+// still receded, but actually legible on the true-black face.
 const WATCH_FOOTER = [
-  "flex-none px-[6px] py-[2px] text-center text-[8.5px] leading-[1.45] tracking-[.02em] text-[rgba(242,244,252,.32)]",
+  "flex-none px-[6px] py-[2px] text-center text-[8.5px] leading-[1.45] tracking-[.02em] text-[rgba(242,244,252,.45)]",
   "[@media(max-height:560px)]:text-[6.5px] [@media(max-height:560px)]:leading-[1.25]",
   "[.watch-screen_&]:px-[1cqw] [.watch-screen_&]:py-0 [.watch-screen_&]:text-[1.32cqw] [.watch-screen_&]:leading-[1.45]",
 ].join(" ");
