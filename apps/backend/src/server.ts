@@ -5,6 +5,8 @@ import { handleSettingsRequest } from "./settingsRoutes";
 import { eventsBus, handleEventsRequest } from "./eventsRoutes";
 import { handleSensorsRequest } from "./sensors/routes";
 import { wsHandlers } from "./sensors/ws";
+import { handleHealthRequest } from "./healthRoutes";
+import { seedHealthObservations } from "./health/seed";
 
 const port = Number(process.env.PORT ?? 3200);
 
@@ -33,6 +35,13 @@ const claimsSweep = setInterval(() => {
 }, 60_000);
 claimsSweep.unref?.();
 
+// Health observation layer: seed idempotent một lần sau khi crew tồn tại (FK). Chỉ ghi cặp
+// (astronaut, metric) đang rỗng nên restart không nhân đôi; dữ liệu synthetic, xem health/seed.ts.
+const healthSeed = await seedHealthObservations();
+if (healthSeed.inserted > 0) {
+  console.log(`[health] seeded ${healthSeed.inserted} observation rows`);
+}
+
 Bun.serve({
   port,
   // Mặc định chỉ lắng nghe 127.0.0.1: route ẩn (/api/claims/reset) không được lộ ra LAN/public; dev override bằng HOST.
@@ -55,6 +64,9 @@ Bun.serve({
     if (events) return events;
     const sensors = await handleSensorsRequest(req);
     if (sensors) return sensors;
+    // Health observation layer (energy/muscle/sleep/hydration) — trước astronauts để giữ thứ tự route.
+    const health = await handleHealthRequest(req);
+    if (health) return health;
     if (url.pathname === "/api/astronauts") {
       const rows = await astronautsRepo.list();
       return Response.json(rows);

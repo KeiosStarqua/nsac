@@ -7,3 +7,4 @@ export * from "./auditLog";
 export * from "./astronauts";
 export * from "./astronautClaims";
 export * from "./appSettings";
+export * from "./healthObservations";
