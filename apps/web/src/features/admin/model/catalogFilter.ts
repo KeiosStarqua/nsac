@@ -1,7 +1,14 @@
-/** Pure helpers to scope model selections to a provider catalog. No React. */
+/**
+ * Pure helpers that scope /admin model selections to one provider catalog. No React, no IO.
+ *
+ * The pickers only ever render the selected provider's catalog, so any id left in state from
+ * another provider is invisible but still submitted on Apply — the backend then rejects it with
+ * `invalid_model`. These helpers drop such ids as soon as the provider changes.
+ */
 
 export type CatalogEntry = { id: string };
 
+/** Keep the ids the catalog serves; report the foreign ones. Empty/absent entries are ignored. */
 export function filterModelIds(
   catalog: readonly CatalogEntry[],
   ids: readonly (string | null | undefined)[],
@@ -19,6 +26,7 @@ export function filterModelIds(
   return { kept, dropped };
 }
 
+/** Drop per-profile overrides whose value the catalog does not serve; empty values stay empty. */
 export function sanitizeProfileModels(
   catalog: readonly CatalogEntry[],
   models: Record<string, string>,

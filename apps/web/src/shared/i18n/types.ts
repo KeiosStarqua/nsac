@@ -449,10 +449,13 @@ export interface Copy {
     profileHudComposerHint: string;
     /** Provider + effective model of the Default dropdown, shown after Apply/load. */
     effectiveLine: string;
-    /** Models pickers scoped to the selected provider. */
+    /** Section kicker above the model pickers — `{provider}` is the display name. */
     modelsSectionKicker: string;
+    /** Caption above the default-model select — `{provider}` is the display name. */
     catalogScopedNote: string;
-    modelsDroppedForeign: string;    resetClaims: string;
+    /** Inline notice after a provider switch dropped foreign-provider picks — `{count}`. */
+    modelsDroppedForeign: string;
+    resetClaims: string;
     resetClaimsConfirm: string;
     resetting: string;
     resetClaimsDone: string;
