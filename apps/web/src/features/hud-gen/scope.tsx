@@ -26,6 +26,10 @@ export interface HudScopeValue {
   readonly hint: string;
   /** `MIC_ARIA[phase]` from sky-hud/voiceCopy. */
   readonly micAria: string;
+  /** Smoothed 0..1 mic envelope from `useSkyVoice` — the listening bar's fallback amplitude. */
+  readonly energyRef: RefObject<number>;
+  /** `useSkyVoice().readSpectrum` — fills bars from the analyser, false when none is attached. */
+  readonly readSpectrum: (bars: Uint8Array) => boolean;
   readonly captions: string;
   readonly greeting: string;
   readonly prompt: string;

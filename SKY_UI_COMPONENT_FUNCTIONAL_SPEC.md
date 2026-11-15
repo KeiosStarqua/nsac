@@ -205,6 +205,8 @@ Keep a `prefers-reduced-motion` fallback and an entirely readable DOM-only fallb
 
 **Visual:** Compact luminous microphone control centered above fluid sheet, at approximately `(835,661)` with ~82px outer diameter. **Implemented 2026-11-15 as the vendored React Bits `VoicePill`** (`apps/web/src/shared/react-bits/VoicePill/`): an 84px navy circle with a cyan mic glyph that swells leftward into a capsule of simulated equalizer bars, a `m:ss` timer and a stop square while listening; slide left past the cancel distance to cancel. The bars are simulated (`reactive="simulated"`) — they are decoration, the authoritative capture analyser stays in `useSkyVoice`, and the textual phase hint (UI09) remains below the control. This is the **primary, explicitly identifiable action**.
 
+**Listening state (2026-11-15):** the pill is the **idle** control only. While `phase === 'listening' | 'requesting_permission'` both HUD screens (`features/hud-gen/catalog.tsx`, `features/sky-hud/SkyScreen.tsx`) replace it with the shared `ListeningBar` (`features/sky-hud/components/ListeningBar.tsx`, `min(560px,92vw) × 116px`, cyan→purple gradient rim): a 46-bar waveform drawn from the **real** analyser (`useSkyVoice().readSpectrum`), a `mm:ss` timer anchored at mount, a divider and a 54px gradient stop square that ends the same session the pill's stop ended. The bar is a container, not a control — only the stop button carries the accessible name (`hud.stopListening`).
+
 **Behavior:**
 - First press: request microphone permission through the platform and begin user-controlled listening only on grant.
 - While listening: press again to stop/cancel capture; present live caption state.
@@ -218,7 +220,7 @@ Keep a `prefers-reduced-motion` fallback and an entirely readable DOM-only fallb
 
 ### UI09 — `VoiceHint`
 
-**Reference copy:** `Just talk to me...` centered below microphone, small white. **Function:** phase-specific instructions: `Just talk to me…` (idle), `Listening… Tap to stop` (listening), `Understanding…` (thinking), `SKY is speaking` (speaking), `Microphone unavailable — type instead` (failure). Never say “Listening” before permission is granted and capture started.
+**Reference copy:** `Just talk to me...` centered below microphone, small white. **Function:** phase-specific instructions: `Just talk to me…` (idle), `Listening… Tap to stop` (listening), `Understanding…` (thinking), `SKY is speaking` (speaking), `Microphone unavailable — type instead` (failure). Never say “Listening” before permission is granted and capture started. Since 2026-11-15 the line is one flex row led by a decorative four-bar cyan “signal” glyph (`aria-hidden`, `VOICE_SIGNAL` in `features/sky-hud/hud-classes.ts`); the text pipeline is unchanged (`id="voiceHint"`, `aria-live="polite"`).
 
 ## 4. TypeScript API contracts
 
@@ -437,6 +439,7 @@ src/sky/
     OverallHealthSummary.tsx
     OrganicInputSurface.tsx
     MicrophoneOrb.tsx
+    ListeningBar.tsx
     VoiceHint.tsx
     ContextProjectionLayer.tsx
     CriticalAlertLayer.tsx

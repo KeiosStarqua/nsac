@@ -18,7 +18,7 @@
 // region with exactly the utilities the staged SkyScreen uses, so both screens stay identical.
 import { createLibrary, createParser, defineAction, defineComponent } from "@openuidev/react-lang";
 import { Link } from "@tanstack/react-router";
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import type { ReactNode } from "react";
 import { z } from "zod/v4";
 import BlurText from "~/shared/react-bits/BlurText/BlurText";
@@ -44,7 +44,7 @@ import { hasDigit, type ParseProgram } from "./model/review";
 import { HUD_FACT_IDS, HUD_VITAL_KINDS } from "./model/names";
 import { FIXTURE_LABEL } from "~/features/sky-hud/vitals";
 import { DeviceSwitcher } from "~/features/sky-hud/components/DeviceSwitcher";
-import { HoloCredit, HologramBody } from "~/features/sky-hud/components";
+import { HoloCredit, HologramBody, ListeningBar, TypeInsteadPill } from "~/features/sky-hud/components";
 import { useHudScope } from "./scope";
 import {
   BRAND, BRAND_COPY, BRAND_NAME, BRAND_RING, BRAND_TAGLINE, CAPTIONS, CONVERSATION,
@@ -52,8 +52,9 @@ import {
   HEALTH_DEMO, HEALTH_GUIDANCE, HEALTH_LABEL, HEALTH_PROJECTION, HEALTH_SHIELD, HEALTH_STATUS,
   HEALTH_SUMMARY, HOLOGRAM_LINK, MISSION_TEXT, MISSION_TRIGGER,
   MISSION_UNDERLINE, ORB_ZONE, ORB_ZONE_THINKING, SKY_HEADER, SKY_HEADER_ACTIONS,
-  SPACECRAFT_LINK, STATION_ICON, TEXT_TRIGGER, VITAL_ICON, VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE,
-  VITALS_PROJECTION, VITALS_SHIELD, VOICE_CONTROL, VOICE_HINT,
+  SPACECRAFT_LINK, STATION_ICON, VITAL_ICON, VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE,
+  VITALS_PROJECTION, VITALS_SHIELD, VOICE_CLUSTER, VOICE_CLUSTER_DIMMED, VOICE_CONTROL, VOICE_HINT,
+  VOICE_SIGNAL,
 } from "~/features/sky-hud/hud-classes";
 
 // ---- hud-gen-only classes (were catalog.module.css) --------------------------------------------
@@ -404,31 +405,44 @@ const MicButton = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    // VoicePill (React Bits) owns its own listening state and simulated bars — it never opens a
-    // MediaStream; `useSkyVoice` in the host keeps the real analyser for the orb/waveform. This
-    // mirror stops `disabled` from ending the pill's own session as the phase turns to
-    // `requesting_permission`.
-    const [pillOn, setPillOn] = useState(false);
+    // VoicePill (React Bits) owns its own simulated bars and never opens a MediaStream;
+    // `useSkyVoice` in the host keeps the real analyser for the orb/waveform. Once the session is
+    // live the wide ListeningBar replaces the orb, so the pill only ever renders idle/error here.
+    const listening = ctx.phase === "listening" || ctx.phase === "requesting_permission";
     return (
       <>
-        <VoicePill
-          size={84}
-          accentColor="#5eead4"
-          iconColor="#bfe6ef"
-          background="#0e2233"
-          className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
-          ariaLabel={ctx.micAria}
-          disabled={ctx.phase === "requesting_permission" && !pillOn}
-          onStart={() => {
-            setPillOn(true);
-            if (ctx.phase === "idle" || ctx.phase === "error") ctx.onAction?.({ type: "ToggleMic", params: {} });
-          }}
-          onStop={() => {
-            setPillOn(false);
-            if (ctx.phase === "listening" || ctx.phase === "requesting_permission") ctx.onAction?.({ type: "ToggleMic", params: {} });
-          }}
-        />
-        <div id="voiceHint" className={VOICE_HINT} aria-live="polite">{ctx.hint}</div>
+        {listening ? (
+          <ListeningBar
+            onStop={() => ctx.onAction?.({ type: "ToggleMic", params: {} })}
+            energyRef={ctx.energyRef}
+            readSpectrum={ctx.readSpectrum}
+            reducedMotion={!ctx.fx}
+          />
+        ) : (
+          <VoicePill
+            size={84}
+            accentColor="#5eead4"
+            iconColor="#bfe6ef"
+            background="#0e2233"
+            className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
+            ariaLabel={ctx.micAria}
+            onStart={() => {
+              if (ctx.phase === "idle" || ctx.phase === "error") ctx.onAction?.({ type: "ToggleMic", params: {} });
+            }}
+            onStop={() => {
+              if (ctx.phase === "listening" || ctx.phase === "requesting_permission") ctx.onAction?.({ type: "ToggleMic", params: {} });
+            }}
+          />
+        )}
+        <div id="voiceHint" className={VOICE_HINT} aria-live="polite">
+          <svg className={VOICE_SIGNAL} viewBox="0 0 16 15" fill="none" aria-hidden="true">
+            <rect x="1" y="9" width="2.6" height="5" rx="1.3" fill="currentColor" />
+            <rect x="5.4" y="6" width="2.6" height="8" rx="1.3" fill="currentColor" />
+            <rect x="9.8" y="3" width="2.6" height="11" rx="1.3" fill="currentColor" />
+            <rect x="14.2" y="1" width="1.4" height="13" rx="0.7" fill="currentColor" opacity=".55" />
+          </svg>
+          <span>{ctx.hint}</span>
+        </div>
       </>
     );
   },
@@ -441,9 +455,12 @@ const ChatButton = defineComponent({
   component: () => {
     const ctx = useHudScope();
     return (
-      <button type="button" className={TEXT_TRIGGER} id="textButton" aria-label={ctx.copy.hud.typeInsteadAria} aria-pressed={ctx.chatOpen} onClick={() => ctx.onAction?.({ type: "ToggleChat", params: {} })}>
-        {ctx.copy.watch.typeInstead}
-      </button>
+      <TypeInsteadPill
+        label={ctx.copy.watch.typeInstead}
+        ariaLabel={ctx.copy.hud.typeInsteadAria}
+        pressed={ctx.chatOpen}
+        onClick={() => ctx.onAction?.({ type: "ToggleChat", params: {} })}
+      />
     );
   },
 });
@@ -581,7 +598,13 @@ const Section = defineComponent({
           </section>
         );
       case "voice":
-        return <div className={VOICE_CONTROL}>{renderNode(children)}</div>;
+        return (
+          <div className={VOICE_CONTROL}>
+            <div className={ctx.chatOpen ? `${VOICE_CLUSTER} ${VOICE_CLUSTER_DIMMED}` : VOICE_CLUSTER}>
+              {renderNode(children)}
+            </div>
+          </div>
+        );
       case "conversation": {
         const isSlot = (child: ChildNode, name: string) => childTypeName(child) === name;
         const orb = children.filter((child) => isSlot(child, "OrbCanvas"));

@@ -205,17 +205,86 @@ export const VOICE_CONTROL =
   "absolute left-1/2 top-[65.5%] z-[12] flex min-w-[250px] flex-col items-center gap-0 [transform:translateX(-50%)] max-[1000px]:top-[71%] max-[720px]:top-[75%]";
 
 export const VOICE_HINT = [
-  "mt-[40px] whitespace-nowrap text-[20px] font-light text-[#f0f7ff] [text-shadow:0_0_12px_rgba(80,183,255,.2)]",
-  "max-[1000px]:mt-[25px]",
-  "max-[720px]:mt-[15px] max-[720px]:text-[16px]",
+  "mt-[16px] inline-flex items-center gap-[10px] whitespace-nowrap text-[21px] font-light text-[#f0f7ff] [text-shadow:0_0_14px_rgba(88,232,211,.28)]",
+  "max-[1000px]:mt-[14px]",
+  "max-[720px]:mt-[12px] max-[720px]:gap-[8px] max-[720px]:text-[16px]",
   "max-[480px]:max-w-full max-[480px]:whitespace-normal max-[480px]:text-center",
 ].join(" ");
 
-export const TEXT_TRIGGER = [
-  "mt-[13px] cursor-pointer border-0 bg-transparent px-[12px] py-[6px]",
-  "text-[11px]! tracking-[.08em] text-[rgba(177,224,247,.55)] hover:text-[#d4faff]",
+/** The small cyan "signal" glyph that leads the voice hint (four ascending bars, decorative). */
+export const VOICE_SIGNAL =
+  "h-[15px] w-[16px] flex-none text-[#4be6c8] [filter:drop-shadow(0_0_5px_rgba(75,230,200,.45))] max-[720px]:h-[12px] max-[720px]:w-[13px]";
+
+/** Inner wrapper of the voice cluster: what dims + shrinks while the chat card is open. */
+export const VOICE_CLUSTER =
+  "flex flex-col items-center [transition:opacity_.24s_ease,scale_.24s_ease] motion-reduce:transition-none";
+
+export const VOICE_CLUSTER_DIMMED = "scale-[.85] opacity-45";
+
+/**
+ * Listening bar — the wide recording pill that replaces the orb while the mic is live. Gradient
+ * border via the padding-box/border-box double background (same technique as BRAND_RING).
+ */
+export const LISTENING_BAR = [
+  "flex h-[116px] w-[min(560px,92vw)] items-center gap-[30px] rounded-full border border-transparent px-[30px]",
+  "[background:linear-gradient(180deg,rgba(13,31,63,.97),rgba(10,25,52,.97))_padding-box,linear-gradient(90deg,#5cf0d0,#b372ff)_border-box]",
+  "shadow-[0_0_36px_rgba(94,240,214,.22),0_0_72px_rgba(150,104,255,.16),inset_0_0_26px_rgba(94,240,214,.07)]",
+  "[transition:opacity_.24s_ease,scale_.24s_ease] motion-reduce:transition-none!",
+  "max-[1000px]:h-[108px] max-[1000px]:gap-[22px] max-[1000px]:px-[24px]",
+  "max-[720px]:h-[92px] max-[720px]:gap-[16px] max-[720px]:px-[18px]",
+].join(" ");
+
+const LISTENING_BAR_HIDDEN = "scale-[.96] opacity-0";
+
+/** Two-state enter: mount hidden, the next frame settles it (reduced motion stays visible). */
+export function listeningBarEnterClass(entered: boolean, reducedMotion: boolean): string {
+  if (reducedMotion) return "";
+  return entered ? "scale-100 opacity-100" : LISTENING_BAR_HIDDEN;
+}
+
+/** Waveform canvas — 250×56 CSS px, devicePixelRatio-scaled in the component. */
+export const LISTENING_WAVE =
+  "block h-[56px] w-[min(250px,42vw)] flex-none max-[720px]:h-[42px] max-[720px]:w-[150px]";
+
+export const LISTENING_TIMER =
+  "flex-none font-mono text-[38px] font-light leading-none tabular-nums text-[#58efcf] [text-shadow:0_0_18px_rgba(88,239,207,.35)] max-[1000px]:text-[32px] max-[720px]:text-[24px]";
+
+export const LISTENING_DIVIDER = "h-[46px] w-[1px] flex-none bg-[rgba(150,220,255,.28)] max-[720px]:h-[34px]";
+
+export const LISTENING_STOP = [
+  "grid size-[54px] flex-none cursor-pointer place-items-center rounded-[16px] border-0",
+  "bg-[linear-gradient(180deg,#3bf0c3,#1fc9a2)] shadow-[0_0_18px_rgba(59,240,195,.32)]",
+  "[transition:filter_.18s] hover:brightness-[1.08]",
+  "max-[720px]:size-[46px] max-[720px]:rounded-[14px]",
   FOCUS_RING,
 ].join(" ");
+
+/** The dark rounded-square glyph that reads as "stop" on the gradient tile. */
+export const LISTENING_STOP_GLYPH =
+  "block size-[22px] rounded-[6px] bg-[#06352c] max-[720px]:size-[18px] max-[720px]:rounded-[5px]";
+
+/**
+ * "Type instead" trigger: a glass pill with the same cyan→purple rim as the listening bar, dimmer,
+ * plus the ⌘K / Ctrl K chip. Label sizes live on the inner spans so the unlayered `button{font:inherit}`
+ * reset cannot flatten them.
+ */
+export const TYPE_PILL = [
+  "mt-[14px] inline-flex h-[56px] cursor-pointer items-center gap-[12px] rounded-full border border-transparent px-[26px]",
+  "[background:linear-gradient(180deg,rgba(10,22,44,.72),rgba(9,19,38,.72))_padding-box,linear-gradient(90deg,rgba(92,240,208,.55),rgba(179,114,255,.55))_border-box]",
+  "text-[#eaf6ff] shadow-[0_0_22px_rgba(94,240,214,.12),0_0_44px_rgba(150,104,255,.1)]",
+  "[transition:filter_.18s,box-shadow_.18s] hover:brightness-[1.08]",
+  "max-[720px]:mt-[10px] max-[720px]:h-[48px] max-[720px]:gap-[9px] max-[720px]:px-[18px]",
+  FOCUS_RING,
+].join(" ");
+
+export const TYPE_PILL_ICON =
+  "size-[22px] flex-none text-[#8ef0d9] max-[720px]:size-[18px]";
+
+export const TYPE_PILL_LABEL =
+  "whitespace-nowrap text-[19px] font-light text-[#eaf6ff] max-[720px]:text-[16px]";
+
+export const TYPE_PILL_KBD =
+  "rounded-md border border-[rgba(160,220,255,.35)] bg-[rgba(94,140,255,.16)] px-[8px] py-[3px] font-mono text-[12px] tracking-[.12em] text-[#cfe8ff] max-[720px]:px-[6px] max-[720px]:text-[10px] max-[720px]:tracking-[.06em]";
 
 /**
  * Microphone orb, shared by the console and the watch. `size` is baked in per call site so the

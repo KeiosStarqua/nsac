@@ -39,8 +39,12 @@ export interface Copy {
     title: string;
     /** `/` chat overlay subtitle — what the person can ask about. */
     subtitle: string;
-    /** Icon button that clears the transcript client-side. */
-    reset: string;
+    /** Card header of the `/` chat card — one line, no crew suffix. */
+    panelTitle: string;
+    /** Footer pill that closes the card and starts the microphone instead. */
+    useVoice: string;
+    /** Keyboard hint beside the send button. */
+    enterToSend: string;
     emptyTitle: string;
     emptyDescription: string;
     /** Body of the pending trace row under `thinking`. */
@@ -81,6 +85,10 @@ export interface Copy {
     wellnessGuidance: string;
     wellnessDemo: string;
     typeInsteadAria: string;
+    /** Accessible name of the listening bar's stop control. */
+    stopListening: string;
+    /** The open question under the greeting (HUD prompt) before a reply replaces it. */
+    promptFallback: string;
     /** Chrome chip — navigates between the console (`/`) and watch (`/watch`) views. */
     deviceSwitcher: string;
     deviceConsole: string;

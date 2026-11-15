@@ -13,6 +13,7 @@ export function useSkyVoice(onPhase?: (phase: VoicePhase) => void) {
   const contextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const samplesRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const spectrumRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const energyRef = useRef(0);
   const pendingRef = useRef(false);
   // Callers pass an inline callback (e.g. `(next) => setHint(...)`), so it changes identity on every
@@ -35,6 +36,7 @@ export function useSkyVoice(onPhase?: (phase: VoicePhase) => void) {
       streamRef.current = null;
       analyserRef.current = null;
       samplesRef.current = null;
+      spectrumRef.current = null;
       energyRef.current = 0;
       const ctx = contextRef.current;
       contextRef.current = null;
@@ -100,7 +102,36 @@ export function useSkyVoice(onPhase?: (phase: VoicePhase) => void) {
     return energyRef.current;
   }, []);
 
+  /**
+   * Fills `bars` with the live frequency spectrum (0..255 per bar, log-spaced so the low end is not
+   * crushed into one bin) and returns `true`; returns `false` when no analyser is attached, so a
+   * visualiser can fall back to its own deterministic pattern. Same capture as `readEnergy` — no
+   * second MediaStream, audio never leaves the machine.
+   */
+  const readSpectrum = useCallback((bars: Uint8Array) => {
+    const analyser = analyserRef.current;
+    if (!analyser) return false;
+    let bins = spectrumRef.current;
+    if (!bins || bins.length !== analyser.frequencyBinCount) {
+      bins = new Uint8Array(analyser.frequencyBinCount);
+      spectrumRef.current = bins;
+    }
+    analyser.getByteFrequencyData(bins);
+    const n = bars.length;
+    if (n === 0) return true;
+    const minBin = 1;
+    const maxBin = Math.max(minBin + 1, bins.length - 1);
+    for (let i = 0; i < n; i++) {
+      const lo = Math.floor(minBin * Math.pow(maxBin / minBin, i / n));
+      const hi = Math.max(lo + 1, Math.floor(minBin * Math.pow(maxBin / minBin, (i + 1) / n)));
+      let sum = 0;
+      for (let j = lo; j < hi && j < bins.length; j++) sum += bins[j]!;
+      bars[i] = Math.round(sum / (hi - lo));
+    }
+    return true;
+  }, []);
+
   useEffect(() => () => void stop(), [stop]);
 
-  return { phase, energyRef, toggle, readEnergy, stop };
+  return { phase, energyRef, toggle, readEnergy, readSpectrum, stop };
 }

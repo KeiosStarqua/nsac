@@ -20,11 +20,13 @@ import {
   DETAIL_VALUE, DEVICE_SWITCHER_FLOAT, HEALTH_DEMO, HEALTH_GUIDANCE, HEALTH_LABEL, HEALTH_PROJECTION,
   HEALTH_SHIELD, HEALTH_STATUS, HEALTH_SUMMARY, HOLOGRAM_LINK, MISSION_TEXT,
   MISSION_TRIGGER, MISSION_UNDERLINE, ORB_ZONE, ORB_ZONE_THINKING, SKY_APP, SKY_HEADER,
-  SKY_HEADER_ACTIONS, SPACE_VIGNETTE, SPACECRAFT_LINK, STATION_ICON, TEXT_TRIGGER, VITAL_ICON,
-  VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE, VITALS_PROJECTION, VITALS_SHIELD, VOICE_CONTROL,
-  VOICE_HINT, WATCH_CAPTION, WATCH_DEVICE, WATCH_FRAME, WATCH_SCREEN, WATCH_STAGE,
+  SKY_HEADER_ACTIONS, SPACE_VIGNETTE, SPACECRAFT_LINK, STATION_ICON, VITAL_ICON,
+  VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE, VITALS_PROJECTION, VITALS_SHIELD, VOICE_CLUSTER,
+  VOICE_CLUSTER_DIMMED, VOICE_CONTROL, VOICE_HINT, VOICE_SIGNAL, WATCH_CAPTION, WATCH_DEVICE,
+  WATCH_FRAME, WATCH_SCREEN, WATCH_STAGE,
 } from "./hud-classes";
 import { useSkyVoice } from "./useSkyVoice";
+import { useToggleChatShortcut } from "./useToggleChatShortcut";
 import { PHASE_TEXT, MIC_ARIA } from "./voiceCopy";
 import { SkyOrb } from "./SkyOrb";
 import { VoiceWaveform } from "./VoiceWaveform";
@@ -34,6 +36,7 @@ import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firs
 import type { ClaimEntry } from "../astronaut";
 import { ChatPanel } from "./components/ChatPanel";
 import { SkyChatPanel } from "./components/SkyChatPanel";
+import { ListeningBar, TypeInsteadPill } from "./components";
 import { WatchHud } from "./components/WatchHud";
 import { DeviceSwitcher } from "./components/DeviceSwitcher";
 import { HologramBody, HoloCredit } from "./components";
@@ -59,9 +62,6 @@ interface DetailDialogProps {
 export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
   const copy = useCopy();
   const [hint, setHint] = useState(PHASE_TEXT.idle);
-  // VoicePill owns its own listening state; this mirrors it so `disabled` never ends the pill's own
-  // session the moment `useSkyVoice` moves to `requesting_permission`.
-  const [pillOn, setPillOn] = useState(false);
   const mounted = useMounted();
   useEffect(() => {
     if (!mounted) return;
@@ -135,7 +135,10 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
   const previousFocus = useRef<Element | null>(null);
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
 
-  const { phase, energyRef, toggle, readEnergy, stop } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
+  const { phase, energyRef, toggle, readEnergy, readSpectrum, stop } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
+
+  // ⌘K / Ctrl+K toggles the chat card on the console; `/watch` keeps the legacy in-face panel.
+  useToggleChatShortcut(() => setChatOpen((open) => !open), variant !== "watch");
 
   // The backend roster is metadata only: the bundled fixture renders first and stays if the
   // request fails (no network, backend down), so the picker never blocks on it.
@@ -334,7 +337,11 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
     variant === "watch" ? (
       <ChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
     ) : (
-      <SkyChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} />
+      <SkyChatPanel astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null} onClose={() => setChatOpen(false)} onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }} onUseVoice={() => {
+        // Same as tapping the idle orb: only start capture from idle/error.
+        setChatOpen(false);
+        if (phase === "idle" || phase === "error") void toggle();
+      }} />
     )
   ) : null;
 
@@ -555,27 +562,51 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
 
       {/* Voice control */}
       <div className={VOICE_CONTROL}>
-        {/* VoicePill (React Bits) replaces the old mic orb. Its own audio is simulated — it never
-            opens a MediaStream; `useSkyVoice` keeps the real analyser for the orb/waveform. */}
-        <VoicePill
-          size={84}
-          accentColor="#5eead4"
-          iconColor="#bfe6ef"
-          background="#0e2233"
-          className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
-          ariaLabel={MIC_ARIA[phase]}
-          disabled={phase === "requesting_permission" && !pillOn}
-          onStart={() => {
-            setPillOn(true);
-            if (phase === "idle" || phase === "error") void toggle();
-          }}
-          onStop={() => {
-            setPillOn(false);
-            if (phase === "listening" || phase === "requesting_permission") void toggle();
-          }}
-        />
-        <div id="voiceHint" className={VOICE_HINT} aria-live="polite">{hint}</div>
-        <button type="button" className={TEXT_TRIGGER} id="textButton" aria-label="Type a message to SKY" onClick={() => setChatOpen(true)}>Type instead</button>
+        <div className={chatOpen ? `${VOICE_CLUSTER} ${VOICE_CLUSTER_DIMMED}` : VOICE_CLUSTER}>
+          {/* Listening replaces the orb with the wide recording bar (shared with the declarative
+              HUD). VoicePill's own audio is simulated — it never opens a MediaStream; `useSkyVoice`
+              keeps the real analyser behind both visuals. */}
+          {phase === "listening" || phase === "requesting_permission" ? (
+            <ListeningBar
+              onStop={() => {
+                if (phase === "listening" || phase === "requesting_permission") void toggle();
+              }}
+              energyRef={energyRef}
+              readSpectrum={readSpectrum}
+              reducedMotion={!!reduce}
+            />
+          ) : (
+            <VoicePill
+              size={84}
+              accentColor="#5eead4"
+              iconColor="#bfe6ef"
+              background="#0e2233"
+              className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
+              ariaLabel={MIC_ARIA[phase]}
+              onStart={() => {
+                if (phase === "idle" || phase === "error") void toggle();
+              }}
+              onStop={() => {
+                if (phase === "listening" || phase === "requesting_permission") void toggle();
+              }}
+            />
+          )}
+          <div id="voiceHint" className={VOICE_HINT} aria-live="polite">
+            <svg className={VOICE_SIGNAL} viewBox="0 0 16 15" fill="none" aria-hidden="true">
+              <rect x="1" y="9" width="2.6" height="5" rx="1.3" fill="currentColor" />
+              <rect x="5.4" y="6" width="2.6" height="8" rx="1.3" fill="currentColor" />
+              <rect x="9.8" y="3" width="2.6" height="11" rx="1.3" fill="currentColor" />
+              <rect x="14.2" y="1" width="1.4" height="13" rx="0.7" fill="currentColor" opacity=".55" />
+            </svg>
+            <span>{hint}</span>
+          </div>
+          <TypeInsteadPill
+            label={copy.watch.typeInstead}
+            ariaLabel={copy.hud.typeInsteadAria}
+            pressed={chatOpen}
+            onClick={() => setChatOpen((open) => !open)}
+          />
+        </div>
       </div>
         </>
       )}
