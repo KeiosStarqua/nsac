@@ -178,8 +178,11 @@ describe("POST /create", () => {
     const status = (await (await speechAdmin.handleSpeechAdminRequest(req("/api/settings/speech-engine")))?.json()) as Record<string, unknown>;
     expect(status).toMatchObject({ wsRunning: true, engineId: "eng_created_1", source: "db", configured: true });
     // The upstream call carried the default name + wsUrl and the key header.
+    // ElevenLabs's wire format is snake_case — camelCase is rejected with HTTP 422.
     const sent = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
-    expect(sent).toEqual({ name: "sky-nsac-speech-engine", speechEngine: { wsUrl: "wss://nasa.taquangkhoi.com/speech/ws" } });
+    expect(sent).toEqual({ name: "sky-nsac-speech-engine", speech_engine: { ws_url: "wss://nasa.taquangkhoi.com/speech/ws" } });
+    expect(sent).not.toHaveProperty("speechEngine");
+    expect(sent.speech_engine).not.toHaveProperty("wsUrl");
     speech.stopSpeechEngine();
   });
 
@@ -215,6 +218,21 @@ describe("POST /create", () => {
     const body = (await res?.json()) as Record<string, unknown>;
     expect(body).toMatchObject({ ok: false, httpStatus: 422, message: "wsUrl unreachable" });
     expect(settingsRepo.getSpeechEngineId()).toBeNull();
+  });
+
+  test("upstream 422 with a plain-text body → message carries the trimmed text", async () => {
+    const { fn } = stubFetch(() => new Response("  Field required: speech_engine\n", { status: 422 }));
+    const res = await create({}, fn);
+    const body = (await res?.json()) as Record<string, unknown>;
+    expect(body).toMatchObject({ ok: false, httpStatus: 422, message: "ElevenLabs responded 422: Field required: speech_engine" });
+    expect(settingsRepo.getSpeechEngineId()).toBeNull();
+  });
+
+  test("upstream 422 with an HTML body → generic non-JSON message", async () => {
+    const { fn } = stubFetch(() => new Response("<html><body>bad gateway</body></html>", { status: 422 }));
+    const res = await create({}, fn);
+    const body = (await res?.json()) as Record<string, unknown>;
+    expect(body).toMatchObject({ ok: false, httpStatus: 422, message: "ElevenLabs responded 422 (non-JSON body)" });
   });
 
   test("unreadable id in upstream 200 → ok:false, stores nothing", async () => {

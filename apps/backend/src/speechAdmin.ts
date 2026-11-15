@@ -70,6 +70,8 @@ function apiKeyConfigured(): boolean {
 /**
  * Reduces an upstream error body to a short, safe message. Handles both ElevenLabs error shapes
  * (`{ detail: string }` / `{ detail: { message } }` / `{ message }`) and non-JSON bodies.
+ * A plain-text (non-HTML) body of ≤ 300 chars is echoed trimmed and single-lined — it carries
+ * ElevenLabs's validation message, never our request, and upstream of us there is no key material.
  */
 function upstreamMessage(status: number, rawText: string): string {
   const json = safeJsonParse(rawText);
@@ -82,6 +84,13 @@ function upstreamMessage(status: number, rawText: string): string {
     }
     const msg = (json as { message?: unknown }).message;
     if (typeof msg === "string" && msg.trim()) return msg.trim().slice(0, 300);
+  }
+  const text = rawText
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/[\x00-\x1f\x7f]/g, "")
+    .trim();
+  if (text && text.length <= 300 && !/<[^>]*>/.test(text)) {
+    return `ElevenLabs responded ${status}: ${text}`;
   }
   return `ElevenLabs responded ${status} (non-JSON body)`;
 }
@@ -209,7 +218,7 @@ async function handleCreate(req: Request, fetchImpl: typeof fetch): Promise<Resp
     res = await upstreamFetch(fetchImpl, "/v1/speech-engine", {
       method: "POST",
       headers: { "xi-api-key": key, "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ name, speechEngine: { wsUrl } }),
+      body: JSON.stringify({ name, speech_engine: { ws_url: wsUrl } }),
     });
   } catch (err) {
     return unreachableResponse(err);
