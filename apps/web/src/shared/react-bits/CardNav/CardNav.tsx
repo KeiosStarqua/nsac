@@ -1,14 +1,80 @@
 // CardNav
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/CardNav/CardNav.jsx
+// Source: @react-bits/CardNav-TS-TW — https://reactbits.dev/r/CardNav-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ElementType,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode
+} from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
-import './CardNav.css';
 
-const THEMES = {
+export interface CardNavLink {
+  label: string;
+  href?: string;
+  ariaLabel?: string;
+}
+
+export interface CardNavItem {
+  label: string;
+  description?: string;
+  bgColor?: string;
+  textColor?: string;
+  links?: CardNavLink[];
+}
+
+export interface CardNavCta {
+  label: string;
+  href?: string;
+  onClick?: (event: ReactMouseEvent<HTMLElement>) => void;
+}
+
+export interface CardNavProps {
+  logo?: string | ReactNode;
+  logoAlt?: string;
+  logoHref?: string;
+  items?: CardNavItem[];
+  cta?: CardNavCta;
+  theme?: 'dark' | 'light';
+  surface?: 'glass' | 'solid';
+  openOn?: 'click' | 'hover';
+  cardEffect?: 'rise' | 'unfold' | 'fade';
+  stagger?: number;
+  bounce?: number;
+  speed?: number;
+  cardHeight?: number;
+  maxWidth?: number;
+  accentColor?: string;
+  menuLabel?: boolean;
+  intro?: boolean;
+  defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  linkComponent?: ElementType;
+  onLinkClick?: (link: CardNavLink, item: CardNavItem, event: ReactMouseEvent<HTMLElement>) => void;
+  ariaLabel?: string;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface AnchorProps {
+  className: string;
+  'aria-label'?: string;
+  tabIndex?: number;
+  onClick?: (event: ReactMouseEvent<HTMLElement>) => void;
+}
+
+const THEMES: Record<string, Record<string, string>> = {
   dark: {
     '--cn-panel': 'rgba(38, 35, 46, 0.72)',
     '--cn-solid': '#26232e',
@@ -47,33 +113,52 @@ const THEMES = {
   }
 };
 
-const ROOT = 'card-nav';
-const PANEL = 'card-nav__panel';
-const RIM = 'card-nav__rim';
-const BAR = 'card-nav__bar';
-const MENU = 'card-nav__menu';
-const BURGER = 'card-nav__burger';
-const LINE_TOP = 'card-nav__line card-nav__line--top';
-const LINE_BOTTOM = 'card-nav__line card-nav__line--bottom';
-const MENU_LABEL = 'card-nav__menu-label';
-const WORD_OPEN = 'card-nav__word card-nav__word--open';
-const WORD_CLOSE = 'card-nav__word card-nav__word--close';
-const LOGO = 'card-nav__logo';
-const CTA = 'card-nav__cta';
-const CTA_WIDE = 'card-nav__cta card-nav__cta--wide';
-const CONTENT = 'card-nav__content';
-const CARDS = 'card-nav__cards';
-const CARD = 'card-nav__card';
-const CARD_HEAD = 'card-nav__card-head';
-const LABEL = 'card-nav__label';
-const DESCRIPTION = 'card-nav__description';
-const LINKS = 'card-nav__links';
-const LINK = 'card-nav__link';
-const ARROW = 'card-nav__arrow';
-const ARROW_OUT = 'card-nav__arrow-icon card-nav__arrow-icon--out';
-const ARROW_IN = 'card-nav__arrow-icon card-nav__arrow-icon--in';
+const ROOT =
+  'group/cn relative mx-auto h-[var(--cn-bar)] w-full max-w-[var(--cn-max)] text-[14px] leading-[1.4] [-webkit-tap-highlight-color:transparent]';
+const PANEL =
+  'absolute inset-x-0 top-0 z-10 h-[var(--cn-bar)] overflow-hidden rounded-[var(--cn-radius)] [background:var(--cn-panel)] [box-shadow:var(--cn-shadow)] [-webkit-backdrop-filter:var(--cn-blur)] [backdrop-filter:var(--cn-blur)]';
+const RIM =
+  'pointer-events-none absolute inset-0 z-[3] rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--cn-edge),inset_0_1px_0_var(--cn-highlight)]';
+const BAR =
+  'relative z-[2] box-border grid h-[var(--cn-bar)] grid-cols-[1fr_auto_1fr] items-center px-[var(--cn-inset)] group-data-[narrow]/cn:grid-cols-[auto_1fr_auto]';
+const MENU =
+  'inline-flex h-[calc(var(--cn-bar)_-_var(--cn-inset)*2)] cursor-pointer items-center gap-[10px] justify-self-start rounded-[calc(var(--cn-radius)_-_var(--cn-inset))] border-0 pl-[16px] pr-[14px] [background:none] [font-family:inherit] [font-size:inherit] font-medium text-[var(--cn-text)] outline-none transition-[background-color] duration-200 ease-[ease] hover:[background:var(--cn-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--cn-ring)] data-[icon-only]:w-[calc(var(--cn-bar)_-_var(--cn-inset)*2)] data-[icon-only]:justify-center data-[icon-only]:p-0 group-data-[narrow]/cn:col-[3] group-data-[narrow]/cn:row-[1] group-data-[narrow]/cn:justify-self-end';
+const BURGER = 'relative h-[12px] w-[18px]';
+const LINE_TOP =
+  'absolute left-0 top-[2.25px] h-[1.5px] w-full rounded-[2px] bg-current transition-[top,rotate] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[open]/cn:top-[5.25px] group-data-[open]/cn:rotate-45 motion-reduce:transition-none';
+const LINE_BOTTOM =
+  'absolute left-0 top-[8.25px] h-[1.5px] w-full rounded-[2px] bg-current transition-[top,rotate] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[open]/cn:top-[5.25px] group-data-[open]/cn:-rotate-45 motion-reduce:transition-none';
+const MENU_LABEL = 'relative inline-grid overflow-hidden';
+const WORD_OPEN =
+  '[grid-area:1/1] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[open]/cn:-translate-y-[110%] motion-reduce:transition-none';
+const WORD_CLOSE =
+  '[grid-area:1/1] translate-y-[110%] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[open]/cn:translate-y-0 motion-reduce:transition-none';
+const LOGO =
+  'inline-flex h-[var(--cn-logo)] items-center justify-self-center text-[var(--cn-text)] no-underline outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--cn-ring)] [&_img]:block [&_img]:h-full [&_img]:w-auto [&_svg]:block [&_svg]:h-full [&_svg]:w-auto group-data-[narrow]/cn:col-[1] group-data-[narrow]/cn:row-[1] group-data-[narrow]/cn:justify-self-start group-data-[narrow]/cn:pl-[14px]';
+const CTA =
+  'inline-flex h-[calc(var(--cn-bar)_-_var(--cn-inset)*2)] justify-self-end cursor-pointer items-center justify-center whitespace-nowrap rounded-[calc(var(--cn-radius)_-_var(--cn-inset))] border-0 px-[16px] [background:var(--cn-cta)] [box-shadow:var(--cn-cta-shadow)] [font-family:inherit] [font-size:inherit] font-semibold text-[var(--cn-cta-ink)] no-underline outline-none transition-[filter] duration-200 ease-[ease] hover:[filter:var(--cn-cta-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--cn-ring)]';
+const CTA_WIDE =
+  'flex h-[44px] w-full cursor-pointer items-center justify-center whitespace-nowrap rounded-[calc(var(--cn-radius)_-_var(--cn-inset))] border-0 px-[16px] [background:var(--cn-cta)] [box-shadow:var(--cn-cta-shadow)] [font-family:inherit] [font-size:inherit] font-semibold text-[var(--cn-cta-ink)] no-underline outline-none transition-[filter] duration-200 ease-[ease] hover:[filter:var(--cn-cta-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--cn-ring)]';
+const CONTENT =
+  'invisible absolute inset-x-0 top-[var(--cn-bar)] box-border flex flex-col gap-[var(--cn-gap)] px-[var(--cn-inset)] pb-[var(--cn-inset)] [perspective:900px] group-data-[shown]/cn:visible';
+const CARDS = 'flex gap-[var(--cn-gap)] group-data-[narrow]/cn:flex-col';
+const CARD =
+  'group/card relative box-border flex min-h-[var(--cn-card)] min-w-0 flex-[1_1_0] origin-top flex-col gap-[18px] rounded-[calc(var(--cn-radius)_-_var(--cn-inset))] px-[16px] pb-[14px] pt-[16px] [background:var(--cn-tile)] [box-shadow:var(--cn-tile-rim)] text-[var(--cn-text)] will-change-[transform,opacity] data-[tinted]:[box-shadow:inset_0_1px_0_rgba(255,255,255,0.16),0_4px_10px_-4px_rgba(0,0,0,0.45)] group-data-[narrow]/cn:min-h-0 group-data-[narrow]/cn:flex-none group-data-[narrow]/cn:gap-[10px] group-data-[narrow]/cn:px-[14px] group-data-[narrow]/cn:pb-[12px] group-data-[narrow]/cn:pt-[14px]';
+const CARD_HEAD = 'flex flex-col gap-[4px]';
+const LABEL = 'text-[17px] font-semibold tracking-[-0.015em]';
+const DESCRIPTION =
+  'm-0 text-[13px] leading-[1.45] text-[var(--cn-muted)] group-data-[tinted]/card:text-inherit group-data-[tinted]/card:opacity-70';
+const LINKS =
+  'm-0 mt-auto flex list-none flex-col gap-[2px] p-0 group-data-[narrow]/cn:flex-row group-data-[narrow]/cn:flex-wrap group-data-[narrow]/cn:gap-x-[16px] group-data-[narrow]/cn:gap-y-[2px]';
+const LINK =
+  'group/link inline-flex cursor-pointer items-center gap-[8px] rounded-[6px] border-0 px-0 py-[3px] [background:none] [font-family:inherit] text-[14px] font-medium text-inherit no-underline opacity-[0.82] outline-none transition-opacity duration-200 ease-[ease] hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--cn-ring)]';
+const ARROW = 'relative inline-block h-[14px] w-[14px] flex-none overflow-hidden';
+const ARROW_OUT =
+  'absolute inset-0 h-full w-full transition-transform duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/link:translate-x-[110%] group-hover/link:-translate-y-[110%] group-focus-visible/link:translate-x-[110%] group-focus-visible/link:-translate-y-[110%] motion-reduce:transition-none';
+const ARROW_IN =
+  'absolute inset-0 h-full w-full -translate-x-[110%] translate-y-[110%] transition-transform duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/link:translate-x-0 group-hover/link:translate-y-0 group-focus-visible/link:translate-x-0 group-focus-visible/link:translate-y-0 motion-reduce:transition-none';
 
-const DEFAULT_ITEMS = [
+const DEFAULT_ITEMS: CardNavItem[] = [
   {
     label: 'About',
     description: 'The people and the story behind the studio.',
@@ -104,11 +189,11 @@ const DEFAULT_ITEMS = [
 const NARROW = 560;
 const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const easeOut = t => 1 - (1 - t) ** 3;
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
 
-const contrastInk = color => {
+const contrastInk = (color?: string): string | null => {
   const hex = String(color || '')
     .trim()
     .replace('#', '');
@@ -120,7 +205,7 @@ const contrastInk = color => {
           .map(c => c + c)
           .join('')
       : hex;
-  const channel = index => {
+  const channel = (index: number) => {
     const value = parseInt(full.slice(index, index + 2), 16) / 255;
     return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
   };
@@ -149,21 +234,22 @@ const CardNav = ({
   defaultOpen = false,
   open: openProp,
   onOpenChange,
-  linkComponent: LinkComponent = 'a',
+  linkComponent: LinkComponentProp = 'a',
   onLinkClick,
   ariaLabel = 'Main',
   className = '',
   style
-}) => {
+}: CardNavProps) => {
+  const LinkComponent = LinkComponentProp as unknown as React.FC<Record<string, unknown>>;
   const contentId = useId();
-  const rootRef = useRef(null);
-  const panelRef = useRef(null);
-  const contentRef = useRef(null);
-  const menuRef = useRef(null);
-  const cardRefs = useRef([]);
-  const engineRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const engineRef = useRef<{ wake: () => void; refresh: () => void } | null>(null);
   const leaveRef = useRef(0);
-  const barRef = useRef(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const introRef = useRef(intro);
   const [openState, setOpenState] = useState(defaultOpen);
   const [narrow, setNarrow] = useState(false);
@@ -184,7 +270,7 @@ const CardNav = ({
   settingsRef.current = settings;
 
   const palette = THEMES[theme] ?? THEMES.dark;
-  const vars = {
+  const vars: Record<string, string> = {
     ...palette,
     '--cn-max': `${maxWidth}px`,
     '--cn-bar': '60px',
@@ -206,7 +292,7 @@ const CardNav = ({
     vars['--cn-cta-hover'] = 'brightness(1.08)';
   }
 
-  const setOpen = next => {
+  const setOpen = (next: boolean) => {
     if (next === open) return;
     if (!controlled) setOpenState(next);
     onOpenChange?.(next);
@@ -227,7 +313,7 @@ const CardNav = ({
       const s = settingsRef.current;
       state.bar = parseFloat(getComputedStyle(panel).getPropertyValue('--cn-bar')) || 60;
       panel.style.height = `${state.bar + Math.max(0, state.p) * state.height}px`;
-      const cards = cardRefs.current.filter(Boolean);
+      const cards = cardRefs.current.filter((card): card is HTMLDivElement => card !== null);
       const count = cards.length;
       const lag = count > 1 ? Math.min(s.stagger, 0.7 / (count - 1)) : 0;
       const span = 1 - lag * (count - 1);
@@ -250,7 +336,7 @@ const CardNav = ({
       });
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       const s = settingsRef.current;
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
@@ -330,12 +416,12 @@ const CardNav = ({
 
   useEffect(() => {
     if (!open) return undefined;
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Node && rootRef.current?.contains(target)) return;
       setOpenRef.current(false);
     };
-    const onKeyDown = event => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       setOpenRef.current(false);
       menuRef.current?.focus();
@@ -379,19 +465,19 @@ const CardNav = ({
 
   const hover = openOn === 'hover';
 
-  const onPointerEnter = event => {
+  const onPointerEnter = (event: ReactPointerEvent) => {
     if (!hover || event.pointerType === 'touch') return;
     window.clearTimeout(leaveRef.current);
     setOpen(true);
   };
 
-  const onPointerLeave = event => {
+  const onPointerLeave = (event: ReactPointerEvent) => {
     if (!hover || event.pointerType === 'touch') return;
     window.clearTimeout(leaveRef.current);
     leaveRef.current = window.setTimeout(() => setOpenRef.current(false), 160);
   };
 
-  const anchor = (target, props, children) => {
+  const anchor = (target: CardNavLink | CardNavCta, props: AnchorProps, children: ReactNode) => {
     if (!target.href) {
       return (
         <button type="button" {...props}>
@@ -406,7 +492,7 @@ const CardNav = ({
     );
   };
 
-  const ctaButton = (target, wide) =>
+  const ctaButton = (target: CardNavCta, wide: boolean) =>
     anchor(
       target,
       {
@@ -427,7 +513,7 @@ const CardNav = ({
       data-open={open ? '' : undefined}
       data-shown={shown || open ? '' : undefined}
       data-narrow={narrow ? '' : undefined}
-      style={{ ...vars, ...style }}
+      style={{ ...vars, ...style } as CSSProperties}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >

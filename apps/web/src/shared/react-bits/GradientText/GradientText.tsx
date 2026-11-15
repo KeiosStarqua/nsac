@@ -1,17 +1,48 @@
 // GradientText
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/GradientText/GradientText.jsx
+// Source: @react-bits/GradientText-TS-TW — https://reactbits.dev/r/GradientText-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
 import { useEffect, useRef } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
-import './GradientText.css';
+type Variant = 'linear' | 'flow' | 'conic';
 
-const VARIANTS = ['linear', 'flow', 'conic'];
-const ANGLES = { horizontal: 90, vertical: 180, diagonal: 135 };
+export interface GradientTextProps {
+  children?: ReactNode;
+  colors?: string[];
+  animationSpeed?: number;
+  variant?: Variant;
+  angle?: number;
+  direction?: 'horizontal' | 'vertical' | 'diagonal';
+  scale?: number;
+  yoyo?: boolean;
+  glow?: number;
+  showBorder?: boolean;
+  borderWidth?: number;
+  pauseOnHover?: boolean;
+  followPointer?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Settings {
+  colors: string[];
+  speed: number;
+  variant: Variant;
+  angle: number;
+  scale: number;
+  yoyo: boolean;
+  pauseOnHover: boolean;
+  followPointer: boolean;
+}
+
+const VARIANTS: Variant[] = ['linear', 'flow', 'conic'];
+const ANGLES: Record<string, number> = { horizontal: 90, vertical: 180, diagonal: 135 };
 const TAU = Math.PI * 2;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 export default function GradientText({
   children,
@@ -29,16 +60,16 @@ export default function GradientText({
   followPointer = false,
   className = '',
   style
-}) {
-  const rootRef = useRef(null);
-  const settingsRef = useRef(null);
-  const wakeRef = useRef(null);
+}: GradientTextProps) {
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const settingsRef = useRef<Settings | null>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
   const palette = colors.length > 1 ? colors : [colors[0] ?? '#ffffff', colors[0] ?? '#ffffff'];
 
   settingsRef.current = {
     colors: palette,
     speed: Math.max(0.2, animationSpeed),
-    variant: VARIANTS.includes(variant) ? variant : 'linear',
+    variant: VARIANTS.includes(variant as Variant) ? (variant as Variant) : 'linear',
     angle: direction ? (ANGLES[direction] ?? angle) : angle,
     scale: clamp(scale, 1, 6),
     yoyo,
@@ -61,7 +92,7 @@ export default function GradientText({
     let alive = true;
 
     const paint = () => {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const list = s.colors;
       const cycle = state.time / s.speed;
       let image;
@@ -101,10 +132,10 @@ export default function GradientText({
       root.style.setProperty('--gt-gradient', image);
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       if (!alive) return;
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
       last = now;
       const paused = reduce || (s.pauseOnHover && state.inside);
@@ -132,12 +163,12 @@ export default function GradientText({
       wake();
     };
 
-    const locate = event => {
+    const locate = (event: PointerEvent) => {
       const rect = root.getBoundingClientRect();
       state.x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
       state.y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
     };
-    const onEnter = event => {
+    const onEnter = (event: PointerEvent) => {
       locate(event);
       if (!state.inside) {
         state.px = state.x;
@@ -146,7 +177,7 @@ export default function GradientText({
       state.inside = true;
       wake();
     };
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       locate(event);
       wake();
     };
@@ -182,18 +213,25 @@ export default function GradientText({
   return (
     <span
       ref={rootRef}
-      className={`gradient-text${showBorder ? ' gradient-text--border' : ''}${className ? ` ${className}` : ''}`}
-      style={{
-        '--gt-gradient': `linear-gradient(${direction ? (ANGLES[direction] ?? angle) : angle}deg, ${loop.join(', ')})`,
-        '--gt-border': `${borderWidth}px`,
-        '--gt-glow': clamp(glow, 0, 1),
-        ...style
-      }}
+      className={`relative inline-flex items-center justify-center max-w-full isolate ${showBorder ? 'px-[0.75em] py-[0.35em] rounded-full before:content-[] before:absolute before:inset-0 before:p-[var(--gt-border)] before:rounded-[inherit] before:[background-image:var(--gt-gradient)] before:[-webkit-mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] before:[-webkit-mask-composite:xor] before:[mask:linear-gradient(#000_0_0)_content-box_exclude,linear-gradient(#000_0_0)] before:pointer-events-none' : ''}${className ? ` ${className}` : ''}`}
+      style={
+        {
+          '--gt-gradient': `linear-gradient(${direction ? (ANGLES[direction] ?? angle) : angle}deg, ${loop.join(', ')})`,
+          '--gt-border': `${borderWidth}px`,
+          '--gt-glow': clamp(glow, 0, 1),
+          ...style
+        } as CSSProperties
+      }
     >
-      <span className="gradient-text__inner">
-        <span className="gradient-text__content">{children}</span>
+      <span className="relative inline-block">
+        <span className="inline-block [background-image:var(--gt-gradient)] bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent]">
+          {children}
+        </span>
         {glow > 0 ? (
-          <span className="gradient-text__glow" aria-hidden="true">
+          <span
+            className="absolute inset-0 -z-10 [background-image:var(--gt-gradient)] bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] [filter:blur(0.3em)_saturate(1.4)] opacity-[var(--gt-glow)] pointer-events-none select-none"
+            aria-hidden="true"
+          >
             {children}
           </span>
         ) : null}

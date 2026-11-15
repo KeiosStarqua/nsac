@@ -668,7 +668,7 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
         <HoloCredit />
         <button type="button" id="healthButton" className={HEALTH_SUMMARY} aria-label="View simulated overall health assessment" onClick={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}>
           <span className={HEALTH_LABEL}>Overall</span>
-          <strong className={HEALTH_STATUS}><GradientText colors={["#7fe9c9","#5ee6ff","#7fe9c9"]} animationSpeed={3} pointerEvents="none">Stable</GradientText></strong>
+          <strong className={HEALTH_STATUS}><GradientText colors={["#7fe9c9","#5ee6ff","#7fe9c9"]} animationSpeed={3}>Stable</GradientText></strong>
           <span className={HEALTH_GUIDANCE}>Maintain recovery<br />and readiness</span>
           <span className={HEALTH_DEMO}>{fx ? <DecryptedText text="DEMO STATUS" animateOn="view" loop={false} speed={50} /> : "DEMO STATUS"}</span>
         </button>

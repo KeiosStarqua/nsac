@@ -1,12 +1,109 @@
 // VoicePill
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Micro/VoicePill/VoicePill.jsx
+// Source: @react-bits/VoicePill-TS-TW — https://reactbits.dev/r/VoicePill-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent
+} from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Mic01Icon } from '@hugeicons/core-free-icons';
-import './VoicePill.css';
+export type VoicePillShape = 'pill' | 'rounded';
+export type VoicePillMode = 'auto' | 'hold' | 'toggle';
+export type VoicePillSource = 'simulated' | 'mic';
+export type VoicePillStopReason =
+  | 'release'
+  | 'tap'
+  | 'key'
+  | 'escape'
+  | 'blur'
+  | 'disabled'
+  | 'mic-denied'
+  | 'cancel'
+  | 'unmount';
+
+export interface VoicePillProps {
+  accentColor?: string;
+  iconColor?: string;
+  background?: string;
+  size?: number;
+  shape?: VoicePillShape;
+  reach?: number;
+  showTime?: boolean;
+  waveform?: boolean;
+  slideToCancel?: boolean;
+  cancelDistance?: number;
+  attack?: number;
+  release?: number;
+  sensitivity?: number;
+  floor?: number;
+  openDuration?: number;
+  pressScale?: number;
+  mode?: VoicePillMode;
+  holdAfter?: number;
+  reactive?: VoicePillSource;
+  disabled?: boolean;
+  ariaLabel?: string;
+  onStart?: (info: { source: VoicePillSource }) => void;
+  onStop?: (info: { reason: VoicePillStopReason; duration: number }) => void;
+  className?: string;
+}
+
+interface AudioBits {
+  ctx: AudioContext;
+  stream?: MediaStream | null;
+  src?: MediaStreamAudioSourceNode | null;
+  analyser?: AnalyserNode | null;
+  buf?: Uint8Array<ArrayBuffer> | null;
+}
+
+interface State {
+  listening: boolean;
+  pointerId: number | null;
+  ownPress: boolean;
+  downX: number;
+  sliding: boolean;
+  hist: number[];
+  tick: number;
+  acc: number;
+  downAt: number;
+  startedAt: number;
+  raf: number;
+  last: number;
+  env: number;
+  t0: number;
+  audio: AudioBits | null;
+}
+
+interface Cfg {
+  attack: number;
+  release: number;
+  sensitivity: number;
+  floor: number;
+  mode: VoicePillMode;
+  holdAfter: number;
+  reactive: VoicePillSource;
+  showTime: boolean;
+  waveform: boolean;
+  slideToCancel: boolean;
+  cancelDistance: number;
+  accentColor: string;
+  onStart?: VoicePillProps['onStart'];
+  onStop?: VoicePillProps['onStop'];
+}
+
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
 
 const LOOP = 4.8;
 const SYLLABLES = [
@@ -35,7 +132,7 @@ const SLIDE_MIN = 4;
 const WAVE_EVERY = 4;
 const WAVE_MAX = 80;
 
-const simulatedLevel = t => {
+const simulatedLevel = (t: number) => {
   const u = t % LOOP;
   let a = 0.06;
   for (const [s, d, p] of SYLLABLES) {
@@ -44,7 +141,7 @@ const simulatedLevel = t => {
   }
   return a * (0.7 + 0.3 * Math.abs(Math.sin(2 * Math.PI * 7.1 * u)));
 };
-const micLevel = (analyser, buf) => {
+const micLevel = (analyser: AnalyserNode, buf: Uint8Array<ArrayBuffer>) => {
   analyser.getByteFrequencyData(buf);
   let total = 0;
   for (const [lo, hi] of MIC_BINS) {
@@ -54,7 +151,7 @@ const micLevel = (analyser, buf) => {
   }
   return (total / MIC_BINS.length) * MIC_GAIN;
 };
-const drawWave = (s, canvas, level, color, floor) => {
+const drawWave = (s: State, canvas: HTMLCanvasElement, level: number, color: string, floor: number) => {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const rect = canvas.getBoundingClientRect();
   const W = Math.max(1, Math.round(rect.width * dpr));
@@ -91,12 +188,12 @@ const drawWave = (s, canvas, level, color, floor) => {
   }
   ctx.globalAlpha = 1;
 };
-const clock = ms => {
+const clock = (ms: number) => {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 };
 
-const openMic = async s => {
+const openMic = async (s: State) => {
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx || !navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
   s.audio ??= { ctx: new Ctx() };
@@ -115,7 +212,7 @@ const openMic = async s => {
   a.src.connect(a.analyser);
   a.buf = new Uint8Array(a.analyser.frequencyBinCount);
 };
-const closeMic = s => {
+const closeMic = (s: State) => {
   const a = s.audio;
   if (!a?.stream) return;
   a.stream.getTracks().forEach(t => t.stop());
@@ -126,7 +223,7 @@ const closeMic = s => {
   a.buf = null;
 };
 
-export default function VoicePill({
+const VoicePill: React.FC<VoicePillProps> = ({
   accentColor = '#f5f5f5',
   iconColor = '#a1a1aa',
   background = '#27272a',
@@ -151,14 +248,14 @@ export default function VoicePill({
   onStart,
   onStop,
   className = ''
-}) {
+}) => {
   const [listening, setListening] = useState(false);
   const [pressed, setPressed] = useState(false);
   const [input, setInput] = useState('pointer');
-  const timeRef = useRef(null);
-  const rootRef = useRef(null);
-  const waveRef = useRef(null);
-  const st = useRef({
+  const timeRef = useRef<HTMLSpanElement>(null);
+  const rootRef = useRef<HTMLButtonElement>(null);
+  const waveRef = useRef<HTMLCanvasElement>(null);
+  const st = useRef<State>({
     listening: false,
     pointerId: null,
     ownPress: false,
@@ -175,7 +272,7 @@ export default function VoicePill({
     t0: 0,
     audio: null
   });
-  const cfg = useRef({});
+  const cfg = useRef<Cfg>({} as Cfg);
   cfg.current = {
     attack,
     release,
@@ -193,14 +290,14 @@ export default function VoicePill({
     onStop
   };
 
-  const frame = now => {
+  const frame = (now: number) => {
     const s = st.current;
     const c = cfg.current;
     const dt = Math.min((now - s.last) / 1000, DT_MAX);
     s.last = now;
     let target = 0;
     if (s.listening) {
-      if (s.audio?.analyser) target = micLevel(s.audio.analyser, s.audio.buf);
+      if (s.audio?.analyser) target = micLevel(s.audio.analyser, s.audio.buf as Uint8Array<ArrayBuffer>);
       else if (c.reactive !== 'mic') target = simulatedLevel((now - s.t0) / 1000);
     }
     target = Math.min(1, target * c.sensitivity);
@@ -214,7 +311,7 @@ export default function VoicePill({
     s.raf = s.listening ? requestAnimationFrame(frame) : 0;
   };
 
-  const begin = kind => {
+  const begin = (kind: 'pointer' | 'key') => {
     const s = st.current;
     const c = cfg.current;
     if (s.listening || disabled) return;
@@ -233,7 +330,7 @@ export default function VoicePill({
     c.onStart?.({ source: c.reactive });
     if (c.reactive === 'mic') openMic(s).catch(() => end('mic-denied'));
   };
-  const end = reason => {
+  const end = (reason: VoicePillStopReason) => {
     const s = st.current;
     const c = cfg.current;
     if (!s.listening) return;
@@ -253,7 +350,7 @@ export default function VoicePill({
     root.style.setProperty('--vp-slide', '0px');
     root.style.setProperty('--vp-cancel', '0');
   };
-  const onPointerMove = e => {
+  const onPointerMove = (e: PointerEvent<HTMLButtonElement>) => {
     const s = st.current;
     const c = cfg.current;
     const root = rootRef.current;
@@ -271,7 +368,7 @@ export default function VoicePill({
       end('cancel');
     }
   };
-  const onPointerDown = e => {
+  const onPointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     const s = st.current;
     if (disabled || e.button !== 0 || !e.isPrimary || s.pointerId !== null) return;
     s.pointerId = e.pointerId;
@@ -284,7 +381,7 @@ export default function VoicePill({
     s.ownPress = !s.listening;
     if (!s.listening) begin('pointer');
   };
-  const onPointerUp = e => {
+  const onPointerUp = (e: PointerEvent<HTMLButtonElement>) => {
     const s = st.current;
     const c = cfg.current;
     if (e.pointerId !== s.pointerId) return;
@@ -303,7 +400,7 @@ export default function VoicePill({
       end(held < c.holdAfter ? 'tap' : 'release');
     }
   };
-  const onKeyDown = e => {
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === 'Escape') {
       end('escape');
       return;
@@ -314,8 +411,8 @@ export default function VoicePill({
       else begin('key');
     }
   };
-  const onClick = e => {
-    if (e.detail === 0 && st.current.pointerId === null && !e.nativeEvent.pointerType) {
+  const onClick = (e: MouseEvent<HTMLButtonElement>) => {
+    if (e.detail === 0 && st.current.pointerId === null && !(e.nativeEvent as globalThis.PointerEvent).pointerType) {
       if (st.current.listening) end('key');
       else begin('key');
     }
@@ -362,7 +459,7 @@ export default function VoicePill({
       disabled={disabled}
       aria-label={ariaLabel}
       aria-pressed={listening}
-      className={`voice-pill${className ? ` ${className}` : ''}`}
+      className={`group relative isolate m-0 inline-grid cursor-pointer touch-none place-items-center border-0 bg-transparent p-0 outline-none select-none [width:var(--vp-size)] [height:var(--vp-size)] [border-radius:var(--vp-radius)] [color:var(--vp-icon)] [font-family:inherit] [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] [transition:transform_160ms_cubic-bezier(0.23,1,0.32,1),color_150ms_ease] before:absolute before:[inset:calc(-1*var(--vp-hit))] before:content-[''] data-[state=listening]:z-[1] data-[state=listening]:[color:var(--vp-accent)] data-[pressed]:[transform:scale(var(--vp-press))] disabled:pointer-events-none disabled:cursor-default disabled:opacity-55 motion-reduce:[transform:none]! motion-reduce:[transition:color_150ms_ease]${className ? ` ${className}` : ''}`}
       data-state={listening ? 'listening' : 'idle'}
       data-pressed={pressed ? '' : undefined}
       data-input={input}
@@ -376,43 +473,66 @@ export default function VoicePill({
       onKeyDown={onKeyDown}
       onClick={onClick}
       onContextMenu={e => e.preventDefault()}
-      style={{
-        '--vp-accent': accentColor,
-        '--vp-icon': iconColor,
-        '--vp-bg': background,
-        '--vp-size': `${size}px`,
-        '--vp-radius': `${radius}px`,
-        '--vp-reach': `${reach}px`,
-        '--vp-extra': `${extra}px`,
-        '--vp-clock-w': `${clockW}px`,
-        '--vp-wave-w': `${waveW}px`,
-        '--vp-stop': `${Math.round(size * 0.32)}px`,
-        '--vp-icon-size': `${Math.round(size * 0.54)}px`,
-        '--vp-time-size': `${timeSize}px`,
-        '--vp-open': `${openDuration}ms`,
-        '--vp-press': pressScale,
-        '--vp-hit': `${hit}px`
-      }}
+      style={
+        {
+          '--vp-accent': accentColor,
+          '--vp-icon': iconColor,
+          '--vp-bg': background,
+          '--vp-size': `${size}px`,
+          '--vp-radius': `${radius}px`,
+          '--vp-reach': `${reach}px`,
+          '--vp-extra': `${extra}px`,
+          '--vp-clock-w': `${clockW}px`,
+          '--vp-wave-w': `${waveW}px`,
+          '--vp-stop': `${Math.round(size * 0.32)}px`,
+          '--vp-icon-size': `${Math.round(size * 0.54)}px`,
+          '--vp-time-size': `${timeSize}px`,
+          '--vp-open': `${openDuration}ms`,
+          '--vp-press': pressScale,
+          '--vp-hit': `${hit}px`
+        } as CSSProperties
+      }
     >
-      <span className="voice-pill__capsule" aria-hidden="true" />
-      {waveform ? <canvas ref={waveRef} className="voice-pill__wave" aria-hidden="true" /> : null}
+      <span
+        className="pointer-events-none absolute [inset:0_0_0_calc(-1*(var(--vp-reach)+var(--vp-extra)))] [border-radius:var(--vp-radius)] [background:var(--vp-bg)] [clip-path:inset(0_0_0_calc(var(--vp-reach)+var(--vp-extra))_round_var(--vp-radius))] [transition:clip-path_var(--vp-open)_cubic-bezier(0.23,1,0.32,1),background-color_150ms_ease] [@media(hover:hover)_and_(pointer:fine)]:group-enabled:group-data-[state=idle]:group-hover:[background:color-mix(in_srgb,var(--vp-icon)_10%,var(--vp-bg))] group-data-[state=listening]:[clip-path:inset(0_0_round_var(--vp-radius))] group-data-[input=key]:[transition-duration:0ms] motion-reduce:[transition:background-color_150ms_ease]"
+        aria-hidden="true"
+      />
+      {waveform ? (
+        <canvas
+          ref={waveRef}
+          className="pointer-events-none absolute top-[18%] h-[64%] opacity-0 [right:calc(100%+var(--vp-clock-w))] [width:var(--vp-wave-w)] [filter:blur(2px)] [transform:translateX(var(--vp-slide))] [transition:opacity_200ms_ease,filter_200ms_ease,transform_240ms_cubic-bezier(0.23,1,0.32,1)] group-data-[state=listening]:[opacity:calc(1-var(--vp-cancel))] group-data-[state=listening]:[filter:blur(0)] group-data-[sliding]:[transition-property:opacity,filter] motion-reduce:[filter:none]! motion-reduce:[transition-property:opacity]"
+          aria-hidden="true"
+        />
+      ) : null}
       {slideToCancel ? (
-        <span className="voice-pill__cancel" aria-hidden="true">
+        <span
+          className="pointer-events-none absolute inset-y-0 right-full inline-flex items-center justify-center gap-[3px] leading-none font-medium [width:var(--vp-extra)] [color:var(--vp-accent)] [font-size:var(--vp-time-size)] [opacity:var(--vp-cancel)]"
+          aria-hidden="true"
+        >
           <HugeiconsIcon icon={ArrowLeft01Icon} size={12} strokeWidth={2.2} />
           <span>Cancel</span>
         </span>
       ) : null}
       {showTime ? (
-        <span ref={timeRef} className="voice-pill__time" aria-hidden="true">
+        <span
+          ref={timeRef}
+          className="pointer-events-none absolute inset-y-0 right-full box-border grid place-items-center leading-none font-medium tabular-nums opacity-0 [width:var(--vp-clock-w)] [color:var(--vp-accent)] [font-size:var(--vp-time-size)] [filter:blur(2px)] [transform:translateX(var(--vp-slide))] [transition:opacity_200ms_ease,filter_200ms_ease,transform_240ms_cubic-bezier(0.23,1,0.32,1)] group-data-[state=listening]:[opacity:calc(1-var(--vp-cancel))] group-data-[state=listening]:[filter:blur(0)] group-data-[sliding]:[transition-property:opacity,filter] group-data-[input=key]:[transition-duration:0ms] motion-reduce:[filter:none]! motion-reduce:[transition-property:opacity]"
+          aria-hidden="true"
+        >
           0:00
         </span>
       ) : null}
-      <span className="voice-pill__glyph">
-        <span className="voice-pill__mic">
+      <span className="relative grid place-items-center [width:var(--vp-size)] [height:var(--vp-size)] [transform:translateX(var(--vp-slide))] [transition:transform_240ms_cubic-bezier(0.23,1,0.32,1)] group-data-[sliding]:[transition-property:opacity,filter] motion-reduce:[filter:none]! motion-reduce:[transition-property:opacity]">
+        <span className="inline-flex [grid-area:1/1] [transition:opacity_200ms_ease,filter_200ms_ease,transform_200ms_cubic-bezier(0.23,1,0.32,1)] group-data-[state=listening]:opacity-0 group-data-[state=listening]:[filter:blur(2px)] group-data-[state=listening]:[transform:scale(0.7)] group-data-[input=key]:[transition-duration:0ms] motion-reduce:[filter:none]! motion-reduce:[transform:none]! motion-reduce:[transition:opacity_200ms_ease]">
           <HugeiconsIcon icon={Mic01Icon} size={Math.round(size * 0.54)} strokeWidth={2} />
         </span>
-        <span className="voice-pill__stop" aria-hidden="true" />
+        <span
+          className="bg-current opacity-0 [grid-area:1/1] [width:var(--vp-stop)] [height:var(--vp-stop)] [border-radius:22%] [filter:blur(2px)] [transform:scale(0.6)] [transition:opacity_200ms_ease,filter_200ms_ease,transform_200ms_cubic-bezier(0.23,1,0.32,1)] group-data-[state=listening]:opacity-100 group-data-[state=listening]:[filter:blur(0)] group-data-[state=listening]:[transform:scale(1)] group-data-[input=key]:[transition-duration:0ms] motion-reduce:[filter:none]! motion-reduce:[transform:none]! motion-reduce:[transition:opacity_200ms_ease]"
+          aria-hidden="true"
+        />
       </span>
     </button>
   );
-}
+};
+
+export default VoicePill;
