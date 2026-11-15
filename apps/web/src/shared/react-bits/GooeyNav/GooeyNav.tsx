@@ -1,15 +1,111 @@
 // GooeyNav
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/GooeyNav/GooeyNav.jsx
+// Source: @react-bits/GooeyNav-TS-TW — https://reactbits.dev/r/GooeyNav-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-
-import './GooeyNav.css';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactNode
+} from 'react';
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const THEMES = {
+type Palette = 'dark' | 'light';
+type Size = 'sm' | 'md' | 'lg';
+type Rgba = number[];
+
+export interface GooeyNavItem {
+  label?: string;
+  href?: string;
+  icon?: ReactNode;
+}
+
+interface GooeyNavProps {
+  items?: GooeyNavItem[];
+  initialActiveIndex?: number;
+  activeIndex?: number;
+  onChange?: (index: number, item: GooeyNavItem) => void;
+  theme?: Palette;
+  color?: string;
+  activeTextColor?: string;
+  colors?: string[];
+  size?: Size;
+  frame?: boolean;
+  animationTime?: number;
+  particleCount?: number;
+  timeVariance?: number;
+  spread?: number;
+  gooeyness?: number;
+  wobble?: number;
+  hoverEffect?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface PillState {
+  mass: number;
+  scale: number;
+  velocity: number;
+  outgoing: number;
+}
+
+interface Drop {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  mass: number;
+  size: number;
+  given: number;
+  source: number;
+  index: number;
+  leave: number;
+  emerged: number;
+  absorbed: number;
+  state: 'waiting' | 'flying' | 'absorbing';
+  tint: Rgba | null;
+  start?: number;
+  duration?: number;
+  path?: number[];
+}
+
+interface Box {
+  cx: number;
+  cy: number;
+  hw: number;
+  hh: number;
+}
+
+interface Blob {
+  x: number;
+  y: number;
+  r: number;
+  tx: number;
+  ty: number;
+  tint: Rgba | null;
+}
+
+interface Pipeline {
+  program: WebGLProgram;
+  uniforms: Record<string, WebGLUniformLocation | null>;
+  buffer: WebGLBuffer;
+  position: number;
+}
+
+const THEMES: Record<Palette, Record<string, string>> = {
   dark: {
     '--gn-frame': 'rgba(38, 35, 46, 0.66)',
     '--gn-frame-edge': 'rgba(255, 255, 255, 0.08)',
@@ -28,14 +124,32 @@ const THEMES = {
   }
 };
 
-const PILLS = {
+const PILLS: Record<Palette, { color: string; hover: string; shadow: number }> = {
   dark: { color: '#f4f4f5', hover: 'rgba(255, 255, 255, 0.08)', shadow: 0.4 },
   light: { color: '#27272a', hover: 'rgba(24, 24, 27, 0.06)', shadow: 0.2 }
 };
 
-const SIZES = { sm: 'gooey-nav--sm', md: 'gooey-nav--md', lg: 'gooey-nav--lg' };
+const SIZES: Record<Size, Record<string, string>> = {
+  sm: { '--gn-pad': '5px', '--gn-gap': '2px', '--gn-font': '13px', '--gn-x': '13px', '--gn-y': '7px' },
+  md: { '--gn-pad': '6px', '--gn-gap': '4px', '--gn-font': '14px', '--gn-x': '16px', '--gn-y': '9px' },
+  lg: { '--gn-pad': '7px', '--gn-gap': '6px', '--gn-font': '16px', '--gn-x': '20px', '--gn-y': '11px' }
+};
 
-const DEFAULT_ITEMS = [
+const ROOT = 'relative inline-flex max-w-full text-[length:var(--gn-font)] leading-[1.2]';
+const FRAMED =
+  'rounded-full p-[var(--gn-pad)] backdrop-blur-[20px] backdrop-saturate-[1.6] [background:var(--gn-frame)] [box-shadow:var(--gn-frame-shadow)]';
+const LIST_BASE = 'm-0 flex list-none flex-wrap gap-[var(--gn-gap)] p-0';
+const LIST = `relative ${LIST_BASE}`;
+const OVERLAY = `${LIST_BASE} pointer-events-none invisible absolute inset-0 text-[var(--gn-active-ink)] [clip-path:inset(100%)]`;
+const LINK_BASE =
+  'inline-flex items-center gap-2 whitespace-nowrap rounded-full border-none bg-transparent px-[var(--gn-x)] py-[var(--gn-y)] [font-family:inherit] [font-size:inherit] [line-height:inherit] font-medium no-underline';
+const LINK = `${LINK_BASE} cursor-pointer text-[var(--gn-muted)] transition-colors duration-200 [-webkit-tap-highlight-color:transparent] group-data-[active]:text-[var(--gn-ink)] hover:text-[var(--gn-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gn-ink)]`;
+const GHOST = `${LINK_BASE} text-inherit`;
+const ICON = 'inline-flex flex-none [&_svg]:h-[1.15em] [&_svg]:w-[1.15em]';
+const RIM =
+  'pointer-events-none absolute inset-0 rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--gn-frame-edge),inset_0_1px_0_var(--gn-frame-highlight)]';
+
+const DEFAULT_ITEMS: GooeyNavItem[] = [
   { label: 'Home', href: '#' },
   { label: 'Work', href: '#' },
   { label: 'About', href: '#' },
@@ -132,7 +246,7 @@ void main() {
 }
 `;
 
-const parse = value => {
+const parse = (value: string): Rgba => {
   const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(value).trim());
   if (match) {
     const hex = match[1].length === 3 ? match[1].replace(/./g, digit => digit + digit) : match[1];
@@ -146,28 +260,28 @@ const parse = value => {
   return [1, 1, 1, 1];
 };
 
-const contrastInk = rgb => (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2] > 0.55 ? '#18161d' : '#ffffff');
+const contrastInk = (rgb: Rgba) => (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2] > 0.55 ? '#18161d' : '#ffffff');
 
-const clamp01 = value => Math.min(1, Math.max(0, value));
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-const travelEase = t => {
+const travelEase = (t: number) => {
   const x = clamp01(t);
   return x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2;
 };
 
-const bezier = (a, b, c, d, t) => {
+const bezier = (a: number, b: number, c: number, d: number, t: number) => {
   const u = 1 - t;
   return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
 };
 
-const pillPath = (x, y, w, h) => {
+const pillPath = (x: number, y: number, w: number, h: number) => {
   if (w <= 0.5 || h <= 0.5) return '';
   const r = Math.min(w, h) / 2;
   return `M${x + r},${y}H${x + w - r}A${r},${r} 0 0 1 ${x + w},${y + r}V${y + h - r}A${r},${r} 0 0 1 ${x + w - r},${y + h}H${x + r}A${r},${r} 0 0 1 ${x},${y + h - r}V${y + r}A${r},${r} 0 0 1 ${x + r},${y}Z`;
 };
 
-const compile = (gl, type, source) => {
-  const shader = gl.createShader(type);
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
+  const shader = gl.createShader(type) as WebGLShader;
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   return shader;
@@ -188,8 +302,8 @@ const UNIFORMS = [
   'uShadow'
 ];
 
-const build = gl => {
-  const program = gl.createProgram();
+const build = (gl: WebGL2RenderingContext): Pipeline | null => {
+  const program = gl.createProgram() as WebGLProgram;
   gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERTEX));
   gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAGMENT));
   gl.linkProgram(program);
@@ -198,7 +312,7 @@ const build = gl => {
     return null;
   }
   const uniforms = Object.fromEntries(UNIFORMS.map(name => [name, gl.getUniformLocation(program, name)]));
-  const buffer = gl.createBuffer();
+  const buffer = gl.createBuffer() as WebGLBuffer;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   return { program, uniforms, buffer, position: gl.getAttribLocation(program, 'aPosition') };
@@ -224,15 +338,15 @@ const GooeyNav = ({
   hoverEffect = true,
   className = '',
   style
-}) => {
+}: GooeyNavProps) => {
   const [innerIndex, setInnerIndex] = useState(initialActiveIndex);
   const current = Math.min(Math.max(0, activeIndex ?? innerIndex), Math.max(0, items.length - 1));
-  const stageRef = useRef(null);
-  const canvasRef = useRef(null);
-  const listRef = useRef(null);
-  const overlayRef = useRef(null);
-  const fallbackRef = useRef(null);
-  const engineRef = useRef(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const overlayRef = useRef<HTMLUListElement>(null);
+  const fallbackRef = useRef<HTMLSpanElement>(null);
+  const engineRef = useRef<{ go: (index: number) => void; refresh: () => void } | null>(null);
   const indexRef = useRef(current);
   indexRef.current = current;
   const palette = theme === 'light' ? 'light' : 'dark';
@@ -254,7 +368,7 @@ const GooeyNav = ({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  const select = index => {
+  const select = (index: number) => {
     if (index === current) return;
     if (activeIndex === undefined) setInnerIndex(index);
     onChange?.(index, items[index]);
@@ -275,10 +389,10 @@ const GooeyNav = ({
     canvas.style.display = pipeline ? 'block' : 'none';
 
     const view = { width: 0, height: 0 };
-    let rects = [];
+    let rects: Rect[] = [];
     let target = -1;
-    const pills = new Map();
-    const drops = [];
+    const pills = new Map<number, PillState>();
+    const drops: Drop[] = [];
     const hover = { x: 0, y: 0, w: 0, h: 0, alpha: 0, index: -1 };
     const pillData = new Float32Array(MAX_PILLS * 4);
     const dropData = new Float32Array(MAX_DROPS * 4);
@@ -313,10 +427,10 @@ const GooeyNav = ({
       });
     };
 
-    const trace = (boxes, blobs, smooth) => {
-      const field = (x, y) => {
+    const trace = (boxes: Box[], blobs: Blob[], smooth: number) => {
+      const field = (x: number, y: number) => {
         let d = 1e5;
-        const merge = value => {
+        const merge = (value: number) => {
           const h = clamp01(0.5 + (0.5 * (value - d)) / smooth);
           d = value + (d - value) * h - smooth * h * (1 - h);
         };
@@ -340,11 +454,11 @@ const GooeyNav = ({
         return d;
       };
       const step = 2;
-      const parts = [];
+      const parts: string[] = [];
       for (let y = 0; y < view.height; y += 1) {
         const cy = y + 0.5;
         let previous = field(0, cy);
-        let start = previous < 0 ? 0 : null;
+        let start: number | null = previous < 0 ? 0 : null;
         for (let x = step; x <= view.width + step; x += step) {
           const value = field(Math.min(x, view.width), cy);
           if (previous < 0 !== value < 0) {
@@ -362,12 +476,12 @@ const GooeyNav = ({
       return parts.join('');
     };
 
-    const pill = index => {
+    const pill = (index: number): PillState => {
       if (!pills.has(index)) pills.set(index, { mass: 0, scale: 0, velocity: 0, outgoing: 0 });
-      return pills.get(index);
+      return pills.get(index) as PillState;
     };
 
-    const shape = (index, amount) => {
+    const shape = (index: number, amount: number): Rect | null => {
       const rect = rects[index];
       if (!rect || amount <= 0.002) return null;
       const h = rect.h * Math.min(1.08, 0.42 + 0.58 * Math.sqrt(Math.max(0, amount)));
@@ -375,7 +489,7 @@ const GooeyNav = ({
       return { x: rect.x + rect.w / 2 - w / 2, y: rect.y + rect.h / 2 - h / 2, w, h };
     };
 
-    const plan = (drop, index, now, fresh) => {
+    const plan = (drop: Drop, index: number, now: number, fresh: boolean) => {
       const s = settingsRef.current;
       const rect = rects[index];
       if (!rect) return;
@@ -405,7 +519,7 @@ const GooeyNav = ({
       ];
     };
 
-    const emit = (from, to, now) => {
+    const emit = (from: number, to: number, now: number) => {
       const s = settingsRef.current;
       const source = pills.get(from);
       const rect = rects[from];
@@ -442,8 +556,8 @@ const GooeyNav = ({
       const s = settingsRef.current;
       const height = rects[target]?.h ?? rects[0]?.h ?? 36;
       const smooth = height * (0.18 + 0.5 * clamp01(s.gooeyness));
-      const boxes = [];
-      const blobs = [];
+      const boxes: Box[] = [];
+      const blobs: Blob[] = [];
       for (const [index, state] of pills) {
         const box = shape(index, state.scale);
         if (box) boxes.push({ cx: box.x + box.w / 2, cy: box.y + box.h / 2, hw: box.w / 2, hh: box.h / 2 });
@@ -533,7 +647,7 @@ const GooeyNav = ({
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       const s = settingsRef.current;
       const dt = Math.min(0.05, (now - last) / 1000 || 0);
@@ -557,9 +671,18 @@ const GooeyNav = ({
             source.outgoing = Math.max(0, source.outgoing - step);
             drop.given += step;
           }
-          const t = clamp01((now - drop.start) / 1000 / drop.duration);
+          const t = clamp01((now - (drop.start ?? now)) / 1000 / (drop.duration ?? 1));
           const eased = travelEase(t);
-          const [x0, y0, x1, y1, x2, y2, x3, y3] = drop.path;
+          const [x0, y0, x1, y1, x2, y2, x3, y3] = drop.path ?? [
+            drop.x,
+            drop.y,
+            drop.x,
+            drop.y,
+            drop.x,
+            drop.y,
+            drop.x,
+            drop.y
+          ];
           const x = bezier(x0, x1, x2, x3, eased);
           const y = bezier(y0, y1, y2, y3, eased);
           if (dt > 0) {
@@ -635,7 +758,7 @@ const GooeyNav = ({
       raf = requestAnimationFrame(frame);
     };
 
-    const settle = index => {
+    const settle = (index: number) => {
       pills.clear();
       drops.length = 0;
       target = index;
@@ -646,7 +769,7 @@ const GooeyNav = ({
       render();
     };
 
-    const go = (index, animate) => {
+    const go = (index: number, animate: boolean) => {
       if (index === target) return;
       if (!rects[index] || !animate || reduced || target < 0) {
         settle(index);
@@ -671,8 +794,8 @@ const GooeyNav = ({
       wake();
     };
 
-    const onOver = event => {
-      const item = event.target.closest('[data-gooey-index]');
+    const onOver = (event: PointerEvent) => {
+      const item = (event.target as Element).closest<HTMLElement>('[data-gooey-index]');
       if (!item || !list.contains(item)) return;
       const index = Number(item.dataset.gooeyIndex);
       const rect = rects[index];
@@ -743,25 +866,25 @@ const GooeyNav = ({
 
   const textColor = activeTextColor || contrastInk(pillRgb);
 
-  const labels = interactive =>
+  const labels = (interactive: boolean) =>
     items.map((item, index) => {
       const content = (
         <>
-          {item.icon && <span className="gooey-nav__icon">{item.icon}</span>}
-          {item.label && <span className="gooey-nav__label">{item.label}</span>}
+          {item.icon && <span className={ICON}>{item.icon}</span>}
+          {item.label && <span>{item.label}</span>}
         </>
       );
       if (!interactive) {
         return (
-          <li key={index} className="gooey-nav__item">
-            <span className="gooey-nav__link">{content}</span>
+          <li key={index} className="flex">
+            <span className={GHOST}>{content}</span>
           </li>
         );
       }
       const shared = {
-        className: 'gooey-nav__link',
-        'aria-current': index === current ? 'page' : undefined,
-        onClick: event => {
+        className: LINK,
+        'aria-current': index === current ? ('page' as const) : undefined,
+        onClick: (event: MouseEvent) => {
           if (!item.href || item.href === '#') event.preventDefault();
           select(index);
         }
@@ -769,7 +892,7 @@ const GooeyNav = ({
       return (
         <li
           key={index}
-          className="gooey-nav__item"
+          className="group flex"
           data-gooey-index={index}
           data-active={index === current ? '' : undefined}
         >
@@ -788,17 +911,29 @@ const GooeyNav = ({
 
   return (
     <nav
-      className={`gooey-nav ${SIZES[size] ?? SIZES.md}${frame ? ' gooey-nav--framed' : ''} ${className}`.trim()}
-      style={{ ...THEMES[palette], '--gn-pill': pillColor, '--gn-active-ink': textColor, ...style }}
+      className={`${ROOT}${frame ? ` ${FRAMED}` : ''} ${className}`.trim()}
+      style={
+        {
+          ...(SIZES[size] ?? SIZES.md),
+          ...THEMES[palette],
+          '--gn-pill': pillColor,
+          '--gn-active-ink': textColor,
+          ...style
+        } as CSSProperties
+      }
     >
-      {frame && <span className="gooey-nav__rim" />}
-      <div ref={stageRef} className="gooey-nav__stage">
-        <canvas ref={canvasRef} className="gooey-nav__canvas" aria-hidden="true" />
-        <span ref={fallbackRef} className="gooey-nav__fallback" aria-hidden="true" />
-        <ul ref={listRef} className="gooey-nav__list">
+      {frame && <span className={RIM} />}
+      <div ref={stageRef} className="relative max-w-full">
+        <canvas ref={canvasRef} className="pointer-events-none absolute left-0 top-0" aria-hidden="true" />
+        <span
+          ref={fallbackRef}
+          className="pointer-events-none absolute left-0 top-0 hidden rounded-full bg-[var(--gn-pill)]"
+          aria-hidden="true"
+        />
+        <ul ref={listRef} className={LIST}>
           {labels(true)}
         </ul>
-        <ul ref={overlayRef} className="gooey-nav__list gooey-nav__list--active" aria-hidden="true">
+        <ul ref={overlayRef} className={OVERLAY} aria-hidden="true">
           {labels(false)}
         </ul>
       </div>

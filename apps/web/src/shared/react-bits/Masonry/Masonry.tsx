@@ -1,32 +1,149 @@
 // Masonry
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/Masonry/Masonry.jsx
+// Source: @react-bits/Masonry-TS-TW — https://reactbits.dev/r/Masonry-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent
+} from 'react';
 import { createPortal } from 'react-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, ArrowRight01Icon, ArrowUpRight01Icon, Cancel01Icon } from '@hugeicons/core-free-icons';
-import './Masonry.css';
 
-const ROOT = 'masonry';
-const ITEM = 'masonry__item';
-const CARD = 'masonry__card';
-const MEDIA = 'masonry__media';
-const PARALLAX = 'masonry__parallax';
-const IMAGE = 'masonry__image';
-const CAPTION = 'masonry__caption';
-const TITLE = 'masonry__title';
-const TEXT = 'masonry__text';
-const GHOST = 'masonry__ghost';
-const BOX = 'masonry-lightbox';
-const BOX_BACKDROP = 'masonry-lightbox__backdrop';
-const BOX_IMAGE = 'masonry-lightbox__image';
-const BOX_CAPTION = 'masonry-lightbox__caption';
-const BOX_MUTED = 'masonry-lightbox__muted';
-const BOX_CLOSE = 'masonry-lightbox__button masonry-lightbox__close';
-const BOX_PREV = 'masonry-lightbox__button masonry-lightbox__prev';
-const BOX_NEXT = 'masonry-lightbox__button masonry-lightbox__next';
+export interface MasonryItem {
+  id: string | number;
+  img: string;
+  width?: number;
+  height?: number;
+  title?: string;
+  description?: string;
+  alt?: string;
+  url?: string;
+  span?: number;
+}
+
+export interface MasonryProps {
+  items?: MasonryItem[];
+  columns?: 'auto' | number;
+  columnWidth?: number;
+  gap?: number;
+  radius?: number;
+  animateFrom?: 'bottom' | 'top' | 'left' | 'right' | 'center' | 'random' | 'none';
+  stagger?: number;
+  duration?: number;
+  bounce?: number;
+  blurToFocus?: boolean;
+  revealOnScroll?: boolean;
+  hoverEffect?: 'zoom' | 'lift' | 'tilt' | 'none';
+  focusOnHover?: boolean;
+  captions?: 'hover' | 'always' | 'none';
+  parallax?: number;
+  lightbox?: boolean;
+  draggable?: boolean;
+  onItemClick?: (item: MasonryItem, index: number, event: ReactMouseEvent<HTMLElement>) => void;
+  onReorder?: (items: MasonryItem[]) => void;
+  className?: string;
+  style?: CSSProperties;
+}
+
+type Measured = Record<string, number>;
+
+interface Grid {
+  count: number;
+  size: number;
+}
+
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface Tile extends Rect {
+  item: MasonryItem;
+  id: string;
+}
+
+interface Layout {
+  tiles: Tile[];
+  height: number;
+}
+
+interface Spring {
+  x: number;
+  y: number;
+  s: number;
+  vx: number;
+  vy: number;
+  vs: number;
+  tx: number;
+  ty: number;
+  w: number;
+  h: number;
+  shown: boolean;
+  dragging: boolean;
+  blur: boolean;
+  reveal: number;
+  start: number;
+}
+
+interface Ghost {
+  id: string;
+  item: MasonryItem;
+  x: number;
+  y: number;
+  s: number;
+  w: number;
+  h: number;
+}
+
+interface Drag {
+  id: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  offsetX: number;
+  offsetY: number;
+  active: boolean;
+  moved: boolean;
+}
+
+const ROOT = 'group/masonry relative w-full';
+const ITEM = 'group/item absolute top-0 left-0 will-change-transform data-[dragging]:z-10 data-[hidden]:invisible';
+const CARD =
+  'group/card relative block h-full w-full cursor-pointer rounded-[var(--masonry-radius,12px)] border-0 bg-transparent p-0 text-left text-inherit no-underline outline-none [-webkit-tap-highlight-color:transparent] [font:inherit] [transform:perspective(900px)_rotateX(var(--masonry-tilt-x,0deg))_rotateY(var(--masonry-tilt-y,0deg))_translateY(var(--masonry-lift,0px))_scale(var(--masonry-scale,1))] [transition:transform_0.5s_cubic-bezier(0.2,0.8,0.2,1),box-shadow_0.5s_cubic-bezier(0.2,0.8,0.2,1),opacity_0.35s_ease] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-current group-data-[hover=lift]/masonry:group-hover/item:shadow-[0_22px_40px_-22px_rgba(0,0,0,0.55)] group-data-[hover=lift]/masonry:group-hover/item:[--masonry-lift:-6px] group-data-[hover=lift]/masonry:group-hover/item:[--masonry-scale:1.02] group-data-[hover=tilt]/masonry:[transition:transform_0.25s_cubic-bezier(0.2,0.8,0.2,1),box-shadow_0.5s_cubic-bezier(0.2,0.8,0.2,1),opacity_0.35s_ease] group-data-[hover=tilt]/masonry:group-hover/item:shadow-[0_26px_44px_-24px_rgba(0,0,0,0.55)] group-data-[hover=tilt]/masonry:group-hover/item:[--masonry-scale:1.03] group-data-[dimmed]/item:opacity-35 group-data-[dragging]/item:cursor-grabbing group-data-[dragging]/item:shadow-[0_34px_60px_-26px_rgba(0,0,0,0.6)] group-data-[dragging]/item:[--masonry-scale:1.05]';
+const MEDIA =
+  'relative isolate block h-full w-full overflow-hidden rounded-[var(--masonry-radius,12px)] bg-[rgba(127,127,127,0.14)]';
+const PARALLAX = 'absolute inset-0 block';
+const IMAGE =
+  'pointer-events-none block h-full w-full object-cover opacity-0 select-none [-webkit-user-drag:none] [transition:opacity_0.5s_ease,transform_0.8s_cubic-bezier(0.2,0.8,0.2,1)] data-[loaded]:opacity-100 group-data-[hover=zoom]/masonry:group-hover/item:[transform:scale(1.07)]';
+const CAPTION =
+  'pointer-events-none absolute right-0 bottom-0 left-0 flex flex-col gap-0.5 bg-[linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,0.02)_15%,rgba(0,0,0,0.08)_30%,rgba(0,0,0,0.18)_45%,rgba(0,0,0,0.3)_60%,rgba(0,0,0,0.42)_75%,rgba(0,0,0,0.5)_88%,rgba(0,0,0,0.54)_100%)] px-3.5 pt-10 pb-3 text-white [transition:opacity_0.35s_ease,transform_0.5s_cubic-bezier(0.2,0.8,0.2,1)] data-[mode=hover]:[transform:translateY(6px)] data-[mode=hover]:opacity-0 data-[mode=hover]:group-hover/item:[transform:none] data-[mode=hover]:group-hover/item:opacity-100 data-[mode=hover]:group-focus-visible/card:[transform:none] data-[mode=hover]:group-focus-visible/card:opacity-100';
+const TITLE = 'text-sm leading-[1.3] font-semibold tracking-[-0.01em]';
+const TEXT = 'text-xs leading-[1.4] opacity-80';
+const GHOST = 'pointer-events-none absolute top-0 left-0';
+const BOX = 'fixed inset-0 z-[1000]';
+const BOX_BACKDROP = 'absolute inset-0 bg-[rgba(9,9,11,0.9)]';
+const BOX_IMAGE =
+  'fixed top-0 left-0 block origin-top-left cursor-zoom-out object-cover will-change-transform select-none [-webkit-user-drag:none]';
+const BOX_CAPTION =
+  'pointer-events-none fixed right-0 left-0 flex items-center justify-center gap-3.5 px-[72px] text-center text-sm leading-[1.4] text-white [&_a]:pointer-events-auto [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:font-semibold [&_a]:text-inherit [&_a]:no-underline [&_a]:opacity-80 [&_a]:transition-opacity [&_a:focus-visible]:opacity-100 [&_a:hover]:opacity-100';
+const BOX_MUTED = 'opacity-60';
+const BOX_CLOSE =
+  'absolute grid h-11 w-11 cursor-pointer place-items-center rounded-full border-0 bg-white/8 p-0 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)] transition-colors hover:bg-white/16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white top-4 right-4';
+const BOX_PREV =
+  'absolute grid h-11 w-11 cursor-pointer place-items-center rounded-full border-0 bg-white/8 p-0 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)] transition-colors hover:bg-white/16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white top-[calc(50%-22px)] left-4';
+const BOX_NEXT =
+  'absolute grid h-11 w-11 cursor-pointer place-items-center rounded-full border-0 bg-white/8 p-0 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)] transition-colors hover:bg-white/16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white top-[calc(50%-22px)] right-4';
 
 const DIRECTIONS = ['bottom', 'top', 'left', 'right'];
 const ANIMATE_FROM = ['bottom', 'top', 'left', 'right', 'center', 'random', 'none'];
@@ -36,11 +153,11 @@ const EASE = 'cubic-bezier(0.2, 0.9, 0.2, 1)';
 
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const keyOf = item => String(item.id);
+const keyOf = (item: MasonryItem) => String(item.id);
 
-const aspectOf = (item, measured) => {
+const aspectOf = (item: MasonryItem, measured: Measured) => {
   const width = item.width ?? 0;
   const height = item.height ?? 0;
   if (width > 0 && height > 0) return height / width;
@@ -49,9 +166,9 @@ const aspectOf = (item, measured) => {
   return 1;
 };
 
-const needsMeasure = item => !((item.height ?? 0) > 0);
+const needsMeasure = (item: MasonryItem) => !((item.height ?? 0) > 0);
 
-const gridOf = (width, columns, columnWidth, gap) => {
+const gridOf = (width: number, columns: 'auto' | number, columnWidth: number, gap: number): Grid => {
   const fixed = Number(columns);
   const count =
     columns !== 'auto' && fixed > 0
@@ -60,7 +177,14 @@ const gridOf = (width, columns, columnWidth, gap) => {
   return { count, size: Math.max(1, (width - gap * (count - 1)) / count) };
 };
 
-const place = (heights, item, grid, gap, measured, commit) => {
+const place = (
+  heights: number[],
+  item: MasonryItem,
+  grid: Grid,
+  gap: number,
+  measured: Measured,
+  commit: boolean
+): Rect => {
   const { count, size } = grid;
   const span = Math.min(count, Math.max(1, Math.round(item.span || 1)));
   let column = 0;
@@ -79,7 +203,7 @@ const place = (heights, item, grid, gap, measured, commit) => {
   return { x: Math.round(column * (size + gap)), y: Math.round(top), w, h };
 };
 
-const scrollerOf = element => {
+const scrollerOf = (element: HTMLElement | null): HTMLElement | null => {
   let node = element?.parentElement;
   while (node && node !== document.body && node !== document.documentElement) {
     const overflow = getComputedStyle(node).overflowY;
@@ -94,17 +218,32 @@ const scrollerOf = element => {
   return null;
 };
 
-const layoutOf = (list, width, columns, columnWidth, gap, measured) => {
+const layoutOf = (
+  list: MasonryItem[],
+  width: number,
+  columns: 'auto' | number,
+  columnWidth: number,
+  gap: number,
+  measured: Measured
+): Layout => {
   const grid = gridOf(width, columns, columnWidth, gap);
   const heights = new Array(grid.count).fill(0);
   const tiles = list.map(item => ({ item, id: keyOf(item), ...place(heights, item, grid, gap, measured, true) }));
   return { tiles, height: Math.max(0, Math.max(...heights) - gap) };
 };
 
-const slotsFor = (others, dragged, width, columns, columnWidth, gap, measured) => {
+const slotsFor = (
+  others: MasonryItem[],
+  dragged: MasonryItem,
+  width: number,
+  columns: 'auto' | number,
+  columnWidth: number,
+  gap: number,
+  measured: Measured
+) => {
   const grid = gridOf(width, columns, columnWidth, gap);
   const heights = new Array(grid.count).fill(0);
-  const slots = [];
+  const slots: { x: number; y: number }[] = [];
   for (let i = 0; i <= others.length; i++) {
     const slot = place(heights, dragged, grid, gap, measured, false);
     slots.push({ x: slot.x + slot.w / 2, y: slot.y + slot.h / 2 });
@@ -135,27 +274,27 @@ const Masonry = ({
   onReorder,
   className = '',
   style
-}) => {
-  const rootRef = useRef(null);
-  const nodes = useRef(new Map());
-  const springs = useRef(new Map());
-  const loaded = useRef(new Set());
-  const waiting = useRef(new Set());
-  const pending = useRef(new Set());
+}: MasonryProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const nodes = useRef(new Map<string, HTMLDivElement>());
+  const springs = useRef(new Map<string, Spring>());
+  const loaded = useRef(new Set<string>());
+  const waiting = useRef(new Set<string>());
+  const pending = useRef(new Set<string>());
   const engine = useRef({ raf: 0, last: 0, flush: 0 });
-  const dragRef = useRef(null);
+  const dragRef = useRef<Drag | null>(null);
   const suppressRef = useRef(false);
-  const ghostsRef = useRef(new Map());
-  const previousRef = useRef(new Map());
-  const boxRef = useRef(null);
+  const ghostsRef = useRef(new Map<string, HTMLDivElement>());
+  const previousRef = useRef(new Map<string, { item: MasonryItem; w: number; h: number }>());
+  const boxRef = useRef<HTMLDivElement>(null);
   const tokenRef = useRef(0);
-  const lastShownRef = useRef(null);
+  const lastShownRef = useRef<string | null>(null);
   const [width, setWidth] = useState(0);
-  const [order, setOrder] = useState(null);
-  const [measured, setMeasured] = useState({});
+  const [order, setOrder] = useState<string[] | null>(null);
+  const [measured, setMeasured] = useState<Measured>({});
   const [ready, setReady] = useState(() => !items.some(needsMeasure));
-  const [ghosts, setGhosts] = useState([]);
-  const [openId, setOpenId] = useState(null);
+  const [ghosts, setGhosts] = useState<Ghost[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
 
   const settings = {
@@ -182,7 +321,7 @@ const Masonry = ({
   const ordered = useMemo(() => {
     if (!order) return items;
     const byId = new Map(items.map(item => [keyOf(item), item]));
-    const list = order.filter(id => byId.has(id)).map(id => byId.get(id));
+    const list = order.filter(id => byId.has(id)).map(id => byId.get(id) as MasonryItem);
     items.forEach(item => {
       if (!order.includes(keyOf(item))) list.push(item);
     });
@@ -248,7 +387,7 @@ const Masonry = ({
   const reduced = () =>
     typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
 
-  const paint = (id, spring) => {
+  const paint = (id: string, spring: Spring) => {
     const node = nodes.current.get(id);
     if (!node) return;
     node.style.transform = `translate3d(${spring.x}px, ${spring.y}px, 0) scale(${spring.s})`;
@@ -262,7 +401,7 @@ const Masonry = ({
     }
   };
 
-  const frame = now => {
+  const frame = (now: number) => {
     const state = engine.current;
     state.raf = 0;
     const s = settingsRef.current;
@@ -331,7 +470,7 @@ const Masonry = ({
   const flushReveals = () => {
     engine.current.flush = 0;
     const s = settingsRef.current;
-    const batch = [];
+    const batch: { id: string; spring: Spring }[] = [];
     pending.current.forEach(id => {
       const spring = springs.current.get(id);
       if (spring && !spring.shown) batch.push({ id, spring });
@@ -377,7 +516,7 @@ const Masonry = ({
     kick();
   };
 
-  const requestReveal = id => {
+  const requestReveal = (id: string) => {
     const spring = springs.current.get(id);
     if (!spring || spring.shown) return;
     if (!loaded.current.has(id)) {
@@ -392,7 +531,7 @@ const Masonry = ({
   const revealRef = useRef(requestReveal);
   revealRef.current = requestReveal;
 
-  const markLoaded = id => {
+  const markLoaded = (id: string) => {
     loaded.current.add(id);
     const node = nodes.current.get(id);
     node?.querySelector('img')?.setAttribute('data-loaded', '');
@@ -402,7 +541,7 @@ const Masonry = ({
   useIsoLayoutEffect(() => {
     const previous = previousRef.current;
     const live = new Set(items.map(keyOf));
-    const leaving = [];
+    const leaving: Ghost[] = [];
     previous.forEach((entry, id) => {
       if (live.has(id)) return;
       const spring = springs.current.get(id);
@@ -495,7 +634,7 @@ const Masonry = ({
   }, [layout, revealOnScroll]);
 
   useEffect(() => {
-    const timers = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
     waiting.current.forEach(id => {
       timers.push(
         setTimeout(() => {
@@ -530,7 +669,7 @@ const Masonry = ({
 
   useEffect(() => {
     const strength = settingsRef.current.parallax;
-    const layers = () => [...nodes.current.values()].map(node => node.querySelector('[data-parallax]'));
+    const layers = () => [...nodes.current.values()].map(node => node.querySelector<HTMLElement>('[data-parallax]'));
     if (!strength || !layout) {
       layers().forEach(layer => {
         if (layer) layer.style.transform = '';
@@ -546,7 +685,7 @@ const Masonry = ({
       const bottom = Math.min(frame.bottom, window.innerHeight);
       const center = (top + bottom) / 2;
       nodes.current.forEach(node => {
-        const layer = node.querySelector('[data-parallax]');
+        const layer = node.querySelector<HTMLElement>('[data-parallax]');
         if (!layer) return;
         const rect = node.getBoundingClientRect();
         if (rect.bottom < top - 200 || rect.top > bottom + 200) return;
@@ -576,24 +715,24 @@ const Masonry = ({
     };
   }, []);
 
-  const setDimmed = activeId => {
+  const setDimmed = (activeId: string | null) => {
     nodes.current.forEach((node, id) => {
       if (activeId && id !== activeId) node.setAttribute('data-dimmed', '');
       else node.removeAttribute('data-dimmed');
     });
   };
 
-  const onEnter = id => {
+  const onEnter = (id: string) => {
     if (settingsRef.current.focusOnHover && !dragRef.current?.active) setDimmed(id);
   };
 
-  const onLeave = event => {
+  const onLeave = (event: ReactPointerEvent<HTMLElement>) => {
     if (settingsRef.current.focusOnHover) setDimmed(null);
     event.currentTarget.style.removeProperty('--masonry-tilt-x');
     event.currentTarget.style.removeProperty('--masonry-tilt-y');
   };
 
-  const onTilt = event => {
+  const onTilt = (event: ReactPointerEvent<HTMLElement>) => {
     if (settingsRef.current.hoverEffect !== 'tilt' || dragRef.current?.active) return;
     const card = event.currentTarget;
     const rect = card.getBoundingClientRect();
@@ -623,7 +762,7 @@ const Masonry = ({
     if (drag.moved) settingsRef.current.onReorder?.(orderedRef.current);
   };
 
-  const moveDrag = event => {
+  const moveDrag = (event: PointerEvent) => {
     const drag = dragRef.current;
     const root = rootRef.current;
     if (!drag || !root || event.pointerId !== drag.pointerId) return;
@@ -672,7 +811,7 @@ const Masonry = ({
     setOrder(ids);
   };
 
-  const startDrag = (event, id) => {
+  const startDrag = (event: ReactPointerEvent<HTMLElement>, id: string) => {
     const s = settingsRef.current;
     if (!s.draggable || event.button !== 0 || event.pointerType === 'touch' || openId) return;
     const root = rootRef.current;
@@ -694,7 +833,7 @@ const Masonry = ({
     window.addEventListener('pointercancel', finishDrag);
   };
 
-  const onCardClick = (event, item, index) => {
+  const onCardClick = (event: ReactMouseEvent<HTMLElement>, item: MasonryItem, index: number) => {
     if (suppressRef.current) {
       event.preventDefault();
       return;
@@ -713,9 +852,10 @@ const Masonry = ({
   const openIndex = openId ? ordered.findIndex(item => keyOf(item) === openId) : -1;
   const openItem = openIndex >= 0 ? ordered[openIndex] : null;
 
-  const mediaRect = id => nodes.current.get(id)?.querySelector('[data-media]')?.getBoundingClientRect() ?? null;
+  const mediaRect = (id: string) =>
+    nodes.current.get(id)?.querySelector('[data-media]')?.getBoundingClientRect() ?? null;
 
-  const frameFor = item => {
+  const frameFor = (item: MasonryItem) => {
     const aspect = aspectOf(item, measured);
     const pad = window.innerWidth < 640 ? 16 : 72;
     const room = item.title || item.description || item.url ? 64 : 0;
@@ -737,8 +877,8 @@ const Masonry = ({
     tokenRef.current += 1;
     const token = tokenRef.current;
     const box = boxRef.current;
-    const image = box?.querySelector('[data-box-image]');
-    const backdrop = box?.querySelector('[data-box-backdrop]');
+    const image = box?.querySelector<HTMLElement>('[data-box-image]');
+    const backdrop = box?.querySelector<HTMLElement>('[data-box-backdrop]');
     const rect = mediaRect(openId);
     setClosing(true);
     if (!image || !rect || reduced()) {
@@ -772,7 +912,7 @@ const Masonry = ({
       .catch(() => {});
   };
 
-  const stepBox = direction => {
+  const stepBox = (direction: number) => {
     if (!openItem || closing || ordered.length < 2) return;
     const next = ordered[(openIndex + direction + ordered.length) % ordered.length];
     setOpenId(keyOf(next));
@@ -785,15 +925,15 @@ const Masonry = ({
     return () => node?.removeAttribute('data-hidden');
   }, [openId]);
 
-  const openedRef = useRef(null);
+  const openedRef = useRef<string | null>(null);
   useIsoLayoutEffect(() => {
     const box = boxRef.current;
     if (!openId || !box) {
       openedRef.current = null;
       return;
     }
-    const image = box.querySelector('[data-box-image]');
-    const backdrop = box.querySelector('[data-box-backdrop]');
+    const image = box.querySelector<HTMLElement>('[data-box-image]');
+    const backdrop = box.querySelector<HTMLElement>('[data-box-backdrop]');
     const fades = box.querySelectorAll('[data-box-fade]');
     if (!image) return;
     if (openedRef.current) {
@@ -835,17 +975,20 @@ const Masonry = ({
     if (!isOpen) return undefined;
     const previous = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
-    boxRef.current?.querySelector('[data-box-close]')?.focus({ preventScroll: true });
+    boxRef.current?.querySelector<HTMLElement>('[data-box-close]')?.focus({ preventScroll: true });
     const map = nodes.current;
     return () => {
       document.documentElement.style.overflow = previous;
-      map.get(lastShownRef.current)?.querySelector('[data-card]')?.focus({ preventScroll: true });
+      map
+        .get(lastShownRef.current ?? '')
+        ?.querySelector<HTMLElement>('[data-card]')
+        ?.focus({ preventScroll: true });
     };
   }, [isOpen]);
 
   useEffect(() => {
     if (!openId) return undefined;
-    const onKey = event => {
+    const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeBox();
       else if (event.key === 'ArrowRight') stepBox(1);
       else if (event.key === 'ArrowLeft') stepBox(-1);
@@ -862,7 +1005,7 @@ const Masonry = ({
     <div
       ref={rootRef}
       className={[ROOT, className].filter(Boolean).join(' ')}
-      style={{ '--masonry-radius': `${Math.max(0, radius)}px`, ...style }}
+      style={{ '--masonry-radius': `${Math.max(0, radius)}px`, ...style } as CSSProperties}
       data-hover={mode}
       role="list"
     >
@@ -873,8 +1016,8 @@ const Masonry = ({
         const shared = {
           className: CARD,
           'data-card': '',
-          onClick: event => onCardClick(event, item, index),
-          onPointerDown: event => startDrag(event, id),
+          onClick: (event: ReactMouseEvent<HTMLElement>) => onCardClick(event, item, index),
+          onPointerDown: (event: ReactPointerEvent<HTMLElement>) => startDrag(event, id),
           onPointerEnter: () => onEnter(id),
           onPointerLeave: onLeave,
           onPointerMove: onTilt

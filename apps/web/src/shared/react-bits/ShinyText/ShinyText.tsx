@@ -1,25 +1,70 @@
 // ShinyText
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/ShinyText/ShinyText.jsx
+// Source: @react-bits/ShinyText-TS-TW — https://reactbits.dev/r/ShinyText-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
 import { useEffect, useRef } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
-import './ShinyText.css';
+type Easing = 'smooth' | 'linear' | 'snappy';
+type Trigger = 'loop' | 'hover' | 'view';
 
-const EASINGS = {
+export interface ShinyTextProps {
+  text?: string;
+  children?: ReactNode;
+  color?: string;
+  shineColor?: string;
+  speed?: number;
+  delay?: number;
+  angle?: number;
+  shineWidth?: number;
+  softness?: number;
+  bands?: number;
+  glow?: number;
+  direction?: 'left' | 'right';
+  easing?: Easing;
+  trigger?: Trigger;
+  yoyo?: boolean;
+  followPointer?: boolean;
+  pauseOnHover?: boolean;
+  disabled?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Settings {
+  color: string;
+  shineColor: string;
+  speed: number;
+  delay: number;
+  angle: number;
+  shineWidth: number;
+  softness: number;
+  bands: number;
+  glow: number;
+  sign: number;
+  ease: (t: number) => number;
+  trigger: Trigger;
+  yoyo: boolean;
+  followPointer: boolean;
+  pauseOnHover: boolean;
+  disabled: boolean;
+}
+
+const EASINGS: Record<Easing, (t: number) => number> = {
   linear: t => t,
   smooth: t => 0.5 - Math.cos(Math.PI * t) / 2,
   snappy: t => (t < 0.5 ? 16 * Math.pow(t, 5) : 1 - Math.pow(-2 * t + 2, 5) / 2)
 };
-const TRIGGERS = ['loop', 'hover', 'view'];
+const TRIGGERS: Trigger[] = ['loop', 'hover', 'view'];
 const FALLOFF = [0, 0.2, 0.4, 0.6, 0.8, 1];
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-let paint = null;
+let paint: CanvasRenderingContext2D | null = null;
 
-const parseColor = value => {
+const parseColor = (value: string): number[] | null => {
   if (typeof document === 'undefined') return null;
   if (!paint) paint = document.createElement('canvas').getContext('2d');
   if (!paint) return null;
@@ -34,12 +79,12 @@ const parseColor = value => {
   return [Number(parts[0]), Number(parts[1]), Number(parts[2]), parts.length > 3 ? Number(parts[3]) : 1];
 };
 
-const blend = (from, to, amount) => {
-  const channel = (a, b) =>
+const blend = (from: number[], to: number[], amount: number) => {
+  const channel = (a: number, b: number) =>
     Math.round(Math.pow(Math.pow(a / 255, 2.2) * (1 - amount) + Math.pow(b / 255, 2.2) * amount, 1 / 2.2) * 255);
   const alpha = from[3] * (1 - amount) + to[3] * amount;
   if (alpha <= 0) return 'rgba(0, 0, 0, 0)';
-  const weigh = (a, b) => (a * from[3] * (1 - amount) + b * to[3] * amount) / alpha;
+  const weigh = (a: number, b: number) => (a * from[3] * (1 - amount) + b * to[3] * amount) / alpha;
   const r = from[3] === to[3] ? channel(from[0], to[0]) : Math.round(weigh(from[0], to[0]));
   const g = from[3] === to[3] ? channel(from[1], to[1]) : Math.round(weigh(from[1], to[1]));
   const b = from[3] === to[3] ? channel(from[2], to[2]) : Math.round(weigh(from[2], to[2]));
@@ -67,11 +112,11 @@ const ShinyText = ({
   disabled = false,
   className = '',
   style
-}) => {
-  const rootRef = useRef(null);
-  const glowRef = useRef(null);
-  const settingsRef = useRef(null);
-  const syncRef = useRef(null);
+}: ShinyTextProps) => {
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const glowRef = useRef<HTMLSpanElement>(null);
+  const settingsRef = useRef<Settings | null>(null);
+  const syncRef = useRef<(() => void) | null>(null);
   const content = children ?? text;
 
   settingsRef.current = {
@@ -85,8 +130,8 @@ const ShinyText = ({
     bands: clamp(Math.round(bands), 1, 3),
     glow: clamp(glow, 0, 1),
     sign: direction === 'right' ? 1 : -1,
-    ease: EASINGS[easing] ?? EASINGS.smooth,
-    trigger: TRIGGERS.includes(trigger) ? trigger : 'loop',
+    ease: EASINGS[easing as Easing] ?? EASINGS.smooth,
+    trigger: TRIGGERS.includes(trigger as Trigger) ? (trigger as Trigger) : 'loop',
     yoyo,
     followPointer,
     pauseOnHover,
@@ -103,7 +148,7 @@ const ShinyText = ({
 
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const state = {
-      pos: null,
+      pos: null as number | null,
       vel: 0,
       phase: 'idle',
       from: 0,
@@ -118,28 +163,28 @@ const ShinyText = ({
       seen: false,
       colors: ''
     };
-    let base = null;
-    let shine = null;
-    let clear = null;
+    let base: number[] | null = null;
+    let shine: number[] | null = null;
+    let clear: number[] | null = null;
     let raf = 0;
     let timer = 0;
     let last = 0;
     let alive = true;
 
     const extent = () => {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       return s.shineWidth / 2 + (s.bands - 1) * s.shineWidth * 1.3 + 2;
     };
-    const entry = () => (settingsRef.current.sign > 0 ? -extent() : 100 + extent());
-    const exit = () => (settingsRef.current.sign > 0 ? 100 + extent() : -extent());
+    const entry = () => (settingsRef.current!.sign > 0 ? -extent() : 100 + extent());
+    const exit = () => (settingsRef.current!.sign > 0 ? 100 + extent() : -extent());
     const nearest = () => (state.target < 50 ? -extent() : 100 + extent());
 
-    const gradient = (pos, fill) => {
-      const s = settingsRef.current;
+    const gradient = (pos: number, fill: number[]) => {
+      const s = settingsRef.current!;
       const half = s.shineWidth / 2;
       const core = half * (1 - s.softness);
       const fade = half - core;
-      const stops = [];
+      const stops: [number, number][] = [];
       for (let band = 0; band < s.bands; band++) {
         const center = pos - s.sign * band * s.shineWidth * 1.3;
         const strength = 1 - band * 0.28;
@@ -152,12 +197,12 @@ const ShinyText = ({
         }
       }
       stops.sort((a, b) => a[0] - b[0]);
-      const list = stops.map(([at, amount]) => `${blend(fill, shine, amount)} ${at.toFixed(2)}%`);
-      return `linear-gradient(${s.angle}deg, ${blend(fill, shine, 0)} 0%, ${list.join(', ')}, ${blend(fill, shine, 0)} 100%)`;
+      const list = stops.map(([at, amount]) => `${blend(fill, shine!, amount)} ${at.toFixed(2)}%`);
+      return `linear-gradient(${s.angle}deg, ${blend(fill, shine!, 0)} 0%, ${list.join(', ')}, ${blend(fill, shine!, 0)} 100%)`;
     };
 
     const draw = () => {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const key = `${s.color}|${s.shineColor}`;
       if (key !== state.colors) {
         state.colors = key;
@@ -174,15 +219,15 @@ const ShinyText = ({
         if (glowRef.current) glowRef.current.style.backgroundImage = 'none';
         return;
       }
-      root.style.backgroundImage = gradient(state.pos, base);
+      root.style.backgroundImage = gradient(state.pos, base!);
       if (glowRef.current) {
-        glowRef.current.style.backgroundImage = gradient(state.pos, clear);
+        glowRef.current.style.backgroundImage = gradient(state.pos, clear!);
         glowRef.current.style.opacity = String(s.glow);
       }
     };
 
-    const sweep = (from, to, now) => {
-      const s = settingsRef.current;
+    const sweep = (from: number, to: number, now: number) => {
+      const s = settingsRef.current!;
       const span = Math.abs(exit() - entry()) || 1;
       state.phase = 'sweep';
       state.from = from;
@@ -199,10 +244,10 @@ const ShinyText = ({
       raf = requestAnimationFrame(tick);
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       if (!alive) return;
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
       last = now;
       if (s.disabled) {
@@ -271,8 +316,8 @@ const ShinyText = ({
       }
     };
 
-    const locate = event => {
-      const s = settingsRef.current;
+    const locate = (event: PointerEvent) => {
+      const s = settingsRef.current!;
       const rect = root.getBoundingClientRect();
       const radians = (s.angle * Math.PI) / 180;
       const dx = Math.sin(radians);
@@ -283,8 +328,8 @@ const ShinyText = ({
       return 50 + (along / length) * 100;
     };
 
-    const onEnter = event => {
-      const s = settingsRef.current;
+    const onEnter = (event: PointerEvent) => {
+      const s = settingsRef.current!;
       state.inside = true;
       state.target = locate(event);
       if (s.disabled) return;
@@ -295,9 +340,9 @@ const ShinyText = ({
       }
       wake();
     };
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       state.target = locate(event);
-      if (settingsRef.current.followPointer) wake();
+      if (settingsRef.current!.followPointer) wake();
     };
     const onLeave = () => {
       state.inside = false;
@@ -307,7 +352,7 @@ const ShinyText = ({
     const observer = new IntersectionObserver(entries => {
       const visible = entries.some(item => item.isIntersecting);
       state.visible = visible;
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       if (!visible) return;
       if (s.trigger === 'view' && !state.seen && !reduce && !s.disabled) {
         state.seen = true;
@@ -322,7 +367,7 @@ const ShinyText = ({
     root.addEventListener('pointerleave', onLeave);
 
     syncRef.current = () => {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       if (s.disabled) {
         state.pos = null;
         state.phase = 'idle';
@@ -351,12 +396,16 @@ const ShinyText = ({
   return (
     <span
       ref={rootRef}
-      className={`shiny-text${className ? ` ${className}` : ''}`}
+      className={`relative inline-block bg-no-repeat [background-size:100%_100%] bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] ${className}`}
       style={{ backgroundImage: `linear-gradient(${color}, ${color})`, ...style }}
     >
       {content}
       {glow > 0 ? (
-        <span ref={glowRef} className="shiny-text__glow" aria-hidden="true">
+        <span
+          ref={glowRef}
+          className="absolute inset-0 bg-no-repeat [background-size:100%_100%] bg-clip-text [-webkit-background-clip:text] [filter:blur(0.14em)] pointer-events-none select-none"
+          aria-hidden="true"
+        >
           {content}
         </span>
       ) : null}

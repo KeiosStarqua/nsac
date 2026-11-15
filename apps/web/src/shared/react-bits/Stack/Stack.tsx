@@ -1,12 +1,128 @@
 // Stack
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/Stack/Stack.jsx
+// Source: @react-bits/Stack-TS-TW — https://reactbits.dev/r/Stack-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode
+} from 'react';
 import { animate, motion, motionValue, useReducedMotion } from 'motion/react';
+import type { MotionValue, ValueAnimationTransition } from 'motion/react';
 
-import './Stack.css';
+type Layout = 'fan' | 'cascade' | 'deck' | 'pile';
+type Vector = [number, number];
+type Sample = [number, number, number];
+type SpringKind = 'place' | 'settle' | 'tuck' | 'face' | 'lean' | 'press' | 'fling';
+
+interface PlaceOptions {
+  delay?: number;
+  lift?: number;
+  kind?: SpringKind;
+  velocity?: Vector | null;
+  keepZ?: boolean;
+}
+
+interface PlaceAllOptions {
+  stagger?: number;
+  lift?: number;
+  released?: number;
+  velocity?: Vector | null;
+  kind?: SpringKind;
+}
+
+export interface StackProps {
+  cards?: ReactNode[];
+  layout?: Layout;
+  visible?: number;
+  spread?: number;
+  depth?: number;
+  radius?: number;
+  frame?: number;
+  frameColor?: string;
+  shadow?: boolean;
+  tilt?: number;
+  threshold?: number;
+  speed?: number;
+  sendToBackOnClick?: boolean;
+  autoplay?: boolean;
+  autoplayDelay?: number;
+  pauseOnHover?: boolean;
+  onChange?: (index: number) => void;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Placement {
+  x: number;
+  y: number;
+  rotate: number;
+  scale: number;
+}
+
+interface CardValues {
+  x: MotionValue<number>;
+  y: MotionValue<number>;
+  rotate: MotionValue<number>;
+  scale: MotionValue<number>;
+  tiltX: MotionValue<number>;
+  tiltY: MotionValue<number>;
+  spin: MotionValue<number>;
+  lift: MotionValue<number>;
+  grabX: MotionValue<number>;
+  grabY: MotionValue<number>;
+  z: MotionValue<number>;
+  opacity: MotionValue<number>;
+  shade: MotionValue<number>;
+}
+
+interface Settings {
+  layout: Layout;
+  visible: number;
+  spread: number;
+  depth: number;
+  tilt: number;
+  threshold: number;
+  speed: number;
+  sendToBackOnClick: boolean;
+  count: number;
+  reduceMotion: boolean;
+}
+
+interface DragState {
+  card: number;
+  id: number;
+  element: HTMLDivElement;
+  startX: number;
+  startY: number;
+  originX: number;
+  originY: number;
+  homeX: number;
+  homeY: number;
+  vx: number;
+  vy: number;
+  idle: ReturnType<typeof setTimeout> | 0;
+  moved: boolean;
+  progress: number;
+  capture?: boolean;
+  samples: Sample[];
+}
+
+interface Actions {
+  placeAll: (options?: PlaceAllOptions) => void;
+  sendToBack: (direction: Vector | null, velocity?: Vector | null) => void;
+  onMove: (event: PointerEvent) => void;
+  onUp: (event: PointerEvent) => void;
+}
+
+interface Listeners {
+  move: (event: PointerEvent) => void;
+  up: (event: PointerEvent) => void;
+}
 
 const DEFAULT_IMAGES = [
   'https://images.unsplash.com/photo-1480074568708-e7b720bb3f09?q=80&w=500&auto=format',
@@ -15,15 +131,15 @@ const DEFAULT_IMAGES = [
   'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?q=80&w=500&auto=format'
 ];
 
-const ORIGINS = { fan: [0.9, 0.9], cascade: [0.5, 0.5], deck: [0.5, 0], pile: [0.5, 0.5] };
-const EXITS = { fan: [1, -0.3], cascade: [0.8, 0.6], deck: [0, 1] };
+const ORIGINS: Record<Layout, Vector> = { fan: [0.9, 0.9], cascade: [0.5, 0.5], deck: [0.5, 0], pile: [0.5, 0.5] };
+const EXITS: Partial<Record<Layout, Vector>> = { fan: [1, -0.3], cascade: [0.8, 0.6], deck: [0, 1] };
 const SHADOW = '0 14px 34px -10px rgba(0, 0, 0, 0.45), 0 3px 8px -2px rgba(0, 0, 0, 0.18)';
 const CLICK_SLOP = 6;
 const FLICK_SPEED = 650;
 const LEAN_SPEED = 1300;
 const LEAN_REACH = 260;
 const PRESS_SCALE = 1.035;
-const SPRINGS = {
+const SPRINGS: Record<SpringKind, Vector> = {
   place: [260, 24],
   settle: [320, 34],
   tuck: [240, 28],
@@ -35,15 +151,15 @@ const SPRINGS = {
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const mix = (a, b, t) => a + (b - a) * t;
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
-const noise = seed => {
+const noise = (seed: number) => {
   const value = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
   return value - Math.floor(value);
 };
 
-const placement = (layout, position, card, spread, depth) => {
+const placement = (layout: Layout, position: number, card: number, spread: number, depth: number): Placement => {
   if (layout === 'cascade') {
     return { x: -position * spread * 28, y: -position * spread * 28, rotate: 0, scale: 1 - position * depth * 0.07 };
   }
@@ -61,7 +177,7 @@ const placement = (layout, position, card, spread, depth) => {
   return { x: 0, y: 0, rotate: position * spread * 8, scale: 1 - position * depth * 0.12 };
 };
 
-const releaseVelocity = (samples, time) => {
+const releaseVelocity = (samples: Sample[], time: number): Vector => {
   const recent = samples.filter(sample => time - sample[2] <= 100);
   if (recent.length < 2) return [0, 0];
   const first = recent[0];
@@ -90,28 +206,28 @@ export default function Stack({
   onChange,
   className = '',
   style
-}) {
+}: StackProps) {
   const items =
     cards && cards.length
       ? cards
       : DEFAULT_IMAGES.map((src, index) => <img key={src} src={src} alt={`Card ${index + 1}`} draggable={false} />);
   const count = items.length;
-  const shape = ORIGINS[layout] ? layout : 'fan';
+  const shape: Layout = layout in ORIGINS ? layout : 'fan';
   const reduceMotion = useReducedMotion();
-  const rootRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [order, setOrder] = useState(() => Array.from({ length: count }, (_, index) => index));
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
   const orderRef = useRef(order);
-  const valuesRef = useRef(new Map());
-  const elementsRef = useRef(new Map());
-  const flyingRef = useRef(new Map());
-  const dragRef = useRef(null);
+  const valuesRef = useRef(new Map<number, CardValues>());
+  const elementsRef = useRef(new Map<number, HTMLDivElement>());
+  const flyingRef = useRef(new Map<number, { turned: boolean }>());
+  const dragRef = useRef<DragState | null>(null);
   const aliveRef = useRef(true);
   const mountedRef = useRef(false);
-  const settingsRef = useRef(null);
-  const actionsRef = useRef(null);
-  const listenersRef = useRef(null);
+  const settingsRef = useRef<Settings | null>(null);
+  const actionsRef = useRef<Actions | null>(null);
+  const listenersRef = useRef<Listeners | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -135,10 +251,10 @@ export default function Stack({
     reduceMotion: !!reduceMotion
   };
 
-  const valuesFor = index => {
+  const valuesFor = (index: number): CardValues => {
     let values = valuesRef.current.get(index);
     if (!values) {
-      const s = settingsRef.current;
+      const s = settingsRef.current!;
       const position = Math.max(0, orderRef.current.indexOf(index));
       const start = placement(
         s.layout,
@@ -167,7 +283,11 @@ export default function Stack({
     return values;
   };
 
-  const springFor = (s, kind, extra = {}) => {
+  const springFor = (
+    s: Settings,
+    kind: SpringKind,
+    extra: ValueAnimationTransition<number> = {}
+  ): ValueAnimationTransition<number> => {
     if (s.reduceMotion) return { duration: 0.2, ease: 'easeOut', delay: extra.delay || 0 };
     const [stiffness, damping] = SPRINGS[kind];
     return {
@@ -180,7 +300,7 @@ export default function Stack({
     };
   };
 
-  const settleFace = (values, s, delay = 0) => {
+  const settleFace = (values: CardValues, s: Settings, delay = 0) => {
     const transition = springFor(s, 'face', { delay });
     animate(values.tiltX, 0, transition);
     animate(values.tiltY, 0, transition);
@@ -188,8 +308,12 @@ export default function Stack({
     animate(values.lift, 1, transition);
   };
 
-  const placeCard = (index, position, { delay = 0, lift = 0, kind = 'place', velocity = null, keepZ = false } = {}) => {
-    const s = settingsRef.current;
+  const placeCard = (
+    index: number,
+    position: number,
+    { delay = 0, lift = 0, kind = 'place', velocity = null, keepZ = false }: PlaceOptions = {}
+  ) => {
+    const s = settingsRef.current!;
     const values = valuesFor(index);
     const shown = Math.min(position, s.visible - 1);
     const target = placement(s.layout, shown, index, s.spread, s.depth);
@@ -201,7 +325,11 @@ export default function Stack({
       target.scale = mix(target.scale, ahead.scale, lift);
     }
     const motionSpring = springFor(s, kind, { delay });
-    const fade = { duration: s.reduceMotion ? 0.2 : 0.35 / s.speed, ease: 'easeOut', delay };
+    const fade: ValueAnimationTransition<number> = {
+      duration: s.reduceMotion ? 0.2 : 0.35 / s.speed,
+      ease: 'easeOut',
+      delay
+    };
     if (!keepZ) values.z.set(s.count - position);
     animate(values.x, target.x, velocity ? { ...motionSpring, velocity: velocity[0] } : motionSpring);
     animate(values.y, target.y, velocity ? { ...motionSpring, velocity: velocity[1] } : motionSpring);
@@ -212,7 +340,13 @@ export default function Stack({
     animate(values.shade, Math.min(0.6, shown * s.depth * 0.14 * (1 - lift)), fade);
   };
 
-  const placeAll = ({ stagger = 0, lift = 0, released = -1, velocity = null, kind = 'place' } = {}) => {
+  const placeAll = ({
+    stagger = 0,
+    lift = 0,
+    released = -1,
+    velocity = null,
+    kind = 'place'
+  }: PlaceAllOptions = {}) => {
     const drag = dragRef.current;
     orderRef.current.forEach((index, position) => {
       const flight = flyingRef.current.get(index);
@@ -229,13 +363,13 @@ export default function Stack({
     });
   };
 
-  const commit = next => {
+  const commit = (next: number[]) => {
     orderRef.current = next;
     setOrder(next);
   };
 
-  const sendToBack = (direction, velocity = null) => {
-    const s = settingsRef.current;
+  const sendToBack = (direction: Vector | null, velocity: Vector | null = null) => {
+    const s = settingsRef.current!;
     const current = orderRef.current;
     if (current.length < 2) return;
     const top = current[0];
@@ -276,7 +410,7 @@ export default function Stack({
       landed = true;
       if (flyingRef.current.get(top) === flight) flyingRef.current.delete(top);
       const position = orderRef.current.indexOf(top);
-      if (position >= 0) values.z.set(settingsRef.current.count - position);
+      if (position >= 0) values.z.set(settingsRef.current!.count - position);
     };
     const fallback = setTimeout(() => {
       if (!flight.turned) turn();
@@ -310,8 +444,8 @@ export default function Stack({
     requestAnimationFrame(watch);
   };
 
-  const lean = drag => {
-    const s = settingsRef.current;
+  const lean = (drag: DragState) => {
+    const s = settingsRef.current!;
     if (s.reduceMotion) return;
     const values = valuesFor(drag.card);
     const offsetX = values.x.get() - drag.homeX;
@@ -324,10 +458,10 @@ export default function Stack({
     animate(values.spin, clamp(offsetX / LEAN_REACH, -1, 1) * 6, follow);
   };
 
-  const onMove = event => {
+  const onMove = (event: PointerEvent) => {
     const drag = dragRef.current;
     if (!drag || event.pointerId !== drag.id) return;
-    const s = settingsRef.current;
+    const s = settingsRef.current!;
     const dx = event.clientX - drag.startX;
     const dy = event.clientY - drag.startY;
     const values = valuesFor(drag.card);
@@ -365,20 +499,20 @@ export default function Stack({
     }
   };
 
-  const onUp = event => {
+  const onUp = (event: PointerEvent) => {
     const drag = dragRef.current;
     if (!drag || event.pointerId !== drag.id) return;
     dragRef.current = null;
     clearTimeout(drag.idle);
-    window.removeEventListener('pointermove', listenersRef.current.move);
-    window.removeEventListener('pointerup', listenersRef.current.up);
-    window.removeEventListener('pointercancel', listenersRef.current.up);
+    window.removeEventListener('pointermove', listenersRef.current!.move);
+    window.removeEventListener('pointerup', listenersRef.current!.up);
+    window.removeEventListener('pointercancel', listenersRef.current!.up);
     try {
       drag.element.releasePointerCapture(drag.id);
     } catch {
       drag.capture = false;
     }
-    const s = settingsRef.current;
+    const s = settingsRef.current!;
     if (!drag.moved) {
       if (event.type === 'pointerup' && s.sendToBackOnClick) sendToBack(null);
       else settleFace(valuesFor(drag.card), s);
@@ -398,10 +532,10 @@ export default function Stack({
     }
   };
 
-  const onDown = (event, index) => {
+  const onDown = (event: ReactPointerEvent<HTMLDivElement>, index: number) => {
     if (event.button !== 0 || dragRef.current) return;
     if (orderRef.current[0] !== index || flyingRef.current.has(index)) return;
-    const s = settingsRef.current;
+    const s = settingsRef.current!;
     const values = valuesFor(index);
     const home = placement(s.layout, 0, index, s.spread, s.depth);
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -426,12 +560,12 @@ export default function Stack({
       samples: [[event.clientX, event.clientY, event.timeStamp]]
     };
     if (event.pointerType === 'mouse') event.preventDefault();
-    window.addEventListener('pointermove', listenersRef.current.move);
-    window.addEventListener('pointerup', listenersRef.current.up);
-    window.addEventListener('pointercancel', listenersRef.current.up);
+    window.addEventListener('pointermove', listenersRef.current!.move);
+    window.addEventListener('pointerup', listenersRef.current!.up);
+    window.addEventListener('pointercancel', listenersRef.current!.up);
   };
 
-  const onKeyDown = event => {
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return;
     if (['ArrowRight', 'ArrowDown', 'Enter', ' '].includes(event.key)) {
       event.preventDefault();
@@ -442,14 +576,14 @@ export default function Stack({
   actionsRef.current = { placeAll, sendToBack, onMove, onUp };
   if (!listenersRef.current) {
     listenersRef.current = {
-      move: event => actionsRef.current.onMove(event),
-      up: event => actionsRef.current.onUp(event)
+      move: (event: PointerEvent) => actionsRef.current!.onMove(event),
+      up: (event: PointerEvent) => actionsRef.current!.onUp(event)
     };
   }
 
   useIsomorphicLayoutEffect(() => {
     orderRef.current = order;
-    actionsRef.current.placeAll({ stagger: mountedRef.current ? 0 : 0.06 });
+    actionsRef.current!.placeAll({ stagger: mountedRef.current ? 0 : 0.06 });
     mountedRef.current = true;
   }, [order, shape, visible, spread, depth, speed, count]);
 
@@ -465,14 +599,14 @@ export default function Stack({
 
   useEffect(() => {
     if (!autoplay || count < 2 || dragging || (pauseOnHover && hovered)) return undefined;
-    const timer = setTimeout(() => actionsRef.current.sendToBack(null), Math.max(300, autoplayDelay));
+    const timer = setTimeout(() => actionsRef.current!.sendToBack(null), Math.max(300, autoplayDelay));
     return () => clearTimeout(timer);
   }, [autoplay, autoplayDelay, pauseOnHover, hovered, dragging, order, count]);
 
   useEffect(() => {
     aliveRef.current = true;
     const values = valuesRef.current;
-    const listeners = listenersRef.current;
+    const listeners = listenersRef.current!;
     return () => {
       aliveRef.current = false;
       if (dragRef.current) clearTimeout(dragRef.current.idle);
@@ -489,7 +623,7 @@ export default function Stack({
   return (
     <div
       ref={rootRef}
-      className={`stack ${className}`.trim()}
+      className={`group relative w-full h-full outline-none ${className}`.trim()}
       style={style}
       tabIndex={0}
       role="group"
@@ -504,11 +638,11 @@ export default function Stack({
         return (
           <motion.div
             key={index}
-            ref={element => {
+            ref={(element: HTMLDivElement | null) => {
               if (element) elementsRef.current.set(index, element);
               else elementsRef.current.delete(index);
             }}
-            className="stack-card"
+            className="absolute inset-0 will-change-transform select-none [-webkit-tap-highlight-color:transparent]"
             data-top={isTop ? '' : undefined}
             aria-hidden={isTop ? undefined : true}
             style={{
@@ -526,7 +660,7 @@ export default function Stack({
             onPointerDown={event => onDown(event, index)}
           >
             <motion.div
-              className="stack-card-face"
+              className={`absolute inset-0 overflow-hidden will-change-transform ${isTop ? 'group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-current' : ''}`}
               style={{
                 rotateX: values.tiltX,
                 rotateY: values.tiltY,
@@ -541,10 +675,16 @@ export default function Stack({
                 boxShadow: shadow ? SHADOW : 'none'
               }}
             >
-              <div className="stack-card-content" style={{ borderRadius: innerRadius }}>
+              <div
+                className="relative w-full h-full overflow-hidden [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover [&_img]:pointer-events-none [&_img]:[-webkit-user-drag:none]"
+                style={{ borderRadius: innerRadius }}
+              >
                 {card}
               </div>
-              <motion.div className="stack-card-shade" style={{ opacity: values.shade, borderRadius: radius }} />
+              <motion.div
+                className="absolute inset-0 bg-black pointer-events-none"
+                style={{ opacity: values.shade, borderRadius: radius }}
+              />
             </motion.div>
           </motion.div>
         );

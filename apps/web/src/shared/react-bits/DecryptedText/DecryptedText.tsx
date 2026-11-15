@@ -1,61 +1,96 @@
 // DecryptedText
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/DecryptedText/DecryptedText.jsx
+// Source: @react-bits/DecryptedText-TS-TW — https://reactbits.dev/r/DecryptedText-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent
+} from 'react';
 import { motion } from 'motion/react';
-
-const styles = {
-  wrapper: {
-    display: 'inline-block',
-    whiteSpace: 'pre-wrap'
-  },
-  srOnly: {
-    position: 'absolute',
-    width: '1px',
-    height: '1px',
-    padding: 0,
-    margin: '-1px',
-    overflow: 'hidden',
-    clip: 'rect(0,0,0,0)',
-    whiteSpace: 'nowrap',
-    border: 0
-  },
-  word: {
-    whiteSpace: 'nowrap'
-  },
-  cell: {
-    position: 'relative',
-    display: 'inline-block'
-  },
-  ghost: {
-    visibility: 'hidden'
-  },
-  glyph: {
-    position: 'absolute',
-    top: 0,
-    left: '50%',
-    transform: 'translateX(-50%)'
-  }
-};
+import type { HTMLMotionProps } from 'motion/react';
 
 const FADE_FLOOR = 0.16;
 const FADE_PEAK = 0.62;
 const FADE_LEAD = 6;
 const SETTLE = 'color 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1)';
 
+interface DecryptedTextProps extends HTMLMotionProps<'span'> {
+  text: string;
+  speed?: number;
+  maxIterations?: number;
+  sequential?: boolean;
+  revealDirection?: 'start' | 'end' | 'center' | 'random';
+  useOriginalCharsOnly?: boolean;
+  characters?: string;
+  className?: string;
+  parentClassName?: string;
+  encryptedClassName?: string;
+  animateOn?: 'view' | 'hover' | 'inViewHover' | 'click';
+  clickMode?: 'once' | 'toggle';
+  effect?: 'scramble' | 'flip' | 'fade';
+  scrambleColor?: string;
+  loop?: boolean;
+  loopDelay?: number;
+  hoverRadius?: number;
+}
+
+interface Frame {
+  shown: string[];
+  revealed: boolean[];
+  tint: number[];
+  dim: number[];
+  squeeze: number[];
+}
+
+interface FontMetrics {
+  font: string;
+  spacing: number;
+}
+
+interface Run {
+  forward: boolean;
+  cycle: boolean;
+  iteration: number;
+  queue: (number | null)[];
+}
+
+interface RunOptions {
+  from?: boolean[];
+  cycle?: boolean;
+  lead?: number;
+}
+
+interface Engine {
+  tick: () => void;
+  paint: () => void;
+  startRun: (forward: boolean, options?: RunOptions) => void;
+  stopRun: () => void;
+  ensureTicker: () => void;
+  refit: () => void;
+}
+
+type Point = { x: number; y: number };
+
+type Group = string | { key: number; letters: number[] };
+
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-const isSpace = char => /\s/.test(char);
+const isSpace = (char: string) => /\s/.test(char);
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
 
-const glyphWidths = new Map();
-let measureContext = null;
+const glyphWidths = new Map<string, Map<string, number>>();
+let measureContext: CanvasRenderingContext2D | null = null;
 
-const readFont = node => {
+const readFont = (node: Element): FontMetrics => {
   const style = window.getComputedStyle(node);
   return {
     font: `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
@@ -63,10 +98,10 @@ const readFont = node => {
   };
 };
 
-const advance = (font, glyph) => {
+const advance = (font: string, glyph: string): number => {
   let widths = glyphWidths.get(font);
   if (!widths) {
-    widths = new Map();
+    widths = new Map<string, number>();
     glyphWidths.set(font, widths);
   }
   let width = widths.get(glyph);
@@ -80,7 +115,7 @@ const advance = (font, glyph) => {
   return width;
 };
 
-const flipFrames = (angle, opacity) => [
+const flipFrames = (angle: number, opacity: number): Keyframe[] => [
   { transform: `perspective(4em) translateZ(-0.42em) rotateX(${angle}deg) translateZ(0.42em)`, opacity },
   { transform: 'perspective(4em) translateZ(-0.42em) rotateX(0deg) translateZ(0.42em)', opacity: 1 }
 ];
@@ -104,7 +139,7 @@ export default function DecryptedText({
   loopDelay = 2000,
   hoverRadius = 0,
   ...props
-}) {
+}: DecryptedTextProps) {
   const chars = useMemo(() => Array.from(String(text ?? '')), [text]);
 
   const pool = useMemo(() => {
@@ -118,11 +153,11 @@ export default function DecryptedText({
   const local = hoverable && hoverRadius > 0;
   const step = Math.max(16, speed);
 
-  const [frame, setFrame] = useState(() => {
+  const [frame, setFrame] = useState<Frame>(() => {
     const revealed = chars.map(char => !startsHidden || isSpace(char));
     return {
       shown: chars.map((char, index) =>
-        revealed[index] ? char : pool[(char.codePointAt(0) + index * 7) % pool.length]
+        revealed[index] ? char : pool[((char.codePointAt(0) ?? 0) + index * 7) % pool.length]
       ),
       revealed,
       tint: revealed.map(shown => (shown ? 0 : 1)),
@@ -131,26 +166,26 @@ export default function DecryptedText({
     };
   });
 
-  const containerRef = useRef(null);
-  const cellsRef = useRef([]);
-  const centersRef = useRef([]);
-  const maskRef = useRef(frame.revealed);
-  const heatRef = useRef([]);
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const cellsRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const centersRef = useRef<(Point | null)[]>([]);
+  const maskRef = useRef<boolean[]>(frame.revealed);
+  const heatRef = useRef<number[]>([]);
   const warmRef = useRef(false);
-  const pointerRef = useRef(null);
-  const runRef = useRef(null);
-  const timerRef = useRef(null);
-  const holdRef = useRef(null);
-  const pendingRef = useRef(null);
+  const pointerRef = useRef<Point | null>(null);
+  const runRef = useRef<Run | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const holdRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pendingRef = useRef<(() => void) | null>(null);
   const visibleRef = useRef(true);
   const targetRef = useRef(!startsHidden);
   const playedRef = useRef(false);
-  const previousRef = useRef(frame);
-  const engineRef = useRef(null);
-  const fontRef = useRef(null);
+  const previousRef = useRef<Frame>(frame);
+  const engineRef = useRef<Engine | null>(null);
+  const fontRef = useRef<FontMetrics | null>(null);
 
   const revealOrder = () => {
-    const order = [];
+    const order: number[] = [];
     chars.forEach((char, index) => {
       if (!isSpace(char)) order.push(index);
     });
@@ -168,7 +203,7 @@ export default function DecryptedText({
     return order;
   };
 
-  const fit = (index, glyph) => {
+  const fit = (index: number, glyph: string): number => {
     const node = containerRef.current;
     if (!fontRef.current && node) fontRef.current = readFont(node);
     const metrics = fontRef.current;
@@ -184,7 +219,7 @@ export default function DecryptedText({
     const run = runRef.current;
     const ranks = run?.forward && sequential ? new Map(run.queue.map((index, rank) => [index, rank])) : null;
     const ramp = run?.forward && !sequential ? Math.min(1, run.iteration / Math.max(1, maxIterations)) : 0;
-    const next = { shown: [], revealed: [], tint: [], dim: [], squeeze: [] };
+    const next: Frame = { shown: [], revealed: [], tint: [], dim: [], squeeze: [] };
 
     chars.forEach((char, index) => {
       const blank = isSpace(char);
@@ -224,7 +259,7 @@ export default function DecryptedText({
 
   const stopTicker = () => {
     clearInterval(timerRef.current);
-    timerRef.current = null;
+    timerRef.current = undefined;
   };
 
   const ensureTicker = () => {
@@ -235,20 +270,20 @@ export default function DecryptedText({
   const stopRun = () => {
     runRef.current = null;
     clearTimeout(holdRef.current);
-    holdRef.current = null;
+    holdRef.current = undefined;
     pendingRef.current = null;
   };
 
-  const schedule = (task, delay) => {
+  const schedule = (task: () => void, delay: number) => {
     clearTimeout(holdRef.current);
     holdRef.current = setTimeout(() => {
-      holdRef.current = null;
+      holdRef.current = undefined;
       if (visibleRef.current) task();
       else pendingRef.current = task;
     }, delay);
   };
 
-  const startRun = (forward, { from, cycle = false, lead = 0 } = {}) => {
+  const startRun = (forward: boolean, { from, cycle = false, lead = 0 }: RunOptions = {}) => {
     stopRun();
     targetRef.current = forward;
     if (from) maskRef.current = from;
@@ -267,13 +302,13 @@ export default function DecryptedText({
       forward,
       cycle,
       iteration: 0,
-      queue: [...new Array(lead).fill(null), ...queue]
+      queue: [...new Array<null>(lead).fill(null), ...queue]
     };
     paint();
     ensureTicker();
   };
 
-  const finishRun = run => {
+  const finishRun = (run: Run) => {
     if (!loop) return;
     if (run.forward) {
       schedule(() => engineRef.current?.startRun(false, { cycle: true }), Math.max(0, loopDelay));
@@ -293,7 +328,7 @@ export default function DecryptedText({
       if (isSpace(char)) return;
       let target = 0;
       const center = centersRef.current[index];
-      if (box && center) {
+      if (box && center && pointer) {
         const distance =
           Math.hypot(box.left + center.x - pointer.x, box.top + center.y - pointer.y) / Math.max(1, hoverRadius);
         if (distance < 1) target = 1 - distance * distance * (3 - 2 * distance);
@@ -312,7 +347,7 @@ export default function DecryptedText({
     if (run) {
       run.iteration += 1;
       let mask = maskRef.current;
-      let done;
+      let done: boolean;
 
       if (sequential) {
         const index = run.queue.shift();
@@ -325,7 +360,7 @@ export default function DecryptedText({
         done = run.iteration >= maxIterations;
         if (done) mask = chars.map(() => true);
       } else {
-        const visible = [];
+        const visible: number[] = [];
         mask.forEach((shown, index) => {
           if (shown && !isSpace(chars[index])) visible.push(index);
         });
@@ -373,6 +408,7 @@ export default function DecryptedText({
 
   useIsomorphicLayoutEffect(() => {
     const engine = engineRef.current;
+    if (!engine) return;
     engine.stopRun();
     playedRef.current = false;
     const hidden =
@@ -408,14 +444,14 @@ export default function DecryptedText({
   useEffect(() => {
     if (!timerRef.current) return;
     clearInterval(timerRef.current);
-    timerRef.current = null;
+    timerRef.current = undefined;
     engineRef.current?.ensureTicker();
   }, [step]);
 
   useEffect(() => {
     if (loop) return;
     clearTimeout(holdRef.current);
-    holdRef.current = null;
+    holdRef.current = undefined;
     pendingRef.current = null;
   }, [loop]);
 
@@ -468,14 +504,14 @@ export default function DecryptedText({
     });
   }, [frame, effect, chars, step]);
 
-  const trackPointer = event => {
+  const trackPointer = (event: ReactMouseEvent<HTMLSpanElement>) => {
     if (prefersReducedMotion()) return;
     if (!pointerRef.current) measure();
     pointerRef.current = { x: event.clientX, y: event.clientY };
     ensureTicker();
   };
 
-  const handleMouseEnter = event => {
+  const handleMouseEnter = (event: ReactMouseEvent<HTMLSpanElement>) => {
     if (local) {
       trackPointer(event);
       return;
@@ -484,7 +520,7 @@ export default function DecryptedText({
     startRun(true, { from: chars.map(char => isSpace(char)) });
   };
 
-  const handleMouseMove = event => {
+  const handleMouseMove = (event: ReactMouseEvent<HTMLSpanElement>) => {
     if (local) trackPointer(event);
   };
 
@@ -511,8 +547,8 @@ export default function DecryptedText({
   };
 
   const groups = useMemo(() => {
-    const result = [];
-    let word = null;
+    const result: Group[] = [];
+    let word: { key: number; letters: number[] } | null = null;
     chars.forEach((char, index) => {
       if (isSpace(char)) {
         result.push(char);
@@ -533,13 +569,18 @@ export default function DecryptedText({
   const flipping = effect === 'flip';
   const settles = tinted || fading;
 
-  const glyphStyle = index => {
+  const glyphStyle = (index: number): CSSProperties | undefined => {
     const squeeze = frame.squeeze[index] ?? 1;
-    return squeeze < 1 ? { ...styles.glyph, transform: `translateX(-50%) scaleX(${squeeze})` } : styles.glyph;
+    return squeeze < 1 ? { transform: `scaleX(${squeeze})` } : undefined;
   };
 
-  const cellStyle = (index, revealed) => {
-    const style = revealed && !flipping ? {} : { ...styles.cell };
+  const cellClass = (revealed: boolean) =>
+    [revealed && !flipping ? '' : 'relative inline-block', revealed ? className : encryptedClassName]
+      .filter(Boolean)
+      .join(' ');
+
+  const cellStyle = (index: number, revealed: boolean): CSSProperties => {
+    const style: CSSProperties = {};
     if (settles) style.transition = revealed ? SETTLE : `color 0.12s linear, opacity ${step}ms linear`;
     if (tinted && !revealed) {
       const amount = Math.round((frame.tint[index] ?? 1) * 100);
@@ -556,15 +597,20 @@ export default function DecryptedText({
       : {};
 
   return (
-    <motion.span className={parentClassName} ref={containerRef} style={styles.wrapper} {...animateProps} {...props}>
-      <span style={styles.srOnly}>{chars.join('')}</span>
+    <motion.span
+      ref={containerRef}
+      className={`inline-block whitespace-pre-wrap ${parentClassName}`}
+      {...animateProps}
+      {...props}
+    >
+      <span className="sr-only">{chars.join('')}</span>
 
       <span aria-hidden="true">
         {groups.map(group =>
           typeof group === 'string' ? (
             group
           ) : (
-            <span key={group.key} style={styles.word}>
+            <span key={group.key} className="whitespace-nowrap">
               {group.letters.map(index => {
                 const char = chars[index];
                 const revealed = frame.revealed[index] ?? true;
@@ -574,15 +620,17 @@ export default function DecryptedText({
                     ref={node => {
                       cellsRef.current[index] = node;
                     }}
-                    className={revealed ? className : encryptedClassName}
+                    className={cellClass(revealed)}
                     style={cellStyle(index, revealed)}
                   >
                     {revealed ? (
                       char
                     ) : (
                       <>
-                        <span style={styles.ghost}>{char}</span>
-                        <span style={glyphStyle(index)}>{frame.shown[index] ?? char}</span>
+                        <span className="invisible">{char}</span>
+                        <span className="absolute top-0 left-1/2 -translate-x-1/2" style={glyphStyle(index)}>
+                          {frame.shown[index] ?? char}
+                        </span>
                       </>
                     )}
                   </span>

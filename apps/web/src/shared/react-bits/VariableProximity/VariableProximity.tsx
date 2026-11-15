@@ -1,10 +1,52 @@
 // VariableProximity
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/TextAnimations/VariableProximity/VariableProximity.jsx
+// Source: @react-bits/VariableProximity-TS-TW — https://reactbits.dev/r/VariableProximity-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { Fragment, forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import './VariableProximity.css';
+import {
+  Fragment,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type HTMLAttributes,
+  type RefObject
+} from 'react';
+
+const FONT_IMPORT =
+  "@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&display=swap');";
+
+type Falloff = 'linear' | 'exponential' | 'gaussian';
+
+interface VariableProximityProps extends HTMLAttributes<HTMLSpanElement> {
+  label?: string;
+  fromFontVariationSettings?: string;
+  toFontVariationSettings?: string;
+  containerRef?: RefObject<HTMLElement | null>;
+  radius?: number;
+  falloff?: Falloff;
+  smoothing?: number;
+  fromColor?: string;
+  toColor?: string;
+  scale?: number;
+  lift?: number;
+  idleWave?: boolean;
+  fontSize?: number | string;
+  className?: string;
+  onClick?: () => void;
+  style?: CSSProperties;
+}
+
+interface ProximityState {
+  pointer: { x: number; y: number; active: boolean };
+  levels: number[];
+  targets: number[];
+}
 
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -12,7 +54,7 @@ const GAUSSIAN_EDGE = Math.exp(-2);
 const WAVE_PERIOD = 3.2;
 const WAVE_PEAK = 0.7;
 
-const parseSettings = settings =>
+const parseSettings = (settings: string) =>
   new Map(
     settings
       .split(',')
@@ -20,11 +62,11 @@ const parseSettings = settings =>
       .filter(Boolean)
       .map(part => {
         const [name, value] = part.split(/\s+/);
-        return [name.replace(/['"]/g, ''), parseFloat(value)];
+        return [name.replace(/['"]/g, ''), parseFloat(value)] as [string, number];
       })
   );
 
-const strengthAt = (distance, radius, falloff) => {
+const strengthAt = (distance: number, radius: number, falloff: Falloff) => {
   if (distance >= radius) return 0;
   const norm = 1 - distance / radius;
   switch (falloff) {
@@ -38,7 +80,7 @@ const strengthAt = (distance, radius, falloff) => {
   }
 };
 
-const VariableProximity = forwardRef((props, ref) => {
+const VariableProximity = forwardRef<HTMLSpanElement, VariableProximityProps>((props, ref) => {
   const {
     label = '',
     fromFontVariationSettings = "'wght' 400, 'opsz' 9",
@@ -59,13 +101,13 @@ const VariableProximity = forwardRef((props, ref) => {
     ...restProps
   } = props;
 
-  const rootRef = useRef(null);
-  const letterRefs = useRef([]);
-  const stateRef = useRef({ pointer: { x: 0, y: 0, active: false }, levels: [], targets: [] });
-  const [lineStarts, setLineStarts] = useState(null);
+  const rootRef = useRef<HTMLSpanElement | null>(null);
+  const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const stateRef = useRef<ProximityState>({ pointer: { x: 0, y: 0, active: false }, levels: [], targets: [] });
+  const [lineStarts, setLineStarts] = useState<string | null>(null);
 
   const setRoot = useCallback(
-    node => {
+    (node: HTMLSpanElement | null) => {
       rootRef.current = node;
       if (typeof ref === 'function') ref(node);
       else if (ref) ref.current = node;
@@ -93,16 +135,16 @@ const VariableProximity = forwardRef((props, ref) => {
     const measure = () => {
       frame = 0;
       if (!live) return;
-      const words = Array.from(root.querySelectorAll('[data-word]'));
-      const breaks = Array.from(root.querySelectorAll('br'));
-      const letters = letterRefs.current.filter(Boolean);
+      const words = Array.from(root.querySelectorAll<HTMLElement>('[data-word]'));
+      const breaks = Array.from(root.querySelectorAll<HTMLElement>('br'));
+      const letters = letterRefs.current.filter((letter): letter is HTMLSpanElement => Boolean(letter));
       const saved = letters.map(letter => letter.style.fontVariationSettings);
       const wrap = root.style.whiteSpace;
       root.style.whiteSpace = 'normal';
       breaks.forEach(node => (node.style.display = 'none'));
       letters.forEach(letter => (letter.style.fontVariationSettings = fromFontVariationSettings));
-      const starts = [];
-      let lastTop = null;
+      const starts: number[] = [];
+      let lastTop: number | null = null;
       words.forEach((word, index) => {
         const top = word.getBoundingClientRect().top;
         if (lastTop !== null && top > lastTop + 2) starts.push(index);
@@ -115,7 +157,7 @@ const VariableProximity = forwardRef((props, ref) => {
       setLineStarts(previous => (previous === key ? previous : key));
     };
 
-    const queue = entries => {
+    const queue = (entries?: ResizeObserverEntry[]) => {
       const width = entries?.[0]?.contentRect.width;
       if (width !== undefined) {
         if (Math.abs(width - lastWidth) < 1) return;
@@ -139,10 +181,10 @@ const VariableProximity = forwardRef((props, ref) => {
 
   useEffect(() => {
     const { pointer, levels, targets } = stateRef.current;
-    const written = [];
-    const painted = [];
-    const moved = [];
-    const anchors = [];
+    const written: string[] = [];
+    const painted: string[] = [];
+    const moved: string[] = [];
+    const anchors: { x: number; y: number }[] = [];
     const tinted = Boolean(fromColor || toColor);
     const restColor = fromColor || 'currentColor';
     const nearColor = toColor || 'currentColor';
@@ -167,7 +209,7 @@ const VariableProximity = forwardRef((props, ref) => {
       if (!transformed) letter.style.transform = '';
     });
 
-    const settingsAt = level =>
+    const settingsAt = (level: number) =>
       axes.map(({ axis, fromValue, toValue }) => `'${axis}' ${fromValue + (toValue - fromValue) * level}`).join(', ');
 
     const measureAnchors = () => {
@@ -213,14 +255,14 @@ const VariableProximity = forwardRef((props, ref) => {
       });
     };
 
-    const waveAt = (index, time) => {
+    const waveAt = (index: number, time: number) => {
       const anchor = anchors[index];
       if (!anchor) return 0;
       const phase = ((anchor.x + anchor.y * 0.6) / span - time / WAVE_PERIOD) * Math.PI * 2;
       return WAVE_PEAK * ((1 + Math.cos(phase)) / 2) ** 2.2;
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       frame = 0;
       const delta = lastTime ? Math.min(now - lastTime, 64) : 16;
       lastTime = now;
@@ -301,15 +343,15 @@ const VariableProximity = forwardRef((props, ref) => {
       schedule();
     };
 
-    const handleMove = (x, y) => {
+    const handleMove = (x: number, y: number) => {
       pointer.x = x;
       pointer.y = y;
       pointer.active = true;
       schedule();
     };
 
-    const handleMouseMove = event => handleMove(event.clientX, event.clientY);
-    const handleTouchMove = event => {
+    const handleMouseMove = (event: MouseEvent) => handleMove(event.clientX, event.clientY);
+    const handleTouchMove = (event: TouchEvent) => {
       const touch = event.touches[0];
       if (touch) handleMove(touch.clientX, touch.clientY);
     };
@@ -327,7 +369,7 @@ const VariableProximity = forwardRef((props, ref) => {
     window.addEventListener('resize', relayout);
     root.addEventListener('mouseleave', handleLeave);
 
-    let observer = null;
+    let observer: IntersectionObserver | null = null;
     if (waving && rootRef.current && 'IntersectionObserver' in window) {
       observer = new IntersectionObserver(entries => {
         visible = entries.some(entry => entry.isIntersecting);
@@ -372,48 +414,52 @@ const VariableProximity = forwardRef((props, ref) => {
   let letterIndex = 0;
 
   return (
-    <span
-      ref={setRoot}
-      className={`${className} variable-proximity`}
-      onClick={onClick}
-      style={{
-        display: 'inline',
-        ...(fontSize !== undefined ? { fontSize: typeof fontSize === 'number' ? `${fontSize}px` : fontSize } : {}),
-        ...(lineStarts !== null ? { whiteSpace: 'nowrap' } : {}),
-        ...style
-      }}
-      {...restProps}
-    >
-      {words.map((word, wordIndex) => (
-        <Fragment key={wordIndex}>
-          {breakSet.has(wordIndex) && <br />}
-          <span data-word="" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
-            {word.split('').map(letter => {
-              const currentLetterIndex = letterIndex++;
-              return (
-                <span
-                  key={currentLetterIndex}
-                  ref={el => {
-                    letterRefs.current[currentLetterIndex] = el;
-                  }}
-                  style={{
-                    display: 'inline-block',
-                    fontVariationSettings: fromFontVariationSettings,
-                    color: fromColor || undefined,
-                    transformOrigin: '50% 80%'
-                  }}
-                  aria-hidden="true"
-                >
-                  {letter}
-                </span>
-              );
-            })}
-            {wordIndex < words.length - 1 && <span style={{ display: 'inline-block' }}>&nbsp;</span>}
-          </span>
-        </Fragment>
-      ))}
-      <span className="sr-only">{label}</span>
-    </span>
+    <>
+      <style>{FONT_IMPORT}</style>
+      <span
+        ref={setRoot}
+        className={className}
+        onClick={onClick}
+        style={{
+          display: 'inline',
+          fontFamily: '"Roboto Flex", sans-serif',
+          ...(fontSize !== undefined ? { fontSize: typeof fontSize === 'number' ? `${fontSize}px` : fontSize } : {}),
+          ...(lineStarts !== null ? { whiteSpace: 'nowrap' } : {}),
+          ...style
+        }}
+        {...restProps}
+      >
+        {words.map((word, wordIndex) => (
+          <Fragment key={wordIndex}>
+            {breakSet.has(wordIndex) && <br />}
+            <span data-word="" className="inline-block whitespace-nowrap">
+              {word.split('').map(letter => {
+                const currentLetterIndex = letterIndex++;
+                return (
+                  <span
+                    key={currentLetterIndex}
+                    ref={el => {
+                      letterRefs.current[currentLetterIndex] = el;
+                    }}
+                    style={{
+                      display: 'inline-block',
+                      fontVariationSettings: fromFontVariationSettings,
+                      color: fromColor || undefined,
+                      transformOrigin: '50% 80%'
+                    }}
+                    aria-hidden="true"
+                  >
+                    {letter}
+                  </span>
+                );
+              })}
+              {wordIndex < words.length - 1 && <span className="inline-block">&nbsp;</span>}
+            </span>
+          </Fragment>
+        ))}
+        <span className="sr-only">{label}</span>
+      </span>
+    </>
   );
 });
 

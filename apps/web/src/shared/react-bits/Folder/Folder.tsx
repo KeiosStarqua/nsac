@@ -1,15 +1,281 @@
 // Folder
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/Folder/Folder.jsx
+// Source: @react-bits/Folder-TS-TW — https://reactbits.dev/r/Folder-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { Children, isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import './Folder.css';
+import {
+  Children,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type ReactElement,
+  type ReactNode
+} from 'react';
+
+export interface FolderItem {
+  title?: string;
+  description?: string;
+  image?: string;
+  alt?: string;
+  content?: ReactNode;
+}
+
+export type FolderEntry = FolderItem | string | number | ReactElement;
+
+export interface FolderProps {
+  items?: FolderEntry[];
+  label?: string;
+  mode?: 'flap' | 'book';
+  variant?: 'solid' | 'glass' | 'matte';
+  color?: string;
+  paperColor?: string;
+  tabPosition?: 'left' | 'center' | 'right';
+  layout?: 'spread' | 'stack' | 'row';
+  size?: number;
+  openOn?: 'click' | 'hover';
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onItemClick?: (item: FolderEntry, index: number) => void;
+  onItemDrop?: (item: FolderEntry, index: number, inside: boolean) => void;
+  draggable?: boolean;
+  zoomOnClick?: boolean;
+  peek?: boolean;
+  intro?: boolean;
+  tilt?: number;
+  bounce?: number;
+  speed?: number;
+  frost?: number;
+  closeOnOutsideClick?: boolean;
+  theme?: 'dark' | 'light';
+  className?: string;
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+
+type Matrix = number[];
+type Rgb = number[];
+type Phase = 'open' | 'receive' | 'peek' | 'rest';
+
+interface Geometry {
+  book: boolean;
+  scale: number;
+  w: number;
+  h: number;
+  tabH: number;
+  r: number;
+  shoulder: number;
+  corners: number[];
+  tabW: number;
+  tabX: number;
+  frontTop: number;
+  frontH: number;
+  docW: number;
+  docH: number;
+}
+
+interface Slot {
+  x: number;
+  y: number;
+  z: number;
+  r: number;
+  ry: number;
+  s: number;
+}
+
+interface View {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface Bounds {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+interface Program {
+  program: WebGLProgram;
+  uniforms: Record<string, WebGLUniformLocation | null>;
+}
+
+interface Target {
+  texture: WebGLTexture | null;
+  frame: WebGLFramebuffer | null;
+}
+
+interface Pane {
+  matrix: Matrix;
+  width: number;
+  height: number;
+  radii: number[];
+  spine: number;
+  bleed: number;
+  morph: number;
+  insideTop: number[];
+  insideBottom: number[];
+  tabRatio: number;
+  gutter: number[];
+  bevel: number;
+  strength: number;
+  split: number;
+  lens: number;
+  frost: number;
+  tint: number[];
+  haze: number;
+  dim: number;
+  glint: number;
+  shine: number;
+  light: number[];
+}
+
+interface Scene {
+  dpr: number;
+  depth: number;
+  origin: number[];
+  view: View;
+  layers: { key: string; matrix: Matrix; width: number; height: number; alpha: number }[];
+  glass: Pane;
+}
+
+interface Renderer {
+  upload: (key: string, source: HTMLCanvasElement) => void;
+  prune: (keys: Set<string>) => void;
+  render: (scene: Scene) => void;
+  dispose: () => void;
+}
+
+interface Spring {
+  value: number;
+  velocity: number;
+}
+
+interface ItemState {
+  x: Spring;
+  y: Spring;
+  z: Spring;
+  r: Spring;
+  ry: Spring;
+  s: Spring;
+  hover: Spring;
+  mx: Spring;
+  my: Spring;
+  alpha: Spring;
+  place: 'inside' | 'out';
+  rank: number;
+  layer: 'inside' | 'out' | 'drag' | 'focus';
+  elevated: boolean;
+  insertUntil: number;
+  insertFrom: 'side' | 'top' | null;
+  outX: number;
+  outY: number;
+  outR: number;
+  outS: number;
+  outOrder: number;
+  localX: number;
+  localY: number;
+  fresh: boolean;
+}
+
+interface DragState {
+  index: number;
+  id: number;
+  clientX: number;
+  clientY: number;
+  downX: number;
+  downY: number;
+  grabX: number;
+  grabY: number;
+  scale: number;
+  clip: Bounds | null;
+  active: boolean;
+  samples: number[][];
+}
+
+interface EngineState {
+  raf: number;
+  last: number;
+  ready: boolean;
+  hovered: boolean;
+  pressed: boolean;
+  pointerX: number;
+  pointerY: number;
+  deskX: number;
+  deskY: number;
+  hoveredItem: number;
+  phase: Phase;
+  previous: Phase;
+  changedAt: number;
+  front: Spring;
+  rx: Spring;
+  ry: Spring;
+  lift: Spring;
+  squash: Spring;
+  items: ItemState[];
+  focus: number;
+  drag: DragState | null;
+  receiving: boolean;
+  receiveUntil: number;
+  suppressClick: boolean;
+  dropCount: number;
+  intro: { phase: 'wait' | 'run' | 'done'; start: number; opening: boolean };
+  anchor: Spring;
+  appear: number;
+  content: { key: string; entries: FolderEntry[] | null; renderer: Renderer | null };
+}
+
+interface Settings {
+  open: boolean;
+  layout: string;
+  openOn: string;
+  peek: boolean;
+  intro: boolean;
+  draggable: boolean;
+  zoomOnClick: boolean;
+  closeOnOutsideClick: boolean;
+  onItemClick?: (item: FolderEntry, index: number) => void;
+  onItemDrop?: (item: FolderEntry, index: number, inside: boolean) => void;
+  tilt: number;
+  bounce: number;
+  speed: number;
+  frost: number;
+  count: number;
+  entries: FolderEntry[];
+  glass: boolean;
+  light: boolean;
+  tint: Rgb;
+  insideTop: string;
+  insideBottom: string;
+  insideTone: number[][];
+  content: string;
+  depth: number;
+  view: View;
+  g: Geometry;
+}
+
+interface Engine {
+  wake: () => void;
+  invalidate: () => void;
+  consumeClick: () => boolean;
+  interactive: (index: number) => boolean;
+  select: (index: number) => void;
+  blur: () => boolean;
+}
 
 const TAU = Math.PI * 2;
 const STEP = 1 / 240;
 const MAX_ITEMS = 6;
-const DEFAULT_ITEMS = [{ title: 'Brand guidelines' }, { title: 'Launch plan' }, { title: 'Moodboard' }];
+const DEFAULT_ITEMS: FolderEntry[] = [{ title: 'Brand guidelines' }, { title: 'Launch plan' }, { title: 'Moodboard' }];
 
 const PILE_TURN = [0.5, -1.1, 1.5, -0.7, 1.2, -1.6];
 const BOOK_REST = [
@@ -33,21 +299,22 @@ const FLAP_REST = [
 const SPREAD_TURN = [4, -5, 3, -6, 5, -3];
 const SPREAD_DROP = [0.03, -0.04, 0.05, -0.02, 0.04, -0.05];
 const DROP_TURN = [-6, 4, -3, 7, -5, 3];
-const BOOK_ANGLES = { open: -180, receive: -24, peek: -13, rest: 0 };
-const FLAP_ANGLES = { open: -64, receive: -30, peek: -15, rest: 0 };
+const BOOK_ANGLES: Record<Phase, number> = { open: -180, receive: -24, peek: -13, rest: 0 };
+const FLAP_ANGLES: Record<Phase, number> = { open: -64, receive: -30, peek: -15, rest: 0 };
 const LAYERS = { out: 50, drag: 80, focus: 90 };
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const parseColor = (() => {
-  let context = null;
-  const cache = new Map();
-  return value => {
+  let context: CanvasRenderingContext2D | null = null;
+  const cache = new Map<string, Rgb>();
+  return (value: string): Rgb => {
     const key = String(value);
-    if (cache.has(key)) return cache.get(key);
-    let rgb = [61, 139, 255];
+    const cached = cache.get(key);
+    if (cached) return cached;
+    let rgb: Rgb = [61, 139, 255];
     if (typeof document !== 'undefined') {
       context ??= document.createElement('canvas').getContext('2d', { willReadFrequently: true });
       if (context) {
@@ -63,12 +330,13 @@ const parseColor = (() => {
   };
 })();
 
-const mixRgb = (rgb, target, amount) => rgb.map((channel, i) => Math.round(channel + (target[i] - channel) * amount));
-const rgbString = rgb => `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-const luma = rgb => (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+const mixRgb = (rgb: Rgb, target: Rgb, amount: number): Rgb =>
+  rgb.map((channel, i) => Math.round(channel + (target[i] - channel) * amount));
+const rgbString = (rgb: Rgb) => `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+const luma = (rgb: Rgb) => (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
 
-const multiply = (a, b) => {
-  const out = new Array(16);
+const multiply = (a: Matrix, b: Matrix): Matrix => {
+  const out: Matrix = new Array(16);
   for (let col = 0; col < 4; col++) {
     for (let row = 0; row < 4; row++) {
       out[col * 4 + row] =
@@ -78,34 +346,40 @@ const multiply = (a, b) => {
   return out;
 };
 
-const chain = (...list) => list.reduce(multiply);
-const move = (x, y, z = 0) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1];
-const stretch = (x, y) => [x, 0, 0, 0, 0, y, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+const chain = (...list: Matrix[]) => list.reduce(multiply);
+const move = (x: number, y: number, z = 0): Matrix => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1];
+const stretch = (x: number, y: number): Matrix => [x, 0, 0, 0, 0, y, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 
-const turnX = degrees => {
+const turnX = (degrees: number): Matrix => {
   const r = (degrees * Math.PI) / 180;
   const c = Math.cos(r);
   const s = Math.sin(r);
   return [1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1];
 };
 
-const turnY = degrees => {
+const turnY = (degrees: number): Matrix => {
   const r = (degrees * Math.PI) / 180;
   const c = Math.cos(r);
   const s = Math.sin(r);
   return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1];
 };
 
-const turnZ = degrees => {
+const turnZ = (degrees: number): Matrix => {
   const r = (degrees * Math.PI) / 180;
   const c = Math.cos(r);
   const s = Math.sin(r);
   return [c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 };
 
-const toCss = m => `matrix3d(${m.map(v => (Math.abs(v) < 1e-7 ? 0 : Number(v.toFixed(6)))).join(', ')})`;
+const toCss = (m: Matrix) => `matrix3d(${m.map(v => (Math.abs(v) < 1e-7 ? 0 : Number(v.toFixed(6)))).join(', ')})`;
 
-const measureFolder = (book, scale, labelWidth, hasLabel, tabPosition) => {
+const measureFolder = (
+  book: boolean,
+  scale: number,
+  labelWidth: number,
+  hasLabel: boolean,
+  tabPosition: string
+): Geometry => {
   const w = (book ? 180 : 224) * scale;
   const h = (book ? 232 : 176) * scale;
   const tabH = 20 * scale;
@@ -140,7 +414,7 @@ const measureFolder = (book, scale, labelWidth, hasLabel, tabPosition) => {
   };
 };
 
-const backPath = g => {
+const backPath = (g: Geometry) => {
   const { w, h, tabX, tabW, tabH, shoulder } = g;
   const [tl, tr, br, bl] = g.corners;
   const top = tabH;
@@ -316,7 +590,7 @@ void main() {
   outColor = color * cover;
 }`;
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -326,7 +600,12 @@ const compile = (gl, type, source) => {
   return null;
 };
 
-const link = (gl, vertexSource, fragmentSource, names) => {
+const link = (
+  gl: WebGL2RenderingContext,
+  vertexSource: string,
+  fragmentSource: string,
+  names: string[]
+): Program | null => {
   const vertex = compile(gl, gl.VERTEX_SHADER, vertexSource);
   const fragment = compile(gl, gl.FRAGMENT_SHADER, fragmentSource);
   const program = gl.createProgram();
@@ -340,7 +619,7 @@ const link = (gl, vertexSource, fragmentSource, names) => {
     gl.deleteProgram(program);
     return null;
   }
-  const uniforms = {};
+  const uniforms: Program['uniforms'] = {};
   names.forEach(name => {
     uniforms[name] = gl.getUniformLocation(program, name);
   });
@@ -349,7 +628,7 @@ const link = (gl, vertexSource, fragmentSource, names) => {
 
 const PLACED = ['uModel', 'uSize', 'uDepth', 'uOrigin', 'uView', 'uBleed'];
 
-const createGlass = canvas => {
+const createGlass = (canvas: HTMLCanvasElement): Renderer | null => {
   const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: true });
   if (!gl) return null;
   const paint = link(gl, VERTEX, PAINT, [...PLACED, 'uImage', 'uAlpha']);
@@ -385,18 +664,18 @@ const createGlass = canvas => {
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
-  const makeTarget = () => ({ texture: gl.createTexture(), frame: gl.createFramebuffer() });
+  const makeTarget = (): Target => ({ texture: gl.createTexture(), frame: gl.createFramebuffer() });
   const targets = [makeTarget(), makeTarget(), makeTarget()];
   const size = { width: 0, height: 0 };
-  const textures = new Map();
+  const textures = new Map<string, WebGLTexture>();
 
-  const placed = (program, scene) => {
+  const placed = (program: Program, scene: Scene) => {
     gl.uniform1f(program.uniforms.uDepth, scene.depth);
     gl.uniform2f(program.uniforms.uOrigin, scene.origin[0], scene.origin[1]);
     gl.uniform4f(program.uniforms.uView, scene.view.x, scene.view.y, scene.view.width, scene.view.height);
   };
 
-  const resize = (width, height) => {
+  const resize = (width: number, height: number) => {
     if (canvas.width !== width) canvas.width = width;
     if (canvas.height !== height) canvas.height = height;
     if (size.width === width && size.height === height) return;
@@ -414,7 +693,7 @@ const createGlass = canvas => {
     });
   };
 
-  const pass = (source, target, stepX, stepY, sigma) => {
+  const pass = (source: Target, target: Target, stepX: number, stepY: number, sigma: number) => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, target.frame);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.bindTexture(gl.TEXTURE_2D, source.texture);
@@ -424,10 +703,10 @@ const createGlass = canvas => {
   };
 
   return {
-    upload(key, source) {
+    upload(key: string, source: HTMLCanvasElement) {
       let texture = textures.get(key);
       if (!texture) {
-        texture = gl.createTexture();
+        texture = gl.createTexture() as WebGLTexture;
         textures.set(key, texture);
       }
       gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -438,14 +717,14 @@ const createGlass = canvas => {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     },
-    prune(keys) {
+    prune(keys: Set<string>) {
       textures.forEach((texture, key) => {
         if (keys.has(key)) return;
         gl.deleteTexture(texture);
         textures.delete(key);
       });
     },
-    render(scene) {
+    render(scene: Scene) {
       if (gl.isContextLost()) return;
       const width = Math.max(1, Math.round(scene.view.width * scene.dpr));
       const height = Math.max(1, Math.round(scene.view.height * scene.dpr));
@@ -532,7 +811,14 @@ const createGlass = canvas => {
   };
 };
 
-const roundedRect = (ctx, x, y, width, height, radius) => {
+const roundedRect = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) => {
   const r = Math.max(0, Math.min(radius, width / 2, height / 2));
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -543,21 +829,28 @@ const roundedRect = (ctx, x, y, width, height, radius) => {
   ctx.closePath();
 };
 
-const offsetWithin = (element, root) => {
+const offsetWithin = (element: HTMLElement, root: HTMLElement): [number, number] | null => {
   let x = 0;
   let y = 0;
-  let node = element;
+  let node: HTMLElement | null = element;
   while (node && node !== root) {
     x += node.offsetLeft;
     y += node.offsetTop;
-    node = node.offsetParent;
+    node = node.offsetParent as HTMLElement | null;
   }
   return node === root ? [x, y] : null;
 };
 
-const isClear = color => !color || color === 'transparent' || /rgba?\([^)]*[,/]\s*0\s*\)$/.test(color);
+const isClear = (color: string) => !color || color === 'transparent' || /rgba?\([^)]*[,/]\s*0\s*\)$/.test(color);
 
-const drawText = (ctx, element, x, y, width, style) => {
+const drawText = (
+  ctx: CanvasRenderingContext2D,
+  element: Element,
+  x: number,
+  y: number,
+  width: number,
+  style: CSSStyleDeclaration
+) => {
   const text = Array.from(element.childNodes)
     .filter(node => node.nodeType === 3)
     .map(node => node.textContent)
@@ -572,7 +865,7 @@ const drawText = (ctx, element, x, y, width, style) => {
   ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
   ctx.fillStyle = style.color;
   ctx.textBaseline = 'middle';
-  const fit = line => {
+  const fit = (line: string) => {
     if (ctx.measureText(line).width <= room) return line;
     let cut = line;
     while (cut.length > 1 && ctx.measureText(`${cut}…`).width > room) cut = cut.slice(0, -1);
@@ -597,17 +890,17 @@ const drawText = (ctx, element, x, y, width, style) => {
   if (line) ctx.fillText(line, left, top + lineHeight * (row + 0.5));
 };
 
-const rasterize = (node, dpr, skipImages) => {
+const rasterize = (node: HTMLElement, dpr: number, skipImages: boolean) => {
   const width = Math.max(1, node.offsetWidth);
   const height = Math.max(1, node.offsetHeight);
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(width * dpr));
   canvas.height = Math.max(1, Math.round(height * dpr));
-  const pending = [];
+  const pending: HTMLImageElement[] = [];
   const ctx = canvas.getContext('2d');
   if (!ctx) return { canvas, pending };
   ctx.scale(dpr, dpr);
-  const paint = (element, x, y) => {
+  const paint = (element: HTMLElement, x: number, y: number) => {
     const style = getComputedStyle(element);
     if (style.display === 'none' || style.visibility === 'hidden') return;
     const w = element.offsetWidth;
@@ -636,8 +929,8 @@ const rasterize = (node, dpr, skipImages) => {
     } else {
       drawText(ctx, element, x, y, w, style);
       Array.from(element.children).forEach(child => {
-        const at = offsetWithin(child, node);
-        if (at) paint(child, at[0], at[1]);
+        const at = offsetWithin(child as HTMLElement, node);
+        if (at) paint(child as HTMLElement, at[0], at[1]);
       });
     }
     ctx.restore();
@@ -646,7 +939,7 @@ const rasterize = (node, dpr, skipImages) => {
   return { canvas, pending };
 };
 
-const paintBack = (g, top, bottom, dpr) => {
+const paintBack = (g: Geometry, top: string, bottom: string, dpr: number) => {
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(g.w * dpr));
   canvas.height = Math.max(1, Math.round((g.tabH + g.h) * dpr));
@@ -661,27 +954,138 @@ const paintBack = (g, top, bottom, dpr) => {
   return canvas;
 };
 
-const DocumentCard = ({ title, description }) => (
-  <div className="folder-doc">
-    {title ? <span className="folder-doc-title">{title}</span> : <span className="folder-doc-heading" />}
-    {description && <span className="folder-doc-text">{description}</span>}
-    <span className="folder-doc-line" style={{ width: '92%' }} />
-    <span className="folder-doc-line" style={{ width: '84%' }} />
-    <span className="folder-doc-line" style={{ width: '88%' }} />
-    <span className="folder-doc-block" />
-    <span className="folder-doc-line" style={{ width: '80%' }} />
-    <span className="folder-doc-line" style={{ width: '62%' }} />
+const THEMES: Record<'dark' | 'light', Record<string, string>> = {
+  dark: {
+    '--folder-ground': 'rgba(0, 0, 0, 0.42)',
+    '--folder-ground-soft': 'rgba(0, 0, 0, 0.26)',
+    '--folder-focus': '#ffffff'
+  },
+  light: {
+    '--folder-ground': 'rgba(24, 22, 40, 0.16)',
+    '--folder-ground-soft': 'rgba(24, 22, 40, 0.1)',
+    '--folder-focus': '#18181b'
+  }
+};
+
+const LAYER = 'absolute top-0 left-0 origin-top-left will-change-transform';
+const FACE = 'absolute inset-0 overflow-hidden';
+const TAB_TEXT =
+  'absolute top-0 box-border flex items-center justify-center overflow-hidden leading-none font-semibold text-ellipsis whitespace-nowrap';
+const TAB_STYLE: CSSProperties = {
+  height: 'var(--folder-tab-h)',
+  paddingTop: 'calc(1px * var(--folder-scale))',
+  color: 'var(--folder-tab-ink)',
+  fontSize: 'calc(10.5px * var(--folder-scale))',
+  letterSpacing: '-0.005em'
+};
+const RECT_SHADOW =
+  '0 calc(1px * var(--folder-scale)) calc(2px * var(--folder-scale)) var(--folder-ground), 0 calc(10px * var(--folder-scale)) calc(28px * var(--folder-scale)) var(--folder-ground-soft)';
+const PAPER_SHADOW =
+  '0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 calc(1px * var(--folder-scale)) calc(2px * var(--folder-scale)) rgba(0, 0, 0, 0.12), 0 calc((2px + var(--folder-lift, 0) * 16px) * var(--folder-scale)) calc((5px + var(--folder-lift, 0) * 26px) * var(--folder-scale)) rgba(0, 0, 0, calc(0.1 + var(--folder-lift, 0) * 0.14))';
+const FACE_LIGHT =
+  'linear-gradient(rgba(255, 255, 255, var(--folder-glint, 0)), rgba(255, 255, 255, var(--folder-glint, 0))), rgba(0, 0, 0, var(--folder-dim, 0))';
+const GUTTER = 'linear-gradient(90deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0))';
+const INSIDE_FILL = 'linear-gradient(180deg, var(--folder-inside-top), var(--folder-inside-bottom))';
+const GLASS_FACE: CSSProperties = {
+  background:
+    'linear-gradient(160deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 46%, rgba(255, 255, 255, 0.16) 100%), rgba(var(--folder-rgb), 0.24)',
+  boxShadow: 'inset 0 0 0 1px rgba(255, 255, 255, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+  WebkitBackdropFilter: 'blur(var(--folder-frost)) saturate(1.8)',
+  backdropFilter: 'blur(var(--folder-frost)) saturate(1.8)'
+};
+const SKINS: Record<string, { back: string; outer: CSSProperties; inner: CSSProperties }> = {
+  solid: {
+    back: INSIDE_FILL,
+    outer: {
+      background:
+        'linear-gradient(160deg, var(--folder-front-top) 0%, var(--folder-base) 48%, var(--folder-front-bottom) 100%)',
+      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.05)'
+    },
+    inner: { background: INSIDE_FILL }
+  },
+  glass: { back: INSIDE_FILL, outer: GLASS_FACE, inner: GLASS_FACE },
+  matte: {
+    back: 'var(--folder-inside-bottom)',
+    outer: { background: 'var(--folder-base)' },
+    inner: { background: 'var(--folder-inside-bottom)' }
+  }
+};
+
+const DOC_STYLE: CSSProperties = {
+  gap: 'calc(6px * var(--folder-scale))',
+  padding: 'calc(14px * var(--folder-scale)) calc(13px * var(--folder-scale))'
+};
+const DOC_TITLE_STYLE: CSSProperties = {
+  marginBottom: 'calc(4px * var(--folder-scale))',
+  color: 'var(--folder-paper-text)',
+  fontSize: 'calc(11px * var(--folder-scale))',
+  letterSpacing: '-0.01em'
+};
+const DOC_TEXT_STYLE: CSSProperties = {
+  marginTop: 'calc(-6px * var(--folder-scale))',
+  marginBottom: 'calc(4px * var(--folder-scale))',
+  color: 'var(--folder-paper-ink-strong)',
+  fontSize: 'calc(9px * var(--folder-scale))'
+};
+const DOC_HEADING_STYLE: CSSProperties = {
+  height: 'calc(7px * var(--folder-scale))',
+  marginBottom: 'calc(4px * var(--folder-scale))',
+  background: 'var(--folder-paper-ink-strong)'
+};
+const DOC_LINE_STYLE: CSSProperties = {
+  height: 'calc(4px * var(--folder-scale))',
+  background: 'var(--folder-paper-ink)'
+};
+const DOC_BLOCK_STYLE: CSSProperties = {
+  height: 'calc(40px * var(--folder-scale))',
+  margin: 'calc(3px * var(--folder-scale)) 0',
+  borderRadius: 'calc(5px * var(--folder-scale))',
+  background: 'var(--folder-paper-ink)'
+};
+const PHOTO_STYLE: CSSProperties = {
+  inset: 'calc(5px * var(--folder-scale))',
+  borderRadius: 'calc(3px * var(--folder-scale))'
+};
+
+const DocumentCard = ({ title, description }: { title?: string; description?: string }) => (
+  <div className="box-border flex h-full flex-col" style={DOC_STYLE}>
+    {title ? (
+      <span
+        className="overflow-hidden leading-[1.2] font-semibold text-ellipsis whitespace-nowrap"
+        style={DOC_TITLE_STYLE}
+      >
+        {title}
+      </span>
+    ) : (
+      <span className="w-[56%] flex-none rounded-full" style={DOC_HEADING_STYLE} />
+    )}
+    {description && (
+      <span className="leading-[1.3]" style={DOC_TEXT_STYLE}>
+        {description}
+      </span>
+    )}
+    <span className="flex-none rounded-full" style={{ ...DOC_LINE_STYLE, width: '92%' }} />
+    <span className="flex-none rounded-full" style={{ ...DOC_LINE_STYLE, width: '84%' }} />
+    <span className="flex-none rounded-full" style={{ ...DOC_LINE_STYLE, width: '88%' }} />
+    <span className="flex-none opacity-75" style={DOC_BLOCK_STYLE} />
+    <span className="flex-none rounded-full" style={{ ...DOC_LINE_STYLE, width: '80%' }} />
+    <span className="flex-none rounded-full" style={{ ...DOC_LINE_STYLE, width: '62%' }} />
   </div>
 );
 
-const renderItem = item => {
+const renderItem = (item: FolderEntry): ReactNode => {
   if (isValidElement(item)) return item;
   if (typeof item === 'string' || typeof item === 'number') return <DocumentCard title={String(item)} />;
   if (item && typeof item === 'object') {
     if (item.image) {
       return (
-        <div className="folder-photo">
-          <img src={item.image} alt={item.alt ?? item.title ?? ''} draggable={false} />
+        <div className="absolute overflow-hidden" style={PHOTO_STYLE}>
+          <img
+            src={item.image}
+            alt={item.alt ?? item.title ?? ''}
+            draggable={false}
+            className="pointer-events-none block h-full w-full object-cover [-webkit-user-drag:none]"
+          />
         </div>
       );
     }
@@ -691,7 +1095,7 @@ const renderItem = item => {
   return <DocumentCard />;
 };
 
-const placeBook = (rank, count, phase, layout, g) => {
+const placeBook = (rank: number, count: number, phase: Phase, layout: string, g: Geometry): Slot => {
   const pileX = g.w / 2;
   const pileY = g.frontTop + g.frontH / 2;
   if (phase === 'open') {
@@ -724,7 +1128,14 @@ const placeBook = (rank, count, phase, layout, g) => {
   };
 };
 
-const placeFlap = (rank, count, phase, layout, g, pointer) => {
+const placeFlap = (
+  rank: number,
+  count: number,
+  phase: Phase,
+  layout: string,
+  g: Geometry,
+  pointer: number | null
+): Slot => {
   const rest = FLAP_REST[rank] ?? FLAP_REST[FLAP_REST.length - 1];
   const floor = g.tabH + g.h - 5 * g.scale - g.docH / 2;
   const mid = (count - 1) / 2;
@@ -792,28 +1203,28 @@ const Folder = ({
   className = '',
   style,
   children
-}) => {
-  const rootRef = useRef(null);
-  const backRef = useRef(null);
-  const frontRef = useRef(null);
-  const groundRef = useRef(null);
-  const castRef = useRef(null);
-  const shadeRef = useRef(null);
-  const glassRef = useRef(null);
-  const itemRefs = useRef([]);
-  const measureRef = useRef(null);
-  const engineRef = useRef(null);
-  const rendererRef = useRef(null);
+}: FolderProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLDivElement>(null);
+  const frontRef = useRef<HTMLDivElement>(null);
+  const groundRef = useRef<HTMLSpanElement>(null);
+  const castRef = useRef<HTMLSpanElement>(null);
+  const shadeRef = useRef<HTMLSpanElement>(null);
+  const glassRef = useRef<HTMLCanvasElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const engineRef = useRef<Engine | null>(null);
+  const rendererRef = useRef<Renderer | null>(null);
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const [labelWidth, setLabelWidth] = useState(0);
-  const [outside, setOutside] = useState([]);
+  const [outside, setOutside] = useState<number[]>([]);
   const [gpu, setGpu] = useState(false);
   const isControlled = open !== undefined;
   const isOpen = isControlled ? Boolean(open) : internalOpen;
   const book = mode === 'book';
   const glass = variant === 'glass';
 
-  const entries = useMemo(() => {
+  const entries = useMemo<FolderEntry[]>(() => {
     const custom = Children.toArray(children).filter(isValidElement);
     const source = custom.length ? custom : items?.length ? items : DEFAULT_ITEMS;
     return source.slice(0, MAX_ITEMS);
@@ -842,7 +1253,7 @@ const Folder = ({
   }, [label, scale]);
 
   const setOpen = useCallback(
-    next => {
+    (next: boolean | ((open: boolean) => boolean)) => {
       const value = typeof next === 'function' ? next(isOpen) : next;
       if (!isControlled) setInternalOpen(value);
       if (value !== isOpen) onOpenChange?.(value);
@@ -859,7 +1270,7 @@ const Folder = ({
   const insideTop = rgbString(mixRgb(rgb, [0, 0, 0], 0.08));
   const insideBottom = rgbString(backTone);
 
-  const settingsRef = useRef(null);
+  const settingsRef = useRef<Settings>(null as unknown as Settings);
   settingsRef.current = {
     open: isOpen,
     layout,
@@ -894,8 +1305,8 @@ const Folder = ({
     if (!root) return undefined;
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
-    const spring = value => ({ value, velocity: 0 });
-    const state = {
+    const spring = (value: number): Spring => ({ value, velocity: 0 });
+    const state: EngineState = {
       raf: 0,
       last: 0,
       ready: false,
@@ -927,7 +1338,7 @@ const Folder = ({
       content: { key: '', entries: null, renderer: null }
     };
 
-    const ensureItems = n => {
+    const ensureItems = (n: number) => {
       while (state.items.length < n) {
         state.items.push({
           x: spring(0),
@@ -964,7 +1375,7 @@ const Folder = ({
     };
 
     const syncOutside = () => {
-      const list = [];
+      const list: number[] = [];
       state.items.forEach((item, index) => {
         if (item.place === 'out') list.push(index);
       });
@@ -973,7 +1384,7 @@ const Folder = ({
       );
     };
 
-    const integrate = (item, target, omega, zeta, dt) => {
+    const integrate = (item: Spring, target: number, omega: number, zeta: number, dt: number) => {
       const k = omega * omega;
       const d = 2 * zeta * omega;
       const steps = Math.max(1, Math.ceil(dt / STEP));
@@ -985,7 +1396,7 @@ const Folder = ({
       return Math.abs(target - item.value) > 0.01 || Math.abs(item.velocity) > 0.01;
     };
 
-    const snap = (item, value) => {
+    const snap = (item: Spring, value: number) => {
       item.value = value;
       item.velocity = 0;
     };
@@ -995,14 +1406,14 @@ const Folder = ({
       return geometry.book ? (geometry.w / 2) * clamp(-state.front.value / 180, 0, 1) : 0;
     };
 
-    const toDesk = (clientX, clientY) => {
+    const toDesk = (clientX: number, clientY: number) => {
       const box = root.getBoundingClientRect();
       const kx = root.offsetWidth / (box.width || 1);
       const ky = root.offsetHeight / (box.height || 1);
       return [(clientX - box.left) * kx, (clientY - box.top) * ky];
     };
 
-    const clipBounds = () => {
+    const clipBounds = (): Bounds => {
       const box = root.getBoundingClientRect();
       let left = 0;
       let top = 0;
@@ -1029,7 +1440,7 @@ const Folder = ({
       };
     };
 
-    const overFolder = (x, y) => {
+    const overFolder = (x: number, y: number) => {
       const { g: geometry } = settingsRef.current;
       const shift = shiftOf();
       if (geometry.book) {
@@ -1039,7 +1450,7 @@ const Folder = ({
       return x >= 0 && x <= geometry.w && y >= 0 && y <= geometry.tabH + geometry.h;
     };
 
-    const inPocket = item => {
+    const inPocket = (item: ItemState) => {
       const { g: geometry } = settingsRef.current;
       const halfW = (geometry.docW * item.s.value) / 2;
       const halfH = (geometry.docH * item.s.value) / 2;
@@ -1061,7 +1472,7 @@ const Folder = ({
       );
     };
 
-    const velocityOf = samples => {
+    const velocityOf = (samples: number[][]) => {
       if (samples.length < 2) return [0, 0];
       const first = samples[0];
       const last = samples[samples.length - 1];
@@ -1069,20 +1480,20 @@ const Folder = ({
       return [(last[1] - first[1]) / span, (last[2] - first[2]) / span];
     };
 
-    const phaseOf = (s, time) => {
+    const phaseOf = (s: Settings, time: number): Phase => {
       if (s.open) return 'open';
       if (state.receiving || time < state.receiveUntil) return 'receive';
       if (s.peek && state.hovered && !state.drag?.active) return 'peek';
       return 'rest';
     };
 
-    const place = (rank, inside, phase, s) => {
+    const place = (rank: number, inside: number, phase: Phase, s: Settings) => {
       if (s.g.book) return placeBook(rank, inside, phase, s.layout, s.g);
       const pointer = state.hovered ? ((state.pointerX + 1) / 2) * s.g.w : null;
       return placeFlap(rank, inside, phase, s.layout, s.g, pointer);
     };
 
-    const approach = (item, slot, s) => {
+    const approach = (item: ItemState, slot: Slot, s: Settings): Slot => {
       const { g: geometry } = s;
       if (item.insertFrom === 'side') {
         return { ...slot, x: Math.max(slot.x, geometry.w + geometry.docW * 0.54 * slot.s) };
@@ -1090,7 +1501,7 @@ const Folder = ({
       return { ...slot, y: Math.min(slot.y, geometry.frontTop - geometry.docH * 0.5 * slot.s - 8 * geometry.scale) };
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       state.raf = 0;
       const s = settingsRef.current;
       const { g: geometry } = s;
@@ -1111,7 +1522,7 @@ const Folder = ({
       const elapsed = (now - state.changedAt) / 1000;
       let busy = time < state.receiveUntil;
 
-      const ranks = [];
+      const ranks: number[] = [];
       state.items.forEach((item, index) => {
         if (item.place === 'inside') ranks.push(index);
       });
@@ -1128,8 +1539,8 @@ const Folder = ({
       const staged = intro.phase !== 'done' && !intro.opening;
       const closeAt = (0.16 + inside * 0.085 + 0.3) / s.speed;
       const holding = staged && introTime < closeAt;
-      const dropAt = rank => (0.16 + (inside - 1 - rank) * 0.085) / s.speed;
-      const introPose = (item, slot) =>
+      const dropAt = (rank: number) => (0.16 + (inside - 1 - rank) * 0.085) / s.speed;
+      const introPose = (item: ItemState, slot: Slot): Slot =>
         geometry.book
           ? { ...slot, r: slot.r + (item.rank % 2 ? 7 : -6), s: slot.s * 1.12 }
           : {
@@ -1218,7 +1629,7 @@ const Folder = ({
           snap(item.r, start.r);
           item.fresh = false;
         }
-        let target;
+        let target: Slot;
         let omega = itemOmega;
         let damping = zeta;
         let lift = 0;
@@ -1319,7 +1730,7 @@ const Folder = ({
       else state.last = 0;
     };
 
-    const refreshContent = (renderer, s) => {
+    const refreshContent = (renderer: Renderer, s: Settings) => {
       if (
         state.content.key === s.content &&
         state.content.entries === s.entries &&
@@ -1418,11 +1829,11 @@ const Folder = ({
       }
 
       const outs = state.items
-        .map((item, index) => [item, index])
+        .map((item, index): [ItemState, number] => [item, index])
         .filter(([item]) => item.layer === 'out')
         .sort((a, b) => a[0].outOrder - b[0].outOrder)
         .map(([, index]) => index);
-      const matrices = [];
+      const matrices: { index: number; matrix: Matrix; layer: number; alpha: number; inside: boolean }[] = [];
       state.items.forEach((item, index) => {
         const node = itemRefs.current[index];
         const z = 3 * scale + item.z.value + item.hover.value * 26 * scale;
@@ -1452,7 +1863,7 @@ const Folder = ({
       if (!canvas || !renderer || !s.glass) return;
       canvas.style.zIndex = frontZ;
       refreshContent(renderer, s);
-      const layers = [];
+      const layers: Scene['layers'] = [];
       if (!flipped) {
         layers.push({ key: 'back', matrix: folder, width: w, height: tabH + h, alpha: 1 });
         matrices
@@ -1526,7 +1937,7 @@ const Folder = ({
       );
     };
 
-    const startDrag = drag => {
+    const startDrag = (drag: DragState) => {
       const item = state.items[drag.index];
       if (!item) return;
       drag.active = true;
@@ -1540,7 +1951,7 @@ const Folder = ({
       root.dataset.dragging = '';
     };
 
-    const drop = (drag, cancelled) => {
+    const drop = (drag: DragState, cancelled: boolean) => {
       const s = settingsRef.current;
       const item = state.items[drag.index];
       state.receiving = false;
@@ -1582,7 +1993,7 @@ const Folder = ({
       s.onItemDrop?.(s.entries[drag.index], drag.index, false);
     };
 
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       const drag = state.drag;
       if (drag && event.pointerId === drag.id) {
         const [x, y] = toDesk(event.clientX, event.clientY);
@@ -1602,7 +2013,7 @@ const Folder = ({
       const box = root.getBoundingClientRect();
       state.pointerX = clamp(((event.clientX - box.left) / box.width) * 2 - 1, -1.5, 1.5);
       state.pointerY = clamp(((event.clientY - box.top) / box.height) * 2 - 1, -1.5, 1.5);
-      const target = event.target.closest?.('[data-folder-item]');
+      const target = (event.target as Element | null)?.closest?.('[data-folder-item]');
       const index = target && root.contains(target) ? Number(target.getAttribute('data-folder-item')) : -1;
       state.hoveredItem = index;
       if (target && index >= 0 && !state.drag?.active) {
@@ -1620,7 +2031,7 @@ const Folder = ({
       wake();
     };
 
-    const onLeave = event => {
+    const onLeave = (event: PointerEvent) => {
       if (event.pointerType === 'touch' || state.drag?.active) return;
       state.hovered = false;
       state.pressed = false;
@@ -1629,10 +2040,10 @@ const Folder = ({
       wake();
     };
 
-    const onDown = event => {
+    const onDown = (event: PointerEvent) => {
       if (event.button > 0) return;
       state.suppressClick = false;
-      const target = event.target.closest?.('[data-folder-item]');
+      const target = (event.target as Element | null)?.closest?.('[data-folder-item]');
       if (target && root.contains(target) && settingsRef.current.draggable) {
         const [x, y] = toDesk(event.clientX, event.clientY);
         state.deskX = x;
@@ -1662,7 +2073,7 @@ const Folder = ({
       wake();
     };
 
-    const onUp = event => {
+    const onUp = (event: PointerEvent) => {
       state.pressed = false;
       const drag = state.drag;
       if (drag && event.pointerId === drag.id) {
@@ -1672,8 +2083,8 @@ const Folder = ({
       wake();
     };
 
-    const onDocumentDown = event => {
-      if (root.contains(event.target)) return;
+    const onDocumentDown = (event: PointerEvent) => {
+      if (root.contains(event.target as Node)) return;
       const s = settingsRef.current;
       if (state.focus >= 0) {
         state.focus = -1;
@@ -1682,7 +2093,7 @@ const Folder = ({
       if (s.open && s.closeOnOutsideClick) setOpenRef.current(false);
     };
 
-    const onKey = event => {
+    const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (state.focus >= 0) {
         state.focus = -1;
@@ -1702,7 +2113,7 @@ const Folder = ({
     document.addEventListener('keydown', onKey);
     document.fonts?.ready.then(invalidate);
 
-    let observer = null;
+    let observer: IntersectionObserver | null = null;
     if (settingsRef.current.intro && !reduce) {
       state.intro.phase = 'wait';
       root.style.opacity = '0';
@@ -1767,7 +2178,7 @@ const Folder = ({
     if (!renderer) return undefined;
     rendererRef.current = renderer;
     setGpu(true);
-    const onLost = event => {
+    const onLost = (event: Event) => {
       event.preventDefault();
       rendererRef.current = null;
       setGpu(false);
@@ -1792,7 +2203,7 @@ const Folder = ({
     setOpen(!isOpen);
   };
 
-  const onItemActivate = (event, index) => {
+  const onItemActivate = (event: ReactMouseEvent<HTMLDivElement>, index: number) => {
     const engine = engineRef.current;
     if (!engine) return;
     if (engine.consumeClick()) {
@@ -1804,7 +2215,9 @@ const Folder = ({
     engine.select(index);
   };
 
+  const skin = SKINS[variant] ?? SKINS.solid;
   const vars = {
+    ...(THEMES[theme] ?? THEMES.dark),
     '--folder-rgb': rgb.join(', '),
     '--folder-base': rgbString(rgb),
     '--folder-front-top': rgbString(mixRgb(rgb, [255, 255, 255], 0.12)),
@@ -1828,15 +2241,17 @@ const Folder = ({
     '--folder-frost': `${(1.5 + clamp(frost, 0, 1) * 10) * scale}px`,
     '--folder-depth': `${settingsRef.current.depth}px`,
     '--folder-scale': scale,
+    width: 'var(--folder-w)',
+    height: 'calc(var(--folder-tab-h) + var(--folder-h))',
     ...style
-  };
+  } as CSSProperties;
 
   const shape = backPath(g);
 
   return (
     <div
       ref={rootRef}
-      className={`folder-root${className ? ` ${className}` : ''}`}
+      className={`group/folder relative inline-block align-middle select-none [-webkit-tap-highlight-color:transparent] [&[data-dragging]]:cursor-grabbing [&[data-dragging]_*]:cursor-grabbing! ${className}`.trim()}
       data-mode={book ? 'book' : 'flap'}
       data-variant={variant}
       data-theme={theme === 'light' ? 'light' : 'dark'}
@@ -1846,7 +2261,11 @@ const Folder = ({
       style={vars}
     >
       <div
-        className="folder-stage"
+        className="group/stage absolute inset-0 isolate cursor-pointer outline-none"
+        style={{
+          perspective: 'var(--folder-depth)',
+          perspectiveOrigin: 'calc(var(--folder-w) / 2) calc(var(--folder-tab-h) + var(--folder-h) / 2)'
+        }}
         role="button"
         tabIndex={0}
         aria-expanded={isOpen}
@@ -1860,18 +2279,78 @@ const Folder = ({
           }
         }}
       >
-        <span ref={groundRef} className="folder-layer folder-ground" aria-hidden="true" />
-        {book && <span ref={castRef} className="folder-layer folder-cast" aria-hidden="true" />}
+        <span
+          ref={groundRef}
+          className={`${LAYER} pointer-events-none z-[1]`}
+          style={
+            book
+              ? {
+                  width: 'var(--folder-w)',
+                  height: 'var(--folder-h)',
+                  borderRadius: 'var(--folder-front-radius)',
+                  boxShadow: RECT_SHADOW
+                }
+              : {
+                  width: 'var(--folder-w)',
+                  height: 'calc(var(--folder-h) * 0.14)',
+                  marginTop: 'calc(var(--folder-h) * -0.07)',
+                  borderRadius: '50%',
+                  background: 'var(--folder-ground)',
+                  filter: 'blur(calc(var(--folder-h) * 0.05))'
+                }
+          }
+          aria-hidden="true"
+        />
+        {book && (
+          <span
+            ref={castRef}
+            className={`${LAYER} pointer-events-none z-[1]`}
+            style={{
+              width: 'var(--folder-w)',
+              height: 'calc(var(--folder-h) - var(--folder-front-y) + var(--folder-tab-h))',
+              borderRadius: 'var(--folder-front-radius)',
+              boxShadow: RECT_SHADOW
+            }}
+            aria-hidden="true"
+          />
+        )}
 
-        <div ref={backRef} className="folder-layer folder-back" aria-hidden="true">
-          <div className="folder-back-fill" style={{ clipPath: `path('${shape}')` }}>
-            {book && <span className="folder-gutter" />}
+        <div
+          ref={backRef}
+          className={`${LAYER} z-[4]`}
+          style={{ width: 'var(--folder-w)', height: 'calc(var(--folder-tab-h) + var(--folder-h))' }}
+          aria-hidden="true"
+        >
+          <div className="absolute inset-0" style={{ clipPath: `path('${shape}')`, background: skin.back }}>
+            {book && (
+              <span
+                className="absolute bottom-0 left-0"
+                style={{
+                  top: 'var(--folder-tab-h)',
+                  width: 'calc(12px * var(--folder-scale))',
+                  background: GUTTER,
+                  opacity: 'var(--folder-gutter, 0)'
+                }}
+              />
+            )}
           </div>
-          <svg className="folder-back-rim" width={g.w} height={total} viewBox={`0 0 ${g.w} ${total}`}>
-            <path className="folder-focus" d={shape} />
+          <svg
+            className="pointer-events-none absolute inset-0 overflow-visible"
+            width={g.w}
+            height={total}
+            viewBox={`0 0 ${g.w} ${total}`}
+          >
+            <path
+              d={shape}
+              fill="none"
+              className="group-focus-visible/stage:[stroke-width:2px] group-focus-visible/stage:[stroke:var(--folder-focus)]"
+            />
           </svg>
           {label && (
-            <span className="folder-tab-text" style={{ left: g.tabX, width: g.tabW }}>
+            <span
+              className={TAB_TEXT}
+              style={{ ...TAB_STYLE, left: g.tabX, width: g.tabW, opacity: 'var(--folder-label, 1)' }}
+            >
               {label}
             </span>
           )}
@@ -1885,7 +2364,16 @@ const Folder = ({
               ref={node => {
                 itemRefs.current[index] = node;
               }}
-              className="folder-layer folder-item"
+              className={`${LAYER} z-[10] overflow-hidden outline-none focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-solid focus-visible:[outline-color:var(--folder-focus)]`}
+              style={{
+                width: 'var(--folder-doc-w)',
+                height: 'var(--folder-doc-h)',
+                borderRadius: 'calc(7px * var(--folder-scale))',
+                background: 'var(--folder-paper)',
+                boxShadow: PAPER_SHADOW,
+                cursor: draggable ? 'grab' : isOpen ? 'pointer' : undefined,
+                touchAction: draggable ? 'none' : undefined
+              }}
               data-folder-item={index}
               role={interactive ? 'button' : undefined}
               tabIndex={interactive ? 0 : -1}
@@ -1902,13 +2390,50 @@ const Folder = ({
           );
         })}
 
-        {book && <span ref={shadeRef} className="folder-layer folder-shade" aria-hidden="true" />}
+        {book && (
+          <span
+            ref={shadeRef}
+            className={`${LAYER} pointer-events-none z-[39] opacity-0`}
+            style={{
+              width: 'var(--folder-w)',
+              height: 'var(--folder-front-h)',
+              borderRadius: 'var(--folder-front-radius)',
+              background: 'linear-gradient(90deg, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.16))',
+              filter: 'blur(calc(6px * var(--folder-scale)))'
+            }}
+            aria-hidden="true"
+          />
+        )}
 
-        <div ref={frontRef} className="folder-layer folder-front" data-face="outer" aria-hidden="true">
-          <div className="folder-face folder-face-outer" />
+        <div
+          ref={frontRef}
+          className={`group/front ${LAYER} z-[40]`}
+          style={{ width: 'var(--folder-w)', height: 'var(--folder-front-h)' }}
+          data-face="outer"
+          aria-hidden="true"
+        >
+          <div
+            className={`${FACE} group-data-[face=inner]/front:invisible group-data-[gl]/folder:invisible!`}
+            style={{ ...skin.outer, borderRadius: 'var(--folder-front-radius)' }}
+          >
+            <span
+              className="pointer-events-none absolute inset-0 rounded-[inherit]"
+              style={{ background: FACE_LIGHT }}
+            />
+          </div>
           {book && (
-            <div className="folder-face folder-face-inner">
-              <span className="folder-inner-gutter" />
+            <div
+              className={`${FACE} invisible group-data-[face=inner]/front:visible group-data-[gl]/folder:invisible!`}
+              style={{ ...skin.inner, borderRadius: 'var(--folder-front-radius)', left: -1 }}
+            >
+              <span
+                className="absolute top-0 bottom-0 left-0"
+                style={{ width: 'calc(12px * var(--folder-scale))', background: GUTTER }}
+              />
+              <span
+                className="pointer-events-none absolute inset-0 rounded-[inherit]"
+                style={{ background: FACE_LIGHT }}
+              />
             </div>
           )}
         </div>
@@ -1916,7 +2441,7 @@ const Folder = ({
         {glass && (
           <canvas
             ref={glassRef}
-            className="folder-glass"
+            className="pointer-events-none absolute z-[40]"
             aria-hidden="true"
             style={{ left: view.x, top: view.y, width: view.width, height: view.height }}
           />
@@ -1924,7 +2449,12 @@ const Folder = ({
       </div>
 
       {label && (
-        <span ref={measureRef} className="folder-tab-text folder-measure" aria-hidden="true">
+        <span
+          ref={measureRef}
+          className={`${TAB_TEXT} pointer-events-none invisible`}
+          style={{ ...TAB_STYLE, left: 0, padding: 0 }}
+          aria-hidden="true"
+        >
           {label}
         </span>
       )}

@@ -1,11 +1,83 @@
 // GlassSurface
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/GlassSurface/GlassSurface.jsx
+// Source: @react-bits/GlassSurface-TS-TW — https://reactbits.dev/r/GlassSurface-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState, useRef, useId } from 'react';
-import './GlassSurface.css';
+import { useEffect, useState, useRef, useId, type CSSProperties, type ReactNode, type RefObject } from 'react';
+
+export type GlassSurfaceChannel = 'R' | 'G' | 'B';
+
+export type GlassSurfaceRenderer = 'auto' | 'svg' | 'webgl';
+
+export type GlassSurfaceBackdrop = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
+
+interface GlassSettings {
+  backdrop?: RefObject<GlassSurfaceBackdrop | null> | GlassSurfaceBackdrop | null;
+  displace: number;
+  saturation: number;
+  distortionScale: number;
+  redOffset: number;
+  greenOffset: number;
+  blueOffset: number;
+  xChannel: GlassSurfaceChannel;
+  yChannel: GlassSurfaceChannel;
+}
+
+interface ShapeBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface ShapeTrace {
+  box: ShapeBox;
+  depth: Float32Array;
+  w: number;
+  h: number;
+  ratio: number;
+  line: string;
+  glow: string;
+}
+
+interface CachedTrace extends ShapeTrace {
+  image: HTMLImageElement;
+  width: number;
+  height: number;
+}
+
+type ShapeArt =
+  | { src: string; box: ShapeBox; line: string; glow: string; failed?: false }
+  | { src: string; failed: true };
+
+export interface GlassSurfaceProps {
+  children?: ReactNode;
+  width?: number | string;
+  height?: number | string;
+  borderRadius?: number;
+  borderWidth?: number;
+  brightness?: number;
+  opacity?: number;
+  blur?: number;
+  displace?: number;
+  backgroundOpacity?: number;
+  saturation?: number;
+  distortionScale?: number;
+  redOffset?: number;
+  greenOffset?: number;
+  blueOffset?: number;
+  xChannel?: GlassSurfaceChannel;
+  yChannel?: GlassSurfaceChannel;
+  mixBlendMode?: CSSProperties['mixBlendMode'];
+  refraction?: boolean;
+  renderer?: GlassSurfaceRenderer;
+  backdrop?: RefObject<GlassSurfaceBackdrop | null> | GlassSurfaceBackdrop | null;
+  shape?: string;
+  className?: string;
+  style?: CSSProperties;
+}
 
 const FAR = 1e20;
 
@@ -68,10 +140,10 @@ void main() {
   outColor = vec4(rgb * color.a, color.a);
 }`;
 
-const CHANNELS = { R: 0, G: 1, B: 2, A: 3 };
+const CHANNELS: Record<string, number> = { R: 0, G: 1, B: 2, A: 3 };
 
-const compileGlass = gl => {
-  const make = (type, source) => {
+const compileGlass = (gl: WebGL2RenderingContext) => {
+  const make = (type: number, source: string) => {
     const shader = gl.createShader(type);
     if (!shader) return null;
     gl.shaderSource(shader, source);
@@ -95,7 +167,7 @@ const compileGlass = gl => {
   return null;
 };
 
-const resolveBackdrop = backdrop => {
+const resolveBackdrop = (backdrop: GlassSurfaceProps['backdrop']): GlassSurfaceBackdrop | null => {
   if (typeof window === 'undefined' || !backdrop) return null;
   const node = typeof backdrop === 'object' && 'current' in backdrop ? backdrop.current : backdrop;
   if (node instanceof HTMLImageElement || node instanceof HTMLVideoElement || node instanceof HTMLCanvasElement) {
@@ -104,20 +176,20 @@ const resolveBackdrop = backdrop => {
   return null;
 };
 
-const sourceSize = node => {
+const sourceSize = (node: GlassSurfaceBackdrop): [number, number] => {
   if (node instanceof HTMLImageElement) return [node.naturalWidth, node.naturalHeight];
   if (node instanceof HTMLVideoElement) return [node.videoWidth, node.videoHeight];
   return [node.width, node.height];
 };
 
-const placeAxis = (value, free) => {
+const placeAxis = (value: string | undefined, free: number) => {
   if (!value) return free / 2;
   if (value.endsWith('%')) return (parseFloat(value) / 100) * free;
   const px = parseFloat(value);
   return Number.isFinite(px) ? px : free / 2;
 };
 
-const contentBox = node => {
+const contentBox = (node: GlassSurfaceBackdrop) => {
   const rect = node.getBoundingClientRect();
   const [naturalWidth, naturalHeight] = sourceSize(node);
   const style = getComputedStyle(node);
@@ -139,7 +211,7 @@ const contentBox = node => {
   };
 };
 
-const distanceLine = (f, d, v, z, n) => {
+const distanceLine = (f: Float64Array, d: Float64Array, v: Int32Array, z: Float64Array, n: number) => {
   let k = 0;
   v[0] = 0;
   z[0] = -FAR;
@@ -162,7 +234,7 @@ const distanceLine = (f, d, v, z, n) => {
   }
 };
 
-const distanceGrid = (grid, w, h) => {
+const distanceGrid = (grid: Float32Array, w: number, h: number) => {
   const n = Math.max(w, h);
   const f = new Float64Array(n);
   const d = new Float64Array(n);
@@ -180,7 +252,7 @@ const distanceGrid = (grid, w, h) => {
   }
 };
 
-const blurLine = (src, dst, offset, stride, n, r) => {
+const blurLine = (src: Float32Array, dst: Float32Array, offset: number, stride: number, n: number, r: number) => {
   const scale = 1 / (2 * r + 1);
   let sum = src[offset] * (r + 1);
   for (let i = 1; i <= r; i++) sum += src[offset + Math.min(i, n - 1) * stride];
@@ -190,7 +262,7 @@ const blurLine = (src, dst, offset, stride, n, r) => {
   }
 };
 
-const blurGrid = (grid, w, h, r) => {
+const blurGrid = (grid: Float32Array, w: number, h: number, r: number) => {
   const tmp = new Float32Array(w * h);
   for (let pass = 0; pass < 3; pass++) {
     for (let y = 0; y < h; y++) blurLine(grid, tmp, y * w, 1, w, r);
@@ -198,26 +270,26 @@ const blurGrid = (grid, w, h, r) => {
   }
 };
 
-const settle = x => 1 / (1 + Math.exp(-1.702 * x));
+const settle = (x: number) => 1 / (1 + Math.exp(-1.702 * x));
 
-const paint = (w, h, fill) => {
+const paint = (w: number, h: number, fill: (data: Uint8ClampedArray) => void) => {
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
-  const context = canvas.getContext('2d');
+  const context = canvas.getContext('2d') as CanvasRenderingContext2D;
   const image = context.createImageData(w, h);
   fill(image.data);
   context.putImageData(image, 0, 0);
   return canvas.toDataURL();
 };
 
-const shade = (depth, w, h, falloff) =>
+const shade = (depth: Float32Array, w: number, h: number, falloff: (t: number) => number) =>
   paint(w, h, data => {
     data.fill(255);
     for (let i = 0; i < w * h; i++) data[i * 4 + 3] = 255 * (1 - falloff(depth[i]));
   });
 
-const traceShape = (image, width, height, ratio) => {
+const traceShape = (image: HTMLImageElement, width: number, height: number, ratio: number): ShapeTrace => {
   const naturalWidth = image.naturalWidth || width;
   const naturalHeight = image.naturalHeight || height;
   const fit = Math.min(width / naturalWidth, height / naturalHeight);
@@ -232,7 +304,7 @@ const traceShape = (image, width, height, ratio) => {
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
-  const context = canvas.getContext('2d', { willReadFrequently: true });
+  const context = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
   context.drawImage(image, box.x * ratio, box.y * ratio, box.width * ratio, box.height * ratio);
   const pixels = context.getImageData(0, 0, w, h).data;
   const outside = new Float32Array(w * h);
@@ -257,7 +329,7 @@ const traceShape = (image, width, height, ratio) => {
   };
 };
 
-const bendShape = (trace, edge, softness, calm, level) => {
+const bendShape = (trace: ShapeTrace, edge: number, softness: number, calm: number, level: number) => {
   const { depth, w, h, ratio } = trace;
   const reach = edge + softness * 2;
   const field = new Float32Array(w * h);
@@ -280,6 +352,59 @@ const bendShape = (trace, edge, softness, calm, level) => {
     }
   });
 };
+
+const WEBGL_SHADOW = [
+  '0px 4px 16px rgba(17, 17, 26, 0.05)',
+  '0px 8px 24px rgba(17, 17, 26, 0.05)',
+  '0px 16px 56px rgba(17, 17, 26, 0.05)'
+].join(', ');
+
+const FRAME_SHADOW = [
+  '0 0 2px 1px light-dark(color-mix(in oklch, black, transparent 85%), color-mix(in oklch, white, transparent 65%)) inset',
+  '0 0 10px 4px light-dark(color-mix(in oklch, black, transparent 90%), color-mix(in oklch, white, transparent 85%)) inset',
+  '0px 4px 16px rgba(17, 17, 26, 0.05) inset',
+  '0px 8px 24px rgba(17, 17, 26, 0.05) inset',
+  '0px 16px 56px rgba(17, 17, 26, 0.05) inset'
+].join(', ');
+
+const LINE = {
+  svg: 'light-dark(color-mix(in oklch, black, transparent 85%), color-mix(in oklch, white, transparent 65%))',
+  fallback: 'light-dark(color-mix(in oklch, black, transparent 88%), color-mix(in oklch, white, transparent 72%))'
+};
+
+const GLOW = {
+  svg: 'light-dark(color-mix(in oklch, black, transparent 90%), color-mix(in oklch, white, transparent 85%))',
+  fallback: 'light-dark(color-mix(in oklch, white, transparent 72%), color-mix(in oklch, white, transparent 90%))'
+};
+
+const SVG_SHADOW = [
+  '0 0 2px 1px light-dark(color-mix(in oklch, black, transparent 85%), color-mix(in oklch, white, transparent 65%)) inset',
+  '0 0 10px 4px light-dark(color-mix(in oklch, black, transparent 90%), color-mix(in oklch, white, transparent 85%)) inset',
+  '0px 4px 16px rgba(17, 17, 26, 0.05)',
+  '0px 8px 24px rgba(17, 17, 26, 0.05)',
+  '0px 16px 56px rgba(17, 17, 26, 0.05)',
+  '0px 4px 16px rgba(17, 17, 26, 0.05) inset',
+  '0px 8px 24px rgba(17, 17, 26, 0.05) inset',
+  '0px 16px 56px rgba(17, 17, 26, 0.05) inset'
+].join(', ');
+
+const FALLBACK_SHADOW = [
+  'inset 0 1px 0 0 light-dark(hsl(0 0% 100% / 0.85), hsl(0 0% 100% / 0.3))',
+  'inset 0 -1px 0 0 light-dark(hsl(0 0% 100% / 0.35), hsl(0 0% 100% / 0.08))',
+  '0 0 2px 1px light-dark(color-mix(in oklch, black, transparent 88%), color-mix(in oklch, white, transparent 72%)) inset',
+  '0 0 12px 3px light-dark(color-mix(in oklch, white, transparent 72%), color-mix(in oklch, white, transparent 90%)) inset',
+  '0px 4px 16px rgba(17, 17, 26, 0.06)',
+  '0px 8px 24px rgba(17, 17, 26, 0.06)',
+  '0px 16px 56px rgba(17, 17, 26, 0.06)'
+].join(', ');
+
+const SHEEN =
+  'linear-gradient(135deg, light-dark(hsl(0 0% 100% / 0.42), hsl(0 0% 100% / 0.14)) 0%, transparent 42%, transparent 64%, light-dark(hsl(0 0% 100% / 0.18), hsl(0 0% 100% / 0.05)) 100%)';
+
+const RIM =
+  'linear-gradient(150deg, light-dark(hsl(0 0% 100% / 0.7), hsl(0 0% 100% / 0.34)), light-dark(hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.03)) 45%, light-dark(hsl(0 0% 100% / 0.08), hsl(0 0% 100% / 0.02)) 60%, light-dark(hsl(0 0% 100% / 0.42), hsl(0 0% 100% / 0.18)))';
+
+const RING = 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)';
 
 const GlassSurface = ({
   children,
@@ -306,31 +431,32 @@ const GlassSurface = ({
   shape,
   className = '',
   style = {}
-}) => {
+}: GlassSurfaceProps) => {
   const uniqueId = useId().replace(/:/g, '-');
   const filterId = `glass-filter-${uniqueId}`;
   const redGradId = `red-grad-${uniqueId}`;
   const blueGradId = `blue-grad-${uniqueId}`;
   const softId = `soft-${uniqueId}`;
 
-  const [svgSupported, setSvgSupported] = useState(false);
+  const [svgSupported, setSvgSupported] = useState<boolean>(false);
+  const [blurSupported, setBlurSupported] = useState<boolean>(true);
   const [checked, setChecked] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
-  const [boxSize, setBoxSize] = useState('');
-  const [loaded, setLoaded] = useState({ src: '', image: null });
-  const [art, setArt] = useState(null);
+  const [boxSize, setBoxSize] = useState<string>('');
+  const [loaded, setLoaded] = useState<{ src: string; image: HTMLImageElement | null }>({ src: '', image: null });
+  const [art, setArt] = useState<ShapeArt | null>(null);
 
-  const containerRef = useRef(null);
-  const feImageRef = useRef(null);
-  const redChannelRef = useRef(null);
-  const greenChannelRef = useRef(null);
-  const blueChannelRef = useRef(null);
-  const gaussianBlurRef = useRef(null);
-  const traceRef = useRef(null);
-  const shapeMapRef = useRef('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const feImageRef = useRef<SVGFEImageElement>(null);
+  const redChannelRef = useRef<SVGFEDisplacementMapElement>(null);
+  const greenChannelRef = useRef<SVGFEDisplacementMapElement>(null);
+  const blueChannelRef = useRef<SVGFEDisplacementMapElement>(null);
+  const gaussianBlurRef = useRef<SVGFEGaussianBlurElement>(null);
+  const traceRef = useRef<CachedTrace | null>(null);
+  const shapeMapRef = useRef<string>('');
   const mapUrlRef = useRef('');
-  const canvasRef = useRef(null);
-  const settingsRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const settingsRef = useRef<GlassSettings | null>(null);
   settingsRef.current = {
     backdrop,
     displace,
@@ -449,7 +575,7 @@ const GlassSurface = ({
     const w = element?.offsetWidth || 0;
     const h = element?.offsetHeight || 0;
     let map = '';
-    let trace = null;
+    let trace: CachedTrace | null = null;
     if (shapeImage && w && h) {
       const ratio = Math.min(2, window.devicePixelRatio || 1, Math.sqrt(400000 / (w * h)));
       trace = traceRef.current;
@@ -472,6 +598,9 @@ const GlassSurface = ({
 
   useEffect(() => {
     setSvgSupported(supportsSVGFilters());
+    setBlurSupported(
+      CSS.supports('backdrop-filter', 'blur(1px)') || CSS.supports('-webkit-backdrop-filter', 'blur(1px)')
+    );
     setChecked(true);
   }, []);
 
@@ -501,7 +630,7 @@ const GlassSurface = ({
       return undefined;
     }
 
-    const uniforms = {};
+    const uniforms: Record<string, WebGLUniformLocation | null> = {};
     [
       'uBackdrop',
       'uMap',
@@ -539,13 +668,20 @@ const GlassSurface = ({
     const mapTexture = makeTexture();
     const mapCanvas = document.createElement('canvas');
     const mapContext = mapCanvas.getContext('2d');
-    const picture = { node: null, key: '', width: 0, height: 0, mipmapped: false, ready: false };
+    const picture = {
+      node: null as GlassSurfaceBackdrop | null,
+      key: '',
+      width: 0,
+      height: 0,
+      mipmapped: false,
+      ready: false
+    };
     const map = { url: '', ready: false };
     let frame = 0;
     let visible = true;
     let drawn = '';
 
-    const loadMap = url => {
+    const loadMap = (url: string) => {
       map.url = url;
       const image = new Image();
       image.onload = () => {
@@ -563,7 +699,7 @@ const GlassSurface = ({
       image.src = url;
     };
 
-    const upload = node => {
+    const upload = (node: GlassSurfaceBackdrop) => {
       const still = node instanceof HTMLImageElement;
       gl.bindTexture(gl.TEXTURE_2D, backdropTexture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, node);
@@ -675,7 +811,7 @@ const GlassSurface = ({
     const wake = () => {
       if (!frame && visible && !document.hidden) frame = requestAnimationFrame(tick);
     };
-    const onLost = event => {
+    const onLost = (event: Event) => {
       event.preventDefault();
       setWebglFailed(true);
     };
@@ -724,30 +860,51 @@ const GlassSurface = ({
   const maskPlace = outline
     ? `${outline.box.x}px ${outline.box.y}px / ${outline.box.width}px ${outline.box.height}px no-repeat`
     : '';
-  const shapeStyle = outline
+  const shapeStyle: CSSProperties = outline
     ? { borderRadius: 0, boxShadow: 'none', WebkitMask: `${maskUrl} ${maskPlace}`, mask: `${maskUrl} ${maskPlace}` }
     : shape && art?.src !== shape
       ? { opacity: 0, transition: 'none' }
       : {};
+
+  const frost = blurSupported
+    ? `light-dark(hsl(0 0% 100% / ${0.12 + backgroundOpacity * 0.5}), hsl(0 0% 100% / ${0.04 + backgroundOpacity * 0.3}))`
+    : 'light-dark(hsl(0 0% 100% / 0.72), hsl(0 0% 12% / 0.72))';
+  const fallbackFilter = `blur(12px) saturate(${saturation * 1.4}) brightness(1.04)`;
+
+  const modeStyle: CSSProperties = webgl
+    ? { boxShadow: WEBGL_SHADOW }
+    : refractive
+      ? {
+          background: `light-dark(hsl(0 0% 100% / ${backgroundOpacity}), hsl(0 0% 0% / ${backgroundOpacity}))`,
+          backdropFilter: `url(#${filterId}) saturate(${saturation})`,
+          boxShadow: SVG_SHADOW
+        }
+      : {
+          background: frost,
+          WebkitBackdropFilter: fallbackFilter,
+          backdropFilter: fallbackFilter,
+          boxShadow: FALLBACK_SHADOW
+        };
 
   const containerStyle = {
     ...style,
     width: typeof width === 'number' ? `${width}px` : width,
     height: typeof height === 'number' ? `${height}px` : height,
     borderRadius: `${borderRadius}px`,
-    '--glass-frost': backgroundOpacity,
-    '--glass-saturation': saturation,
-    '--filter-id': `url(#${filterId})`,
+    ...modeStyle,
     ...shapeStyle
-  };
+  } as CSSProperties;
 
   return (
     <div
       ref={containerRef}
-      className={`glass-surface ${webgl ? 'glass-surface--webgl' : refractive ? 'glass-surface--svg' : 'glass-surface--fallback'} ${className}`}
+      className={`relative flex items-center justify-center overflow-hidden transition-opacity duration-[260ms] ease-out focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:[outline-color:light-dark(#007aff,#0a84ff)] ${className}`}
       style={containerStyle}
     >
-      <svg className="glass-surface__filter" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-0"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <defs>
           <filter id={filterId} colorInterpolationFilters="sRGB" x="0%" y="0%" width="100%" height="100%">
             <feImage ref={feImageRef} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
@@ -798,28 +955,73 @@ const GlassSurface = ({
         </defs>
       </svg>
 
-      {webgl && <canvas ref={canvasRef} className="glass-surface__canvas" aria-hidden="true" />}
       {webgl && (
-        <span className="glass-surface__frame" aria-hidden="true" style={outline ? { boxShadow: 'none' } : undefined} />
-      )}
-      {frosted && <span className="glass-surface__sheen" aria-hidden="true" />}
-      {frosted && !outline && <span className="glass-surface__rim" aria-hidden="true" />}
-      {outline && (
-        <span
-          className="glass-surface__glow"
+        <canvas
+          ref={canvasRef}
           aria-hidden="true"
-          style={{ WebkitMaskImage: `url(${outline.glow})`, maskImage: `url(${outline.glow})` }}
+          className="pointer-events-none absolute inset-0 h-full w-full rounded-[inherit]"
+        />
+      )}
+      {webgl && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-[inherit]"
+          style={{
+            background: `light-dark(hsl(0 0% 100% / ${backgroundOpacity}), hsl(0 0% 0% / ${backgroundOpacity}))`,
+            boxShadow: outline ? 'none' : FRAME_SHADOW
+          }}
+        />
+      )}
+      {frosted && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-[inherit]"
+          style={{ background: SHEEN }}
+        />
+      )}
+      {frosted && !outline && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-[inherit] p-[3px]"
+          style={{
+            background: RIM,
+            WebkitMask: RING,
+            WebkitMaskComposite: 'xor',
+            mask: RING,
+            maskComposite: 'exclude'
+          }}
         />
       )}
       {outline && (
         <span
-          className="glass-surface__line"
           aria-hidden="true"
-          style={{ WebkitMaskImage: `url(${outline.line})`, maskImage: `url(${outline.line})` }}
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: frosted ? GLOW.fallback : GLOW.svg,
+            WebkitMaskImage: `url(${outline.glow})`,
+            maskImage: `url(${outline.glow})`,
+            WebkitMaskSize: '100% 100%',
+            maskSize: '100% 100%'
+          }}
+        />
+      )}
+      {outline && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: frosted ? LINE.fallback : LINE.svg,
+            WebkitMaskImage: `url(${outline.line})`,
+            maskImage: `url(${outline.line})`,
+            WebkitMaskSize: '100% 100%',
+            maskSize: '100% 100%'
+          }}
         />
       )}
 
-      <div className="glass-surface__content">{children}</div>
+      <div className="relative z-[1] flex h-full w-full items-center justify-center rounded-[inherit] p-2">
+        {children}
+      </div>
     </div>
   );
 };

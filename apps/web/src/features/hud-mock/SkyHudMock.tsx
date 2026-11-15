@@ -88,7 +88,6 @@ import { VitalsCard } from "./components/VitalsCard";
 const ParticlesAny = Particles as any;
 const LightTunnelAny = LightTunnel as any;
 const DepthTextAny = DepthText as any;
-const ShinyTextAny = ShinyText as any;
 
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
@@ -544,9 +543,9 @@ export function SkyHudMock() {
               />
             </span>
             <span className={BRAND_TAGLINE}>
-              <ShinyTextAny color="#9bb0c8" shineColor="#d6f2ff" speed={12} intensity={0.4}>
+              <ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12}>
                 {copy.hud.tagline}
-              </ShinyTextAny>
+              </ShinyText>
             </span>
           </span>
         </button>

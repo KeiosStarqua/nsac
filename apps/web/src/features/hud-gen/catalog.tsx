@@ -35,11 +35,8 @@ import VoicePill from "~/shared/react-bits/VoicePill/VoicePill";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const BlurTextAny = BlurText as any;
 const CountUpAny = CountUp as any;
-const DecryptedTextAny = DecryptedText as any;
 const DepthTextAny = DepthText as any;
 const GradientTextAny = GradientText as any;
-const ShinyTextAny = ShinyText as any;
-const VariableProximityAny = VariableProximity as any;
 import { hasDigit, type ParseProgram } from "./model/review";
 import { HUD_FACT_IDS, HUD_VITAL_KINDS } from "./model/names";
 import { FIXTURE_LABEL } from "~/features/sky-hud/vitals";
@@ -190,7 +187,7 @@ const BrandBlock = defineComponent({
         <span className={BRAND_RING} aria-hidden="true" />
         <span className={BRAND_COPY}>
           <span className={BRAND_NAME}><DepthTextAny text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
-          <span className={BRAND_TAGLINE}><ShinyTextAny color="#9bb0c8" shineColor="#d6f2ff" speed={12} intensity={0.4}>{ctx.copy.hud.tagline}</ShinyTextAny></span>
+          <span className={BRAND_TAGLINE}><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12}>{ctx.copy.hud.tagline}</ShinyText></span>
         </span>
       </button>
     );
@@ -260,7 +257,7 @@ const AskPrompt = defineComponent({
     const ctx = useHudScope();
     return (
       <p id="prompt">
-        <VariableProximityAny label={ctx.prompt} containerRef={ctx.conversationCopyRef} radius={60} />
+        <VariableProximity label={ctx.prompt} containerRef={ctx.conversationCopyRef} radius={60} />
       </p>
     );
   },
@@ -334,7 +331,7 @@ const WellnessCard = defineComponent({
         <span className={HEALTH_LABEL}>{h.wellnessLabel}</span>
         <strong className={HEALTH_STATUS}><GradientTextAny colors={["#7fe9c9", "#5ee6ff", "#7fe9c9"]} animationSpeed={3} pointerEvents="none">{h.wellnessStatus}</GradientTextAny></strong>
         <span className={HEALTH_GUIDANCE}>{h.wellnessGuidance}</span>
-        <span className={HEALTH_DEMO}>{ctx.fx ? <DecryptedTextAny text={h.wellnessDemo} animateOn="view" loop={false} speed={50} /> : h.wellnessDemo}</span>
+        <span className={HEALTH_DEMO}>{ctx.fx ? <DecryptedText text={h.wellnessDemo} animateOn="view" loop={false} speed={50} /> : h.wellnessDemo}</span>
       </button>
     );
   },
@@ -369,7 +366,7 @@ const FixtureBadge = defineComponent({
     const ctx = useHudScope();
     return (
       <span className={DEMO_INDICATOR}>
-        {ctx.fx ? <DecryptedTextAny text={FIXTURE_LABEL} animateOn="view" loop={false} speed={50} /> : FIXTURE_LABEL}
+        {ctx.fx ? <DecryptedText text={FIXTURE_LABEL} animateOn="view" loop={false} speed={50} /> : FIXTURE_LABEL}
       </span>
     );
   },
