@@ -31,7 +31,8 @@ shadcn AI Elements (MIT, adapted), beui avatar group (MIT, adapted). Sky app cod
 
 ## v3 voiceover (synthesized locally, no external assets)
 
-Generated 2026-11-15 with ffmpeg `libflite` (CMU Flite, Festvox voices) — narrator `slt`, astronaut question `kal`. No recordings, no third-party voices, no music.
+Generated 2026-11-15 with ffmpeg `libflite` (CMU Flite, Festvox voices) — narrator `slt`,
+astronaut question `kal`. No human recordings or cloned voices.
 Robotic by design; replace with a human/production TTS before public submission (mix recipe in
 `../SPEC.md`). v3 uses **no NASA media** (it is product plates + CSS only); the NASA photo above
 is v1-only.
@@ -40,3 +41,18 @@ is v1-only.
 |---|---|---|
 | voice/vo-1.wav … vo-6.wav | `slt` (vo-3: `kal`) | screenplay v3 VO lines, in scene order |
 | voice/vo-mix.m4a | mixed | adelay 0.1/3.25/10.6/12.9/19.3/26.6 s → loudnorm −16 LUFS |
+
+## v3 music and sound effects (ElevenLabs CLI)
+
+Generated 2026-11-15 with `npx @elevenlabs/cli` (account-authenticated CLI; no key stored in the
+repo). Review applicable ElevenLabs subscription/licensing terms before public or commercial
+distribution. v3 uses **no NASA media**; the NASA photo above is v1-only.
+
+| File | Prompt intent |
+|---|---|
+| audio/music-bed.mp3 | 30 s restrained, hopeful cinematic ambient instrumental; no vocals |
+| audio/sfx-whoosh.mp3 | soft airy transition sweep |
+| audio/sfx-ping.mp3 | subtle glassy medical-interface notification |
+| audio/sfx-shimmer.mp3 | holographic interface materialization |
+| audio/sfx-bloom.mp3 | low, weightless cinematic bloom for intro/outro |
+| audio/soundtrack-v3.m4a | final VO + music + SFX mix (timing/levels in `../SPEC.md`) |
