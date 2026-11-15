@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<title>SKY — Never Alone in Space</title>
+<script src="media/gsap.min.js"></script>
+<style>
+  :root {
+    --ground: #04070f;
+    --ink: #e8eef9;
+    --mute: #9aa9c4;
+    --accent: #5eead4;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--ground); font-family: var(--font-sans); }
+  #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--ground); }
+
+  .clip { position: absolute; }
+  .plate { position: absolute; inset: -80px; width: calc(100% + 160px); height: calc(100% + 160px); object-fit: cover; object-position: 50% 55%; }
+  .plate-body { object-position: 50% 38%; }
+  .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0,0,0,.5) 100%); }
+
+  .scrim-iso { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(4,7,15,.82) 0%, rgba(4,7,15,.45) 34%, rgba(4,7,15,0) 62%), linear-gradient(to top, rgba(4,7,15,.7) 0%, rgba(4,7,15,0) 45%); }
+  .scrim-hud { position: absolute; inset: 0; background: linear-gradient(to top, rgba(4,7,15,.85) 0%, rgba(4,7,15,.25) 30%, rgba(4,7,15,0) 55%), linear-gradient(100deg, rgba(4,7,15,.72) 0%, rgba(4,7,15,.3) 34%, rgba(4,7,15,0) 60%); }
+  .scrim-body { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(4,7,15,.5) 0%, rgba(4,7,15,.18) 36%, rgba(4,7,15,0) 64%); }
+  .scrim-chat { position: absolute; inset: 0; background: linear-gradient(to top, rgba(4,7,15,.85) 0%, rgba(4,7,15,.25) 30%, rgba(4,7,15,0) 55%), linear-gradient(100deg, rgba(4,7,15,.75) 0%, rgba(4,7,15,.32) 32%, rgba(4,7,15,0) 58%); }
+  .scrim-iss { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(4,7,15,.7) 0%, rgba(4,7,15,.28) 34%, rgba(4,7,15,0) 58%); }
+
+  .cap-xl { font-size: 84px; font-weight: 650; letter-spacing: -0.025em; line-height: 1.02; color: var(--ink); white-space: nowrap; }
+  .cap-md { font-size: 62px; font-weight: 650; letter-spacing: -0.022em; line-height: 1.06; color: var(--ink); white-space: nowrap; }
+  .cap-sub { font-size: 20px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--mute); white-space: nowrap; }
+  .micro { font-family: var(--font-mono); font-size: 14px; letter-spacing: .16em; text-transform: uppercase; color: rgba(232,238,249,.62); white-space: nowrap; }
+  .micro-teal { color: var(--accent); }
+
+  .bottom-left { left: 132px; bottom: 112px; }
+  .nasa-credit { position: absolute; left: 132px; bottom: 44px; }
+  .nasa-credit.micro { }
+
+  .chip { position: absolute; right: 132px; bottom: 44px; padding: 9px 18px 8px; border: 1px solid rgba(94,234,212,.4); border-radius: 6px;
+          background: rgba(4,7,15,.55); color: var(--accent); font-family: var(--font-mono); font-size: 14px;
+          letter-spacing: .18em; text-transform: uppercase; }
+
+  /* awakening */
+  #orbField { position: absolute; inset: 0; }
+  .orb-dot { position: absolute; border-radius: 50%; background: #cfe9ff; will-change: transform, opacity; }
+  #orbCore { position: absolute; left: 50%; top: 44%; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%;
+              background: radial-gradient(circle at 50% 45%, rgba(94,234,212,.95) 0%, rgba(94,234,212,.4) 34%, rgba(94,234,212,.08) 62%, rgba(94,234,212,0) 78%); }
+  #orbRing { position: absolute; left: 50%; top: 44%; width: 400px; height: 400px; margin: -200px 0 0 -200px; border-radius: 50%; border: 2.5px solid rgba(94,234,212,.85); }
+
+  /* intelligence pings */
+  .ping { position: absolute; width: 92px; height: 92px; border-radius: 50%; border: 2.5px solid rgba(94,234,212,.95); }
+
+  /* reveal */
+  .reveal-word { left: 0; right: 0; top: 33%; text-align: center; font-size: 188px; font-weight: 265; letter-spacing: .34em; text-indent: .34em; color: var(--ink); line-height: 1; }
+  .reveal-tag { left: 0; right: 0; top: 51%; text-align: center; font-size: 54px; font-weight: 650; letter-spacing: .01em; color: var(--ink); white-space: nowrap; }
+  .reveal-url { left: 0; right: 0; top: 61.5%; text-align: center; }
+  .reveal-disc { left: 0; right: 0; top: 66.5%; text-align: center; font-size: 11px; }
+  #revealDot { left: 50%; top: 30.5%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--accent); }
+  #revealRing { left: 50%; top: 30.5%; width: 158px; height: 158px; margin: -79px 0 0 -79px; border-radius: 50%; border: 2.5px solid rgba(94,234,212,.85); }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+
+  <!-- ═════════ scenes (flat leaf clips) ═════════ -->
+  <div id="scenes" data-track-kind="graphics">
+
+    <!-- 1 · ISOLATION -->
+    <img id="shot-iso" class="clip plate" style="z-index:1" data-start="0" data-duration="4.5" data-track-index="1" src="media/nasa/s134e010062.jpg" alt="ISS truss and Earth's airglow horizon at night — NASA/STS-134" />
+    <div id="scrim-iso" class="clip scrim-iso" style="z-index:2" data-start="0" data-duration="4.5" data-track-index="2"></div>
+    <div id="vig-iso" class="clip vignette" style="z-index:3" data-start="0" data-duration="4.5" data-track-index="3"></div>
+
+    <!-- 2 · AWAKENING -->
+    <div id="orbField" class="clip" style="z-index:4" data-start="4.5" data-duration="5.5" data-track-index="4"></div>
+    <div id="orbCore" class="clip" style="z-index:5" data-start="4.5" data-duration="5.5" data-track-index="5"></div>
+    <div id="orbRing" class="clip" style="z-index:5" data-start="4.5" data-duration="5.5" data-track-index="6"></div>
+    <div id="vig-awakening" class="clip vignette" style="z-index:6" data-start="4.5" data-duration="5.5" data-track-index="7"></div>
+
+    <!-- 3 · INTELLIGENCE -->
+    <video id="vidHud" class="clip plate" style="z-index:3; inset:0; width:100%; height:100%;" data-start="9.5" data-duration="6.5" data-track-index="8" src="media/clips/hud-loop-slow.mp4" muted playsinline preload="auto"></video>
+    <div id="scrim-hud" class="clip scrim-hud" style="z-index:4" data-start="9.5" data-duration="4.1" data-track-index="9"></div>
+    <img id="shot-body" class="clip plate plate-body" style="z-index:4" data-start="13.6" data-duration="2.4" data-track-index="10" src="media/body.png" alt="Open Anatomy holographic body map — simulated telemetry" />
+    <div id="scrim-body" class="clip scrim-body" style="z-index:5" data-start="13.6" data-duration="2.4" data-track-index="11"></div>
+    <div id="ping1" class="clip ping" style="z-index:6; left:227px; top:190px;" data-start="10.15" data-duration="1.6" data-track-index="12"></div>
+    <div id="ping2" class="clip ping" style="z-index:6; left:227px; top:397px;" data-start="10.85" data-duration="1.6" data-track-index="13"></div>
+    <div id="ping3" class="clip ping" style="z-index:6; left:1650px; top:350px; width:118px; height:118px;" data-start="11.55" data-duration="1.6" data-track-index="14"></div>
+
+    <!-- 4 · CONNECTION -->
+    <video id="vidChat" class="clip plate" style="z-index:4; inset:0; width:100%; height:100%; object-position:50% 50%;" data-start="16" data-duration="5.6" data-track-index="15" src="media/clips/chat.mp4" muted playsinline preload="auto"></video>
+    <div id="scrim-chat" class="clip scrim-chat" style="z-index:5; opacity:0" data-start="16" data-duration="5.6" data-track-index="16"></div>
+    <img id="shot-chat-end" class="clip plate" style="z-index:4; inset:0; width:100%; height:100%;" data-start="21.6" data-duration="0.9" data-track-index="17" src="media/chat-end.jpg" alt="Sky chat holding the typed question" />
+    <div id="scrim-chat2" class="clip scrim-chat" style="z-index:5" data-start="21.6" data-duration="0.9" data-track-index="18"></div>
+
+    <!-- 5 · PROMISE -->
+    <video id="vidIss" class="clip plate" style="z-index:4; inset:0; width:100%; height:100%;" data-start="22.5" data-duration="4.0" data-track-index="19" src="media/clips/spacecraft.mp4" muted playsinline preload="auto"></video>
+    <div id="scrim-iss" class="clip scrim-iss" style="z-index:5" data-start="22.5" data-duration="4.0" data-track-index="20"></div>
+    <div id="vig-iss" class="clip vignette" style="z-index:6" data-start="22.5" data-duration="4.0" data-track-index="21"></div>
+
+    <!-- 6 · REVEAL -->
+    <div id="revealDot" class="clip" style="z-index:11" data-start="26.5" data-duration="3.0" data-track-index="22"></div>
+    <div id="revealRing" class="clip" style="z-index:11" data-start="26.5" data-duration="1.9" data-track-index="23"></div>
+  </div>
+
+  <!-- ═════════ overlays (chips & credits) ═════════ -->
+  <div id="overlays" data-track-kind="graphics">
+    <div id="simChip" class="clip chip" style="z-index:10" data-start="9.5" data-duration="13" data-track-index="30">Simulated telemetry</div>
+    <div id="nasaCredit" class="clip micro nasa-credit" style="z-index:10" data-start="0.5" data-duration="4.0" data-track-index="31">NASA · STS-134 · May 2011</div>
+  </div>
+
+  <!-- ═════════ captions ═════════ -->
+  <div id="captions" data-track-kind="captions">
+
+    <div id="cap-iso-1" class="clip cap-xl bottom-left" style="z-index:10; bottom:204px;" data-start="0.6" data-duration="3.9" data-track-index="40">Out here,</div>
+    <div id="cap-iso-2" class="clip cap-xl bottom-left" style="z-index:10;" data-start="1.35" data-duration="3.15" data-track-index="41">every heartbeat matters.</div>
+
+    <div id="cap-meet" class="clip" style="z-index:10; left:0; right:0; top:50.5%; text-align:center; font-size:132px; font-weight:800; letter-spacing:-0.02em; color:var(--ink);" data-start="6.35" data-duration="3.2" data-track-index="42">MEET SKY.</div>
+    <div id="cap-sub" class="clip cap-sub" style="z-index:10; left:0; right:0; top:64.5%; text-align:center;" data-start="7.55" data-duration="2.1" data-track-index="43">Your astronaut&rsquo;s guardian</div>
+
+    <div id="cap-intel-1" class="clip cap-md" style="z-index:10; left:132px; bottom:196px;" data-start="10.0" data-duration="6.0" data-track-index="44">An AI companion</div>
+    <div id="cap-intel-2" class="clip cap-md" style="z-index:10; left:132px; bottom:112px;" data-start="10.55" data-duration="5.45" data-track-index="45">that understands your body.</div>
+
+    <div id="cap-you-label" class="clip micro" style="z-index:10; left:132px; bottom:230px; color:var(--mute);" data-start="17.05" data-duration="5.45" data-track-index="46">You</div>
+    <div id="cap-you-line" class="clip" style="z-index:10; left:132px; bottom:168px; width:760px; font-size:37px; font-weight:550; color:var(--ink); line-height:1.15;" data-start="17.05" data-duration="5.45" data-track-index="47">&ldquo;Sky, how am I doing?&rdquo;</div>
+    <div id="cap-sky-label" class="clip micro micro-teal" style="z-index:10; left:132px; bottom:96px;" data-start="19.6" data-duration="2.9" data-track-index="48">Sky</div>
+    <div id="cap-sky-line" class="clip" style="z-index:10; left:132px; bottom:22px; width:840px; font-size:38px; font-weight:620; color:var(--ink); line-height:1.12;" data-start="19.6" data-duration="2.9" data-track-index="49">Your recovery is on track. You&rsquo;re ready for today.</div>
+
+    <div id="cap-prom-1" class="clip cap-xl" style="z-index:10; left:132px; bottom:212px; font-size:66px;" data-start="23.2" data-duration="3.3" data-track-index="50">Beyond monitoring.</div>
+    <div id="cap-prom-2" class="clip cap-xl" style="z-index:10; left:132px; bottom:112px; font-size:66px; color:var(--accent);" data-start="23.95" data-duration="2.55" data-track-index="51">Toward understanding.</div>
+
+    <div id="revealWord" class="clip reveal-word" style="z-index:12" data-start="27.15" data-duration="2.4" data-track-index="60">SKY</div>
+    <div id="revealTag" class="clip reveal-tag" style="z-index:12" data-start="27.9" data-duration="1.65" data-track-index="61">Never alone in space.</div>
+    <div id="revealUrl" class="clip micro micro-teal reveal-url" style="z-index:12" data-start="28.55" data-duration="1.0" data-track-index="62">nasa.taquangkhoi.com · NASA Space Apps 2026</div>
+    <div id="revealDisc" class="clip micro reveal-disc" style="z-index:12; font-size:11px;" data-start="28.9" data-duration="0.65" data-track-index="63">AI-generated, not a substitute for a physician · Simulated telemetry</div>
+  </div>
+</div>
+
+<script>
+// Seeded PRNG (mulberry32) — the dot field is a deterministic function of setup, all motion is timeline-driven.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+(function buildDotField() {
+  const field = document.getElementById("orbField");
+  const rand = mulberry32(20261115);
+  const CX = 960, CY = 475;
+  for (let i = 0; i < 72; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = 130 + rand() * 480;
+    const d = document.createElement("div");
+    d.className = "orb-dot";
+    const size = 3 + rand() * 5;
+    d.style.width = size + "px";
+    d.style.height = size + "px";
+    d.style.left = (CX + Math.cos(a) * r) + "px";
+    d.style.top = (CY + Math.sin(a) * r) + "px";
+    d.style.opacity = "0";
+    field.appendChild(d);
+  }
+})();
+
+const tl = gsap.timeline({ paused: true });
+
+/* ── Shot 1 · ISOLATION ───────────────────────────────── */
+tl.fromTo("#shot-iso", { scale: 1.0 }, { scale: 1.07, duration: 4.5, ease: "power1.inOut" }, 0);
+tl.fromTo("#cap-iso-1", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.85, ease: "expo.out" }, 0.6);
+tl.fromTo("#cap-iso-2", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.85, ease: "expo.out" }, 1.35);
+tl.fromTo("#nasaCredit", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, 0.7);
+
+/* ── Shot 2 · AWAKENING ───────────────────────────────── */
+{
+  const dots = document.querySelectorAll(".orb-dot");
+  const CX = 960, CY = 475;
+  dots.forEach((dot, i) => {
+    const r = mulberry32(i * 97 + 13)();
+    const x0 = parseFloat(dot.style.left), y0 = parseFloat(dot.style.top);
+    const dur = 1.5 + r * 0.9, at = 4.95 + r * 1.25;
+    tl.fromTo(dot, { x: 0, y: 0, opacity: 0 }, { x: CX - x0, y: CY - y0, opacity: 0.9, duration: dur, ease: "power2.inOut" }, at);
+    tl.to(dot, { opacity: 0.25, duration: 0.8, ease: "power1.in" }, at + dur + 0.15);
+  });
+}
+tl.fromTo("#orbCore", { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.0, ease: "expo.out" }, 6.1);
+tl.fromTo("#orbRing", { scale: 0.55, opacity: 0 }, { scale: 1, opacity: 0.9, duration: 1.1, ease: "power2.out" }, 6.5);
+tl.to("#orbCore", { scale: 1.07, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 3 }, 7.2);
+tl.fromTo("#cap-meet", { y: 44, opacity: 0, filter: "blur(10px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.95, ease: "expo.out" }, 6.35);
+tl.fromTo("#cap-sub", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power2.out" }, 7.55);
+tl.to(["#orbField", "#orbCore", "#orbRing", "#cap-meet", "#cap-sub"], { opacity: 0, duration: 0.42, ease: "power1.in" }, 9.5);
+
+/* ── Shot 3 · INTELLIGENCE ───────────────────────────── */
+tl.fromTo("#vidHud", { scale: 1.0 }, { scale: 1.08, duration: 6.5, ease: "power1.inOut" }, 9.5);
+tl.fromTo("#cap-intel-1", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "expo.out" }, 10.0);
+tl.fromTo("#cap-intel-2", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "expo.out" }, 10.55);
+tl.fromTo("#simChip", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 9.7);
+
+function ping(id, at) {
+  tl.fromTo(id, { scale: 0.5, opacity: 0.95 }, { keyframes: [
+    { scale: 1.0, opacity: 0.55, duration: 0.28, ease: "power3.out" },
+    { scale: 1.75, opacity: 0, duration: 0.8, ease: "power2.out" }
+  ] }, at);
+}
+ping("#ping1", 10.15);
+ping("#ping2", 10.85);
+ping("#ping3", 11.55);
+
+/* body plate cut */
+tl.fromTo("#shot-body", { scale: 1.06, opacity: 0 }, { scale: 1.14, opacity: 1, duration: 2.4, ease: "power1.inOut" }, 13.6);
+tl.to("#vidHud", { opacity: 0, duration: 0.28, ease: "power1.in" }, 13.6);
+
+/* ── Shot 4 · CONNECTION ─────────────────────────────── */
+tl.fromTo("#scrim-chat", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 16.0);
+tl.to("#shot-body, #scrim-body", { opacity: 0, duration: 0.3, ease: "power1.in" }, 16.0);
+tl.fromTo("#cap-you-label", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 17.05);
+tl.fromTo("#cap-you-line", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 17.1);
+tl.fromTo("#cap-sky-label", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 19.6);
+tl.fromTo("#cap-sky-line", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" }, 19.65);
+tl.to("#vidHud, #scrim-hud, #cap-intel-1, #cap-intel-2", { opacity: 0, duration: 0.3 }, 16.0);
+
+/* ── Shot 5 · PROMISE ────────────────────────────────── */
+tl.fromTo("#vidIss", { scale: 1.02 }, { scale: 1.075, duration: 4.0, ease: "power1.inOut" }, 22.5);
+tl.to(["#vidChat", "#scrim-chat", "#shot-chat-end", "#scrim-chat2", "#cap-you-label", "#cap-you-line", "#cap-sky-label", "#cap-sky-line"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 22.5);
+tl.fromTo("#cap-prom-1", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.85, ease: "expo.out" }, 23.2);
+tl.fromTo("#cap-prom-2", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.85, ease: "expo.out" }, 23.95);
+tl.to("#simChip", { opacity: 0, duration: 0.3, ease: "power1.in" }, 22.6);
+
+/* ── Shot 6 · REVEAL ─────────────────────────────────── */
+tl.fromTo("#revealDot", { scale: 1, opacity: 0 }, { scale: 2.6, opacity: 1, duration: 0.42, ease: "power2.out" }, 26.7);
+tl.to("#revealDot", { scale: 1.0, opacity: 0.9, duration: 0.45, ease: "power2.inOut" }, 27.15);
+tl.fromTo("#revealRing", { scale: 0.42, opacity: 0 }, { scale: 1, opacity: 0.9, duration: 1.05, ease: "power2.out" }, 26.9);
+tl.to("#revealRing", { opacity: 0, duration: 0.5, ease: "power1.in" }, 28.0);
+tl.to("#revealDot", { opacity: 0, duration: 0.4 }, 28.05);
+tl.fromTo("#revealWord", { y: 38, opacity: 0, filter: "blur(12px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.9, ease: "expo.out" }, 27.15);
+tl.fromTo("#revealTag", { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power4.out" }, 27.9);
+tl.fromTo("#revealUrl", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 28.55);
+tl.fromTo("#revealDisc", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 28.9);
+tl.to("#sIssGone, #vidIss, #scrim-iss", { opacity: 0, duration: 0.42, ease: "power1.in" }, 26.5);
+tl.to(["#cap-prom-1", "#cap-prom-2"], { opacity: 0, duration: 0.35, ease: "power1.in" }, 26.5);
+tl.to(["#revealWord", "#revealTag", "#revealUrl", "#revealDisc", "#revealDot"], { opacity: 0, duration: 0.42, ease: "power1.in" }, 29.56);
+
+window.__timelines["main"] = tl;
+tl.seek(0);
+</script>
+</body>
+</html>
