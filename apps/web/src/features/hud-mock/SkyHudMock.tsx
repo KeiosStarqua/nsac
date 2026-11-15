@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import DepthText from "../../shared/react-bits/DepthText/DepthText";
-import Galaxy from "../../shared/react-bits/Galaxy/Galaxy";
-import Particles from "../../shared/react-bits/Particles/Particles";
-import ShinyText from "../../shared/react-bits/ShinyText/ShinyText";
-import VoicePill from "../../shared/react-bits/VoicePill/VoicePill";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { format, useCopy } from "../../shared/i18n";
 import {
   AstronautPicker,
@@ -26,91 +21,37 @@ import {
   CLAIMS_EPOCH_STORAGE_KEY,
 } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
-import {
-  BRAND,
-  BRAND_COPY,
-  BRAND_NAME,
-  BRAND_RING,
-  BRAND_TAGLINE,
-  DETAIL_ACTION,
-  DETAIL_CLOSE,
-  DETAIL_EYEBROW,
-  DETAIL_FOOTER,
-  DETAIL_GLASS,
-  DETAIL_MESSAGE,
-  DETAIL_OVERLAY,
-  DETAIL_VALUE,
-  SPACECRAFT_LINK,
-} from "../sky-hud/hud-classes";
 import { DETAILS } from "../sky-hud/vitals";
 import { SkyOrb } from "../sky-hud/SkyOrb";
 import { agentStateForVoiceChat } from "../sky-hud/agent-state";
-import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
 import { PHASE_TEXT } from "../sky-hud/voiceCopy";
 import { useVoiceChat } from "./useVoiceChat";
-import { HologramBody, HoloCredit, ListeningBar, TypeInsteadPill } from "../sky-hud/components";
-import { DeviceSwitcher } from "../sky-hud/components/DeviceSwitcher";
-import { LanguageSwitcher } from "../sky-hud/components/LanguageSwitcher";
+import { HologramBody, HoloCredit } from "../sky-hud/components";
 import { SkyChatPanel } from "../sky-hud/components/SkyChatPanel";
-import { HUD_MOCK, MISSION_DAY } from "./model/fixture";
+import { HUD_MOCK } from "./model/fixture";
 import { buildInsightText } from "./model/insight";
 import { roleLabel } from "./model/roles";
-import {
-  FOOTER,
-  FOOTER_NOTE,
-  GREETING,
-  MOCK_CENTER,
-  MOCK_GRID,
-  MOCK_HEADER,
-  MOCK_HEADER_ACTIONS,
-  MOCK_LEFT,
-  MOCK_MISSION,
-  MOCK_RIGHT,
-  MOCK_ROOT,
-  MOCK_VIGNETTE,
-  ORB_STAGE,
-  ORB_STAGE_CHAT,
-  ORB_ZONE,
-  ORB_ZONE_THINKING,
-  PROMPT,
-  SIMULATED_CHIP,
-  VOICE_CLUSTER,
-  VOICE_CLUSTER_HIDDEN,
-  VOICE_CONTROL,
-  VOICE_HINT,
-} from "./mock-classes";
+import { MOCK_GRID, MOCK_ROOT, MOCK_VIGNETTE } from "./mock-classes";
 import { InsightBand } from "./components/InsightBand";
+import { CenterColumn, LeftColumn, RightColumn } from "./components/MockColumns";
 import { MiniCards, ReadinessCard, ReadinessDetail } from "./components/ReadinessPanel";
 import { ProfileCard } from "./components/ProfileCard";
 import { TrendsCard } from "./components/TrendsCard";
 import { VitalsCard } from "./components/VitalsCard";
+import { HudBackdrop } from "./components/HudBackdrop";
+import { MockHeader } from "./components/MockHeader";
+import { MockFooter } from "./components/MockFooter";
+import { GreetingStack } from "./components/GreetingStack";
+import { OrbStage } from "./components/OrbStage";
+import { VoiceWave } from "./components/VoiceWave";
+import { VoiceCluster } from "./components/VoiceCluster";
+import { DetailOverlay } from "./components/DetailOverlay";
+import type { DetailDialogProps } from "./components/DetailOverlay";
 import { useHudBackground } from "../hud-bg";
-
-// Vendored react-bits sources are @ts-nocheck; their inferred prop types demand props the runtime
-// defaults, so the boundary casts them (same pattern as `features/hud-gen/catalog.tsx`).
 
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
-/** The signal glyph that leads the voice hint (four ascending bars, decorative). */
-const VOICE_SIGNAL =
-  "h-[13px] w-[15px] flex-none text-[#4be6c8] [filter:drop-shadow(0_0_5px_rgba(75,230,200,.45))]";
-
-const VOICE_WAVE = "block h-[30px] w-[min(100%,260px)] max-[720px]:h-[24px] [transition:opacity_.24s_ease,scale_.24s_ease,translate_.24s_ease] motion-reduce:transition-none";
-
-/** Chat-open state of the waveform: gone, settled back a touch, out of the pointer path. */
-const VOICE_WAVE_HIDDEN = "pointer-events-none scale-[.92] opacity-0 -translate-y-[4px]";
-
-const GREETING_STACK = "flex flex-col items-center px-2 text-center";
-
-interface DetailDialogProps {
-  title: string;
-  value?: string;
-  message: string;
-  eyebrow: string;
-  footer: string;
-  action?: { label: string; onClick: () => void };
-}
 
 /**
  * `/` — "SKY · Astronaut Wellness", the mock console.
@@ -125,7 +66,11 @@ interface DetailDialogProps {
  * ⌘K chat card via `SkyChatPanel`, crew claims + picker + force release, announcement channel;
  * the mic speaks to the ElevenLabs Speech Engine (`useVoiceChat` — registration binds the pick,
  * the SDK owns mic capture, speaker output and the frequency bins feeding `ListeningBar`).
- * Only the layout is new — `?arch=openui` still renders the declarative hud-gen tree.
+ *
+ * This file owns the layout, and `?arch=openui` (`features/hud-gen`) renders the SAME modules: the
+ * header/footer, columns, cards, orb stage, greeting, voice cluster, insight band, backdrop and
+ * detail dialog all live in `./components/` and `./mock-classes.ts`. A layout change here is a
+ * change to both screens — `features/hud-gen/model/preset-parity.test.ts` guards the region order.
  */
 export function SkyHudMock() {
   const copy = useCopy();
@@ -457,14 +402,7 @@ export function SkyHudMock() {
   const prompt = promptReply ?? copy.hud.promptFallback;
   const role = roleLabel(selected.role, copy.hudMock.roles);
 
-  const orbNode = useMemo(
-    () => (
-      <div className={`${ORB_ZONE}${voiceStatus === "connecting" ? ` ${ORB_ZONE_THINKING}` : ""}`} aria-hidden="true">
-        <SkyOrb state={orbState} />
-      </div>
-    ),
-    [orbState, voiceStatus],
-  );
+  const orbNode = useMemo(() => <SkyOrb state={orbState} />, [orbState]);
 
   const holo = useMemo(() => <HologramBody reducedMotion={!!reduce} />, [reduce]);
 
@@ -472,146 +410,34 @@ export function SkyHudMock() {
 
   return (
     <main className={MOCK_ROOT} data-phase={phase} data-agent-state={orbState} aria-label="SKY astronaut wellness overview">
-      {bg === "galaxy" ? (
-        <div className="absolute inset-0 z-0" aria-hidden="true">
-          <Galaxy
-            starColors={["#ffffff", "#78eaff", "#c8aaff"]}
-            twinkleIntensity={0.5}
-            glowIntensity={0.5}
-            flareIntensity={0.4}
-            density={0.85}
-            starSpeed={0.5}
-            saturation={0.55}
-            mouseInteraction={true}
-            dpr={1}
-            transparent
-            opacity={0.9}
-            intro={fx}
-          />
-        </div>
-      ) : (
-        <div className="absolute inset-0 z-0" aria-hidden="true">
-          <Particles
-            particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}
-            particleCount={220}
-            particleSpread={9}
-            speed={0.075}
-            particleBaseSize={110}
-            sizeRandomness={1}
-            cameraDistance={22}
-            glow={0.6}
-            twinkle={0.55}
-            depthOfField={0}
-            alphaParticles={false}
-            connections={false}
-            hoverEffect="parallax"
-            particleHoverFactor={0.8}
-            clickBurst={false}
-            drift="none"
-            intro={fx}
-            opacity={0.9}
-          />
-        </div>
-      )}
+      <HudBackdrop bg={bg} fx={fx} />
       <div className={MOCK_VIGNETTE} aria-hidden="true" />
 
-      <header className={MOCK_HEADER}>
-        <button
-          className={BRAND}
-          type="button"
-          aria-label={copy.hud.brandAria}
-          onClick={() => {
-            setDetail(null);
-            setChatOpen(false);
-            setPromptReply(null);
-          }}
-        >
-          <span className={BRAND_RING} aria-hidden="true" />
-          <span className={BRAND_COPY}>
-            <span className={BRAND_NAME}>
-              <DepthText
-                text="S K Y"
-                fontSize="clamp(20px, 2.2vw, 29px)"
-                fontWeight={300}
-                layers={10}
-                depth={0.5}
-                tilt={4}
-                autoOrbit={false}
-                intro={false}
-                shadow={false}
-                depthColor="#6fa8d6"
-              />
-            </span>
-            <span className={BRAND_TAGLINE}>
-              <ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12}>
-                {copy.hud.tagline}
-              </ShinyText>
-            </span>
-          </span>
-        </button>
-
-        <div className={MOCK_HEADER_ACTIONS}>
-          <button
-            type="button"
-            className={MOCK_MISSION}
-            aria-label={copy.hud.missionAria}
-            onClick={() =>
-              openDetail({
-                ...DETAILS.mission,
-                footer: DEFAULT_FOOTER,
-                action: {
-                  label: copy.astronaut.change,
-                  onClick: () => {
-                    closeDetail();
-                    openPicker();
-                  },
-                },
-              })
-            }
-          >
-            <span className="block h-[15px] w-[20px] [transform:rotate(-10deg)]" aria-hidden="true">
-              <svg viewBox="0 0 44 36" fill="none">
-                <path
-                  d="m18 16 8-2M18 21l8-2M15 8l5 10-5 10M28 6l-5 11 5 11M3 12l11-5 4 6-12 5zM31 14l10-5-3 12-9 4z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
-                <path d="M11 8 5 23m31-13-7 17M4 6l7 25m28-24-7 25" stroke="currentColor" strokeWidth="1" />
-              </svg>
-            </span>
-            <span>ISS&nbsp;·&nbsp;Day {MISSION_DAY}</span>
-          </button>
-          <DeviceSwitcher current="console" />
-          {showLanguageSwitcher ? <LanguageSwitcher /> : null}
-          <Link
-            to="/spacecraft"
-            className={SPACECRAFT_LINK}
-            aria-label={copy.hud.spacecraftButtonAria}
-          >
-            <svg
-              viewBox="0 0 48 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="1.3" y="8" width="13" height="8" rx="1.2" />
-              <path d="M5.6 8v8M9.9 8v8" />
-              <rect x="33.7" y="8" width="13" height="8" rx="1.2" />
-              <path d="M38.1 8v8M42.4 8v8" />
-              <rect x="19" y="6" width="10" height="12" rx="1.6" />
-              <path d="M24 6V2.6M21.6 2.6h4.8" />
-              <circle cx="24" cy="12" r="1.5" />
-            </svg>
-            <span>{copy.hud.spacecraftButton}</span>
-          </Link>
-        </div>
-      </header>
+      <MockHeader
+        copy={copy}
+        showLanguageSwitcher={showLanguageSwitcher}
+        onBrand={() => {
+          setDetail(null);
+          setChatOpen(false);
+          setPromptReply(null);
+        }}
+        onMission={() =>
+          openDetail({
+            ...DETAILS.mission,
+            footer: DEFAULT_FOOTER,
+            action: {
+              label: copy.astronaut.change,
+              onClick: () => {
+                closeDetail();
+                openPicker();
+              },
+            },
+          })
+        }
+      />
 
       <div className={MOCK_GRID}>
-        <div className={MOCK_LEFT} data-column="left">
+        <LeftColumn>
           <ProfileCard
             name={selected.name}
             role={role}
@@ -623,77 +449,36 @@ export function SkyHudMock() {
           />
           <VitalsCard vitalSigns={HUD_MOCK.vitalSigns} copy={copy.hudMock} />
           <TrendsCard trends={HUD_MOCK.quickTrends} copy={copy.hudMock} />
-        </div>
+        </LeftColumn>
 
-        <div className={MOCK_CENTER} data-column="center">
-          <div className={chatOpen ? ORB_STAGE_CHAT : ORB_STAGE}>{orbNode}</div>
+        <CenterColumn>
+          <OrbStage orb={orbNode} chatOpen={chatOpen} thinking={voiceStatus === "connecting"} />
 
-          <div className={GREETING_STACK}>
-            <h1 className={GREETING}>{greeting}</h1>
-            <p id="prompt" className={PROMPT}>
-              {prompt}
-            </p>
-          </div>
+          <GreetingStack greeting={greeting} prompt={prompt} />
 
-          <VoiceWaveform
+          <VoiceWave phase={phase} energyRef={energyRef} chatOpen={chatOpen} />
+
+          <VoiceCluster
             phase={phase}
+            hint={hint}
+            micLabel={copy.watch.speakToSky}
+            live={voiceStatus !== "idle"}
+            chatOpen={chatOpen}
+            reducedMotion={!!reduce}
             energyRef={energyRef}
-            className={chatOpen ? `${VOICE_WAVE} ${VOICE_WAVE_HIDDEN}` : VOICE_WAVE}
+            readSpectrum={readSpectrum}
+            onStart={() => {
+              if (!astronautId) {
+                setPickerOpen(true);
+                return;
+              }
+              if (voiceStatus === "idle") void startVoiceChat();
+            }}
+            onStop={() => void stopVoiceChat()}
+            typeInsteadLabel={copy.watch.typeInstead}
+            typeInsteadAria={copy.hud.typeInsteadAria}
+            onToggleChat={() => setChatOpen((open) => !open)}
           />
-
-          <div className={VOICE_CONTROL}>
-            <div
-              className={chatOpen ? `${VOICE_CLUSTER} ${VOICE_CLUSTER_HIDDEN}` : VOICE_CLUSTER}
-              aria-hidden={chatOpen ? true : undefined}
-              inert={chatOpen ? true : undefined}
-            >
-              {voiceStatus !== "idle" ? (
-                <ListeningBar
-                  onStop={() => void stopVoiceChat()}
-                  energyRef={energyRef}
-                  readSpectrum={readSpectrum}
-                  reducedMotion={!!reduce}
-                />
-              ) : (
-                <VoicePill
-                  size={84}
-                  accentColor="#5eead4"
-                  iconColor="#bfe6ef"
-                  background="#0e2233"
-                  className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
-                  ariaLabel={copy.watch.speakToSky}
-                  onStart={() => {
-                    if (!astronautId) {
-                      setPickerOpen(true);
-                      return;
-                    }
-                    if (voiceStatus === "idle") void startVoiceChat();
-                  }}
-                  onStop={({ reason }) => {
-                    // unmount/disabled are lifecycle noise from VoicePill, not a user stop —
-                    // honoring them would kill the Speech Engine session before it goes live.
-                    if (reason === "unmount" || reason === "disabled") return;
-                    void stopVoiceChat();
-                  }}
-                />
-              )}
-              <div id="voiceHint" className={VOICE_HINT} aria-live="polite">
-                <svg className={VOICE_SIGNAL} viewBox="0 0 16 15" fill="none" aria-hidden="true">
-                  <rect x="1" y="9" width="2.6" height="5" rx="1.3" fill="currentColor" />
-                  <rect x="5.4" y="6" width="2.6" height="8" rx="1.3" fill="currentColor" />
-                  <rect x="9.8" y="3" width="2.6" height="11" rx="1.3" fill="currentColor" />
-                  <rect x="14.2" y="1" width="1.4" height="13" rx="0.7" fill="currentColor" opacity=".55" />
-                </svg>
-                <span>{hint}</span>
-              </div>
-              <TypeInsteadPill
-                label={copy.watch.typeInstead}
-                ariaLabel={copy.hud.typeInsteadAria}
-                pressed={chatOpen}
-                onClick={() => setChatOpen((open) => !open)}
-              />
-            </div>
-          </div>
 
           <InsightBand
             text={insightText}
@@ -702,9 +487,9 @@ export function SkyHudMock() {
             onOpen={() => void navigate({ to: "/performance" })}
             dismissed={chatOpen}
           />
-        </div>
+        </CenterColumn>
 
-        <div className={MOCK_RIGHT} data-column="right">
+        <RightColumn>
           <ReadinessCard readiness={HUD_MOCK.readiness} copy={copy.hudMock} />
           <ReadinessDetail
             fixture={HUD_MOCK}
@@ -714,47 +499,18 @@ export function SkyHudMock() {
             onOpenBody={() => void navigate({ to: "/body" })}
           />
           <MiniCards cards={HUD_MOCK.cards} copy={copy.hudMock} />
-        </div>
+        </RightColumn>
       </div>
 
-      <footer className={FOOTER}>
-        <p className={FOOTER_NOTE}>{copy.chat.footer}</p>
-        <span className={SIMULATED_CHIP} data-testid="simulated-crew-chip">
-          {copy.hudMock.simulatedCrew}
-        </span>
-      </footer>
+      <MockFooter note={copy.chat.footer} chip={copy.hudMock.simulatedCrew} />
 
       {detail ? (
-        <div
-          className={DETAIL_OVERLAY}
-          role="presentation"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) closeDetail();
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="detailTitle"
-            className={DETAIL_GLASS}
-            tabIndex={-1}
-            ref={detailRef}
-          >
-            <button type="button" className={DETAIL_CLOSE} aria-label={copy.hudMock.detailClose} onClick={closeDetail}>
-              ×
-            </button>
-            <div className={DETAIL_EYEBROW}>{detail.eyebrow}</div>
-            <h2 id="detailTitle">{detail.title}</h2>
-            {detail.value ? <p className={DETAIL_VALUE}>{detail.value}</p> : null}
-            <p className={DETAIL_MESSAGE}>{detail.message}</p>
-            {detail.action ? (
-              <button type="button" className={DETAIL_ACTION} onClick={detail.action.onClick}>
-                {detail.action.label}
-              </button>
-            ) : null}
-            <p className={DETAIL_FOOTER}>{detail.footer}</p>
-          </section>
-        </div>
+        <DetailOverlay
+          detail={detail}
+          closeLabel={copy.hudMock.detailClose}
+          onClose={closeDetail}
+          dialogRef={detailRef}
+        />
       ) : null}
 
       {chatOpen ? (

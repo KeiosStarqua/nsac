@@ -1,7 +1,7 @@
 /**
  * ListeningBar — the wide recording pill that replaces the VoicePill orb while the microphone is
  * live (`phase === "listening" | "requesting_permission"`) on the console (`/` mock and
- * `?arch=openui` declarative HUD, `features/hud-gen/catalog.tsx` `MicButton`).
+ * `?arch=openui` declarative HUD, `features/hud-gen/catalog.tsx` `VoiceCluster`).
  *
  * It owns no capture: `useSkyVoice` keeps the one MediaStream, and this component only reads it —
  * `readSpectrum` fills the bars from the analyser, `energyRef` feeds the deterministic fallback used

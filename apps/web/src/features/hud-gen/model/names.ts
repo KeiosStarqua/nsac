@@ -1,27 +1,32 @@
 // The component names the HUD catalog registers, in one place so the agent registry, the composer
 // profile, `model/review.ts` and the catalog tests all read the same list. No React in here.
 
-/** Every component the `features/hud-gen` catalog registers. `Section` is layout chrome; the rest are the HUD parts. */
+/**
+ * Every component the `features/hud-gen` catalog registers. Regions mirror the mock console
+ * (`features/hud-mock/SkyHudMock.tsx`), and the region order below is the order the mock renders:
+ * Header → left column (profile, vitals, trends) → centre column (orb, greeting, wave, voice,
+ * insight) → right column (readiness, tabs, mini cards) → Footer. `Surface` is the root.
+ */
 export const HUD_COMPONENT_NAMES = [
   "Surface",
-  "Section",
-  "BrandBlock",
-  "MissionButton",
-  "HologramButton",
-  "Greeting",
-  "AskPrompt",
-  "MetricRow",
-  "MetricTile",
+  "Header",
+  "LeftColumn",
+  "ProfileCard",
+  "VitalsCard",
+  "TrendsCard",
+  "CenterColumn",
+  "OrbStage",
+  "GreetingStack",
+  "VoiceWave",
+  "VoiceCluster",
+  "InsightBand",
+  "RightColumn",
+  "ReadinessCard",
+  "ReadinessTabs",
+  "MiniCards",
+  "Footer",
   "Fact",
-  "WellnessCard",
   "Alert",
-  "FixtureBadge",
-  "OrbCanvas",
-  "WaveCanvas",
-  "MicButton",
-  "ChatButton",
-  "ChangeAstronautButton",
-  "FooterNote",
 ] as const;
 
 export type HudComponentName = (typeof HUD_COMPONENT_NAMES)[number];
@@ -33,10 +38,7 @@ export type HudFactId = (typeof HUD_FACT_IDS)[number];
 
 /** The action names the catalog registers. The host maps each to its own behavior by type. */
 export const HUD_ACTION_NAMES = [
-  "OpenVital",
-  "OpenWellness",
   "OpenMission",
-  "OpenHologram",
   "ChangeAstronaut",
   "ToggleChat",
   "ToggleMic",
@@ -44,8 +46,3 @@ export const HUD_ACTION_NAMES = [
 ] as const;
 
 export type HudActionName = (typeof HUD_ACTION_NAMES)[number];
-
-/** Vital kinds that may ride the `OpenVital` action payload. */
-export const HUD_VITAL_KINDS = ["heartRate", "respiration", "spo2", "sleep"] as const;
-
-export type HudVitalKind = (typeof HUD_VITAL_KINDS)[number];

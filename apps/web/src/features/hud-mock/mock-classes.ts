@@ -178,6 +178,8 @@ export const ORB_ZONE = [
 
 export const ORB_ZONE_THINKING = "[filter:drop-shadow(0_0_34px_rgba(171,142,255,.33))]";
 
+export const GREETING_STACK = "flex flex-col items-center px-2 text-center";
+
 export const GREETING = [
   "m-0! text-center text-[clamp(19px,2vw,28px)] font-light leading-[1.25] tracking-[.013em] text-[#ecf7ff]",
   "[text-shadow:0_2px_23px_rgba(10,25,62,.6)]",
@@ -188,6 +190,12 @@ export const PROMPT = [
 ].join(" ");
 
 export const VOICE_CONTROL = "flex w-full flex-col items-center";
+
+export const VOICE_WAVE =
+  "block h-[30px] w-[min(100%,260px)] max-[720px]:h-[24px] [transition:opacity_.24s_ease,scale_.24s_ease,translate_.24s_ease] motion-reduce:transition-none";
+
+/** Chat-open state of the waveform: gone, settled back a touch, out of the pointer path. */
+export const VOICE_WAVE_HIDDEN = "pointer-events-none scale-[.92] opacity-0 -translate-y-[4px]";
 
 export const VOICE_HINT = [
   "mt-[8px] inline-flex items-center gap-[9px] whitespace-nowrap text-[15px] font-light text-[#f0f7ff]",

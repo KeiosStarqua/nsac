@@ -46,7 +46,7 @@ export function stringLiterals(source: string): string[] {
 // (the vital "spo2"). These are identifiers, not prose — free text is still digit-free.
 const MACHINE_LITERALS = new Set<string>(HUD_FACT_IDS);
 
-/** True when free text carries a digit. Values may only reach the HUD through Fact/MetricTile ids. */
+/** True when free text carries a digit. Values may only reach the HUD through a Fact id. */
 export const hasDigit = (text: string) => /\p{Nd}/u.test(text);
 
 /** True when a literal is a machine token (a fact id) rather than prose. */
@@ -99,7 +99,7 @@ function rootTypeName(root: unknown): string | null {
 /**
  * Decides whether a finished program may replace the built-in layout. Rejected when it does not parse
  * cleanly against the catalog, writes a digit in free text, uses an unknown component, or references a
- * fact the HUD does not build. Numbers reach the HUD only through Fact/MetricTile refs.
+ * fact the HUD does not build. Numbers reach the HUD only through Fact refs.
  */
 export function reviewProgram(source: string, options: ReviewOptions, parse: ParseProgram): Review {
   const maxChars = options.maxChars ?? MAX_PROGRAM_CHARS;

@@ -411,7 +411,7 @@ Phần còn lại của SDK **vẫn chưa bật** ở đây:
 - **`openui-program`** (generative-ui, hud-composer): `validateProgram()` / `reviewProgram()` —
   1. strip code fences; rỗng ⇒ `empty`
   2. quá `maxChars` (4000) ⇒ `too_long`
-  3. **chữ số trong program ⇒ `digit_in_text`** — số chỉ vào UI qua `Fact`/`MetricTile` id
+  3. **chữ số trong program ⇒ `digit_in_text`** — số chỉ vào UI qua `Fact` id
      (`heartRate`, `respiration`, `spo2`, `sleep`, `missionDay`), resolve lúc render
   4. mọi `PascalCase` token phải thuộc allow-list (REACT_BITS_NAMES / HUD_COMPONENT_NAMES /
      surface allow-list) ⇒ `unknown_component`

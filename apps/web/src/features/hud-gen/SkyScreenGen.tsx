@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
-import Galaxy from "../../shared/react-bits/Galaxy/Galaxy";
-import Particles from "../../shared/react-bits/Particles/Particles";
-import { DETAIL_ACTION, DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY, DETAIL_VALUE, CHAT_OVERRIDE_CHIP, SKY_APP, SPACE_VIGNETTE } from "../sky-hud/hud-classes";
+import { CHAT_OVERRIDE_CHIP } from "../sky-hud/hud-classes";
 import { useSkyVoice } from "../sky-hud/useSkyVoice";
 import { agentStateForVoicePhase } from "../sky-hud/agent-state";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
-import { PHASE_TEXT, MIC_ARIA } from "../sky-hud/voiceCopy";
+import { PHASE_TEXT } from "../sky-hud/voiceCopy";
 import { SkyOrb } from "../sky-hud/SkyOrb";
-import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
 import { DETAILS, VITAL_DETAILS } from "../sky-hud/vitals";
+import type { VitalKind } from "../sky-hud/types";
 import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, releaseAllClaims, getOrCreateSessionId, takenIdsOf, normalizeAstronautId, useClaimHeartbeat, useClaimsWatcher, CLAIMS_EPOCH_STORAGE_KEY } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
 import { SkyChatPanel } from "../sky-hud/components/SkyChatPanel";
@@ -24,27 +22,23 @@ import { HudScopeProvider, type HudScopeValue } from "./scope";
 import { buildHudFacts } from "./model/facts";
 import { hudPreset } from "./presets";
 import { MAX_PROGRAM_CHARS, reviewProgram } from "./model/review";
-import { HUD_COMPONENT_NAMES, HUD_VITAL_KINDS } from "./model/names";
+import { HUD_COMPONENT_NAMES } from "./model/names";
 import { composeHud } from "~/features/agent/api/hud-compose.functions";
-import type { VitalKind } from "../sky-hud/types";
 import { useHudBackground } from "../hud-bg";
+import { HudBackdrop, DetailOverlay } from "../hud-mock";
+import type { DetailDialogProps } from "../hud-mock";
+import { MOCK_ROOT, MOCK_VIGNETTE } from "../hud-mock/mock-classes";
 
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
-interface DetailDialogProps {
-  title: string;
-  value?: string;
-  message: string;
-  eyebrow: string;
-  footer: string;
-  action?: { label: string; onClick: () => void };
-}
-
 /**
  * The declarative SKY HUD (`?arch=openui`) with its ENTIRE display tree declared as OpenUI Lang
- * (@openuidev/react-lang, pinned 1.1.0) against the purpose-built catalog in `catalog.tsx`.
- * Data comes from fixtures + astronaut claims + locale at render time; values reach the tree only
- * through Fact/MetricTile resolved from the HUD facts builder — never as literals in the program.
+ * (@openuidev/react-lang, pinned 1.1.0) against the catalog in `catalog.tsx`.
+ *
+ * The catalog renders the mock console's own modules (`features/hud-mock/components/*`) and classes,
+ * so this screen and `/` (`SkyHudMock`) are one design: same header, grid, cards, copy and fixture.
+ * Only the gen chrome (the "Back to Sky's view" chip) and the voice path (`useSkyVoice` here,
+ * ElevenLabs Speech Engine on `/`) differ.
  *
  * The preset is the primary path. The `sky-hud-composer` agent (per-astronaut PI SDK session,
  * `var/sky-sessions/<id>.hud.jsonl`) may replace it after review passes; on any failure the preset
@@ -84,7 +78,6 @@ export function SkyScreenGen() {
   const [roster, setRoster] = useState(() => [...ASTRONAUTS]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [claims, setClaims] = useState<ClaimEntry[]>([]);
-  const [claimsReachable, setClaimsReachable] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState(false);
   const sessionIdRef = useRef<string | null>(null);
@@ -102,7 +95,6 @@ export function SkyScreenGen() {
   const [composeHintDismissed, setComposeHintDismissed] = useState(false);
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
-  const conversationCopyRef = useRef<HTMLDivElement | null>(null);
 
   const { phase, energyRef, toggle, readEnergy, readSpectrum } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
   const orbState = agentStateForVoicePhase(phase);
@@ -149,9 +141,8 @@ export function SkyScreenGen() {
     try {
       const res = await listClaims({ data: { sessionId: sid } });
       setClaims(Array.isArray(res?.claims) ? res.claims : []);
-      setClaimsReachable(res?.reachable !== false);
     } catch {
-      setClaimsReachable(false);
+      /* backend unreachable → claims simply not enforced */
     }
   }, []);
 
@@ -165,7 +156,6 @@ export function SkyScreenGen() {
         if (!alive) return;
         const list = Array.isArray(res?.claims) ? res.claims : [];
         setClaims(list);
-        setClaimsReachable(res?.reachable !== false);
         // Pre-HUD gate: localStorage giữ astronaut mà claims nói đã bị session KHÁC giữ
         // (claim cũ từ session đã wipe) → xóa và mở picker, không khóa khung shell mãi.
         // Claims unreachable → giữ nguyên hành vi cũ (tin localStorage).
@@ -251,7 +241,7 @@ export function SkyScreenGen() {
         }
       })
       .catch(() => {
-        if (alive) setClaimsReachable(false);
+        /* backend unreachable → claims not enforced */
       });
     return () => {
       alive = false;
@@ -263,15 +253,11 @@ export function SkyScreenGen() {
     if (typeof window === "undefined") return;
     let frame = 0;
     let last = 0;
-    let elapsed = 0;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const tick = (now: number) => {
       frame = requestAnimationFrame(tick);
       if (document.hidden) return;
       if (now - last < 33) return;
-      const delta = last ? Math.min((now - last) / 1000, 0.06) : 0.033;
       last = now;
-      elapsed += delta;
       readEnergy();
     };
     frame = requestAnimationFrame(tick);
@@ -424,25 +410,15 @@ export function SkyScreenGen() {
     setOverrideProgram(null);
   }, []);
 
+  // Same crew fallback the mock uses: the crew member always has a profile, even before a claim.
+  const shown = selectedAstronaut ?? findAstronaut(ASTRONAUTS[0]!.id, roster) ?? ASTRONAUTS[0]!;
+
   const facts = useMemo(buildHudFacts, []);
   const orbNode = useMemo(() => <SkyOrb state={orbState} />, [orbState]);
-  const waveNode = useMemo(() => <VoiceWaveform phase={phase} energyRef={energyRef} />, [phase, energyRef]);
-
-  const captions =
-    phase === "listening" ? copy.hud.captionsListening : phase === "error" ? copy.hud.captionsError : "";
 
   const handleAction = useCallback(
     (event: { type: string; params?: Record<string, unknown> }) => {
       switch (event.type) {
-        case "OpenVital": {
-          const kind = event.params?.kind;
-          if (typeof kind !== "string" || !(HUD_VITAL_KINDS as readonly string[]).includes(kind)) return;
-          openDetail({ ...VITAL_DETAILS[kind as VitalKind], footer: DEFAULT_FOOTER });
-          return;
-        }
-        case "OpenWellness":
-          openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER });
-          return;
         case "OpenMission":
           openDetail({
             ...DETAILS.mission,
@@ -456,9 +432,6 @@ export function SkyScreenGen() {
               },
             },
           });
-          return;
-        case "OpenHologram":
-          void navigate({ to: "/body" });
           return;
         case "ChangeAstronaut":
           setClaimError(false);
@@ -477,84 +450,43 @@ export function SkyScreenGen() {
           break;
       }
     },
-    [copy, openDetail, closeDetail, navigate, toggle],
+    [copy, openDetail, closeDetail, toggle],
   );
 
   const scope = useMemo<HudScopeValue>(
     () => ({
       copy,
-      locale,
       facts,
-      missionLabel: DETAILS.mission.value,
+      astronaut: {
+        id: shown.id,
+        name: shown.name,
+        initial: shown.initial,
+        role: shown.role,
+      },
       fx,
       phase,
       hint,
-      micAria: MIC_ARIA[phase],
       energyRef,
       readSpectrum,
-      captions,
       greeting,
       prompt,
       chatOpen,
-      pickerOpen,
       composeOrigin: agentProgram ? "agent" : "preset",
       composeHint: copy.hud.composeHint,
       composeHintDismissed,
-      conversationCopyRef,
       orbNode,
-      waveNode,
       resetView,
       onAction: handleAction,
     }),
-    [copy, locale, facts, fx, phase, hint, energyRef, readSpectrum, captions, greeting, prompt, chatOpen, pickerOpen, agentProgram, composeHintDismissed, orbNode, waveNode, resetView, handleAction],
+    [copy, facts, shown, fx, phase, hint, energyRef, readSpectrum, greeting, prompt, chatOpen, agentProgram, composeHintDismissed, orbNode, resetView, handleAction],
   );
 
   const program = overrideProgram ?? agentProgram ?? hudPreset(locale);
 
   return (
-    <main className={SKY_APP} data-phase={phase} aria-label="SKY astronaut wellness overview">
-      {bg === "galaxy" ? (
-        <div className="absolute inset-0 z-0" aria-hidden="true">
-          <Galaxy
-            starColors={["#ffffff", "#78eaff", "#c8aaff"]}
-            twinkleIntensity={0.5}
-            glowIntensity={0.5}
-            flareIntensity={0.4}
-            density={0.85}
-            starSpeed={0.5}
-            saturation={0.55}
-            mouseInteraction={true}
-            dpr={1}
-            transparent
-            opacity={0.9}
-            intro={fx}
-          />
-        </div>
-      ) : (
-        <div className="absolute inset-0 z-0" aria-hidden="true">
-          <Particles
-            particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}
-            particleCount={220}
-            particleSpread={9}
-            speed={0.075}
-            particleBaseSize={110}
-            sizeRandomness={1}
-            cameraDistance={22}
-            glow={0.6}
-            twinkle={0.55}
-            depthOfField={0}
-            alphaParticles={false}
-            connections={false}
-            hoverEffect="parallax"
-            particleHoverFactor={0.8}
-            clickBurst={false}
-            drift="none"
-            intro={true}
-            opacity={0.9}
-          />
-        </div>
-      )}
-      <div className={SPACE_VIGNETTE} aria-hidden="true" />
+    <main className={MOCK_ROOT} data-phase={phase} data-agent-state={orbState} aria-label="SKY astronaut wellness overview">
+      <HudBackdrop bg={bg} fx={fx} />
+      <div className={MOCK_VIGNETTE} aria-hidden="true" />
 
       {isWatch ? (
         <WatchHud
@@ -567,32 +499,22 @@ export function SkyScreenGen() {
             setClaimError(false);
             setPickerOpen(true);
           }}
-          onVital={(kind) => openDetail({ ...VITAL_DETAILS[kind], footer: DEFAULT_FOOTER })}
+          onVital={(kind: VitalKind) => openDetail({ ...VITAL_DETAILS[kind], footer: DEFAULT_FOOTER })}
           onHealth={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}
         />
       ) : (
         <HudScopeProvider value={scope}>
           <Renderer.Root response={program} library={hudLibrary} isStreaming={false} onAction={handleAction}>
-            <Renderer.Content style={{ position: "static" }} />
+            {/* `contents`: the renderer's wrapper must not become a flex box inside MOCK_ROOT — the
+                tree's header/grid/footer are the console's own flex children (same layout as `/`). */}
+            <Renderer.Content className="contents" />
           </Renderer.Root>
         </HudScopeProvider>
       )}
 
-      {/* Detail overlay */}
+      {/* Detail overlay — the mock's own dialog. */}
       {detail ? (
-        <div className={DETAIL_OVERLAY} role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeDetail(); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="detailTitle" className={DETAIL_GLASS} tabIndex={-1} ref={detailRef}>
-            <button type="button" id="detailClose" className={DETAIL_CLOSE} aria-label="Close details" onClick={closeDetail}>×</button>
-            <div id="detailEyebrow" className={DETAIL_EYEBROW}>{detail.eyebrow}</div>
-            <h2 id="detailTitle">{detail.title}</h2>
-            {detail.value ? <p id="detailValue" className={DETAIL_VALUE}>{detail.value}</p> : null}
-            <p id="detailMessage" className={DETAIL_MESSAGE}>{detail.message}</p>
-            {detail.action ? (
-              <button type="button" className={DETAIL_ACTION} onClick={detail.action.onClick}>{detail.action.label}</button>
-            ) : null}
-            <p id="detailFooter" className={DETAIL_FOOTER}>{detail.footer}</p>
-          </section>
-        </div>
+        <DetailOverlay detail={detail} closeLabel={copy.hudMock.detailClose} onClose={closeDetail} dialogRef={detailRef} />
       ) : null}
 
       {/* Text chat — the same AI Elements overlay as the `/` mock console. */}

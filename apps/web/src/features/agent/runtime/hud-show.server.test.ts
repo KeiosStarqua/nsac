@@ -4,12 +4,12 @@ import { reviewProgram } from "~/features/hud-gen/model/review";
 import { HUD_COMPONENT_NAMES } from "~/features/hud-gen/model/names";
 import { parseHudProgram } from "~/features/hud-gen/catalog";
 
-// A minimal program the HUD catalog accepts: one Surface, one FooterNote, no digits.
+// A minimal program the HUD catalog accepts: one Surface, one Footer, no digits.
 const VALID = `root = Surface([footer])
-footer = FooterNote()`;
+footer = Footer()`;
 
 // Wrong root: reviewProgram rejects it before anything reaches the HUD.
-const WRONG_ROOT = `root = FooterNote()`;
+const WRONG_ROOT = `root = Footer()`;
 
 const brief = (params: unknown) => ({ brief: params });
 

@@ -148,25 +148,18 @@ function evictOldestProgram(now: number) {
 }
 
 function briefFor(locale: Locale): string {
+  const layout = [
+    "Keep the reference console layout: a Header, then three columns —",
+    "LeftColumn (ProfileCard, VitalsCard, TrendsCard),",
+    "CenterColumn (OrbStage, GreetingStack, VoiceWave, VoiceCluster, InsightBand),",
+    "RightColumn (ReadinessCard, ReadinessTabs, MiniCards) — then Footer.",
+    "Use the SAME layout skeleton as the reference preset: Surface([header, left, center, right, footer]).",
+    "You may reorder or omit cards inside a column, but do not invent markup.",
+    "All copy and values resolve at render time; write no digits.",
+  ].join(" ");
   return locale === "vi"
-    ? [
-        "Compose the astronaut HUD in Vietnamese: the SKY wordmark and tagline, the mission trigger,",
-        "the hologram entry, a greeting and ask prompt, four vitals tiles (heart rate, respiration,",
-        "oxygen saturation, sleep), the overall wellness card, the conversation area with the orb and",
-        "the waveform, a microphone row with a typed-input button, the simulated-data flag and the",
-        "footer disclaimer. Use the SAME layout skeleton as the reference: Surface with Section",
-        "regions in this order — header, vitals, conversation, health, voice — plus FooterNote.",
-        "All values resolve by Fact/MetricTile id at render time; write no digits.",
-      ].join(" ")
-    : [
-        "Compose the astronaut HUD in English: the SKY wordmark and tagline, the mission trigger,",
-        "the hologram entry, a greeting and ask prompt, four vitals tiles (heart rate, respiration,",
-        "oxygen saturation, sleep), the overall wellness card, the conversation area with the orb and",
-        "the waveform, a microphone row with a typed-input button, the simulated-data flag and the",
-        "footer disclaimer. Use the SAME layout skeleton as the reference: Surface with Section",
-        "regions in this order — header, vitals, conversation, health, voice — plus FooterNote.",
-        "All values resolve by Fact/MetricTile id at render time; write no digits.",
-      ].join(" ");
+    ? `Soạn HUD phi hành gia bằng tiếng Việt. ${layout}`
+    : `Compose the astronaut HUD in English. ${layout}`;
 }
 
 export async function composeHud(astronautIdRaw: string, localeRaw: string): Promise<ComposeHudResult> {
@@ -198,7 +191,7 @@ export async function composeHud(astronautIdRaw: string, localeRaw: string): Pro
   const instruction = [
     `Astronaut: ${ctx.name} (${ctx.role}, callsign ${ctx.callsign}).`,
     `Language: every text in the program in ${language}.`,
-    "Simulated fixtures resolve by Fact/MetricTile id at render time: heartRate, respiration, spo2, sleep, missionDay.",
+    "Simulated fixtures resolve at render time inside the console cards; a bare value may only use a Fact id (heartRate, respiration, spo2, sleep, missionDay).",
     briefFor(locale),
     "Output only the program. No commentary. No digits in any text.",
   ].join("\n");

@@ -1,9 +1,15 @@
 // The HUD catalog: the declarative vocabulary SkyScreenGen's display tree is written in.
 //
+// The catalog is a thin shell over the mock console's own presentational modules — it does NOT
+// re-implement the layout. Every region component below renders the same module `/` renders
+// (`features/hud-mock/components/*`) and every style string comes from `features/hud-mock/mock-classes.ts`,
+// so the two screens cannot drift. `features/hud-gen/model/preset-parity.test.ts` guards the order.
+//
 // Rules that hold everywhere in this file, same as the rest of Sky:
-//   - components are thin and read ALL data from HudScopeContext (facts, copy, phase, nodes);
-//     no string or digit reaches a program;
-//   - values reach the screen only through Fact/MetricTile, resolved from the HUD facts builder;
+//   - components read ALL data from HudScopeContext (copy, fixture, phase, nodes); no string or digit
+//     reaches a program. The fixture (`HUD_MOCK`) and `copy.hudMock` are the same sources `/` reads;
+//   - `Fact` is the only way a bare value can be shown outside a mock card, and it resolves through
+//     the fixture-backed facts builder, never from program text;
 //   - buttons fire host-provided actions by calling `useHudScope().onAction` directly (see
 //     HUD_ACTION_NAMES); the host validates the payload and maps each action to a behavior; actions
 //     carry no state, the crew confirms every action. The action types stay registered with
@@ -12,65 +18,46 @@
 //     `schema.actions` (it returns before calling the renderer's `onAction`), so routing through the
 //     scope is the only path that reaches the host.
 //
-// `Section` is the only layout component: the HUD is absolutely positioned by the shared Tailwind
-// class strings in `features/sky-hud/hud-classes.ts`, and the section wrappers are what anchors it.
-// It partitions its children for the conversation area (orb and waveform slots) and renders each
-// region with exactly the utilities of the reference HUD composition, so it stays identical.
+// `Surface` is the root. Regions map 1:1 onto the mock: Header → grid (LeftColumn | CenterColumn |
+// RightColumn) → Footer, and each column hosts the same cards the mock composes there.
 import { createLibrary, createParser, defineAction, defineComponent } from "@openuidev/react-lang";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { Fragment } from "react";
-import type { ReactNode } from "react";
 import { z } from "zod/v4";
-import BlurText from "~/shared/react-bits/BlurText/BlurText";
-import CountUp from "~/shared/react-bits/CountUp/CountUp";
-import DecryptedText from "~/shared/react-bits/DecryptedText/DecryptedText";
-import DepthText from "~/shared/react-bits/DepthText/DepthText";
-import GradientText from "~/shared/react-bits/GradientText/GradientText";
-import ShinyText from "~/shared/react-bits/ShinyText/ShinyText";
-import VariableProximity from "~/shared/react-bits/VariableProximity/VariableProximity";
-import VoicePill from "~/shared/react-bits/VoicePill/VoicePill";
-// The vendored react-bits sources are @ts-nocheck; their inferred prop types demand props the
-// runtime never requires (e.g. dpr/style/fromColor/onAnimationComplete fall back to defaults).
-// Alias them to any at the boundary so the rest of this file stays type-checked.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { hasDigit, type ParseProgram } from "./model/review";
-import { HUD_FACT_IDS, HUD_VITAL_KINDS } from "./model/names";
-import { FIXTURE_LABEL } from "~/features/sky-hud/vitals";
-import { DeviceSwitcher } from "~/features/sky-hud/components/DeviceSwitcher";
-import { HoloCredit, HologramBody, ListeningBar, TypeInsteadPill } from "~/features/sky-hud/components";
+import { HUD_FACT_IDS } from "./model/names";
 import { useHudScope } from "./scope";
+import { HUD_MOCK } from "~/features/hud-mock/model/fixture";
+import { buildInsightText } from "~/features/hud-mock/model/insight";
+import { roleLabel } from "~/features/hud-mock/model/roles";
 import {
-  BRAND, BRAND_COPY, BRAND_NAME, BRAND_RING, BRAND_TAGLINE, CAPTIONS, CONVERSATION,
-  CONVERSATION_COPY, DEMO_INDICATOR, DETAIL_ACTION,
-  HEALTH_DEMO, HEALTH_GUIDANCE, HEALTH_LABEL, HEALTH_PROJECTION, HEALTH_SHIELD, HEALTH_STATUS,
-  HEALTH_SUMMARY, HOLOGRAM_LINK, MISSION_TEXT, MISSION_TRIGGER,
-  MISSION_UNDERLINE, ORB_ZONE, ORB_ZONE_THINKING, SKY_HEADER, SKY_HEADER_ACTIONS,
-  SPACECRAFT_LINK, STATION_ICON, VITAL_ICON, VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE,
-  VITALS_PROJECTION, VITALS_SHIELD, VOICE_CLUSTER, VOICE_CLUSTER_DIMMED, VOICE_CONTROL, VOICE_HINT,
-  VOICE_SIGNAL,
-} from "~/features/sky-hud/hud-classes";
+  CenterColumn,
+  GreetingStack as MockGreetingStack,
+  InsightBand as MockInsightBand,
+  LeftColumn,
+  MiniCards as MockMiniCards,
+  MockFooter,
+  MockHeader,
+  OrbStage as MockOrbStage,
+  ProfileCard as MockProfileCard,
+  ReadinessCard as MockReadinessCard,
+  ReadinessDetail as MockReadinessDetail,
+  RightColumn,
+  TrendsCard as MockTrendsCard,
+  VitalsCard as MockVitalsCard,
+  VoiceCluster as MockVoiceCluster,
+  VoiceWave as MockVoiceWave,
+} from "~/features/hud-mock";
+import { MOCK_GRID } from "~/features/hud-mock/mock-classes";
+import { HoloCredit, HologramBody } from "~/features/sky-hud/components";
 
-// ---- hud-gen-only classes (were catalog.module.css) --------------------------------------------
+// ---- hud-gen-only classes ------------------------------------------------------------------------
 
-/** Groups the four tiles without affecting layout (display: contents). */
-const METRIC_ROW = "contents";
-
-/** Mirrors the reference tiles' lilac sleep accent so an agent may reorder the tiles. */
-const VITAL_VIOLET =
-  "[&_.vital-icon]:text-[#f0d1ff] [&_.vital-icon]:after:border-[#c19dfd] [&_.vital-icon]:after:drop-shadow-[0_0_5px_#af8dff]";
-
-/** Generic Fact(id) row for moments the HUD shows a bare sourced value inline. */
+/** Generic Fact(id) row for moments a composed tree shows a bare sourced value inline. */
 const HUD_GEN_FACT =
   "inline-flex items-baseline gap-[6px] text-[14px] font-light text-[#edf8ff] [&_small]:text-[11px] [&_small]:text-[#a8bbce]";
 
-/** Footer disclaimer, always visible. */
-const HUD_GEN_FOOTER_NOTE = [
-  "pointer-events-none absolute bottom-[10px] left-1/2 z-[11] m-0 [transform:translateX(-50%)]",
-  "whitespace-nowrap! text-[10px] tracking-[.04em] text-[rgba(168,187,206,.62)]",
-  "max-[720px]:bottom-[6px] max-[720px]:text-[9px]",
-].join(" ");
-
-/** One-line hint shown only when the agent composed the active layout. */
+/** One-line hint shown only when the agent composed the active layout (gen chrome, not the mock). */
 const HUD_GEN_COMPOSE_HINT = [
   "absolute bottom-[28px] left-1/2 z-[11] inline-flex max-w-[90vw] cursor-pointer items-center gap-[8px]",
   "[transform:translateX(-50%)] rounded-full! border border-[rgba(115,219,255,.28)] bg-[rgba(8,34,66,.72)]",
@@ -80,13 +67,15 @@ const HUD_GEN_COMPOSE_HINT = [
   "max-[720px]:hidden",
 ].join(" ");
 
-/** Plain callout — deliberately not the vendored Arc Alert (Arc stays unused in the HUD by contract). */
+/** Plain callout for composed trees — deliberately not the vendored Arc Alert (Arc stays unused). */
 const HUD_GEN_ALERT = [
   "my-[8px] flex max-w-[320px] flex-col gap-[3px] rounded-[14px] border",
   "border-[rgba(115,219,255,.3)] bg-[rgba(9,36,68,.55)] px-[14px] py-[10px]",
   "text-[12px] font-light leading-[1.45] text-[#c9e6f5]",
   "[&_strong]:text-[13px] [&_strong]:font-medium [&_strong]:text-[#eaffff]",
 ].join(" ");
+
+const ALERT_TONES = ["info", "caution", "success", "danger"] as const;
 
 const HUD_GEN_ALERT_TONE: Record<(typeof ALERT_TONES)[number], string> = {
   info: "border-l-2 border-l-[#78eaff]",
@@ -98,51 +87,11 @@ const HUD_GEN_ALERT_TONE: Record<(typeof ALERT_TONES)[number], string> = {
 // Program-facing guard. The review also rejects digits in free text; this keeps streamed drafts safe.
 const safeText = (text: string | undefined) => (text && !hasDigit(text) ? text : null);
 
-const ALERT_TONES = ["info", "caution", "success", "danger"] as const;
-
-const SECTION_AREAS = ["header", "vitals", "conversation", "health", "voice"] as const;
-type SectionArea = (typeof SECTION_AREAS)[number];
-
-const VITAL_ICON_SVGS: Record<(typeof HUD_VITAL_KINDS)[number], ReactNode> = {
-  heartRate: (
-    <svg viewBox="0 0 56 56" fill="none"><path d="M28 43 15.5 30.7C5.5 20.6 20.3 9.2 28 21c7.7-11.8 22.5-.4 12.5 9.7L28 43Z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" /></svg>
-  ),
-  respiration: (
-    <svg viewBox="0 0 56 56" fill="none"><path d="M27.5 13v21m1-18 5-4m-5 12 5-6m-7 1-4-6M24 28c-2-5-3-7-5-6-6 1-11 14-8 21 2 5 10 4 14-1l1-11m5-3c2-5 3-7 5-6 6 1 11 14 8 21-2 5-10 4-14-1l-1-11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-  ),
-  spo2: (
-    <>
-      O<sub>2</sub>
-    </>
-  ),
-  sleep: (
-    <svg viewBox="0 0 56 56" fill="none"><path d="M39.8 39.2C29.2 45.6 15.5 39 13.6 26.5c-1-7.1 2.4-13.6 8.4-17.4-1.4 13.2 6.4 22.5 19.1 19-1.1 4.8-5 8.5-1.3 11.1Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" /></svg>
-  ),
-};
-
 // ---- Actions -------------------------------------------------------------------------------------
-
-export const openVital = defineAction({
-  name: "OpenVital",
-  description: "Open the detail dialog for one vital. Payload kind is one of the HUD vitals.",
-  params: z.object({ kind: z.enum(HUD_VITAL_KINDS) }),
-});
-
-export const openWellness = defineAction({
-  name: "OpenWellness",
-  description: "Open the overall wellness detail dialog.",
-  params: z.object({}),
-});
 
 export const openMission = defineAction({
   name: "OpenMission",
   description: "Open the mission context detail dialog.",
-  params: z.object({}),
-});
-
-export const openHologram = defineAction({
-  name: "OpenHologram",
-  description: "Navigate to the body hologram page.",
   params: z.object({}),
 });
 
@@ -170,132 +119,185 @@ export const dismissComposeHint = defineAction({
   params: z.object({}),
 });
 
-// ---- Leaf components ------------------------------------------------------------------------------
+// ---- Region components (thin wrappers over the mock's own modules) --------------------------------
 
-const BrandBlock = defineComponent({
-  name: "BrandBlock",
-  description: "The SKY wordmark and tagline. Activating returns to the overview.",
+const Header = defineComponent({
+  name: "Header",
+  description: "The console header: brand mark, mission chip, Console | Watch, locale and spacecraft chips.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
     return (
-      <button className={BRAND} type="button" aria-label={ctx.copy.hud.brandAria} onClick={ctx.resetView}>
-        <span className={BRAND_RING} aria-hidden="true" />
-        <span className={BRAND_COPY}>
-          <span className={BRAND_NAME}><DepthText text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
-          <span className={BRAND_TAGLINE}><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12}>{ctx.copy.hud.tagline}</ShinyText></span>
-        </span>
-      </button>
+      <MockHeader
+        copy={ctx.copy}
+        onBrand={ctx.resetView}
+        onMission={() => ctx.onAction?.({ type: "OpenMission", params: {} })}
+      />
     );
   },
 });
 
-const MissionButton = defineComponent({
-  name: "MissionButton",
-  description: "Mission trigger: the demo mission label. Opens the mission dialog.",
+const ProfileCardRegion = defineComponent({
+  name: "ProfileCard",
+  description: "Astronaut Profile card: simulated portrait, roster name + role, change-astronaut handler.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
     return (
-      <button className={MISSION_TRIGGER} type="button" aria-label={ctx.copy.hud.missionAria} onClick={() => ctx.onAction?.({ type: "OpenMission", params: {} })}>
-        <span className={STATION_ICON} aria-hidden="true">
-          <svg viewBox="0 0 44 36" fill="none">
-            <path d="m18 16 8-2M18 21l8-2M15 8l5 10-5 10M28 6l-5 11 5 11M3 12l11-5 4 6-12 5zM31 14l10-5-3 12-9 4z" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M11 8 5 23m31-13-7 17M4 6l7 25m28-24-7 25" stroke="currentColor" strokeWidth="1" />
-          </svg>
-        </span>
-        <span className={MISSION_TEXT}>{ctx.missionLabel}</span>
-        <span className={MISSION_UNDERLINE} aria-hidden="true" />
-      </button>
+      <MockProfileCard
+        name={ctx.astronaut.name}
+        role={roleLabel(ctx.astronaut.role, ctx.copy.hudMock.roles)}
+        initials={ctx.astronaut.initial}
+        avatarSrc={`/astronauts/${ctx.astronaut.id}.png`}
+        copy={ctx.copy.hudMock}
+        changeLabel={ctx.copy.astronaut.change}
+        onChange={() => ctx.onAction?.({ type: "ChangeAstronaut", params: {} })}
+      />
     );
   },
 });
 
-const HologramButton = defineComponent({
-  name: "HologramButton",
-  description: "The body-hologram entry: navigates to the anatomy page.",
+const VitalsCardRegion = defineComponent({
+  name: "VitalsCard",
+  description: "Vital Signs card: the fixture's five rows with their inline sparklines.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    return (
-      <>
-        <Link id="hologramButton" to="/body" className={HOLOGRAM_LINK} aria-label={ctx.copy.hud.hologramAria}>
-          {/* Same contract as the mock console card: skin shell + skeleton in 3D when the browser can
-              draw it, the drawn figure on SSR/first paint and whenever WebGL or the GLB fails. */}
-          <HologramBody reducedMotion={!ctx.fx} />
-        </Link>
-        {/* CC BY 4.0: the Open Anatomy model's credit stays on the card that shows it. */}
-        <HoloCredit />
-      </>
-    );
+    return <MockVitalsCard vitalSigns={HUD_MOCK.vitalSigns} copy={ctx.copy.hudMock} />;
   },
 });
 
-const Greeting = defineComponent({
-  name: "Greeting",
-  description: "The greeting headline for the followed crew member.",
+const TrendsCardRegion = defineComponent({
+  name: "TrendsCard",
+  description: "Quick Trends card: heart-rate sparkline, sleep bar, activity strip.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    return (
-      <h1 id="greeting">
-        {ctx.fx ? <BlurText text={ctx.greeting} animationFrom={{ filter: "blur(10px)", opacity: 0 }} animationTo={[{ filter: "blur(0px)", opacity: 1 }]} color="#ecf7ff" easing="easeOut" /> : ctx.greeting}
-      </h1>
-    );
+    return <MockTrendsCard trends={HUD_MOCK.quickTrends} copy={ctx.copy.hudMock} />;
   },
 });
 
-const AskPrompt = defineComponent({
-  name: "AskPrompt",
-  description: "The open question under the greeting.",
+const OrbStageRegion = defineComponent({
+  name: "OrbStage",
+  description: "The voice orb stage. Renders the host's orb node with the mock's stage and glow classes.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
+    const thinking =
+      ctx.phase === "requesting_permission" || ctx.phase === "transcribing" || ctx.phase === "thinking";
+    return <MockOrbStage orb={ctx.orbNode} chatOpen={ctx.chatOpen} thinking={thinking} />;
+  },
+});
+
+const GreetingStackRegion = defineComponent({
+  name: "GreetingStack",
+  description: "The greeting headline and the open question under it.",
+  props: z.object({}),
+  component: () => {
+    const ctx = useHudScope();
+    return <MockGreetingStack greeting={ctx.greeting} prompt={ctx.prompt} />;
+  },
+});
+
+const VoiceWaveRegion = defineComponent({
+  name: "VoiceWave",
+  description: "The voice waveform strip between the greeting and the mic control.",
+  props: z.object({}),
+  component: () => {
+    const ctx = useHudScope();
+    return <MockVoiceWave phase={ctx.phase} energyRef={ctx.energyRef} chatOpen={ctx.chatOpen} />;
+  },
+});
+
+const VoiceClusterRegion = defineComponent({
+  name: "VoiceCluster",
+  description: "The mic control (pill / listening bar), the live hint line and the Type-instead pill.",
+  props: z.object({}),
+  component: () => {
+    const ctx = useHudScope();
+    const live = ctx.phase === "listening" || ctx.phase === "requesting_permission";
     return (
-      <p id="prompt">
-        <VariableProximity label={ctx.prompt} containerRef={ctx.conversationCopyRef} radius={60} />
-      </p>
+      <MockVoiceCluster
+        phase={ctx.phase}
+        hint={ctx.hint}
+        micLabel={ctx.copy.watch.speakToSky}
+        live={live}
+        chatOpen={ctx.chatOpen}
+        reducedMotion={!ctx.fx}
+        energyRef={ctx.energyRef}
+        readSpectrum={ctx.readSpectrum}
+        onStart={() => ctx.onAction?.({ type: "ToggleMic", params: {} })}
+        onStop={() => ctx.onAction?.({ type: "ToggleMic", params: {} })}
+        typeInsteadLabel={ctx.copy.watch.typeInstead}
+        typeInsteadAria={ctx.copy.hud.typeInsteadAria}
+        onToggleChat={() => ctx.onAction?.({ type: "ToggleChat", params: {} })}
+      />
     );
   },
 });
 
-const MetricTile = defineComponent({
-  name: "MetricTile",
-  description: "One vitals tile: the demo icon and the fact's value. tone=\"violet\" tints the sleep tile.",
-  props: z.object({
-    fact: z.enum(HUD_VITAL_KINDS).describe("Which fact the tile shows"),
-    tone: z.enum(["violet"]).optional().describe("Optional violet accent (sleep)"),
-  }),
-  component: ({ props }) => {
+const InsightBandRegion = defineComponent({
+  name: "InsightBand",
+  description: "The deterministic insight sentence under the centre column; opens Human Performance.",
+  props: z.object({}),
+  component: () => {
     const ctx = useHudScope();
-    const fact = ctx.facts[props.fact];
+    const navigate = useNavigate();
     return (
-      <button
-        type="button"
-        className={props.tone === "violet" ? `${VITAL_TILE} ${VITAL_VIOLET}` : VITAL_TILE}
-        aria-label={fact.aria}
-        onClick={() => ctx.onAction?.({ type: "OpenVital", params: { kind: props.fact } })}
-      >
-        <span className={props.fact === "spo2" ? `${VITAL_ICON} ${VITAL_ICON_OXYGEN}` : VITAL_ICON} aria-hidden="true">
-          {VITAL_ICON_SVGS[props.fact]}
-        </span>
-        <span className={VITAL_VALUE}>
-          {fact.segments.map((segment, index) => (
-            <Fragment key={index}>
-              {index > 0 ? " " : null}
-              {ctx.fx ? <CountUp to={Number(segment.value)} trigger="load" duration={1.2} decimals={0} /> : segment.value}{" "}
-              {segment.unit ? <small>{segment.unit}</small> : null}
-            </Fragment>
-          ))}
-        </span>
-      </button>
+      <MockInsightBand
+        text={buildInsightText(ctx.copy.hudMock.insightText)}
+        kicker={ctx.copy.hudMock.insightKicker}
+        ariaLabel={ctx.copy.hudMock.insightOpen}
+        onOpen={() => void navigate({ to: "/performance" })}
+        dismissed={ctx.chatOpen}
+      />
     );
+  },
+});
+
+const ReadinessCardRegion = defineComponent({
+  name: "ReadinessCard",
+  description: "Overall Readiness: the gradient ring, status and guidance.",
+  props: z.object({}),
+  component: () => {
+    const ctx = useHudScope();
+    return <MockReadinessCard readiness={HUD_MOCK.readiness} copy={ctx.copy.hudMock} />;
+  },
+});
+
+const ReadinessTabsRegion = defineComponent({
+  name: "ReadinessTabs",
+  description: "Readiness detail: Body | Recovery | Cognitive | Energy tabs, rows and the body hologram.",
+  props: z.object({}),
+  component: () => {
+    const ctx = useHudScope();
+    const navigate = useNavigate();
+    return (
+      <MockReadinessDetail
+        fixture={HUD_MOCK}
+        copy={ctx.copy.hudMock}
+        holo={<HologramBody reducedMotion={!ctx.fx} />}
+        holoCredit={<HoloCredit placement="footer" />}
+        onOpenBody={() => void navigate({ to: "/body" })}
+      />
+    );
+  },
+});
+
+const MiniCardsRegion = defineComponent({
+  name: "MiniCards",
+  description: "The three mini metric cards: activity, energy burned, energy intake.",
+  props: z.object({}),
+  component: () => {
+    const ctx = useHudScope();
+    return <MockMiniCards cards={HUD_MOCK.cards} copy={ctx.copy.hudMock} />;
   },
 });
 
 const Fact = defineComponent({
   name: "Fact",
-  description: "A bare sourced value resolved from the HUD facts builder. The only way a number reaches the HUD besides MetricTile.",
+  description:
+    "A bare sourced value resolved from the HUD facts builder. The only way a number reaches a composed HUD besides the mock cards.",
   props: z.object({ id: z.enum(HUD_FACT_IDS).describe("Fact id") }),
   component: ({ props }) => {
     const ctx = useHudScope();
@@ -311,24 +313,6 @@ const Fact = defineComponent({
           </Fragment>
         ))}
       </span>
-    );
-  },
-});
-
-const WellnessCard = defineComponent({
-  name: "WellnessCard",
-  description: "Overall wellness: demo status, value and guidance. Opens the wellness detail.",
-  props: z.object({}),
-  component: () => {
-    const ctx = useHudScope();
-    const h = ctx.copy.hud;
-    return (
-      <button type="button" id="healthButton" className={HEALTH_SUMMARY} aria-label={h.wellnessAria} onClick={() => ctx.onAction?.({ type: "OpenWellness", params: {} })}>
-        <span className={HEALTH_LABEL}>{h.wellnessLabel}</span>
-        <strong className={HEALTH_STATUS}><GradientText colors={["#7fe9c9", "#5ee6ff", "#7fe9c9"]} animationSpeed={3}>{h.wellnessStatus}</GradientText></strong>
-        <span className={HEALTH_GUIDANCE}>{h.wellnessGuidance}</span>
-        <span className={HEALTH_DEMO}>{ctx.fx ? <DecryptedText text={h.wellnessDemo} animateOn="view" loop={false} speed={50} /> : h.wellnessDemo}</span>
-      </button>
     );
   },
 });
@@ -354,155 +338,6 @@ const Alert = defineComponent({
   },
 });
 
-const FixtureBadge = defineComponent({
-  name: "FixtureBadge",
-  description: "The simulated-data flag shown under the vitals.",
-  props: z.object({}),
-  component: () => {
-    const ctx = useHudScope();
-    return (
-      <span className={DEMO_INDICATOR}>
-        {ctx.fx ? <DecryptedText text={FIXTURE_LABEL} animateOn="view" loop={false} speed={50} /> : FIXTURE_LABEL}
-      </span>
-    );
-  },
-});
-
-const OrbCanvas = defineComponent({
-  name: "OrbCanvas",
-  description: "The voice orb slot. Renders the host-provided orb node in declarative order.",
-  props: z.object({}),
-  component: () => {
-    const ctx = useHudScope();
-    return (
-      <div className={`${ORB_ZONE}${ctx.phase === "thinking" ? ` ${ORB_ZONE_THINKING}` : ""}`} aria-hidden="true">
-        {ctx.orbNode}
-      </div>
-    );
-  },
-});
-
-const WaveCanvas = defineComponent({
-  name: "WaveCanvas",
-  description: "The voice waveform slot. Renders the host-provided waveform node in declarative order.",
-  props: z.object({}),
-  component: () => {
-    const ctx = useHudScope();
-    return <>{ctx.waveNode}</>;
-  },
-});
-
-const MicButton = defineComponent({
-  name: "MicButton",
-  description: "The microphone toggle with its live hint. Local audio analysis only.",
-  props: z.object({}),
-  component: () => {
-    const ctx = useHudScope();
-    // VoicePill (React Bits) owns its own simulated bars and never opens a MediaStream;
-    // `useSkyVoice` in the host keeps the real analyser for the orb/waveform. Once the session is
-    // live the wide ListeningBar replaces the orb, so the pill only ever renders idle/error here.
-    const listening = ctx.phase === "listening" || ctx.phase === "requesting_permission";
-    return (
-      <>
-        {listening ? (
-          <ListeningBar
-            onStop={() => ctx.onAction?.({ type: "ToggleMic", params: {} })}
-            energyRef={ctx.energyRef}
-            readSpectrum={ctx.readSpectrum}
-            reducedMotion={!ctx.fx}
-          />
-        ) : (
-          <VoicePill
-            size={84}
-            accentColor="#5eead4"
-            iconColor="#bfe6ef"
-            background="#0e2233"
-            className="shadow-[0_0_28px_2px_rgba(94,234,212,.22),0_0_10px_rgba(120,234,255,.25)]"
-            ariaLabel={ctx.micAria}
-            onStart={() => {
-              if (ctx.phase === "idle" || ctx.phase === "error") ctx.onAction?.({ type: "ToggleMic", params: {} });
-            }}
-            onStop={() => {
-              if (ctx.phase === "listening" || ctx.phase === "requesting_permission") ctx.onAction?.({ type: "ToggleMic", params: {} });
-            }}
-          />
-        )}
-        <div id="voiceHint" className={VOICE_HINT} aria-live="polite">
-          <svg className={VOICE_SIGNAL} viewBox="0 0 16 15" fill="none" aria-hidden="true">
-            <rect x="1" y="9" width="2.6" height="5" rx="1.3" fill="currentColor" />
-            <rect x="5.4" y="6" width="2.6" height="8" rx="1.3" fill="currentColor" />
-            <rect x="9.8" y="3" width="2.6" height="11" rx="1.3" fill="currentColor" />
-            <rect x="14.2" y="1" width="1.4" height="13" rx="0.7" fill="currentColor" opacity=".55" />
-          </svg>
-          <span>{ctx.hint}</span>
-        </div>
-      </>
-    );
-  },
-});
-
-const ChatButton = defineComponent({
-  name: "ChatButton",
-  description: "The typed-message trigger (chat alternative to voice).",
-  props: z.object({}),
-  component: () => {
-    const ctx = useHudScope();
-    return (
-      <TypeInsteadPill
-        label={ctx.copy.watch.typeInstead}
-        ariaLabel={ctx.copy.hud.typeInsteadAria}
-        pressed={ctx.chatOpen}
-        onClick={() => ctx.onAction?.({ type: "ToggleChat", params: {} })}
-      />
-    );
-  },
-});
-
-const ChangeAstronautButton = defineComponent({
-  name: "ChangeAstronautButton",
-  description: "Opens the crew picker to claim or switch the followed astronaut.",
-  props: z.object({}),
-  component: () => {
-    const ctx = useHudScope();
-    return (
-      <button type="button" id="changeAstronautButton" className={DETAIL_ACTION} onClick={() => ctx.onAction?.({ type: "ChangeAstronaut", params: {} })}>
-        {ctx.copy.astronaut.change}
-      </button>
-    );
-  },
-});
-
-const FooterNote = defineComponent({
-  name: "FooterNote",
-  description: "Footer small print: the demo disclaimer, plus a dismissable hint while the agent-composed layout is active.",
-  props: z.object({}),
-  component: () => {
-    const ctx = useHudScope();
-    return (
-      <>
-        {ctx.composeOrigin === "agent" && !ctx.composeHintDismissed ? (
-          <button type="button" className={HUD_GEN_COMPOSE_HINT} aria-label={ctx.copy.hud.composeHintDismissAria} onClick={() => ctx.onAction?.({ type: "DismissComposeHint", params: {} })}>
-            <span>{ctx.composeHint}</span>
-            <span aria-hidden="true">×</span>
-          </button>
-        ) : null}
-        <p className={HUD_GEN_FOOTER_NOTE}>{ctx.copy.chat.footer}</p>
-      </>
-    );
-  },
-});
-
-const MetricRow = defineComponent({
-  name: "MetricRow",
-  description: "Groups the vitals tiles. Layout-neutral.",
-  props: z.object({
-    children: z
-      .array(z.union([MetricTile.ref]))
-      .describe("The vitals tiles, in display order"),
-  }),
-  component: ({ props, renderNode }) => <div className={METRIC_ROW} role="group">{renderNode(props.children)}</div>,
-});
-
 // ---- Layout chrome --------------------------------------------------------------------------------
 
 interface ChildNode {
@@ -511,7 +346,9 @@ interface ChildNode {
 }
 
 function childTypeName(child: unknown): string | null {
-  return child && typeof child === "object" && typeof (child as ChildNode).typeName === "string" ? ((child as ChildNode).typeName as string) : null;
+  return child && typeof child === "object" && typeof (child as ChildNode).typeName === "string"
+    ? ((child as ChildNode).typeName as string)
+    : null;
 }
 
 function toChildArray(children: unknown): ChildNode[] {
@@ -520,144 +357,118 @@ function toChildArray(children: unknown): ChildNode[] {
   return [];
 }
 
-const LEAF_REFS = [
-  BrandBlock.ref,
-  MissionButton.ref,
-  HologramButton.ref,
-  Greeting.ref,
-  AskPrompt.ref,
-  MetricTile.ref,
-  Fact.ref,
-  WellnessCard.ref,
-  Alert.ref,
-  FixtureBadge.ref,
-  OrbCanvas.ref,
-  WaveCanvas.ref,
-  MicButton.ref,
-  ChatButton.ref,
-  ChangeAstronautButton.ref,
-  MetricRow.ref,
-] as const;
+/** Layout-only wrappers: they render the mock's own column divs and inject their children. */
+function columnComponent(name: string, description: string, Column: typeof LeftColumn) {
+  return defineComponent({
+    name,
+    description,
+    props: z.object({
+      children: z
+        .array(z.union([ProfileCardRegion.ref, VitalsCardRegion.ref, TrendsCardRegion.ref, OrbStageRegion.ref, GreetingStackRegion.ref, VoiceWaveRegion.ref, VoiceClusterRegion.ref, InsightBandRegion.ref, ReadinessCardRegion.ref, ReadinessTabsRegion.ref, MiniCardsRegion.ref, Fact.ref, Alert.ref]))
+        .optional()
+        .describe("The cards of this column, in display order"),
+    }),
+    component: ({ props, renderNode }) => <Column>{renderNode(toChildArray(props.children))}</Column>,
+  });
+}
 
-const Section = defineComponent({
-  name: "Section",
-  description: "One region of the HUD. Areas: header, vitals, conversation, health, voice.",
-  props: z.object({
-    area: z.enum(SECTION_AREAS).describe("Which HUD region this is"),
-    children: z.array(z.union(LEAF_REFS)).optional().describe("Parts inside the region"),
-  }),
-  component: ({ props, renderNode }) => {
+const LeftColumnRegion = columnComponent(
+  "LeftColumn",
+  "The left grid column: profile, vital signs and quick trends.",
+  LeftColumn,
+);
+const CenterColumnRegion = columnComponent(
+  "CenterColumn",
+  "The centre grid column: orb, greeting, voice and the insight band.",
+  CenterColumn,
+);
+const RightColumnRegion = columnComponent(
+  "RightColumn",
+  "The right grid column: overall readiness, its detail tabs and the mini cards.",
+  RightColumn,
+);
+
+const Footer = defineComponent({
+  name: "Footer",
+  description:
+    "The console footer: demo disclaimer, simulated-data chip, plus a dismissable hint while the agent-composed layout is active.",
+  props: z.object({}),
+  component: () => {
     const ctx = useHudScope();
-    const children = toChildArray(props.children);
-    switch (props.area as SectionArea) {
-      case "header": {
-        // Staged layout: brand left, chrome actions right (mission + device switcher + spacecraft).
-        const brand = toChildArray(props.children).filter((child) => childTypeName(child) === "BrandBlock");
-        const rest = toChildArray(props.children).filter((child) => childTypeName(child) !== "BrandBlock");
-        return (
-          <header className={SKY_HEADER}>
-            {renderNode(brand)}
-            <div className={SKY_HEADER_ACTIONS}>
-              {renderNode(rest)}
-              <DeviceSwitcher current="console" />
-              <Link id="spacecraftLink" to="/spacecraft" className={SPACECRAFT_LINK} aria-label={ctx.copy.hud.spacecraftButtonAria}>
-                <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="1.3" y="8" width="13" height="8" rx="1.2" />
-                  <path d="M5.6 8v8M9.9 8v8" />
-                  <rect x="33.7" y="8" width="13" height="8" rx="1.2" />
-                  <path d="M38.1 8v8M42.4 8v8" />
-                  <rect x="19" y="6" width="10" height="12" rx="1.6" />
-                  <path d="M24 6V2.6M21.6 2.6h4.8" />
-                  <circle cx="24" cy="12" r="1.5" />
-                </svg>
-                <span>{ctx.copy.hud.spacecraftButton}</span>
-              </Link>
-            </div>
-          </header>
-        );
-      }
-      case "vitals":
-        return (
-          <section className={VITALS_PROJECTION} aria-label={ctx.copy.hud.vitalsAria}>
-            <div className={VITALS_SHIELD} aria-hidden="true" />
-            {renderNode(children)}
-          </section>
-        );
-      case "health":
-        return (
-          <section className={HEALTH_PROJECTION} aria-label={ctx.copy.hud.healthAria}>
-            <div className={HEALTH_SHIELD} aria-hidden="true" />
-            {renderNode(children)}
-          </section>
-        );
-      case "voice":
-        return (
-          <div className={VOICE_CONTROL}>
-            <div className={ctx.chatOpen ? `${VOICE_CLUSTER} ${VOICE_CLUSTER_DIMMED}` : VOICE_CLUSTER}>
-              {renderNode(children)}
-            </div>
-          </div>
-        );
-      case "conversation": {
-        const isSlot = (child: ChildNode, name: string) => childTypeName(child) === name;
-        const orb = children.filter((child) => isSlot(child, "OrbCanvas"));
-        const wave = children.filter((child) => isSlot(child, "WaveCanvas"));
-        const copySlot = children.filter((child) => !isSlot(child, "OrbCanvas") && !isSlot(child, "WaveCanvas"));
-        return (
-          <section className={CONVERSATION} aria-label={ctx.copy.hud.conversationAria}>
-            {renderNode(orb)}
-            <div className={CONVERSATION_COPY} ref={ctx.conversationCopyRef}>
-              {renderNode(copySlot)}
-            </div>
-            {renderNode(wave)}
-            <p id="captions" className={CAPTIONS} aria-live="polite">{ctx.captions}</p>
-          </section>
-        );
-      }
-      default:
-        return null;
-    }
+    return (
+      <>
+        {ctx.composeOrigin === "agent" && !ctx.composeHintDismissed ? (
+          <button
+            type="button"
+            className={HUD_GEN_COMPOSE_HINT}
+            aria-label={ctx.copy.hud.composeHintDismissAria}
+            onClick={() => ctx.onAction?.({ type: "DismissComposeHint", params: {} })}
+          >
+            <span>{ctx.composeHint}</span>
+            <span aria-hidden="true">×</span>
+          </button>
+        ) : null}
+        <MockFooter note={ctx.copy.chat.footer} chip={ctx.copy.hudMock.simulatedCrew} />
+      </>
+    );
   },
 });
 
-// ---- Root -----------------------------------------------------------------------------------------
-
 const Surface = defineComponent({
   name: "Surface",
-  description: "The root of the HUD display tree. One Surface per screen, holding Section regions.",
+  description:
+    "The root of the HUD display tree. One Surface per screen: a Header, the three grid columns and a Footer.",
   props: z.object({
-    children: z.array(z.union([Section.ref, FooterNote.ref])).describe("The regions of the HUD"),
+    children: z
+      .array(z.union([Header.ref, LeftColumnRegion.ref, CenterColumnRegion.ref, RightColumnRegion.ref, Footer.ref]))
+      .describe("The regions of the HUD, in display order"),
   }),
-  component: ({ props, renderNode }) => <>{renderNode(props.children)}</>,
+  component: ({ props, renderNode }) => {
+    const children = toChildArray(props.children);
+    const header = children.filter((child) => childTypeName(child) === "Header");
+    const footer = children.filter((child) => childTypeName(child) === "Footer");
+    const columns = children.filter((child) => {
+      const name = childTypeName(child);
+      return name === "LeftColumn" || name === "CenterColumn" || name === "RightColumn";
+    });
+    return (
+      <>
+        {renderNode(header)}
+        <div className={MOCK_GRID}>{renderNode(columns)}</div>
+        {renderNode(footer)}
+      </>
+    );
+  },
 });
 
 export const hudLibrary = createLibrary({
   components: [
     Surface,
-    Section,
-    BrandBlock,
-    MissionButton,
-    HologramButton,
-    Greeting,
-    AskPrompt,
-    MetricRow,
-    MetricTile,
+    Header,
+    LeftColumnRegion,
+    CenterColumnRegion,
+    RightColumnRegion,
+    ProfileCardRegion,
+    VitalsCardRegion,
+    TrendsCardRegion,
+    OrbStageRegion,
+    GreetingStackRegion,
+    VoiceWaveRegion,
+    VoiceClusterRegion,
+    InsightBandRegion,
+    ReadinessCardRegion,
+    ReadinessTabsRegion,
+    MiniCardsRegion,
+    Footer,
     Fact,
-    WellnessCard,
     Alert,
-    FixtureBadge,
-    OrbCanvas,
-    WaveCanvas,
-    MicButton,
-    ChatButton,
-    ChangeAstronautButton,
-    FooterNote,
   ],
   root: "Surface",
-  actions: [openVital, openWellness, openMission, openHologram, changeAstronaut, toggleChat, toggleMic, dismissComposeHint],
+  actions: [openMission, changeAstronaut, toggleChat, toggleMic, dismissComposeHint],
 });
 
 const parser = createParser(hudLibrary.toJSONSchema(), hudLibrary.root);
 
 /** Parses a program against this catalog, for `reviewProgram`. */
 export const parseHudProgram: ParseProgram = (source) => parser.parse(source);
+
