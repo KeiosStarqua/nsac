@@ -657,7 +657,12 @@ export function SkyHudMock() {
                     }
                     if (voiceStatus === "idle") void startVoiceChat();
                   }}
-                  onStop={() => void stopVoiceChat()}
+                  onStop={({ reason }) => {
+                    // unmount/disabled are lifecycle noise from VoicePill, not a user stop —
+                    // honoring them would kill the Speech Engine session before it goes live.
+                    if (reason === "unmount" || reason === "disabled") return;
+                    void stopVoiceChat();
+                  }}
                 />
               )}
               <div id="voiceHint" className={VOICE_HINT} aria-live="polite">
