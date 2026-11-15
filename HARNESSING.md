@@ -6,6 +6,7 @@ bộ `features/agent/`, `routes/api/chat-stream.ts`, `apps/backend/src/{eventsRo
 Broadcast v1 (shared memory, single box) đã build 2026-11-14 — xem §3.5; broadcast là *facts*,
 dispatch vẫn do code deterministic quyết định. Phần chưa build (per-astronaut pairs, 5 hazard
 workers, broker/push) vẫn ở `docs/AGENT_BROADCAST.md`.
+Định hướng hợp nhất conversational agent (Keios 2026-11-15) — §15.
 
 ## 1. Mental model
 
@@ -463,3 +464,53 @@ mọi layer (runner → function → UI). Không có retry tự động; lỗi l
 - `apps/web/AGENTS.md` — contract web app (hud-gen, `/admin`, `/health`, `/api/chat-stream`)
 - `AGENTS.md` (root) — HKT rules, hard rules số 3–5 về nguồn và Confirm
 - Pi SDK docs vendored: `apps/web/node_modules/@earendil-works/pi-coding-agent/docs/` (`sdk.md`, `skills.md`, `sessions.md`, `session-format.md`)
+
+## 15. Định hướng đã duyệt — hợp nhất conversational agent (CHƯA BUILD, 2026-11-15)
+
+**Keios đã duyệt về hướng đi; code chưa đổi.** Mục này là đặc tả cho lần triển khai tiếp
+theo — §1–§14 vẫn mô tả đúng code đang chạy. Khi merge xong, mục này phải được viết lại
+thành mô tả hiện trạng (và xoá chú thích CHƯA BUILD).
+
+**Vấn đề:** `sky-orchestrator` không điều phối bằng LLM — `routeRequest()` chỉ là regex
+(`/compose|generate|render|panel|surface|openui/i`) chọn `sky-generative-ui`; mọi request
+còn lại trả text như một assistant thường. Trong khi đó `sky-chat` đã sở hữu `show_on_hud`
+(→ `sky-generative-ui` qua `runAgent`, qua `reviewProgram`), persistent session, streaming
+và SHARED CONTEXT. Trách nhiệm của orchestrator là một tập con của chat; tên gọi
+"orchestrator" gây hiểu nhầm.
+
+**Đề xuất:**
+
+1. Bỏ profile `agents/orchestrator.ts`; `sky-chat` là conversational agent duy nhất của Sky.
+2. `askSky()` chạy `sky-chat` ở chế độ one-shot, **giữ nguyên response contract** (`answered`/
+   `handled`/`rejected`/…) để không phá caller cũ. `routeRequest()` chuyển thành module routing
+   riêng nếu nhánh generative-ui của `askSky` vẫn cần, hoặc bỏ hẳn cùng orchestrator.
+3. Giữ nguyên `astro-chat.server.ts` (per-astronaut session, transcript, queue, SHARED CONTEXT,
+   streaming qua `streamChatTurn`) — không chuyển code.
+4. `show_on_hud` tiếp tục là đường duy nhất chat → `sky-generative-ui`.
+5. Broadcast consumer id của chat `<id>-orchestrator` → đổi `<id>-chat` (đổi một dòng trong
+   `astro-chat.server.ts`; cursor SQLite bắt đầu lại từ đầu — chấp nhận được).
+6. Registry + `AgentId` + tests (`registry.test.ts` bỏ dòng orchestrator, assert còn 3 profile),
+   docs: `HARNESSING.md`, `docs/AGENT_BROADCAST.md` (cập nhật tên consumer/pairs nếu nhắc),
+   `apps/web/AGENTS.md`, root `AGENTS.md` (bullet "Agent architecture (Sky)").
+
+**Kiểm chứng tại thời điểm ghi (2026-11-15):**
+
+- `askSky`/`ask`/`composeSurface` **không có caller nào** ngoài `features/agent`
+  (grep toàn `src/` ngoài features/agent: 0 kết quả) — giới hạn ≤3 câu của prompt sky-chat
+  không phá caller đã biết nào.
+- Consumer `<id>-orchestrator` là hardcode trong `astro-chat.server.ts`; hud-composer dùng
+  `<id>-composer` (không đổi).
+- `maxSteps`/`handoff` của orchestrator không được code enforce; phần giá trị thực sự của
+  orchestrator chỉ là nhánh regex generative-ui.
+- Prompt sky-chat bị ràng ≤3 câu — chấp nhận được cho one-shot `askSky`, hoặc caller cần
+  câu trả lời dài phải nêu rõ khi triển khai.
+
+**Chưa quyết / việc khi triển khai:**
+
+- `askSky` one-shot dùng chung prompt sky-chat, hay tách "voice ngắn" (chat) vs "full" (askSky)?
+- Rename transcript `var/sky-sessions/<id>.json`? Không cần — sky-chat đang dùng chính file đó.
+- Orchestration thật (hazard workers, workflow nhiều bước, chờ Confirm giữa các bước) là việc
+  của một orchestration layer **tương lai** — không nhét vào sky-chat. Khi đó mới tách
+  `sky-workflow-orchestrator` riêng.
+- Danh sách snapshot sau khi build xong: registry còn 3 profile; `listAgents()` gửi `/health`
+  còn 3 dòng; broadcast docs đồng bộ tên consumer.
