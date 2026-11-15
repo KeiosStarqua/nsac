@@ -6,5 +6,6 @@ let done = false;
 export function initAnalytics(): void {
   if (done || typeof window === "undefined") return;
   done = true;
-  configure({ autocollect: true, excludePages: ["/admin"] });
+  // Hidden operator pages are never tracked: /admin and every /admin/<tab> route (exact match otherwise).
+  configure({ autocollect: true, excludePages: ["/admin", "/admin/*"] });
 }
