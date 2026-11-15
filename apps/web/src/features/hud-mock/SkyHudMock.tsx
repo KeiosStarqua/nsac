@@ -70,12 +70,13 @@ import {
   MOCK_ROOT,
   MOCK_VIGNETTE,
   ORB_STAGE,
+  ORB_STAGE_CHAT,
   ORB_ZONE,
   ORB_ZONE_THINKING,
   PROMPT,
   SIMULATED_CHIP,
   VOICE_CLUSTER,
-  VOICE_CLUSTER_DIMMED,
+  VOICE_CLUSTER_HIDDEN,
   VOICE_CONTROL,
   VOICE_HINT,
 } from "./mock-classes";
@@ -95,7 +96,10 @@ const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 const VOICE_SIGNAL =
   "h-[13px] w-[15px] flex-none text-[#4be6c8] [filter:drop-shadow(0_0_5px_rgba(75,230,200,.45))]";
 
-const VOICE_WAVE = "block h-[30px] w-[min(100%,260px)] max-[720px]:h-[24px]";
+const VOICE_WAVE = "block h-[30px] w-[min(100%,260px)] max-[720px]:h-[24px] [transition:opacity_.24s_ease,scale_.24s_ease,translate_.24s_ease] motion-reduce:transition-none";
+
+/** Chat-open state of the waveform: gone, settled back a touch, out of the pointer path. */
+const VOICE_WAVE_HIDDEN = "pointer-events-none scale-[.92] opacity-0 -translate-y-[4px]";
 
 const GREETING_STACK = "flex flex-col items-center px-2 text-center";
 
@@ -622,7 +626,7 @@ export function SkyHudMock() {
         </div>
 
         <div className={MOCK_CENTER} data-column="center">
-          <div className={ORB_STAGE}>{orbNode}</div>
+          <div className={chatOpen ? ORB_STAGE_CHAT : ORB_STAGE}>{orbNode}</div>
 
           <div className={GREETING_STACK}>
             <h1 className={GREETING}>{greeting}</h1>
@@ -631,10 +635,18 @@ export function SkyHudMock() {
             </p>
           </div>
 
-          <VoiceWaveform phase={phase} energyRef={energyRef} className={VOICE_WAVE} />
+          <VoiceWaveform
+            phase={phase}
+            energyRef={energyRef}
+            className={chatOpen ? `${VOICE_WAVE} ${VOICE_WAVE_HIDDEN}` : VOICE_WAVE}
+          />
 
           <div className={VOICE_CONTROL}>
-            <div className={chatOpen ? `${VOICE_CLUSTER} ${VOICE_CLUSTER_DIMMED}` : VOICE_CLUSTER}>
+            <div
+              className={chatOpen ? `${VOICE_CLUSTER} ${VOICE_CLUSTER_HIDDEN}` : VOICE_CLUSTER}
+              aria-hidden={chatOpen ? true : undefined}
+              inert={chatOpen ? true : undefined}
+            >
               {voiceStatus !== "idle" ? (
                 <ListeningBar
                   onStop={() => void stopVoiceChat()}
@@ -688,6 +700,7 @@ export function SkyHudMock() {
             kicker={copy.hudMock.insightKicker}
             ariaLabel={copy.hudMock.insightOpen}
             onOpen={() => void navigate({ to: "/performance" })}
+            dismissed={chatOpen}
           />
         </div>
 

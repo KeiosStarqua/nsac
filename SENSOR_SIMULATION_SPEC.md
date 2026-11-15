@@ -379,10 +379,10 @@ Wiring: `server.ts` gọi `handleSensorsRequest(req)` sau events; `Bun.serve({ .
 
 ## 11. Tương lai (không làm trong bản này)
 
-- Publish `hazard.detected`/`health.fact.updated` lên `change_events` khi radiation/CO₂ vượt ngưỡng — cần policy xác nhận, để phase sau.
+- Publish `hazard.detected`/`health.fact.updated` lên `change_events` khi radiation/CO₂ vượt ngưỡng — cần policy xác nhận, để phase sau. **(đã làm ở v2 cho `health.fact.updated` dẫn xuất — xem §14; `hazard.detected` vẫn chưa publish từ sim.)**
 - Replay adapter đọc OSDR/EDA subsets (gắn `dataset_id`).
 - Asset store cho ECG/ultrasound/OCT (`asset_id`, §4.5).
-- Retention policy cho `telemetry_events` (demo giữ hết; production cần TTL).
+- Retention policy cho `telemetry_events` (demo giữ hết; production cần TTL). **(đã làm ở v2 — §14.6.)**
 - AuthZ theo crew cho `crew_id`-scoped events.
 - Hiển thị SIMULATED trên apps/web — **ngoài scope hiện tại**.
 
@@ -402,3 +402,146 @@ Baselines là **simulator tuning**; nơi đối chiếu (không phải ngưỡng
 - Body mass measurement, EveryWear, T-Mini, thiết bị JAXA: [JAXA HST](https://humans-in-space.jaxa.jp/) · [ESA](https://www.esa.int/).
 
 All URLs checked 2026-11-14. Simulator numbers are illustrative and **must not** be presented as clinical thresholds in UI or code comments.
+
+## 14. Continuous runtime (v2) — 2026-11-16
+
+v1 (§6, §8, §11) chỉ chạy khi có `POST /api/sensors/sim/start`: production luôn
+`{"running":false}` và `telemetry_events` rỗng, health layer đứng yên ở seed 35 ngày. v2 làm
+simulator chạy 24/7 với state bền, chiếu dữ liệu sang health live, phát hiện bất thường
+deterministic và publish **facts dẫn xuất** (không bao giờ raw readings) lên bus `change_events`.
+
+Code: `apps/backend/src/sensors/runtime.ts`, `src/sensors/retention.ts`,
+`src/health/projector.ts`, `src/health/rules.ts`, `src/db/repositories/simSessions.ts`,
+`src/db/repositories/healthLive.ts`.
+
+### 14.1 Divergence from v1
+
+| Chủ đề | v1 | v2 |
+|---|---|---|
+| Vòng đời sim | chỉ chạy khi gọi REST | autostart mission `SIM-001` khi `SKY_SIM_AUTOSTART=1`; không set = hành vi v1 |
+| State | in-memory, mất khi restart | bảng `sim_sessions` (checkpoint 60 tick / stop / scenario change), restore khi boot |
+| Health | `health_observations` seed 35 ngày (tĩnh) | thêm `health_current` + `health_rollups` (live, scope `MISSION` cho metric cabin) |
+| Bus | không publish gì | `health.fact.updated` (topic có sẵn) từ rules deterministic, `source = "simulation"` |
+| `change_events` | chỉ clinical/claims/agent | thêm facts dẫn xuất, đã hysteresis + dedupe + cooldown + rate-limit |
+| Tốc độ | `speed` chỉ đổi nhịp timer | speed ≥ 10: advance model `speed` bước/tick wall nhưng **chỉ persist frame cuối** |
+| Retention | giữ hết | `SKY_TELEMETRY_RETENTION_DAYS` (3) + `SKY_TELEMETRY_MAX_ROWS` (1.5M), prune boot + mỗi giờ |
+| Auth | mở | endpoint mutating của sim cần `x-admin-key` **khi** env `SKY_SENSORS_ADMIN_KEY`/`SKY_ADMIN_KEY` set |
+| Scenario | chỉ lúc start | `POST /api/sensors/sim/scenario` đổi giữa phiên, envelope đếm lại từ 0 |
+
+### 14.2 Autostart + durable session
+
+- `bootSimulation()` chạy trong `server.ts` **sau** seed astronaut/health, **trước** `Bun.serve`.
+  Một producer duy nhất: engine đã chạy ⇒ chỉ gắn hook, không start lần hai.
+- `SKY_SIM_AUTOSTART !== "1"` ⇒ log `[sim] autostart disabled` và không làm gì (hành vi v1).
+- `sim_sessions` (connection SENSORS, PK `mission_id`): `run_id`, `scenario`, `speed`, `seed`,
+  `status` (`running|paused|stopped`), `started_at_ms`, `sim_time_ms`, `tick_index`,
+  `scenario_tick`, `sequences`, `crew_state`, `mission_state`, `rng_state`, `updated_at`.
+  `scenario_tick` là cột thêm so với state engine gốc — cần cho envelope của scenario switch (§14.7).
+- Checkpoint: mỗi 60 tick, khi stop, khi scenario change; một UPSERT (một transaction); lỗi chỉ
+  log `[sim] checkpoint failed`, không bao giờ làm chết sim.
+- Restore khi boot nếu status `running` hoặc `paused` (SIGINT/SIGTERM checkpoint `paused` trước khi
+  stop). Status `stopped` (stop qua REST) **không** restore — boot sẽ start mission mới.
+- `SimulationEngine.exportState()/restoreState()` chứa cả `rng.a` (mulberry32) và gaussian spare:
+  restore rồi tick tiếp cho ra **đúng** chuỗi event như engine không gián đoạn (test:
+  `tests/sensors-runtime.test.ts`, `tests/sensors-fast-forward.test.ts`).
+
+### 14.3 Health live projection (PR2)
+
+- `src/health/projector.ts` subscribe `telemetryBus:"telemetry_batch"` (frame **đã persist** của
+  engine — không phải stream 1 Hz thô) → map payload → metric → UPSERT `health_current` +
+  aggregate `health_rollups` 1 phút. 1 giờ tính on-the-fly từ 1 phút (`hourlyFromMinute`).
+- Mapping: `heart_rate_bpm` ← biomonitor · `spo2_pct` ← pulse-oximeter · `respiratory_rate_bpm` ←
+  respiratory-assessment · `core_temperature_c` ← thermo-mini · `skin_temperature_c` ← biomonitor
+  (thermo-mini chỉ có core temp) · `systolic_mmhg`/`diastolic_mmhg` ← bp-ecg · `activity_counts` ←
+  biomonitor · `dose_rate_uSv_h` ← cad · `co2_ppm`/`o2_pct`/`temperature_c`/`humidity_pct`/
+  `pressure_kpa` ← env sensors (scope `MISSION`) · `power_w`/`cadence_rpm`/`elapsed_s` ← ergometer.
+- `hrv_ms` **không có nguồn** trong telemetry ⇒ không bao giờ fabricate; endpoint live đơn giản
+  không trả metric đó.
+- Quality: telemetry `invalid` bị loại khỏi `health_current`/rollup; `suspect` giữ nhãn `suspect`
+  (`quality_worst` của rollup chỉ xấu đi, không tốt lên).
+- `health_observations` (seed 35 ngày) **không** bị coi là live: live state chỉ nằm ở 2 bảng mới.
+
+### 14.4 Derived facts (PR4)
+
+- `src/health/rules.ts` chạy trên cửa sổ trượt 10 phút **sim time**: 5 rule deterministic với
+  hysteresis, episode `active → resolved`, dedupe khi đang active, cooldown 10 phút sim sau resolve,
+  rate-limit 1 publish / rule / subject / 3 phút **wall**.
+
+  | Rule | Fire | Clear |
+  |---|---|---|
+  | `cardiovascular_anomaly` | HR > median(window)+10 bpm, giữ ≥120 s (bỏ qua crew đang trong scenario exercise) | HR ≤ median+6, giữ 90 s |
+  | `respiratory_distress` | RR > median+4 **hoặc** SpO₂ < 95, giữ ≥60 s | RR ≤ median+2 **và** SpO₂ ≥ 96, giữ 90 s |
+  | `radiation_burst` | dose > 3× median **và** > 2 µSv/h, giữ ≥60 s | < 1.5× median, giữ 90 s |
+  | `environment_co2_elevated` | CO₂ > 2000 ppm, giữ ≥120 s | < 1700 ppm, giữ 120 s |
+  | `environment_o2_low` | O₂ < 19.5 %, giữ ≥120 s | ≥ 20.0 %, giữ 120 s |
+
+  Mọi con số là **illustrative simulator tuning** (không phải ngưỡng lâm sàng). Severity mặc định
+  `yellow`; `red` chỉ cho `radiation_burst` ≥ 4× median hoặc O₂ < 18.5 %. Fact mang worst quality
+  của supporting window; window chứa `invalid` ⇒ không publish.
+- Publish: `change_events` topic `health.fact.updated`, `source = "simulation"`, astronaut-scoped
+  khi rule thuộc crew, `astronaut_id = NULL` khi mission-scoped (CO₂/O₂/radiation). Payload:
+
+  ```ts
+  { factId, missionId, crewId?, category: "cardiovascular"|"respiratory"|"radiation"|"environment",
+    rule, status: "active"|"resolved", severity: "info"|"yellow"|"red",
+    sourceMode: "synthetic", quality: "valid"|"suspect"|"invalid", observedAt, evidenceEventIds }
+  ```
+
+  `evidenceEventIds` tối đa 8 event id — **không** mang payload thô, không mang giá trị đọc được.
+  Backend vẫn chấp nhận payload legacy `{fact, value, unit?, severity?}` của các publisher khác.
+  Agent đọc facts qua `GET /api/events` (SHARED CONTEXT, HARNESSING §3.5).
+- Auto-resolve: sau clear-hold, hoặc khi cửa sổ 10 phút không còn sample hỗ trợ.
+
+### 14.5 Fast-forward (model time ≠ emission)
+
+Ở `speed >= 10`, mỗi wall tick advance model `speed` bước (cumulative dose, exercise elapsed,
+integrator env cộng đủ mọi bước) nhưng **chỉ persist + broadcast frame cuối**; validation
+envelope/payload chỉ chạy cho frame được persist. Hệ quả: `telemetry_events` tăng theo wall second
+(không ×100), health/rules thấy frame 1 Hz thật, và tổng liều tích lũy ở 100× **bằng** chạy 1×
+(test `tests/sensors-fast-forward.test.ts`). Ở `1×` hành vi giữ nguyên như v1.
+
+### 14.6 Retention (PR5)
+
+`pruneTelemetry()` chạy lúc boot + mỗi giờ: xoá `received_at < now − SKY_TELEMETRY_RETENTION_DAYS`
+(default 3), rồi nếu vẫn vượt `SKY_TELEMETRY_MAX_ROWS` (default 1_500_000) thì xoá row cũ nhất.
+Batch ≤ 50k row/statement trong một transaction; log `[telemetry] pruned N rows` khi có xoá.
+
+### 14.7 Scenario switch giữa phiên (PR5)
+
+`POST /api/sensors/sim/scenario { scenario, crewId? }` (admin-gated, 409 `not_running` nếu sim tắt):
+giữ nguyên HR walk, mission env và RNG draw của `radiation_event`; chỉ reset **envelope** scenario
+vì các envelope dùng `tickIndex − scenarioTick` (`scenarioTick = tickIndex` tại thời điểm switch).
+`crewId` đổi target của `exercise`/`anomaly_symptom`. Response `{ ok, scenario, simTimeMs }`.
+Switch sang `sensor_fault` không kèm fault config ⇒ áp dropout mặc định `p=0.3` trên biomonitor (§6.3).
+
+### 14.8 API bổ sung
+
+| Method | Path | Mô tả |
+|---|---|---|
+| GET | `/api/health/live` | mảng 6 crew `{ ok, astronautId, live, updatedAt, source, metrics }` |
+| GET | `/api/health/live/:astronautId` | `{ ok, live, updatedAt, source: "sim"\|"seed"\|"none", metrics }` |
+| POST | `/api/sensors/sim/scenario` | đổi scenario giữa phiên (admin-gated như start/stop/reset) |
+
+`live: true` chỉ khi simulator đang chạy **và** `health_current` của astronaut được ingest trong
+~10 giây wall gần nhất. `source: "seed"` = chưa có live nhưng có `health_observations` lịch sử
+(trả kèm `live: false`), `"none"` = chưa có gì. `GET /api/health/performance/:astronautId` thêm
+object `live` cùng shape (additive).
+
+### 14.9 Env (v2)
+
+| Env | Default | Ý nghĩa |
+|---|---|---|
+| `SKY_SIM_AUTOSTART` | unset | `1` = autostart mission `SIM-001` lúc boot |
+| `SKY_SENSORS_ADMIN_KEY` | unset | key cho `x-admin-key` của endpoint mutating sim; fallback `SKY_ADMIN_KEY`; unset cả hai = mở (local dev) |
+| `SKY_TELEMETRY_RETENTION_DAYS` | `3` | TTL của `telemetry_events` |
+| `SKY_TELEMETRY_MAX_ROWS` | `1500000` | trần số row giữ lại |
+
+### 14.10 Giới hạn đã biết
+
+- 100× vẫn CPU-bound (mỗi wall tick ≈ 100 bước model); throughput thực tế thấp hơn 100× khi máy yếu.
+- Rules đánh giá theo **frame được persist**: ở speed ≥ 10, granularity là ~1 wall giây = `speed`
+  giây sim, nên "sustained ≥120 s" được kiểm tra trên mốc thời gian sim của các frame, không phải
+  từng giây sim.
+- Chưa có endpoint rollup 1 giờ (repo `hourlyFromMinute` sẵn sàng cho UI/agent sau).
+- Fact dùng payload v2; web mirror (`apps/web/src/features/agent/broadcast/model/events.ts`) phải
+  chấp nhận shape v2 thì facts mới vào SHARED CONTEXT — việc đó thuộc task web song song.

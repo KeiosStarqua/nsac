@@ -5,11 +5,33 @@ import { sensorsStore } from "./store";
 import { simulationEngine, SCENARIOS } from "./engine";
 import type { TelemetryEvent } from "./envelope";
 
-// Endpoint mở, không auth — demo single-box (giống /api/claims, /api/events; SPEC §0).
+// Endpoint telemetry/simulation. Đọc mở, KHÔNG auth (demo single-box, giống /api/claims,
+// /api/events; SPEC §0). Endpoint MUTATING của sim (start/stop/reset/scenario) gate bằng
+// `x-admin-key` khi env SKY_SENSORS_ADMIN_KEY hoặc SKY_ADMIN_KEY set (SPEC §14); không set ⇒
+// mở như v1 (local dev).
 // Dữ liệu luôn là synthetic; consumer phải tự kiểm tra source.mode.
 // Lỗi trả { ok:false, error } + HTTP status theo style eventsRoutes.ts. Request lạ → null (fall-through về 404).
 
 const MAX_BODY_BYTES = 8192;
+const ADMIN_KEY_HEADER = "x-admin-key";
+
+/** Mutating sim endpoints — gate theo env key (401 khi env set mà header sai/thiếu). */
+const MUTATING_PATHS = new Set([
+  "/api/sensors/sim/start",
+  "/api/sensors/sim/stop",
+  "/api/sensors/sim/reset",
+  "/api/sensors/sim/scenario",
+]);
+
+function adminGate(req: Request): Response | null {
+  const expected = process.env.SKY_SENSORS_ADMIN_KEY || process.env.SKY_ADMIN_KEY;
+  if (!expected) return null;
+  if (req.headers.get(ADMIN_KEY_HEADER) !== expected) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
 
 const startBodySchema = z
   .object({
@@ -28,6 +50,13 @@ const startBodySchema = z
       })
       .strict()
       .optional(),
+  })
+  .strict();
+
+const scenarioBodySchema = z
+  .object({
+    scenario: z.enum(SCENARIOS),
+    crewId: z.string().trim().min(1).max(64).optional(),
   })
   .strict();
 
@@ -76,6 +105,11 @@ function serializeRow(row: TelemetryRow): TelemetryEvent {
 export async function handleSensorsRequest(req: Request): Promise<Response | null> {
   const url = new URL(req.url);
 
+  if (req.method === "POST" && MUTATING_PATHS.has(url.pathname)) {
+    const denied = adminGate(req);
+    if (denied) return denied;
+  }
+
   if (url.pathname === "/api/sensors/devices") {
     if (req.method !== "GET") return null;
     return Response.json({ count: DEVICES.length, devices: DEVICES });
@@ -121,6 +155,10 @@ export async function handleSensorsRequest(req: Request): Promise<Response | nul
     if (req.method !== "GET") return null;
     return Response.json(simulationEngine.status());
   }
+  if (url.pathname === "/api/sensors/sim/scenario") {
+    if (req.method !== "POST") return null;
+    return simScenario(req);
+  }
 
   return null;
 }
@@ -160,4 +198,28 @@ async function simStart(req: Request): Promise<Response> {
 
   const status = simulationEngine.start(opts);
   return Response.json({ ok: true, ...status });
+}
+
+/**
+ * POST /api/sensors/sim/scenario — đổi scenario giữa phiên (PR5).
+ * Envelope scenario đếm lại từ 0 (`scenarioTick`), HR walk / mission env / radiation draw giữ nguyên.
+ */
+async function simScenario(req: Request): Promise<Response> {
+  const declared = Number(req.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    return Response.json({ ok: false, error: "too_large" }, { status: 413 });
+  }
+  const text = await req.text();
+  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
+    return Response.json({ ok: false, error: "too_large" }, { status: 413 });
+  }
+  const parsed = scenarioBodySchema.safeParse(safeJsonParse(text));
+  if (!parsed.success) {
+    return Response.json({ ok: false, error: "bad_body" }, { status: 400 });
+  }
+  if (!simulationEngine.isRunning()) {
+    return Response.json({ ok: false, error: "not_running" }, { status: 409 });
+  }
+  const status = simulationEngine.setScenario(parsed.data.scenario, parsed.data.crewId);
+  return Response.json({ ok: true, scenario: status.scenario, simTimeMs: status.simTimeMs });
 }

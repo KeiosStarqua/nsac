@@ -10,7 +10,7 @@
 
 import EventEmitter3 from "eventemitter3";
 import { SIMULATED_PAYLOAD_SCHEMAS, TelemetryEventSchema, type TelemetryEvent, type QualityStatus } from "./envelope";
-import { mulberry32, seedFromString, makeGaussian } from "./prng";
+import { mulberry32, seedFromString, makeGaussian, type GaussianFn, type SeededRng } from "./prng";
 import { DEVICES, deviceById, deviceTypeOf } from "./registry";
 import { sensorsStore, type TelemetryStore } from "./store";
 
@@ -57,6 +57,41 @@ export interface SimStatus {
   sequence: Record<string, number>;
   startedAt: string | null;
   simulated: true;
+  /** Sim clock hiện tại (ms epoch) — scenario switch response dùng giá trị này. */
+  simTimeMs: number;
+  /** Crew đang được gán scenario exercise (target ergometer); null-safe cho consumer. */
+  exerciseCrewId: string;
+}
+
+/** Toàn bộ state cần để tiếp tục deterministic sau restart (PR1 — durable session). */
+export interface SimEngineState {
+  scenario: Scenario;
+  speed: 1 | 10 | 100;
+  missionId: string;
+  seed: string;
+  startedAtMs: number | null;
+  simTimeMs: number;
+  tickIndex: number;
+  /** Tick bắt đầu scenario hiện tại — envelope scenario dùng `tickIndex - scenarioTick`. */
+  scenarioTick: number;
+  sequences: Record<string, number>;
+  crew: Record<string, CrewState>;
+  mission: MissionState;
+  rng: { a: number; spare: number | null };
+  fault: FaultConfig | null;
+  crewIds: string[];
+  exerciseCrewId: string;
+  anomalyCrewId: string;
+  radiationPeakUSvH: number;
+  cansMultiplier: number;
+  stuckPayloads: Record<string, Record<string, unknown>>;
+}
+
+/** Hook runtime dùng để checkpoint durable session (PR1) — engine không biết DB. */
+export interface SimulationEngineHooks {
+  onTick?(info: { tickIndex: number; status: SimStatus }): void;
+  onStop?(status: SimStatus): void;
+  onScenarioChange?(status: SimStatus): void;
 }
 
 const DEFAULT_SEED = "sky-sim-1";
@@ -71,6 +106,10 @@ export const DEFAULT_CREW_IDS = [
   "noor-abbasi",
 ] as const;
 const EXERCISE_SECONDS = 480; // ergometer session 8' sim (SPEC §6.3)
+// Một wall tick = 1 giây wall cho MỌI speed. tick() advance `speed` bước model rồi persist 1 frame
+// ⇒ model nhanh `speed`× nhưng lượng event ghi DB ≈ 1× (SPEC §14.5). Timer kiểu cũ (1000/speed)
+// cộng với steps=speed sẽ advance speed² bước/giây — sai.
+const WALL_TICK_MS = 1000;
 const SIMULATED_DEVICE_IDS = [
   "biomonitor",
   "thermo-mini",
@@ -87,7 +126,9 @@ const SIMULATED_DEVICE_IDS = [
   "cans",
 ] as const;
 
-/** In-process notifier riêng cho telemetry — KHÔNG tái dùng change_events (SPEC §6.4, §11). */
+/** In-process notifier riêng cho telemetry — KHÔNG tái dùng change_events (SPEC §6.4, §11).
+ *  Topics: `telemetry` (mỗi event), `telemetry_batch` ({ events, status } — frame đã persist),
+ *  `sim_state` (stop), `scenario_change` (PR5 endpoint). */
 export const telemetryBus = new EventEmitter3();
 
 // --- Baselines: illustrative simulator tuning (SPEC §6.2, không phải threshold lâm sàng) ---
@@ -221,15 +262,17 @@ export class SimulationEngine {
   private crewIds: string[] = [...DEFAULT_CREW_IDS];
   private exerciseCrewId = "ayla-reyes"; // target khi scenario=exercise (hoặc crewId truyền vào)
   private anomalyCrewId = "ayla-reyes"; // target khi scenario=anomaly_symptom
+  private hooks: SimulationEngineHooks | null = null;
 
   private simTimeMs = 0;
   private startedAtMs: number | null = null;
   private tickIndex = 0; // số tick đã chạy (0-based)
+  private scenarioTick = 0; // tick bắt đầu scenario hiện tại (PR5 — scenario switch giữa phiên)
   private sequences = new Map<string, number>();
   private stuckPayloads = new Map<string, Record<string, unknown>>(); // frozen payload khi kind=stuck
 
-  private rng: () => number = mulberry32(seedFromString(DEFAULT_SEED));
-  private gauss: () => number = makeGaussian(this.rng);
+  private rng: SeededRng = mulberry32(seedFromString(DEFAULT_SEED));
+  private gauss: GaussianFn = makeGaussian(this.rng);
   private crew = new Map<string, CrewState>();
   private mission: MissionState = {
     o2: O2_BASELINE,
@@ -257,11 +300,22 @@ export class SimulationEngine {
       sequence,
       startedAt: this.startedAtMs === null ? null : iso(this.startedAtMs),
       simulated: true,
+      simTimeMs: this.simTimeMs,
+      exerciseCrewId: this.exerciseCrewId,
     };
+  }
+
+  /** Sim clock hiện tại (ms epoch) — dùng cho response của scenario switch. */
+  simTime(): number {
+    return this.simTimeMs;
   }
 
   isRunning(): boolean {
     return this.running;
+  }
+
+  setHooks(hooks: SimulationEngineHooks | null): void {
+    this.hooks = hooks;
   }
 
   start(opts: SimStartOptions = {}): SimStatus {
@@ -323,14 +377,39 @@ export class SimulationEngine {
     this.startedAtMs = opts.startTimeMs ?? Date.now();
     this.simTimeMs = this.startedAtMs;
     this.tickIndex = 0;
+    this.scenarioTick = 0;
     this.running = true;
 
     if (!opts.manual) {
       this.timer = setInterval(() => {
         this.tick();
-      }, 1000 / this.speed);
+      }, WALL_TICK_MS);
     }
     return this.status();
+  }
+
+  /**
+   * PR5 — đổi scenario giữa phiên (không reset HR walk / mission env / RNG draw).
+   * `scenarioTick = tickIndex` để mọi envelope scenario (co2/anomaly/radiation/exercise)
+   * đếm lại từ 0; radiation draw (`radiationPeakUSvH`) giữ nguyên theo seed.
+   */
+  setScenario(scenario: Scenario, crewId?: string): SimStatus {
+    if (!this.running) throw new Error("not_running");
+    this.scenario = scenario;
+    this.scenarioTick = this.tickIndex;
+    const trimmed = crewId?.trim();
+    if (trimmed) {
+      this.exerciseCrewId = trimmed;
+      this.anomalyCrewId = trimmed;
+    }
+    if (scenario === "sensor_fault" && !this.fault) {
+      // SPEC §6.3: dropout mặc định p=0.3 trên biomonitor khi switch sang sensor_fault không kèm fault config.
+      this.fault = { deviceId: "biomonitor", kind: "dropout", p: 0.3 };
+    }
+    const status = this.status();
+    telemetryBus.emit("scenario_change", status);
+    this.hooks?.onScenarioChange?.(status);
+    return status;
   }
 
   stop(): SimStatus {
@@ -342,6 +421,7 @@ export class SimulationEngine {
     const status = this.status();
     // SPEC §8.2: khi stop → server broadcast sim_state cuối. ws.ts lắng nghe bus này.
     telemetryBus.emit("sim_state", status);
+    this.hooks?.onStop?.(status);
     return status;
   }
 
@@ -354,19 +434,117 @@ export class SimulationEngine {
     return { ok: true, deleted };
   }
 
-  /** Một bước sim = 1000 ms sim-time (SPEC §6.4). */
+  /** Export toàn bộ state cần cho deterministic continuation (PR1 durable session). */
+  exportState(): SimEngineState {
+    const sequences: Record<string, number> = {};
+    for (const [k, v] of this.sequences) sequences[k] = v;
+    const crew: Record<string, CrewState> = {};
+    for (const [k, v] of this.crew) crew[k] = { ...v };
+    const stuckPayloads: Record<string, Record<string, unknown>> = {};
+    for (const [k, v] of this.stuckPayloads) stuckPayloads[k] = { ...v };
+    return {
+      scenario: this.scenario,
+      speed: this.speed,
+      missionId: this.missionId,
+      seed: this.seed,
+      startedAtMs: this.startedAtMs,
+      simTimeMs: this.simTimeMs,
+      tickIndex: this.tickIndex,
+      scenarioTick: this.scenarioTick,
+      sequences,
+      crew,
+      mission: { ...this.mission },
+      rng: { a: this.rng.state(), spare: this.gauss.spare() },
+      fault: this.fault ? { ...this.fault } : null,
+      crewIds: [...this.crewIds],
+      exerciseCrewId: this.exerciseCrewId,
+      anomalyCrewId: this.anomalyCrewId,
+      radiationPeakUSvH: this.radiationPeakUSvH,
+      cansMultiplier: this.cansMultiplier,
+      stuckPayloads,
+    };
+  }
+
+  /**
+   * Khôi phục state đã export — tick tiếp theo giống hệt engine không bị gián đoạn.
+   * `manual: true` để tests tự drive tick(); mặc định resume interval theo `speed`.
+   */
+  restoreState(state: SimEngineState, opts: { manual?: boolean } = {}): SimStatus {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    this.scenario = state.scenario;
+    this.speed = state.speed;
+    this.missionId = state.missionId;
+    this.seed = state.seed;
+    this.startedAtMs = state.startedAtMs;
+    this.simTimeMs = state.simTimeMs;
+    this.tickIndex = state.tickIndex;
+    this.scenarioTick = state.scenarioTick;
+    this.sequences = new Map(Object.entries(state.sequences));
+    this.crew = new Map(Object.entries(state.crew).map(([id, c]) => [id, { ...c }]));
+    this.mission = { ...state.mission };
+    this.rng = mulberry32(state.rng.a);
+    this.gauss = makeGaussian(this.rng);
+    this.gauss.setSpare(state.rng.spare);
+    this.fault = state.fault ? { ...state.fault } : null;
+    this.crewIds = [...state.crewIds];
+    this.exerciseCrewId = state.exerciseCrewId;
+    this.anomalyCrewId = state.anomalyCrewId;
+    this.radiationPeakUSvH = state.radiationPeakUSvH;
+    this.cansMultiplier = state.cansMultiplier;
+    this.stuckPayloads = new Map(Object.entries(state.stuckPayloads).map(([id, payload]) => [id, { ...payload }]));
+    this.running = true;
+
+    if (!opts.manual) {
+      this.timer = setInterval(() => {
+        this.tick();
+      }, WALL_TICK_MS);
+    }
+    return this.status();
+  }
+
+
+  /**
+   * Một "wall tick". Ở speed 1 = đúng 1 bước sim (giữ nguyên hành vi v1 byte-identical).
+   * Ở speed ≥ 10: advance model `speed` bước trong một wall tick nhưng CHỈ persist/emit frame
+   * cuối — cumulative dose / exercise elapsed / env integrators vẫn cộng qua mọi bước (PR5).
+   */
   tick(): TelemetryEvent[] {
     if (!this.running) return [];
+    const steps = this.speed >= 10 ? this.speed : 1;
+    let frame: TelemetryEvent[] = [];
+    for (let i = 0; i < steps; i += 1) {
+      // Chỉ frame được persist mới cần validate (fail-fast giữ nguyên giá trị test; 100× rẻ hơn 100×).
+      frame = this.step(i === steps - 1);
+    }
+
+    this.store.insertBatch(frame);
+    for (const ev of frame) telemetryBus.emit("telemetry", ev);
+    // Frame đã persist → projector health + rules đọc từ đây (không nghe 1 Hz stream thô).
+    const status = this.status();
+    telemetryBus.emit("telemetry_batch", { events: frame, status });
+    this.hooks?.onTick?.({ tickIndex: this.tickIndex, status });
+    return frame;
+  }
+
+  /** Một bước sim = 1000 ms sim-time (SPEC §6.4). Không persist — tick() lo phần đó. */
+  private step(validate: boolean): TelemetryEvent[] {
     const events: TelemetryEvent[] = [];
-    const t = this.tickIndex; // giây đã trôi qua kể từ start
+    const t = this.tickIndex; // giây đã trôi qua kể từ start (cadence thiết bị)
+    const scenarioT = this.tickIndex - this.scenarioTick; // giây kể từ scenario hiện tại (envelope)
     const simMinutes = t / 60;
 
-    const co2Factor = this.scenario === "co2_accumulation" ? 1 - Math.exp(-t / CO2_TAU_S) : 0;
+    const co2Factor = this.scenario === "co2_accumulation" ? 1 - Math.exp(-scenarioT / CO2_TAU_S) : 0;
     const co2Target = CO2_BASELINE + (CO2_TARGET - CO2_BASELINE) * co2Factor;
-    const co2Env = this.scenario === "co2_accumulation" ? 1 - Math.exp(-t / CO2_RESPONSE_TAU_S) : 0;
-    const anomalyEnv = this.scenario === "anomaly_symptom" ? 1 - Math.exp(-t / ANOMALY_TAU_S) : 0;
-    const radiationEnv = this.scenario === "radiation_event" ? Math.exp(-t / RAD_DECAY_TAU_S) : 0;
-    const exerciseActive = this.scenario === "exercise" && t < EXERCISE_SECONDS;
+    const co2Env = this.scenario === "co2_accumulation" ? 1 - Math.exp(-scenarioT / CO2_RESPONSE_TAU_S) : 0;
+    const anomalyEnv = this.scenario === "anomaly_symptom" ? 1 - Math.exp(-scenarioT / ANOMALY_TAU_S) : 0;
+    const radiationEnv = this.scenario === "radiation_event" ? Math.exp(-scenarioT / RAD_DECAY_TAU_S) : 0;
+    const exerciseActive = this.scenario === "exercise" && scenarioT < EXERCISE_SECONDS;
+
+    // observed_at giống nhau cho mọi event trong cùng bước — tính 1 lần (không đổi giá trị).
+    const observedIso = iso(this.simTimeMs);
 
     // --- Walk mission-scoped metrics ---
     this.mission.co2 = clamp(walkStep(this.mission.co2, co2Target, CO2_TAU_S, CO2_NOISE, this.gauss), 400, 5000);
@@ -464,7 +642,7 @@ export class SimulationEngine {
         device_type: deviceTypeOf(def),
         location_id: def.locationId,
         source: { mode: "synthetic" },
-        observed_at: iso(this.simTimeMs),
+        observed_at: observedIso,
         received_at: iso(receivedAtMs),
         sequence,
         quality: { status: quality },
@@ -560,7 +738,7 @@ export class SimulationEngine {
 
     // --- Exercise — ergometer session 8' sim (CEVIS) ---
     if (exerciseActive && !shouldDrop("ergometer")) {
-      const elapsed = t;
+      const elapsed = scenarioT;
       const exCrew = this.crew.get(this.exerciseCrewId);
       emit("ergometer", this.exerciseCrewId, {
         power_w: round2(Math.max(0, EXERCISE_POWER + this.gauss() * EXERCISE_POWER_NOISE)),
@@ -590,20 +768,19 @@ export class SimulationEngine {
     // Validate + persist + publish
     const parsed: TelemetryEvent[] = [];
     for (const ev of events) {
-      const result = TelemetryEventSchema.safeParse(ev);
-      if (!result.success) {
-        // Fail fast — bug trong simulator phải lộ ở test, không lọt vào DB.
-        throw new Error(`invalid telemetry event: ${result.error.message}`);
-      }
-      const devicePayload = SIMULATED_PAYLOAD_SCHEMAS[ev.device_id];
-      if (devicePayload && !devicePayload.safeParse(ev.payload).success) {
-        throw new Error(`invalid payload for device ${ev.device_id}`);
+      if (validate) {
+        const result = TelemetryEventSchema.safeParse(ev);
+        if (!result.success) {
+          // Fail fast — bug trong simulator phải lộ ở test, không lọt vào DB.
+          throw new Error(`invalid telemetry event: ${result.error.message}`);
+        }
+        const devicePayload = SIMULATED_PAYLOAD_SCHEMAS[ev.device_id];
+        if (devicePayload && !devicePayload.safeParse(ev.payload).success) {
+          throw new Error(`invalid payload for device ${ev.device_id}`);
+        }
       }
       parsed.push(ev);
     }
-
-    this.store.insertBatch(parsed);
-    for (const ev of parsed) telemetryBus.emit("telemetry", ev);
 
     this.tickIndex += 1;
     this.simTimeMs += 1000;

@@ -1,13 +1,12 @@
-// Maps the six /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
+// Maps the five /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
 // so vitest can cover the contract. Icons are referenced as values (not JSX) to stay in a .ts
-// file; the layout renders them with `aria-hidden` and `size-5` (same as before the split).
-import { Bot, KeyRound, Mic, RotateCcw, Sparkles, Volume2, type LucideIcon } from "lucide-react";
+// file; the layout renders them with `aria-hidden` and `size-5`.
+import { Bot, KeyRound, Mic, RotateCcw, Sparkles, type LucideIcon } from "lucide-react";
 
-export type AdminTabId = "models" | "opencode" | "elevenlabs" | "speech" | "claims" | "background";
+export type AdminTabId = "models" | "keys" | "speech" | "claims" | "background";
 export type AdminTabRoute =
   | "/admin/models"
-  | "/admin/opencode"
-  | "/admin/elevenlabs"
+  | "/admin/keys"
   | "/admin/speech"
   | "/admin/claims"
   | "/admin/background";
@@ -16,15 +15,14 @@ export type AdminTab = {
   id: AdminTabId;
   to: AdminTabRoute;
   /** Key into `useCopy().admin` for the tab label. */
-  labelKey: "tabModels" | "tabOpencode" | "tabElevenlabs" | "tabSpeech" | "tabClaims" | "tabBackground";
+  labelKey: "tabModels" | "tabKeys" | "tabSpeech" | "tabClaims" | "tabBackground";
   icon: LucideIcon;
 };
 
-/** The six admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
+/** The five admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
 export const ADMIN_TABS: ReadonlyArray<AdminTab> = [
   { id: "models", to: "/admin/models", labelKey: "tabModels", icon: Bot },
-  { id: "opencode", to: "/admin/opencode", labelKey: "tabOpencode", icon: KeyRound },
-  { id: "elevenlabs", to: "/admin/elevenlabs", labelKey: "tabElevenlabs", icon: Volume2 },
+  { id: "keys", to: "/admin/keys", labelKey: "tabKeys", icon: KeyRound },
   { id: "speech", to: "/admin/speech", labelKey: "tabSpeech", icon: Mic },
   { id: "claims", to: "/admin/claims", labelKey: "tabClaims", icon: RotateCcw },
   { id: "background", to: "/admin/background", labelKey: "tabBackground", icon: Sparkles },
@@ -36,8 +34,7 @@ export const ADMIN_DEFAULT_ROUTE: AdminTabRoute = "/admin/models";
 /** id → route lookup for the controlled MorphingTabs `onValueChange`. */
 export const TAB_ROUTE: Record<AdminTabId, AdminTabRoute> = {
   models: "/admin/models",
-  opencode: "/admin/opencode",
-  elevenlabs: "/admin/elevenlabs",
+  keys: "/admin/keys",
   speech: "/admin/speech",
   claims: "/admin/claims",
   background: "/admin/background",
@@ -55,6 +52,7 @@ export function adminTabRoute(id: string | null): AdminTabRoute | null {
 /** Derive the controlled tab from the location pathname. SSR-safe: pure string matching. */
 export function adminTabFromPathname(pathname: string): AdminTabId {
   const clean = pathname.replace(/\/+$/, "") || "/";
+  if (clean === "/admin/opencode" || clean === "/admin/elevenlabs") return "keys";
   for (const tab of ADMIN_TABS) {
     if (clean === tab.to || clean.startsWith(`${tab.to}/`)) return tab.id;
   }

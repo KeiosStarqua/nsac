@@ -6,7 +6,17 @@ import {
   type HudBackground,
 } from "~/features/hud-bg";
 import { useAdminGate } from "../admin-gate";
-import { buttonClasses, muted } from "./classes";
+import { Sparkles } from "lucide-react";
+import {
+  buttonClasses,
+  muted,
+  sectionCard,
+  sectionHeader,
+  sectionIcon,
+  sectionTitle,
+  statusDot,
+  statusPill,
+} from "./classes";
 
 type ApplyState = { kind: "ok"; message: string } | { kind: "error"; message: string } | null;
 
@@ -98,14 +108,22 @@ export function BackgroundTab() {
       : format(copy.backgroundUpdated, { time: stamp(updatedAt) });
 
   return (
-    <section
-      aria-label={copy.backgroundTitle}
-      className="rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
-    >
-      <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>{copy.backgroundTitle}</div>
-      <p className={`${muted} mt-1 text-[12px]`}>{copy.backgroundDescription}</p>
+    <section aria-label={copy.backgroundTitle} className={sectionCard}>
+      <div className={sectionHeader}>
+        <h2 className={sectionTitle}>
+          <Sparkles aria-hidden className={sectionIcon} strokeWidth={1.75} />
+          {copy.backgroundTitle}
+        </h2>
+        {loaded && !loadFailed && (
+          <span className={statusPill("ok")}>
+            <span aria-hidden className={statusDot("ok")} />
+            {optionLabel(current)}
+          </span>
+        )}
+      </div>
+      <p className={`${muted} mt-2 max-w-[68ch] text-[12px] leading-5`}>{copy.backgroundDescription}</p>
 
-      <div className="mt-3 text-[13px]">
+      <div className="mt-2 text-[12px] leading-5">
         <span className={muted}>{copy.backgroundCurrent}: </span>
         <span className="font-semibold">{optionLabel(current)}</span>
         <span className={muted}> · {statusLine}</span>
@@ -118,14 +136,15 @@ export function BackgroundTab() {
             <button
               key={id}
               type="button"
-              aria-pressed={selected}
+              role="radio"
+              aria-checked={selected}
               onClick={() => {
                 setSelection(id);
                 setApplyState(null);
               }}
               disabled={applying || !loaded}
-              className={`cursor-pointer rounded-(--radius-sm)! border px-3.5 py-3 text-left text-[13px] disabled:opacity-60 ${
-                selected ? "border-(--accent)" : "border-(--border) bg-transparent"
+              className={`cursor-pointer rounded-(--radius-sm)! border px-3.5 py-3 text-left text-[14px] disabled:opacity-60 transition-colors ${
+                selected ? "border-(--accent) bg-(--accent-subtle)" : "border-(--border) bg-transparent hover:border-(--accent)/50"
               }`}
             >
               <span className={`block font-semibold ${selected ? "text-(--accent)" : ""}`}>
@@ -146,13 +165,13 @@ export function BackgroundTab() {
         >
           {applying ? copy.backgroundApplying : copy.backgroundApply}
         </button>
-        <div aria-live="polite" className="text-[13px]">
+        <div aria-live="polite" className="text-[14px]">
           {applyState?.kind === "ok" && <span className="text-(--green)">{applyState.message}</span>}
           {applyState?.kind === "error" && <span className="text-(--red)">{applyState.message}</span>}
         </div>
       </div>
 
-      <p className={`${muted} mt-2 text-[12px]`}>{copy.backgroundNote}</p>
+      <p className={`${muted} mt-3 border-t border-(--border-subtle) pt-3 text-[12px] leading-5`}>{copy.backgroundNote}</p>
     </section>
   );
 }

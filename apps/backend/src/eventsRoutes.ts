@@ -31,7 +31,8 @@ const hazardDetectedPayload = z
   })
   .strict();
 
-const healthFactUpdatedPayload = z
+/** Payload v1 (legacy) — giữ để web/tool cũ publish được. */
+const healthFactLegacyPayload = z
   .object({
     fact: z.string().trim().min(1).max(64),
     value: z.union([z.string().max(300), z.number().finite()]),
@@ -39,6 +40,30 @@ const healthFactUpdatedPayload = z
     severity: severitySchema.optional(),
   })
   .strict();
+
+/**
+ * Payload v2 — fact dẫn xuất từ simulator (SENSOR_SIMULATION_SPEC §14, PR4).
+ * Chỉ facts: KHÔNG raw reading, KHÔNG 1 Hz stream. `sourceMode` luôn synthetic.
+ */
+const healthFactDerivedPayload = z
+  .object({
+    factId: z.string().trim().min(1).max(96),
+    missionId: z.string().trim().min(1).max(64),
+    crewId: z.string().trim().min(1).max(64).optional(),
+    category: z.enum(["cardiovascular", "respiratory", "radiation", "environment"]),
+    rule: z.string().trim().min(1).max(64),
+    status: z.enum(["active", "resolved"]),
+    severity: z.enum(["info", "yellow", "red"]),
+    sourceMode: z.literal("synthetic"),
+    quality: z.enum(["valid", "suspect", "invalid"]),
+    /** Sim clock (UTC ISO-8601). */
+    observedAt: z.string().trim().min(1).max(40),
+    evidenceEventIds: z.array(z.string().trim().min(1).max(64)).max(8),
+  })
+  .strict();
+
+const healthFactUpdatedPayload = z.union([healthFactLegacyPayload, healthFactDerivedPayload]);
+
 
 const claimsChangedPayload = z
   .object({
