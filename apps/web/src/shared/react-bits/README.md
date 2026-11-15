@@ -15,5 +15,5 @@
 Fetched 2026-11-14. Changes: JSX to TSX, `'use client'` removed, `@ts-nocheck` added.
 
 VoicePill fetched 2026-11-15, same changes; it needs `@hugeicons/react` + `@hugeicons/core-free-icons` (already direct dependencies of this package).
-
+Sky fork: `--vp-cancel` initialized to `0` in the root button style (upstream leaves it unset → the Cancel affordance renders at rest).
 MIT + Commons Clause. Vendored for this app only, never republished as a library.
