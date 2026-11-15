@@ -53,10 +53,10 @@ export const en: Copy = {
   watch: {
     simulated: "SIMULATED",
     selectCrew: "Select crew",
-    vitalHeart: "HEART",
-    vitalSpo2: "SPO₂",
-    vitalResp: "RESP",
-    vitalSleep: "SLEEP",
+    vitalHeart: "Heart",
+    vitalSpo2: "SpO₂",
+    vitalResp: "Respiration",
+    vitalSleep: "Sleep",
     typeInstead: "Type instead",
     demonstrationOnly: "Demonstration only",
     screenVitals: "Vitals",
@@ -65,6 +65,7 @@ export const en: Copy = {
     screenPrevious: "Previous screen",
     screenNext: "Next screen",
     viewDetails: "View details",
+    speakToSky: "Speak to Sky",
   },
   hud: {
     tagline: "Astronaut Wellness",

@@ -53,10 +53,10 @@ export const vi: Copy = {
   watch: {
     simulated: "MÔ PHỎNG",
     selectCrew: "Chọn phi hành đoàn",
-    vitalHeart: "TIM",
-    vitalSpo2: "SPO₂",
-    vitalResp: "THỞ",
-    vitalSleep: "NGỦ",
+    vitalHeart: "Tim",
+    vitalSpo2: "SpO₂",
+    vitalResp: "Hô hấp",
+    vitalSleep: "Giấc ngủ",
     typeInstead: "Nhập thay vì nói",
     demonstrationOnly: "Chỉ để trình diễn",
     screenVitals: "Chỉ số",
@@ -65,6 +65,7 @@ export const vi: Copy = {
     screenPrevious: "Màn hình trước",
     screenNext: "Màn hình sau",
     viewDetails: "Xem chi tiết",
+    speakToSky: "Nói với Sky",
   },
   hud: {
     tagline: "Sức khỏe phi hành gia",
