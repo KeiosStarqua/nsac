@@ -1,4 +1,6 @@
 export { AstronautPicker } from "./components/AstronautPicker";
+export { default as AstronautAvatar } from "./components/AstronautAvatar";
+export type { AstronautAvatarSubject } from "./components/AstronautAvatar";
 export { getAstronauts } from "./api/astronauts.functions";
 export { listClaims, claimAstronaut, heartbeatClaim, releaseAllClaims } from "./api/claims.functions";
 export { useClaimHeartbeat } from "./useClaimHeartbeat";

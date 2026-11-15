@@ -6,7 +6,8 @@ import { checkedInCount, resolveCrewPresence, type CrewPresenceState } from "../
 import { useCrewClaims } from "./useCrewClaims";
 
 // The one piece of chrome on `/spacecraft` (product decision 2026-11-15): who is checked in.
-// Fictional crew only, rendered as initials — there are no photos, and nothing here is measured.
+// Fictional crew only, rendered as their AI-generated portraits (the same art the picker uses;
+// beui's Avatar falls back to initials if a file fails). Nothing here is measured.
 // The 3D markers in the scene reuse the same claims snapshot, so avatars and markers agree.
 
 // `mine` carries a solid cyan ring, `taken` a faint one, `free` recedes.
@@ -28,7 +29,8 @@ const CAPTION =
 /**
  * Crew presence overlay: the avatars of the crew and which of them are checked in, read from the
  * same backend claims the HUD picker uses. A claim is a session holding a crew member for the demo;
- * every member is rendered (initials), not only the checked-in ones, so "nobody yet" stays legible.
+ * every member is rendered (their portrait, initials if the file fails), not only the checked-in
+ * ones, so "nobody yet" stays legible.
  *
  * The backend may be down (`reachable: false`) — the group still renders, and the caption says the
  * status is unavailable instead of pretending the crew is absent.
@@ -43,6 +45,7 @@ export function CrewPresence() {
   const members = presence.map(({ astronaut, state }) => ({
     id: astronaut.id,
     name: astronaut.name,
+    src: `/astronauts/${astronaut.id}.png`,
     hint: `${astronaut.name} · ${astronaut.role} — ${STATE_HINT[state]}`,
     className: STATE_CLASS[state],
   }));

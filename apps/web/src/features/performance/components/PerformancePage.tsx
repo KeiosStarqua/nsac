@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ASTRONAUT_STORAGE_KEY,
+  AstronautAvatar,
   DEFAULT_ASTRONAUT_ID,
   findAstronaut,
 } from "../../astronaut";
@@ -154,12 +155,10 @@ export function PerformancePage({ initial }: PerformancePageProps) {
               {copy.performance.crewHealth} · {format(copy.performance.missionDay, { day: String(MISSION_DAY) })}
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-2.5 sm:justify-end">
-              <span
-                aria-hidden="true"
-                className="grid size-[30px] place-items-center rounded-full border border-[rgba(122,222,255,0.35)] bg-[linear-gradient(160deg,rgba(31,86,124,0.7),rgba(19,38,68,0.9))] text-[10px] font-medium tracking-[0.08em] text-[#cff3ff]"
-              >
-                {astronaut.initial}
-              </span>
+              <AstronautAvatar
+                astronaut={astronaut}
+                className="size-[30px] border border-[rgba(122,222,255,0.35)] bg-[linear-gradient(160deg,rgba(31,86,124,0.7),rgba(19,38,68,0.9))] text-[10px] font-medium tracking-[0.08em] text-[#cff3ff]"
+              />
               <span className="text-[14px] font-light text-(--text)">{astronaut.name}</span>
               <span className="rounded-full border border-[rgba(94,234,212,0.28)] bg-[rgba(94,234,212,0.08)] px-2 py-[3px] text-[8.5px] uppercase tracking-[0.16em] text-[rgba(142,240,217,0.9)]">
                 {copy.performance.simulatedData}

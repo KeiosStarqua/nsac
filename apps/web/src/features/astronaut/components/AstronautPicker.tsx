@@ -8,6 +8,7 @@ import {
   moveSelectionAvailable,
   type Astronaut,
 } from "../model/astronauts";
+import AstronautAvatar from "./AstronautAvatar";
 
 // Tailwind utilities replacing AstronautPicker.module.css. The picker renders at the app root on `/`
 // and inside the watch face on `/watch`; the watch-face sheet keeps the old `:global(.watch-screen)`
@@ -436,7 +437,12 @@ export function AstronautPicker({ open, roster, initialId, takenIds, mineId, cla
                   {cardTaken ? null : <kbd className={KEY} aria-hidden="true">{index + 1}</kbd>}
                 </span>
                 <span className={`${AVATAR} ${isSelected ? AVATAR_SELECTED : AVATAR_IDLE}`}>
-                  <span className={`${INITIAL} ${isSelected ? "text-[#5eead4]" : "text-[#98a6bd]"}`}>{a.initial}</span>
+                  {/* Portrait fills the circle; the initials fallback keeps the exact old glyph. */}
+                  <AstronautAvatar
+                    astronaut={a}
+                    className="size-full"
+                    initialsClassName={`${INITIAL} ${isSelected ? "text-[#5eead4]" : "text-[#98a6bd]"}`}
+                  />
                   {isSelected ? <span className={CHECK} aria-hidden="true">✓</span> : null}
                 </span>
                 <span className={NAME}>{a.name}</span>
