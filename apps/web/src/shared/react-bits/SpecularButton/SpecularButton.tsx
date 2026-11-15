@@ -1,14 +1,64 @@
 // SpecularButton
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/SpecularButton/SpecularButton.jsx
+// Source: @react-bits/SpecularButton-TS-TW — https://reactbits.dev/r/SpecularButton-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react';
 
-import './SpecularButton.css';
+const SIZES: Record<SpecularButtonSize, string> = {
+  sm: 'px-5 py-2.5 text-[0.875rem]',
+  md: 'px-7 py-3.5 text-[1rem]',
+  lg: 'px-[38px] py-[18px] text-[1.125rem]'
+};
+
+const BUTTON =
+  'relative isolate m-0 inline-flex cursor-pointer items-center justify-center gap-[0.5em] border-0 [font-family:inherit] font-medium leading-none tracking-[0.01em] [color:var(--sb-text-color)] [border-radius:var(--sb-radius)] [background:color-mix(in_srgb,var(--sb-tint)_calc(var(--sb-tint-opacity)*100%),transparent)] shadow-[0_10px_24px_-14px_rgba(0,0,0,0.45)] [-webkit-backdrop-filter:blur(var(--sb-blur))] [backdrop-filter:blur(var(--sb-blur))] outline-none [-webkit-tap-highlight-color:transparent] transition-transform duration-250 ease-[cubic-bezier(0.2,0.8,0.2,1)] active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[3px] focus-visible:[outline-color:color-mix(in_srgb,var(--sb-text-color)_55%,transparent)] disabled:cursor-default disabled:opacity-50 disabled:active:scale-100';
 
 const PAD = 24;
 const TAU = Math.PI * 2;
+
+export type SpecularButtonSize = 'sm' | 'md' | 'lg';
+
+export interface SpecularButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'type'> {
+  children?: ReactNode;
+  size?: SpecularButtonSize;
+  radius?: number;
+  tint?: string;
+  tintOpacity?: number;
+  blur?: number;
+  textColor?: string;
+  lineColor?: string;
+  baseColor?: string;
+  intensity?: number;
+  idleIntensity?: number;
+  shineSize?: number;
+  shineFade?: number;
+  thickness?: number;
+  glow?: number;
+  speed?: number;
+  followMouse?: boolean;
+  proximity?: number;
+  autoAnimate?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+}
+
+type Settings = {
+  radius: number;
+  lineColor: string;
+  baseColor: string;
+  intensity: number;
+  idleIntensity: number;
+  shineSize: number;
+  shineFade: number;
+  thickness: number;
+  glow: number;
+  speed: number;
+  followMouse: boolean;
+  proximity: number;
+  autoAnimate: boolean;
+  disabled: boolean;
+};
 
 const VERTEX = `#version 300 es
 in vec2 aPosition;
@@ -89,11 +139,11 @@ const UNIFORMS = [
   'uGlow'
 ];
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const wrap = value => value - Math.floor(value);
+const wrap = (value: number) => value - Math.floor(value);
 
-const loopPosition = (x, y, halfX, halfY, r) => {
+const loopPosition = (x: number, y: number, halfX: number, halfY: number, r: number) => {
   const innerX = halfX - r;
   const innerY = halfY - r;
   const arc = (Math.PI / 2) * r;
@@ -111,7 +161,7 @@ const loopPosition = (x, y, halfX, halfY, r) => {
   return wrap(s / Math.max(4 * quarter, 0.0001));
 };
 
-const rimPoint = (position, halfX, halfY, r) => {
+const rimPoint = (position: number, halfX: number, halfY: number, r: number): [number, number] => {
   const innerX = halfX - r;
   const innerY = halfY - r;
   const arc = (Math.PI / 2) * r;
@@ -143,7 +193,7 @@ const rimPoint = (position, halfX, halfY, r) => {
   return [x * signX, y * signY];
 };
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -153,7 +203,7 @@ const compile = (gl, type, source) => {
   return null;
 };
 
-const link = gl => {
+const link = (gl: WebGL2RenderingContext) => {
   const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
   const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT);
   const program = gl.createProgram();
@@ -195,11 +245,11 @@ const SpecularButton = ({
   type = 'button',
   style,
   ...rest
-}) => {
-  const buttonRef = useRef(null);
-  const canvasRef = useRef(null);
-  const wakeRef = useRef(null);
-  const settings = {
+}: SpecularButtonProps) => {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
+  const settings: Settings = {
     radius: Math.max(0, radius),
     lineColor: String(lineColor),
     baseColor: String(baseColor),
@@ -231,7 +281,7 @@ const SpecularButton = ({
     if (!button || !canvas || !gl) return undefined;
     const program = link(gl);
     if (!program) return undefined;
-    const uniforms = {};
+    const uniforms: Record<string, WebGLUniformLocation | null> = {};
     for (const name of UNIFORMS) uniforms[name] = gl.getUniformLocation(program, name);
     const buffer = gl.createBuffer();
     const vao = gl.createVertexArray();
@@ -244,7 +294,7 @@ const SpecularButton = ({
 
     const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const colors = new Map();
+    const colors = new Map<string, number[]>();
     const view = { width: 1, height: 1, ratio: 1 };
     const pointer = { x: 0, y: 0, known: false };
     const state = { spot: 0, level: 0, press: 0, ready: false };
@@ -252,8 +302,9 @@ const SpecularButton = ({
     let last = 0;
     let visible = true;
 
-    const toRgb = value => {
-      if (colors.has(value)) return colors.get(value);
+    const toRgb = (value: string): number[] => {
+      const cached = colors.get(value);
+      if (cached) return cached;
       let rgb = [1, 1, 1];
       if (probe) {
         probe.clearRect(0, 0, 1, 1);
@@ -267,15 +318,15 @@ const SpecularButton = ({
       return rgb;
     };
 
-    const cornerRadius = s => Math.min(s.radius, view.width / 2, view.height / 2);
+    const cornerRadius = (s: Settings) => Math.min(s.radius, view.width / 2, view.height / 2);
 
-    const restSpot = s => {
+    const restSpot = (s: Settings) => {
       const r = cornerRadius(s);
       const inset = r * (1 - Math.SQRT1_2);
       return loopPosition(inset - view.width / 2, view.height / 2 - inset, view.width / 2, view.height / 2, r);
     };
 
-    const aim = s => {
+    const aim = (s: Settings) => {
       if (!s.followMouse || s.disabled || !pointer.known) return null;
       const rect = button.getBoundingClientRect();
       const scale = rect.width / view.width || 1;
@@ -294,7 +345,7 @@ const SpecularButton = ({
       return { spot: wrap(nearest + offset * depth * depth * (3 - 2 * depth)), near };
     };
 
-    const draw = s => {
+    const draw = (s: Settings) => {
       const { width, height } = view;
       const scaleX = canvas.width / (width + PAD * 2);
       const scaleY = canvas.height / (height + PAD * 2);
@@ -322,7 +373,7 @@ const SpecularButton = ({
       gl.bindVertexArray(null);
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (!visible) return;
       const s = settingsRef.current;
@@ -356,7 +407,7 @@ const SpecularButton = ({
       if (!raf && visible) raf = requestAnimationFrame(frame);
     };
 
-    const measure = entry => {
+    const measure = (entry?: ResizeObserverEntry) => {
       const box = entry?.borderBoxSize?.[0];
       view.width = Math.max(1, box ? box.inlineSize : button.offsetWidth);
       view.height = Math.max(1, box ? box.blockSize : button.offsetHeight);
@@ -367,14 +418,14 @@ const SpecularButton = ({
       wake();
     };
 
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       pointer.x = event.clientX;
       pointer.y = event.clientY;
       pointer.known = true;
       wake();
     };
 
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       pointer.x = event.clientX;
       pointer.y = event.clientY;
       pointer.known = true;
@@ -382,7 +433,7 @@ const SpecularButton = ({
       wake();
     };
 
-    const onPointerEnd = event => {
+    const onPointerEnd = (event: PointerEvent) => {
       if (event.pointerType === 'mouse') return;
       pointer.known = false;
       wake();
@@ -424,7 +475,7 @@ const SpecularButton = ({
       gl.deleteBuffer(buffer);
       gl.deleteVertexArray(vao);
       gl.deleteProgram(program);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      if (!canvas.isConnected) gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, []);
 
@@ -438,19 +489,25 @@ const SpecularButton = ({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`specular-button specular-button--${size}${className ? ` ${className}` : ''}`}
-      style={{
-        '--sb-radius': `${radius}px`,
-        '--sb-tint': tint,
-        '--sb-tint-opacity': tintOpacity,
-        '--sb-blur': `${blur}px`,
-        '--sb-text-color': textColor,
-        ...style
-      }}
+      className={`${BUTTON} ${SIZES[size] ?? SIZES.lg}${className ? ` ${className}` : ''}`}
+      style={
+        {
+          '--sb-radius': `${radius}px`,
+          '--sb-tint': tint,
+          '--sb-tint-opacity': tintOpacity,
+          '--sb-blur': `${blur}px`,
+          '--sb-text-color': textColor,
+          ...style
+        } as CSSProperties
+      }
       {...rest}
     >
-      <canvas ref={canvasRef} className="specular-button__light" aria-hidden="true" />
-      <span className="specular-button__label">{children}</span>
+      <canvas
+        ref={canvasRef}
+        className="pointer-events-none absolute -inset-6 z-[1] block h-[calc(100%+48px)] w-[calc(100%+48px)]"
+        aria-hidden="true"
+      />
+      <span className="relative z-[2] inline-flex items-center gap-[inherit]">{children}</span>
     </button>
   );
 };

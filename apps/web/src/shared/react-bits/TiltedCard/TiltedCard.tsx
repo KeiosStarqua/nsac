@@ -1,16 +1,109 @@
 // TiltedCard
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/TiltedCard/TiltedCard.jsx
+// Source: @react-bits/TiltedCard-TS-TW — https://reactbits.dev/r/TiltedCard-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import './TiltedCard.css';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode
+} from 'react';
+
+type Axis = 'both' | 'horizontal' | 'vertical';
+
+export interface TiltedCardLayerProps {
+  depth?: number;
+  className?: string;
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+
+export interface TiltedCardProps {
+  imageSrc?: string;
+  altText?: string;
+  captionText?: string;
+  containerHeight?: number | string;
+  containerWidth?: number | string;
+  imageHeight?: number | string;
+  imageWidth?: number | string;
+  scaleOnHover?: number;
+  rotateAmplitude?: number;
+  showTooltip?: boolean;
+  overlayContent?: ReactNode;
+  displayOverlayContent?: boolean;
+  overlayDepth?: number;
+  children?: ReactNode;
+  backContent?: ReactNode;
+  flipOnClick?: boolean;
+  flipped?: boolean;
+  onFlip?: (flipped: boolean) => void;
+  radius?: number | string;
+  perspective?: number | string;
+  smoothness?: number;
+  glare?: number;
+  glareColor?: string;
+  shadow?: number;
+  parallax?: number;
+  axis?: Axis;
+  reverse?: boolean;
+  trackWindow?: boolean;
+  floating?: boolean;
+  gyroscope?: boolean;
+  intro?: boolean;
+  introDelay?: number;
+  onClick?: (event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => void;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Settings {
+  amplitude: number;
+  scale: number;
+  smoothness: number;
+  glare: number;
+  shadow: number;
+  parallax: number;
+  axis: Axis;
+  reverse: boolean;
+  trackWindow: boolean;
+  floating: boolean;
+  gyroscope: boolean;
+  intro: boolean;
+  introDelay: number;
+  flippable: boolean;
+  interactive: boolean;
+  flipped: boolean;
+  tooltip: boolean;
+}
+
+type OrientationRequest = { requestPermission?: () => Promise<string> };
 
 const FLIP_THRESHOLD = 6;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const LAYER_TRANSFORM =
+  'translate3d(calc(var(--tc-px, 0) * var(--tc-depth, 0) * 1px), calc(var(--tc-py, 0) * var(--tc-depth, 0) * 1px), 0)';
 
-const parseColor = value => {
+const GLARE_STYLE: CSSProperties = {
+  background:
+    'radial-gradient(farthest-corner circle at var(--tc-gx, 50%) var(--tc-gy, 50%), rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.34)) 0%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.331)) 9%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.285)) 18%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.202)) 27%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.108)) 36%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.035)) 45%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.003)) 54%, rgba(var(--tc-glare-rgb, 255, 255, 255), 0) 60%)'
+};
+
+const EDGE_STYLE: CSSProperties = {
+  background:
+    'radial-gradient(farthest-side circle at var(--tc-gx, 50%) var(--tc-gy, 50%), rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.85)) 0%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.71)) 18%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.43)) 36%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.16)) 54%, rgba(var(--tc-glare-rgb, 255, 255, 255), calc(var(--tc-glare, 0) * 0.02)) 72%, rgba(var(--tc-glare-rgb, 255, 255, 255), 0) 85%)',
+  WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+  WebkitMaskComposite: 'xor',
+  mask: 'linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)'
+};
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const parseColor = (value: string): number[] | null => {
   const text = String(value || '').trim();
   const hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text);
   if (hex) {
@@ -22,14 +115,14 @@ const parseColor = value => {
   return null;
 };
 
-const toLength = value => (typeof value === 'number' ? `${value}px` : value);
+const toLength = (value: number | string | undefined) => (typeof value === 'number' ? `${value}px` : value);
 
-const smoother = t => {
+const smoother = (t: number) => {
   const x = clamp(t, 0, 1);
   return x * x * x * (x * (x * 6 - 15) + 10);
 };
 
-const step = (state, key, target, omega, zeta, dt) => {
+const step = (state: Record<string, number>, key: string, target: number, omega: number, zeta: number, dt: number) => {
   const velocity = `v${key}`;
   const steps = Math.max(1, Math.ceil(dt / (1 / 240)));
   const h = dt / steps;
@@ -45,8 +138,11 @@ const step = (state, key, target, omega, zeta, dt) => {
   return !settled;
 };
 
-export const TiltedCardLayer = ({ depth = 20, className = '', style, children }) => (
-  <div className={`tilted-card__layer ${className}`.trim()} style={{ '--tc-depth': depth, ...style }}>
+export const TiltedCardLayer = ({ depth = 20, className = '', style, children }: TiltedCardLayerProps) => (
+  <div
+    className={`absolute inset-0 ${className}`.trim()}
+    style={{ '--tc-depth': depth, transform: LAYER_TRANSFORM, ...style } as CSSProperties}
+  >
     {children}
   </div>
 );
@@ -87,18 +183,18 @@ const TiltedCard = ({
   onClick,
   className = '',
   style
-}) => {
-  const figureRef = useRef(null);
-  const bodyRef = useRef(null);
-  const shadowRef = useRef(null);
-  const captionRef = useRef(null);
-  const wakeRef = useRef(null);
-  const flipRef = useRef(null);
+}: TiltedCardProps) => {
+  const figureRef = useRef<HTMLElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
+  const captionRef = useRef<HTMLElement>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
+  const flipRef = useRef<(() => boolean) | null>(null);
   const [innerFlipped, setInnerFlipped] = useState(false);
   const controlled = typeof flipped === 'boolean';
   const isFlipped = Boolean(backContent) && (controlled ? flipped : innerFlipped);
 
-  const settings = {
+  const settings: Settings = {
     amplitude: clamp(rotateAmplitude, 0, 60),
     scale: Math.max(0.5, scaleOnHover),
     smoothness: clamp(smoothness, 0, 1),
@@ -171,7 +267,7 @@ const TiltedCard = ({
       body.style.opacity = '0';
     }
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       const s = settingsRef.current;
       const dt = clamp((now - last) / 1000 || 0, 0, 0.05);
@@ -283,7 +379,7 @@ const TiltedCard = ({
     };
     wakeRef.current = wake;
 
-    const locate = (event, area) => {
+    const locate = (event: PointerEvent, area: HTMLElement) => {
       const rect = area.getBoundingClientRect();
       return {
         x: event.clientX - rect.left,
@@ -293,7 +389,7 @@ const TiltedCard = ({
       };
     };
 
-    const track = event => {
+    const track = (event: PointerEvent) => {
       const spot = locate(event, figure);
       const now = performance.now();
       const elapsed = Math.max(8, now - (pointer.last || now - 16)) / 1000;
@@ -306,7 +402,7 @@ const TiltedCard = ({
       pointer.ny = clamp((spot.y - spot.height / 2) / (spot.height / 2), -1, 1);
     };
 
-    const onEnter = event => {
+    const onEnter = (event: PointerEvent) => {
       pointer.inside = true;
       pointer.mouse = event.pointerType === 'mouse' || event.pointerType === 'pen';
       const spot = locate(event, figure);
@@ -318,7 +414,7 @@ const TiltedCard = ({
       track(event);
       wake();
     };
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       pointer.mouse = event.pointerType === 'mouse' || event.pointerType === 'pen';
       if (!pointer.inside && pointer.mouse) {
         pointer.inside = true;
@@ -339,8 +435,8 @@ const TiltedCard = ({
       pointer.vx = 0;
       wake();
     };
-    const onWindowMove = event => {
-      if (pointer.inside && pointer.mouse && !figure.contains(event.target)) onLeave();
+    const onWindowMove = (event: PointerEvent) => {
+      if (pointer.inside && pointer.mouse && !figure.contains(event.target as Node)) onLeave();
       if (!settingsRef.current.trackWindow || pointer.inside) return;
       const rect = figure.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
@@ -359,11 +455,11 @@ const TiltedCard = ({
       const s = settingsRef.current;
       if (!s.gyroscope || !coarse || tilt.asked) return;
       tilt.asked = true;
-      const request = window.DeviceOrientationEvent?.requestPermission;
+      const request = (window.DeviceOrientationEvent as unknown as OrientationRequest | undefined)?.requestPermission;
       if (typeof request === 'function') request.call(window.DeviceOrientationEvent).catch(() => {});
     };
 
-    const onDown = event => {
+    const onDown = (event: PointerEvent) => {
       press.active = true;
       press.moved = false;
       press.x = event.clientX;
@@ -376,7 +472,7 @@ const TiltedCard = ({
       askMotion();
       wake();
     };
-    const onUp = event => {
+    const onUp = (event: PointerEvent) => {
       if (!press.active) return;
       press.active = false;
       if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') pointer.inside = false;
@@ -389,7 +485,7 @@ const TiltedCard = ({
       wake();
     };
 
-    const onOrientation = event => {
+    const onOrientation = (event: DeviceOrientationEvent) => {
       if (event.gamma == null || event.beta == null) return;
       tilt.gamma = event.gamma;
       tilt.beta = event.beta;
@@ -465,13 +561,13 @@ const TiltedCard = ({
     onFlip?.(next);
   };
 
-  const activate = event => {
+  const activate = (event: MouseEvent<HTMLElement>) => {
     if (flipRef.current && !flipRef.current()) return;
     if (flippable) toggle();
     onClick?.(event);
   };
 
-  const onKeyDown = event => {
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (!interactive || event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
     event.preventDefault();
     if (event.repeat) return;
@@ -486,7 +582,7 @@ const TiltedCard = ({
   return (
     <figure
       ref={figureRef}
-      className={`tilted-card ${className}`.trim()}
+      className={`tilted-card group relative m-0 flex select-none items-center justify-center outline-none [-webkit-tap-highlight-color:transparent] [touch-action:pan-y_pinch-zoom] data-[active]:z-[2] data-[interactive]:cursor-pointer ${className}`.trim()}
       style={{
         width: toLength(containerWidth),
         height: toLength(containerHeight),
@@ -504,57 +600,93 @@ const TiltedCard = ({
     >
       <div
         ref={shadowRef}
-        className="tilted-card__shadow"
+        className="pointer-events-none absolute inset-0 m-auto max-h-full max-w-full bg-[var(--tc-shadow-color,rgba(0,0,0,0.55))] opacity-0 blur-[20px] will-change-[transform,opacity]"
         aria-hidden="true"
         style={{ width: toLength(imageWidth), height: toLength(imageHeight), borderRadius: corner }}
       />
       <div
         ref={bodyRef}
-        className="tilted-card__body"
-        style={{
-          width: toLength(imageWidth),
-          height: toLength(imageHeight),
-          '--tc-radius': corner,
-          '--tc-glare-rgb': glareRgb
-        }}
+        className="relative max-h-full max-w-full [transform-style:preserve-3d]"
+        style={
+          {
+            width: toLength(imageWidth),
+            height: toLength(imageHeight),
+            '--tc-radius': corner,
+            '--tc-glare-rgb': glareRgb
+          } as CSSProperties
+        }
       >
-        <div className="tilted-card__face tilted-card__front">
+        <div className="tilted-card__face tilted-card__front absolute inset-0 isolate overflow-hidden rounded-[var(--tc-radius)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
           {imageSrc && (
             <img
-              className="tilted-card__img"
+              className="pointer-events-none absolute block max-w-none object-cover"
               src={imageSrc}
               alt={altText}
               draggable={false}
-              style={{
-                '--tc-depth': -24,
-                top: `-${bleed}px`,
-                left: `-${bleed}px`,
-                width: `calc(100% + ${bleed * 2}px)`,
-                height: `calc(100% + ${bleed * 2}px)`
-              }}
+              style={
+                {
+                  '--tc-depth': -24,
+                  transform: LAYER_TRANSFORM,
+                  top: `-${bleed}px`,
+                  left: `-${bleed}px`,
+                  width: `calc(100% + ${bleed * 2}px)`,
+                  height: `calc(100% + ${bleed * 2}px)`
+                } as CSSProperties
+              }
             />
           )}
           {children}
-          <span className="tilted-card__glare" aria-hidden="true" />
-          <span className="tilted-card__rim" aria-hidden="true" />
-          <span className="tilted-card__edge" aria-hidden="true" />
+          <span
+            className="pointer-events-none absolute inset-0 z-[5] mix-blend-screen"
+            style={GLARE_STYLE}
+            aria-hidden="true"
+          />
+          <span
+            className="tilted-card__rim pointer-events-none absolute inset-0 z-[6] rounded-[inherit] shadow-[inset_0_0_0_1px_var(--tc-rim-color,rgba(255,255,255,0.08)),inset_0_1px_0_var(--tc-rim-light,rgba(255,255,255,0.12))] group-focus-visible:shadow-[inset_0_0_0_2px_rgba(255,255,255,0.7),inset_0_0_0_3px_rgba(0,0,0,0.35)]"
+            aria-hidden="true"
+          />
+          <span
+            className="pointer-events-none absolute inset-0 z-[7] box-border rounded-[inherit] p-px"
+            style={EDGE_STYLE}
+            aria-hidden="true"
+          />
         </div>
         {backContent && (
-          <div className="tilted-card__face tilted-card__back" aria-hidden={!isFlipped}>
+          <div
+            className="tilted-card__face tilted-card__back absolute inset-0 isolate overflow-hidden rounded-[var(--tc-radius)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]"
+            aria-hidden={!isFlipped}
+          >
             {backContent}
-            <span className="tilted-card__glare" aria-hidden="true" />
-            <span className="tilted-card__rim" aria-hidden="true" />
-            <span className="tilted-card__edge" aria-hidden="true" />
+            <span
+              className="pointer-events-none absolute inset-0 z-[5] mix-blend-screen"
+              style={GLARE_STYLE}
+              aria-hidden="true"
+            />
+            <span
+              className="tilted-card__rim pointer-events-none absolute inset-0 z-[6] rounded-[inherit] shadow-[inset_0_0_0_1px_var(--tc-rim-color,rgba(255,255,255,0.08)),inset_0_1px_0_var(--tc-rim-light,rgba(255,255,255,0.12))] group-focus-visible:shadow-[inset_0_0_0_2px_rgba(255,255,255,0.7),inset_0_0_0_3px_rgba(0,0,0,0.35)]"
+              aria-hidden="true"
+            />
+            <span
+              className="pointer-events-none absolute inset-0 z-[7] box-border rounded-[inherit] p-px"
+              style={EDGE_STYLE}
+              aria-hidden="true"
+            />
           </div>
         )}
         {displayOverlayContent && overlayContent && (
-          <div className="tilted-card__overlay" style={{ '--tc-lift': `${overlayDepth}px` }}>
+          <div
+            className="absolute inset-0 z-[2] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]"
+            style={{ transform: `translateZ(${overlayDepth}px)` }}
+          >
             {overlayContent}
           </div>
         )}
       </div>
       {showTooltip && captionText && (
-        <figcaption ref={captionRef} className="tilted-card__caption">
+        <figcaption
+          ref={captionRef}
+          className="pointer-events-none absolute left-0 top-0 z-[3] ml-3.5 mt-4 whitespace-nowrap rounded-[7px] bg-white px-[9px] py-[5px] text-[12px] font-medium leading-4 text-[#18181b] opacity-0 shadow-[0_0_0_1px_rgba(24,24,27,0.08),0_8px_18px_-8px_rgba(0,0,0,0.45)] [transform-origin:0_0] will-change-[transform,opacity]"
+        >
           {captionText}
         </figcaption>
       )}

@@ -570,7 +570,7 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
           <span className={BRAND_RING} aria-hidden="true" />
           <span className={BRAND_COPY}>
             <span className={BRAND_NAME}><DepthText text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
-            <span className={BRAND_TAGLINE}><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12} intensity={0.4}>Astronaut Wellness</ShinyText></span>
+            <span className={BRAND_TAGLINE}><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12}>Astronaut Wellness</ShinyText></span>
           </span>
         </button>
         <div className={SKY_HEADER_ACTIONS}>
