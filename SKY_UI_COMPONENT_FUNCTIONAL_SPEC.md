@@ -151,6 +151,8 @@ Keep a `prefers-reduced-motion` fallback and an entirely readable DOM-only fallb
 
 ### FX01 — `ConversationLens`
 
+**Status:** not implemented — removed 2026-11-15 as visual noise.
+
 **Visual:** A very wide, translucent blue–violet elliptical plasma lens surrounding the greeting, spanning the middle of the screen. Thin curved rim mostly at the edges, faint cyan/indigo internal motion, transparent interior. Crucial: **not** a bordered oval card.
 
 **Functions:** `setLensIntensity(phase, urgency)`, `setLensCenterFromViewport()`, `animateLensField(time, speechEnvelope)`. Blur/glow must never interfere with text legibility. Lens should slightly respond to voice, but stay understated while idle.
