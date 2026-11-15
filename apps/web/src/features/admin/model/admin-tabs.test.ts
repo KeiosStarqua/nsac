@@ -9,8 +9,15 @@ import {
 } from "./admin-tabs";
 
 describe("ADMIN_TABS", () => {
-  it("has the five tabs in display order", () => {
-    expect(ADMIN_TABS.map((tab) => tab.id)).toEqual(["models", "opencode", "elevenlabs", "speech", "claims"]);
+  it("has the six tabs in display order", () => {
+    expect(ADMIN_TABS.map((tab) => tab.id)).toEqual([
+      "models",
+      "opencode",
+      "elevenlabs",
+      "speech",
+      "claims",
+      "background",
+    ]);
   });
 
   it("routes every tab to its /admin/<id> route", () => {
@@ -33,6 +40,7 @@ describe("adminTabFromPathname", () => {
     expect(adminTabFromPathname("/admin/elevenlabs")).toBe("elevenlabs");
     expect(adminTabFromPathname("/admin/speech")).toBe("speech");
     expect(adminTabFromPathname("/admin/claims")).toBe("claims");
+    expect(adminTabFromPathname("/admin/background")).toBe("background");
   });
 
   it("falls back to the default tab for /admin and unknown paths", () => {

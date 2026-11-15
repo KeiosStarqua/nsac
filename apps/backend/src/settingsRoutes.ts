@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { settingsRepo, AGENT_PROVIDERS, type AgentProvider } from "./db/repositories/settings";
+import {
+  settingsRepo,
+  AGENT_PROVIDERS,
+  type AgentProvider,
+} from "./db/repositories/settings";
 
 // Model id OpenRouter/OpenCode Go/Amazon Bedrock: không khoảng trắng, không ký tự lạ — chống injection/giá trị rác.
 // Bedrock inference-profile ids (vd. `global.amazon.nova-2-lite-v1:0`) đều khớp regex này.
@@ -18,6 +22,13 @@ const putModelBodySchema = z.object({
 
 const putElevenLabsKeyBodySchema = z.object({
   key: elevenLabsKeySchema,
+});
+
+// Backdrop của `/`: chỉ hai giá trị — admin chọn, web dùng (default particles).
+// Literal enum giữ type đúng `HudBackground` (readonly tuple không khớp signature `[T, ...T[]]`);
+// lệch với HUD_BACKGROUNDS sẽ fail ngay ở `setHudBackground(parsed.data.background)`.
+const putHudBackgroundBodySchema = z.object({
+  background: z.enum(["particles", "galaxy"]),
 });
 
 // Key của map `agent.models`: id profile dạng kebab (vd. sky-chat), ≤64 ký tự.
@@ -93,8 +104,9 @@ function validateAgentConfigBody(body: unknown):
 
 /**
  * Xử lý các route settings: `/api/settings/agent-model` (legacy global),
- * `/api/settings/agent-models` (provider + per-profile models) và
- * `/api/settings/elevenlabs-key` (GET/PUT/DELETE, key write-only). Trả về
+ * `/api/settings/agent-models` (provider + per-profile models),
+ * `/api/settings/elevenlabs-key` (GET/PUT/DELETE, key write-only) và
+ * `/api/settings/hud-background` (GET/PUT, backdrop `/`). Trả về
  * `null` khi pathname/method không thuộc settings để server.ts tiếp tục
  * fall-through về 404 như hiện có.
  */
@@ -150,6 +162,39 @@ export async function handleSettingsRequest(req: Request): Promise<Response | nu
   }
 
   if (url.pathname === "/api/settings/elevenlabs-key") return handleElevenLabsKey(req);
+
+  if (url.pathname === "/api/settings/hud-background") return handleHudBackground(req);
+
+  return null;
+}
+
+/**
+ * Backdrop của `/` — admin setting, đọc không cần auth (loopback-only như mọi GET settings khác;
+ * web server fn là consumer duy nhất). Chưa set / giá trị rác ⇒ default `particles`, `updatedAt: null`.
+ */
+async function handleHudBackground(req: Request): Promise<Response | null> {
+  if (req.method === "GET") {
+    const stored = settingsRepo.getHudBackground();
+    return Response.json({
+      background: stored?.background ?? "particles",
+      updatedAt: stored?.updatedAt ?? null,
+    });
+  }
+
+  if (req.method === "PUT") {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ ok: false, error: "bad_background" }, { status: 400 });
+    }
+    const parsed = putHudBackgroundBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ ok: false, error: "bad_background" }, { status: 400 });
+    }
+    const saved = settingsRepo.setHudBackground(parsed.data.background);
+    return Response.json({ ok: true, background: saved.background, updatedAt: saved.updatedAt });
+  }
 
   return null;
 }

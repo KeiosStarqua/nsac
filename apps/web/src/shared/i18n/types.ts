@@ -548,13 +548,31 @@ export interface Copy {
       retry: string;
       genericError: string;
     };
-    /** Tab labels for the five /admin sections. */
+    /** Tab labels for the six /admin sections. */
     tabModels: string;
     tabOpencode: string;
     tabElevenlabs: string;
     tabSpeech: string;
     tabClaims: string;
-    /** aria-label of the tablist above the five sections. */
+    tabBackground: string;
+    /** aria-label of the tablist above the six sections. */
     tabsLabel: string;
+    /** Background tab (`/admin/background`) — the `/` backdrop picker. */
+    backgroundTitle: string;
+    backgroundDescription: string;
+    backgroundCurrent: string;
+    backgroundNotConfigured: string;
+    backgroundUpdated: string;
+    backgroundParticles: string;
+    backgroundParticlesDesc: string;
+    backgroundGalaxy: string;
+    backgroundGalaxyDesc: string;
+    backgroundApply: string;
+    backgroundApplying: string;
+    backgroundSaved: string;
+    backgroundSaveFailed: string;
+    backgroundInvalid: string;
+    backgroundLoadFailed: string;
+    backgroundNote: string;
   };
 }
