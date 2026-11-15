@@ -57,6 +57,8 @@ export { default as LightTunnel } from "./LightTunnel/LightTunnel";
 export * from "./LightTunnel/LightTunnel";
 export { default as Particles } from "./Particles/Particles";
 export * from "./Particles/Particles";
+export { default as Galaxy } from "./Galaxy/Galaxy";
+export * from "./Galaxy/Galaxy";
 export { default as Topography } from "./Topography/Topography";
 export * from "./Topography/Topography";
 export * from "./Stack/Stack";

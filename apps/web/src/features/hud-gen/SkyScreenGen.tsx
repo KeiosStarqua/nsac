@@ -4,8 +4,7 @@ import { useReducedMotion } from "motion/react";
 import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import Particles from "../../shared/react-bits/Particles/Particles";
 import { DETAIL_ACTION, DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY, DETAIL_VALUE, CHAT_OVERRIDE_CHIP, SKY_APP, SPACE_VIGNETTE } from "../sky-hud/hud-classes";
-const ParticlesAny = Particles as any;
-// react-bits sources are @ts-nocheck; their inferred prop types demand props with runtime defaults.
+// LightTunnel is @ts-nocheck; its inferred prop types demand props with runtime defaults.
 const LightTunnelAny = LightTunnel as any;
 import { useSkyVoice } from "../sky-hud/useSkyVoice";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
@@ -532,7 +531,7 @@ export function SkyScreenGen() {
         </div>
       ) : (
         <div className="absolute inset-0 z-0" aria-hidden="true">
-          <ParticlesAny
+          <Particles
             particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}
             particleCount={220}
             particleSpread={9}
