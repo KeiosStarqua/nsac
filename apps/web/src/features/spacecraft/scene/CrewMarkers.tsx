@@ -32,11 +32,14 @@ const MARKER_STYLE: Record<CrewPresenceState, MarkerStyle> = {
   free: { color: "#5EEAD4", radius: 0.5, sphereOpacity: 0.35, labelOpacity: 0.55 },
 };
 
-// 128 px reads as mush once the sprite is magnified; 256 keeps the two initials crisp and is still
-// six small textures.
+// 128 px reads as mush once the sprite is magnified; 256 keeps the initials crisp and still six
+// small textures (the portraits use the same canvas, so one texture per member either way).
 const TEXTURE_SIZE = 256;
+// Portrait circle: 34% of the texture per radius, so the avatar reads at the default fit and the
+// cyan halo still rings it. The initials fallback draws at the same centre.
+const AVATAR_RADIUS_RATIO = 0.34;
 // Label plane in world units: big enough to read at the default fit, small enough that the two
-// closest anchors (Unity/Destiny and Tranquility/Cupola) do not stack their initials.
+// closest anchors (Unity/Destiny and Tranquility/Cupola) do not stack their labels.
 const LABEL_SCALE = 5.2;
 const LABEL_OFFSET_Y = 2.4;
 const RENDER_ORDER = 20;
@@ -46,17 +49,51 @@ const PULSE_AMPLITUDE = 0.18;
 /** Display-only: markers must never intercept the stream loader's click-to-prioritise raycast. */
 const NO_RAYCAST = () => null;
 
+/** A label texture that can be disposed while its portrait is still downloading. */
+interface CrewLabelTexture extends THREE.CanvasTexture {
+  disposed?: boolean;
+}
+
 /**
- * Initials label: a canvas texture drawn at runtime (soft cyan glow behind white mono text), so
- * there is no font fetch and no image asset. Never drei's `<Text>`, which pulls a network font.
+ * Crew portrait drawn into the label texture: the same `/astronauts/<id>.png` file the picker and
+ * the presence chips use, cover-cropped into a circle, ringed in the marker's presence colour.
  */
-function labelTexture(initial: string): THREE.CanvasTexture {
+function drawPortrait(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  colour: string,
+  centre: number,
+  radius: number,
+): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(centre, centre, radius, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.drawImage(image, 0, 0, image.width, image.height, centre - radius, centre - radius, radius * 2, radius * 2);
+  ctx.restore();
+  // Presence rim + a thin dark edge so the portrait separates from the pale hull.
+  ctx.beginPath();
+  ctx.arc(centre, centre, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(2,10,18,0.85)";
+  ctx.lineWidth = 10;
+  ctx.stroke();
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 6;
+  ctx.stroke();
+}
+
+/**
+ * Marker label: a canvas texture drawn at runtime — first the initials (soft glow behind white
+ * mono text), then the crew portrait over it once it decodes. Either way there is no font fetch
+ * and no DOM. Never drei's `<Text>`, which pulls a network font, nor `<Html>`, which is chrome.
+ */
+function labelTexture(astronaut: { readonly id: string; readonly initial: string }, colour: string): CrewLabelTexture {
   const canvas = document.createElement("canvas");
   canvas.width = TEXTURE_SIZE;
   canvas.height = TEXTURE_SIZE;
+  const centre = TEXTURE_SIZE / 2;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    const centre = TEXTURE_SIZE / 2;
     const glow = ctx.createRadialGradient(centre, centre, 6, centre, centre, centre);
     glow.addColorStop(0, "rgba(255,255,255,0.22)");
     glow.addColorStop(0.4, "rgba(94,234,212,0.2)");
@@ -64,29 +101,42 @@ function labelTexture(initial: string): THREE.CanvasTexture {
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
     // A dark halo under white glyphs: the station is pale, so the initials need to separate from
-    // the hull as well as from space.
+    // the hull as well as from space. This is also the fallback when the portrait fails to load.
     ctx.font = `700 ${Math.round(TEXTURE_SIZE * 0.4)}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.shadowColor = "rgba(2,10,18,0.95)";
     ctx.shadowBlur = 18;
     ctx.fillStyle = "#F4FFFD";
-    ctx.fillText(initial, centre, centre + 4);
+    ctx.fillText(astronaut.initial, centre, centre + 4);
     ctx.shadowBlur = 0;
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(initial, centre, centre + 4);
+    ctx.fillText(astronaut.initial, centre, centre + 4);
   }
-  const texture = new THREE.CanvasTexture(canvas);
+  const texture: CrewLabelTexture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.needsUpdate = true;
+
+  // The portrait replaces the initials in the same texture when it decodes; a failed load keeps
+  // the initials, and a texture disposed mid-download is left alone (no upload after dispose).
+  const image = new Image();
+  image.decoding = "async";
+  image.onload = () => {
+    if (texture.disposed) return;
+    const live = canvas.getContext("2d");
+    if (!live) return;
+    drawPortrait(live, image, colour, centre, TEXTURE_SIZE * AVATAR_RADIUS_RATIO);
+    texture.needsUpdate = true;
+  };
+  image.src = `/astronauts/${astronaut.id}.png`;
   return texture;
 }
 
 /**
  * The six fictional crew members on the station, as telemetry-style markers: an emissive dot plus
- * a camera-facing initials sprite per member, drifting around a module anchor (fixture data in
- * `model/crew-positions.ts`). Rendering ignores depth so the markers read through the hull — that
- * is the point of the layer — and stops drifting entirely under reduced motion.
+ * a camera-facing portrait sprite per member (initials fallback), drifting around a module anchor
+ * (fixture data in `model/crew-positions.ts`). Rendering ignores depth so the markers read through
+ * the hull — that is the point of the layer — and stops drifting entirely under reduced motion.
  *
  * Display only: no pointer handlers, no picking, no decisions.
  */
@@ -96,12 +146,15 @@ export function CrewMarkers({ presence, reducedMotion }: CrewMarkersProps) {
 
   const markers = useMemo(
     () =>
-      presence.map((entry) => ({
-        id: entry.astronaut.id,
-        state: entry.state,
-        style: MARKER_STYLE[entry.state],
-        texture: labelTexture(entry.astronaut.initial),
-      })),
+      presence.map((entry) => {
+        const style = MARKER_STYLE[entry.state];
+        return {
+          id: entry.astronaut.id,
+          state: entry.state,
+          style,
+          texture: labelTexture(entry.astronaut, style.color),
+        };
+      }),
     [presence],
   );
 
@@ -117,7 +170,10 @@ export function CrewMarkers({ presence, reducedMotion }: CrewMarkersProps) {
 
   useEffect(
     () => () => {
-      for (const marker of markers) marker.texture.dispose();
+      for (const marker of markers) {
+        marker.texture.disposed = true;
+        marker.texture.dispose();
+      }
     },
     [markers],
   );
