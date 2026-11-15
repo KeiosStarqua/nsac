@@ -15,10 +15,10 @@ import DecryptedText from "../../shared/react-bits/DecryptedText/DecryptedText";
 import VoicePill from "../../shared/react-bits/VoicePill/VoicePill";
 import {
   BRAND, BRAND_COPY, BRAND_NAME, BRAND_RING, BRAND_TAGLINE, CAPTIONS, CONVERSATION,
-  CONVERSATION_COPY, CONVERSATION_LENS, CONVERSATION_LENS_LISTENING, DEMO_INDICATOR, DETAIL_ACTION,
+  CONVERSATION_COPY, DEMO_INDICATOR, DETAIL_ACTION,
   DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY,
   DETAIL_VALUE, DEVICE_SWITCHER_FLOAT, HEALTH_DEMO, HEALTH_GUIDANCE, HEALTH_LABEL, HEALTH_PROJECTION,
-  HEALTH_SHIELD, HEALTH_STATUS, HEALTH_SUMMARY, HOLOGRAM_LINK, LENS_INNER, MISSION_TEXT,
+  HEALTH_SHIELD, HEALTH_STATUS, HEALTH_SUMMARY, HOLOGRAM_LINK, MISSION_TEXT,
   MISSION_TRIGGER, MISSION_UNDERLINE, ORB_ZONE, ORB_ZONE_THINKING, SKY_APP, SKY_HEADER,
   SKY_HEADER_ACTIONS, SPACE_VIGNETTE, SPACECRAFT_LINK, STATION_ICON, TEXT_TRIGGER, VITAL_ICON,
   VITAL_ICON_OXYGEN, VITAL_TILE, VITAL_VALUE, VITALS_PROJECTION, VITALS_SHIELD, VOICE_CONTROL,
@@ -525,7 +525,6 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
 
       {/* Conversation */}
       <section className={CONVERSATION} aria-label="SKY conversation">
-        <div className={`${CONVERSATION_LENS}${phase === "listening" ? ` ${CONVERSATION_LENS_LISTENING}` : ""}`} aria-hidden="true"><div className={LENS_INNER} /></div>
         <div className={`${ORB_ZONE}${phase === "thinking" ? ` ${ORB_ZONE_THINKING}` : ""}`} aria-hidden="true"><SkyOrb phase={phase} energyRef={energyRef} /></div>
         <div className={CONVERSATION_COPY} ref={conversationCopyRef}>
           <h1 id="greeting">{fx ? <BlurText text={greeting} animationFrom={{filter:"blur(10px)",opacity:0}} animationTo={[{filter:"blur(0px)",opacity:1}]} color="#ecf7ff" easing="easeOut" /> : greeting}</h1>

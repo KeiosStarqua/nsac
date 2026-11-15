@@ -127,24 +127,8 @@ export const DEMO_INDICATOR =
 
 export const CONVERSATION = "pointer-events-none absolute inset-0 z-[7]";
 
-export const CONVERSATION_LENS = [
-  "absolute left-[24.4%] top-[28%] h-[35%] w-1/2 [border-radius:53%_47%_49%_51%/56%_50%_50%_44%] [transform:rotate(-4deg)]",
-  "border-b border-l border-r border-b-[rgba(66,163,236,.18)] border-l-[rgba(87,141,255,.5)] border-r-[rgba(186,162,255,.38)]",
-  "bg-[linear-gradient(120deg,rgba(45,104,231,.1),rgba(53,188,242,.058)_54%,rgba(197,124,248,.09))]",
-  "shadow-[inset_22px_13px_48px_rgba(30,79,146,.07),inset_-15px_-16px_30px_rgba(179,100,245,.055),0_0_50px_rgba(61,113,229,.045)]",
-  "max-[1300px]:left-[22%] max-[1300px]:w-[54%]",
-  "max-[1000px]:left-[17%] max-[1000px]:top-[34%] max-[1000px]:h-[31%] max-[1000px]:w-[65%]",
-  "max-[720px]:left-[5%] max-[720px]:top-[31%] max-[720px]:h-[36%] max-[720px]:w-[90%]",
-].join(" ");
-
-/** `listening` widens the lens rim (was `.sky-app[data-phase="listening"] .conversation-lens`). */
-export const CONVERSATION_LENS_LISTENING = "border-[rgba(86,229,255,.44)]!";
-
-export const LENS_INNER = [
-  "absolute inset-[13%_0_5%] [border-radius:60%_45%_50%_50%]",
-  "border-b border-b-[rgba(87,177,242,.08)]",
-  "bg-[radial-gradient(ellipse_at_50%_66%,rgba(77,191,247,.035),transparent_65%)]",
-].join(" ");
+// The decorative `conversation lens` (rotated elliptical aura + inner glow) that used to sit behind
+// the orb and greeting was removed 2026-11-15 as visual noise. No lens class strings remain.
 
 export const ORB_ZONE = [
   "absolute left-[50.6%] top-[26.3%] aspect-square w-[min(34vw,465px)]",
