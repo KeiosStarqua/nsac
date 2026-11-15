@@ -9,8 +9,8 @@
 // `getInputByteFrequencyData()` feeds the ListeningBar — no second MediaStream is opened. The
 // output path plays TTS through the SDK's WebRTC/WS audio out; `/api/tts` is not involved.
 //
-// A `?gen=0` / staged-HUD visitor never reaches this hook: the gen screen keeps its own
-// `useSkyVoice` path untouched.
+// The `?arch=openui` declarative HUD never reaches this hook: it keeps its own `useSkyVoice`
+// path untouched.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VoiceConversation } from "@elevenlabs/client";
 import type { VoicePhase } from "../sky-hud/types";

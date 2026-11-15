@@ -121,15 +121,15 @@ interface DetailDialogProps {
  * ⌘K chat card via `SkyChatPanel`, crew claims + picker + force release, announcement channel;
  * the mic speaks to the ElevenLabs Speech Engine (`useVoiceChat` — registration binds the pick,
  * the SDK owns mic capture, speaker output and the frequency bins feeding `ListeningBar`).
- * Only the layout is new — `?gen=0` still renders the staged HUD and `?arch=openui` the declarative hud-gen tree.
+ * Only the layout is new — `?arch=openui` still renders the declarative hud-gen tree.
  */
 export function SkyHudMock() {
   const copy = useCopy();
   const navigate = useNavigate();
-  // SSR always renders this mock (the `?gen=0` / `?arch=openui` opt-backs swap in after mount), so
-  // hide the locale chip for those URLs — their markup stays identical to before the chip existed.
-  const search = useSearch({ strict: false }) as { gen?: number; arch?: string };
-  const showLanguageSwitcher = search.gen !== 0 && search.arch !== "openui";
+  // SSR always renders this mock (the `?arch=openui` opt-back swaps in after mount), so hide the
+  // locale chip for that URL — its markup stays identical to before the chip existed.
+  const search = useSearch({ strict: false }) as { arch?: string };
+  const showLanguageSwitcher = search.arch !== "openui";
   const mounted = useMounted();
   const reduce = useReducedMotion();
   const fx = mounted && !reduce;

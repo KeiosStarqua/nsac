@@ -1,5 +1,5 @@
 // Watch Mode — glanceable HUD rendered full-screen by the `/watch` route; the hud-gen below-480px
-// fallback shares it. Fixture-driven like the staged HUD: every value comes from `vitals.ts` and
+// fallback shares it. Fixture-driven like the HUD screens: every value comes from `vitals.ts` and
 // stays labelled SIMULATED. Three swipeable screens (Vitals · Wellness · Sky) behind scroll-snap
 // paging — see watchScreens.ts.
 //

@@ -1,6 +1,6 @@
 // Tailwind v4 class strings for the `/` mock console ("SKY · Astronaut Wellness", features/hud-mock).
 //
-// Same visual language as the staged HUD (`features/sky-hud/hud-classes.ts`): deep navy stage,
+// Same visual language as the reference HUD (`features/sky-hud/hud-classes.ts`): deep navy stage,
 // cyan/violet accents, glass panels. Two cascade facts carry over:
 //   * `styles/global.css` resets are UNLAYERED and outrank `@layer utilities` — anything that must
 //     beat `p`/`h1..h3` margins or `button{font:inherit}` carries the `!` suffix;

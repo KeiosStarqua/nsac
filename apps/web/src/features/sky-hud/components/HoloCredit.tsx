@@ -7,7 +7,7 @@ import { ATTRIBUTION } from "open-anatomy-3d";
  * anchor — and re-enables the pointer so the licence link stays clickable.
  *
  * `placement` picks where the line sits inside its (positioned) parent:
- *   * `"corner"` (default) — top-right of the health card, the staged and declarative HUDs;
+ *   * `"corner"` (default) — top-right of the health card, the mock and declarative consoles;
  *   * `"footer"` — bottom of the frame, for the narrow `/` mock console column where a corner line
  *     would sit on the figure's head.
  */

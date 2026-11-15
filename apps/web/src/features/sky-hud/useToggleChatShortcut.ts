@@ -3,8 +3,8 @@
  * Capture phase so a focused textarea cannot swallow it; `preventDefault` stops the browser's own
  * find/search binding; key repeat is ignored so holding the chord does not flicker the card.
  *
- * The listener only exists while `enabled` — the staged screen disables it on `/watch`, the
- * declarative screen on its ≤480px watch layout.
+ * The listener only exists while `enabled` — the declarative screen turns it off on its ≤480px
+ * watch layout, and `/watch` (WatchScreen) never wires it.
  */
 import { useEffect, useRef } from "react";
 
