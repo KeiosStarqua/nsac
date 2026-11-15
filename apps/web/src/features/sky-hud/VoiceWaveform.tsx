@@ -26,7 +26,7 @@ export function makeWave(time: number, loudness: number, phase: VoicePhase): str
  * The thin cyan waveform. Passive mirror of the voice session: flat line with one central pulse at
  * rest, reactive arc while the user is speaking. Driven by `energy`, never fakes the mic being live.
  */
-export function VoiceWaveform({ phase, energyRef, reducedMotion }: { phase: VoicePhase; energyRef: React.MutableRefObject<number>; reducedMotion?: boolean }) {
+export function VoiceWaveform({ phase, energyRef, reducedMotion, className }: { phase: VoicePhase; energyRef: React.MutableRefObject<number>; reducedMotion?: boolean; className?: string }) {
   const pathRef = useRef<SVGPathElement | null>(null);
   const glowRef = useRef<SVGPathElement | null>(null);
   const stateRef = useRef({ phase });
@@ -58,7 +58,7 @@ export function VoiceWaveform({ phase, energyRef, reducedMotion }: { phase: Voic
   const staticPath = makeWave(0.6, 0.08, "idle");
 
   return (
-    <svg className={VOICE_WAVEFORM} viewBox="0 0 310 70" aria-hidden="true">
+    <svg className={className ?? VOICE_WAVEFORM} viewBox="0 0 310 70" aria-hidden="true">
       <defs>
         <linearGradient id="waveColor">
           <stop stopColor="#4d9afa" stopOpacity="0" />
