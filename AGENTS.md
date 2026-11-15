@@ -182,6 +182,7 @@ Thư mục rỗng giữ bằng `.gitkeep`; xóa `.gitkeep` khi thư mục có fi
 - Workspace JS ở root: `package.json` (bun, `workspaces: ["apps/*"]`), `turbo.json` (Turborepo: `dev`, `build`, `typecheck`, `test`), `tsconfig.base.json`. Mỗi app JS là một package `@nsac/<tên>` trong `apps/`; app Python (`onboard`) và `practice/` (workspace riêng) nằm ngoài. Cài và chạy từ root: `bun install`, `bun run typecheck|test|build`.
 - `data/` git submodule → `https://github.com/wosonday/nsac-data.git` (nhánh `main`): dữ liệu/features/models/predictions demo (pin `c76d50d`, đã có `DATA.html`). Clone lần đầu: `git submodule update --init`. Không sửa nội dung submodule từ repo này — sửa trên repo nsac-data rồi bump pointer ở đây.
 
+- `PRODUCT.md` bản chốt ngữ cảnh sản phẩm cho Impeccable (audience, positioning, constraints, evidence): web app cho demo NASA Space Apps 2026; không phải dashboard, không phải bác sĩ; AI không quyết một mình; nguồn trích dẫn mọi nơi. Không viết lại khi design đổi — cập nhật khi product intent đổi.
 - `STORY.md` truyện hư cấu "Sky" (thiên thần theo phi hành gia, dịch từ khu vườn trên tàu) cho phần kể chuyện/demo; bảng cuối map truyện sang module, cập nhật khi module đổi.
 - `UX.md` bản đặc tả UX/UI của Sky (SKY — Living Symbiotic Healthcare Interface): vision, ngôn ngữ visual, design tokens, không phải code; cập nhật khi hướng thiết kế đổi.
 - `UX_IMPLEMENTATION.md` ma trận traceability UX.md → code, trạng thái và hạn chế; cập nhật khi cover tăng.
