@@ -271,6 +271,28 @@ export interface Copy {
     metricExerciseDuration: string;
     metricHeartRate: string;
   };
+  /** `/performance` — Clinical findings panel (simulated, AI assists review only). */
+  clinical: {
+    title: string;
+    disclaimerLine: string;
+    empty: string;
+    unavailable: string;
+    markReviewed: string;
+    markReviewedAria: string;
+    resolve: string;
+    resolveAria: string;
+    reviewPill: string;
+    reviewedPill: string;
+    methodLink: string;
+    askOfficer: string;
+    officerLoading: string;
+    officerPiSdk: string;
+    officerDeterministic: string;
+    officerRequiresReview: string;
+    officerError: string;
+    officerRetry: string;
+    actionFailed: string;
+  };
   /** `/research` — SKY / Research Evidence, read-only view of the NASA analog cohort datasets in the `data/` submodule. Analog research, never the fictional crew. */
   research: {
     metaTitle: string;

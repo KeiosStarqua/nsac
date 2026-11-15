@@ -5,6 +5,9 @@ import {
   buildFactsBlock,
   changeEventSchema,
   hazardDetectedPayloadSchema,
+  medicalFindingCreatedPayloadSchema,
+  medicalFindingResolvedPayloadSchema,
+  medicalReviewRequestedPayloadSchema,
 } from "./events";
 
 const hazard = (id: number, overrides: Record<string, unknown> = {}) => ({
@@ -40,10 +43,51 @@ const claim = (id: number) => ({
 });
 
 describe("event schemas (wire-mirror)", () => {
-  it("EVENT_TOPICS carries the four backend topics", () => {
-    expect(EVENT_TOPICS).toEqual(["hazard.detected", "health.fact.updated", "claims.changed", "agent.turn.completed"]);
+  it("EVENT_TOPICS carries the backend topics; INJECTABLE_TOPICS stays exactly the original three", () => {
+    expect(EVENT_TOPICS).toEqual([
+      "hazard.detected",
+      "health.fact.updated",
+      "claims.changed",
+      "agent.turn.completed",
+      "medical.finding.created",
+      "medical.finding.resolved",
+      "medical.review.requested",
+    ]);
+    // Medical data minimization: clinical events are never injected into agent prompts.
     expect(INJECTABLE_TOPICS).toEqual(["hazard.detected", "health.fact.updated", "claims.changed"]);
+    for (const medical of ["medical.finding.created", "medical.finding.resolved", "medical.review.requested"]) {
+      expect(INJECTABLE_TOPICS).not.toContain(medical);
+    }
     expect(INJECTABLE_TOPICS).not.toContain("agent.turn.completed");
+  });
+
+  it("medical.* payload schemas validate", () => {
+    expect(
+      medicalFindingCreatedPayloadSchema.safeParse({
+        findingId: "f-1",
+        specialistId: "sky-cardio",
+        severity: "yellow",
+        requiresMedicalReview: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      medicalFindingCreatedPayloadSchema.safeParse({
+        findingId: "f-1",
+        specialistId: "sky-cardio",
+        severity: "orange",
+        requiresMedicalReview: false,
+      }).success,
+    ).toBe(false);
+    expect(
+      medicalFindingResolvedPayloadSchema.safeParse({ findingId: "f-1", action: "resolved" }).success,
+    ).toBe(true);
+    expect(
+      medicalFindingResolvedPayloadSchema.safeParse({ findingId: "f-1", action: "reviewed" }).success,
+    ).toBe(false);
+    expect(medicalReviewRequestedPayloadSchema.safeParse({ reason: "officer synthesis flagged review" }).success).toBe(
+      true,
+    );
+    expect(medicalReviewRequestedPayloadSchema.safeParse({ reason: "" }).success).toBe(false);
   });
 
   it("changeEventSchema parses a backend row", () => {
@@ -59,6 +103,23 @@ describe("event schemas (wire-mirror)", () => {
 });
 
 describe("buildFactsBlock", () => {
+  it("never injects medical.* events into buildFactsBlock (medical data minimization)", () => {
+    const medical = {
+      id: 9,
+      astronautId: "ayla-reyes",
+      topic: "medical.finding.created",
+      source: "clinical-engine",
+      summary: "red severity finding",
+      payload: { findingId: "f-1", specialistId: "sky-cardio", severity: "red", requiresMedicalReview: true },
+      createdAt: 1_700_000_000_009,
+    };
+    expect(buildFactsBlock([medical])).toBeNull();
+    const block = buildFactsBlock([claim(1), medical])!;
+    expect(block).toContain("claims");
+    expect(block).not.toContain("medical");
+    expect(block).not.toContain("finding");
+  });
+
   it("returns null for no events / only non-injectable topics", () => {
     expect(buildFactsBlock([])).toBeNull();
     expect(

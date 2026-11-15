@@ -2,6 +2,7 @@ import { orchestrator } from "./orchestrator";
 import { generativeUi } from "./generative-ui";
 import { chat } from "./chat";
 import { hudComposer } from "./hud-composer";
+import { medicalOfficer } from "./medical-officer";
 import type { AgentId, AgentProfile } from "./types";
 
 export const AGENT_REGISTRY: Record<AgentId, AgentProfile> = {
@@ -9,6 +10,7 @@ export const AGENT_REGISTRY: Record<AgentId, AgentProfile> = {
   "sky-generative-ui": generativeUi,
   "sky-chat": chat,
   "sky-hud-composer": hudComposer,
+  "sky-medical-officer": medicalOfficer,
 };
 
 export function getAgent(id: AgentId): AgentProfile {

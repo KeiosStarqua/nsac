@@ -3,11 +3,21 @@ import { z } from "zod";
 // Wire-mirror của payload schemas phía backend (apps/backend/src/eventsRoutes.ts).
 // Không share code giữa hai deployable — sửa một bên thì sửa bên kia. Web chỉ ĐỌC events và
 // PUBLISH lại kết quả turn; validation cuối cùng luôn nằm ở backend.
-export const EVENT_TOPICS = ["hazard.detected", "health.fact.updated", "claims.changed", "agent.turn.completed"] as const;
+export const EVENT_TOPICS = [
+  "hazard.detected",
+  "health.fact.updated",
+  "claims.changed",
+  "agent.turn.completed",
+  "medical.finding.created",
+  "medical.finding.resolved",
+  "medical.review.requested",
+] as const;
 export type EventTopic = (typeof EVENT_TOPICS)[number];
 
 // Inject vào prompt chỉ những topic này; agent.turn.completed KHÔNG bao giờ vào prompt
-// (nó là telemetry, không phải fact vận hành).
+// (nó là telemetry, không phải fact vận hành). medical.* KHÔNG BAO GIỜ vào prompt:
+// dữ liệu lâm sàng đã được validate tối thiểu hóa (medical data minimization) — riêng tư
+// mặc định, chỉ tổng hợp qua sky-medical-officer theo yêu cầu của chính phi hành gia.
 export const INJECTABLE_TOPICS = ["hazard.detected", "health.fact.updated", "claims.changed"] as const;
 export type InjectableTopic = (typeof INJECTABLE_TOPICS)[number];
 const INJECTABLE_SET = new Set<string>(INJECTABLE_TOPICS);
@@ -47,22 +57,57 @@ export const agentTurnCompletedPayloadSchema = z
   })
   .strict();
 
+// medical.* — wire mirror of the backend's clinical publishers. Mirrored so the web can
+// subscribe/publish; NEVER injected into agent prompts (see INJECTABLE_TOPICS).
+const medicalSeveritySchema = z.enum(["green", "yellow", "red", "unknown"]);
+
+export const medicalFindingCreatedPayloadSchema = z
+  .object({
+    findingId: z.string().trim().min(1).max(64),
+    specialistId: z.string().trim().min(1).max(64),
+    severity: medicalSeveritySchema,
+    requiresMedicalReview: z.boolean(),
+  })
+  .strict();
+
+export const medicalFindingResolvedPayloadSchema = z
+  .object({
+    findingId: z.string().trim().min(1).max(64),
+    action: z.literal("resolved"),
+  })
+  .strict();
+
+export const medicalReviewRequestedPayloadSchema = z
+  .object({
+    reason: z.string().trim().min(1).max(300),
+  })
+  .strict();
+
 export const eventPayloadSchemas = {
   "hazard.detected": hazardDetectedPayloadSchema,
   "health.fact.updated": healthFactUpdatedPayloadSchema,
   "claims.changed": claimsChangedPayloadSchema,
   "agent.turn.completed": agentTurnCompletedPayloadSchema,
+  "medical.finding.created": medicalFindingCreatedPayloadSchema,
+  "medical.finding.resolved": medicalFindingResolvedPayloadSchema,
+  "medical.review.requested": medicalReviewRequestedPayloadSchema,
 } as const;
 
 export type HazardDetectedPayload = z.infer<typeof hazardDetectedPayloadSchema>;
 export type HealthFactUpdatedPayload = z.infer<typeof healthFactUpdatedPayloadSchema>;
 export type ClaimsChangedPayload = z.infer<typeof claimsChangedPayloadSchema>;
 export type AgentTurnCompletedPayload = z.infer<typeof agentTurnCompletedPayloadSchema>;
+export type MedicalFindingCreatedPayload = z.infer<typeof medicalFindingCreatedPayloadSchema>;
+export type MedicalFindingResolvedPayload = z.infer<typeof medicalFindingResolvedPayloadSchema>;
+export type MedicalReviewRequestedPayload = z.infer<typeof medicalReviewRequestedPayloadSchema>;
 export type EventPayload =
   | HazardDetectedPayload
   | HealthFactUpdatedPayload
   | ClaimsChangedPayload
-  | AgentTurnCompletedPayload;
+  | AgentTurnCompletedPayload
+  | MedicalFindingCreatedPayload
+  | MedicalFindingResolvedPayload
+  | MedicalReviewRequestedPayload;
 
 export const topicSchema = z.enum(EVENT_TOPICS);
 

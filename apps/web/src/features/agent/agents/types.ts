@@ -1,8 +1,14 @@
-export type AgentId = "sky-orchestrator" | "sky-generative-ui" | "sky-chat" | "sky-hud-composer";
+export type AgentId =
+  | "sky-orchestrator"
+  | "sky-generative-ui"
+  | "sky-chat"
+  | "sky-hud-composer"
+  | "sky-medical-officer";
 
 export type OutputContract =
   | { readonly kind: "text" }
-  | { readonly kind: "openui-program"; readonly maxChars: number; readonly allowList: readonly string[] };
+  | { readonly kind: "openui-program"; readonly maxChars: number; readonly allowList: readonly string[] }
+  | { readonly kind: "clinical-case-summary"; readonly maxChars: number };
 
 export type HandoffRule = { readonly pattern: RegExp; readonly to: AgentId };
 

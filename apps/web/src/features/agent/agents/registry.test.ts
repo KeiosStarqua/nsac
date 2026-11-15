@@ -31,4 +31,17 @@ describe("registry", () => {
     expect(output.allowList).toContain("Surface");
     expect(profile.timeoutMs).toBe(30000);
   });
+  it("medical officer registered", () => {
+    const profile = getAgent("sky-medical-officer");
+    expect(profile.role).toBe("clinical-synthesis");
+    expect(profile.id).toBe("sky-medical-officer");
+    expect(profile.soul.length).toBeGreaterThan(0);
+    expect(profile.defaultModel).toBeTruthy();
+    expect(profile.tools).toEqual([]);
+    expect(profile.handoff).toEqual([]);
+    const output = profile.output;
+    if (output.kind !== "clinical-case-summary") throw new Error("expected a clinical-case-summary output contract");
+    expect(output.maxChars).toBe(2000);
+    expect(profile.timeoutMs).toBe(45000);
+  });
 });
