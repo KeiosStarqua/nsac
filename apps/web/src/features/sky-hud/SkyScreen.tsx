@@ -32,7 +32,7 @@ import { SkyOrb } from "./SkyOrb";
 import { VoiceWaveform } from "./VoiceWaveform";
 import { DETAILS, FIXTURE_LABEL, VITAL_DETAILS, VITAL_VALUES } from "./vitals";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId } from "../astronaut";
+import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId, useClaimHeartbeat } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
 import { ChatPanel } from "./components/ChatPanel";
 import { SkyChatPanel } from "./components/SkyChatPanel";
@@ -140,6 +140,10 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
   // ⌘K / Ctrl+K toggles the chat card on the console; `/watch` keeps the legacy in-face panel.
   useToggleChatShortcut(() => setChatOpen((open) => !open), variant !== "watch");
 
+  // Claim TTL: đập heartbeat mỗi 30 s khi tab visible để claim không bị backend giải phóng sau
+  // 30 phút idle (no-op khi SSR).
+  useClaimHeartbeat();
+
   // The backend roster is metadata only: the bundled fixture renders first and stays if the
   // request fails (no network, backend down), so the picker never blocks on it.
   useEffect(() => {
@@ -193,6 +197,37 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
               setAstronautId(null);
               setGreeting("Good morning.");
               setPickerOpen(true);
+            } else if (normalized) {
+              // Quay lại sau một thời gian idle: claim cũ có thể đã bị TTL giải phóng. Còn trống
+              // → claim lại im lặng (không mở picker, không đổi gì trên HUD); thua race với
+              // session khác → cùng đường đi như takenByOther.
+              void claimAstronaut({ data: { sessionId: sid, astronautId: normalized } })
+                .then((claimed) => {
+                  if (!alive || claimed.ok) {
+                    // Claim lại thành công → card trong picker chuyển sang "của mình" ngay,
+                    // không phải chờ lần refresh sau.
+                    if (claimed.ok) {
+                      setClaims((prev) =>
+                        prev.map((c) =>
+                          c.astronautId === normalized ? { ...c, mine: true } : c,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+                  if (claimed.reason !== "taken") return; // unavailable/error → giữ nguyên
+                  try {
+                    window.localStorage.removeItem(ASTRONAUT_STORAGE_KEY);
+                    setAstronautId(null);
+                    setGreeting("Good morning.");
+                    setPickerOpen(true);
+                  } catch {
+                    /* storage unavailable → giữ nguyên */
+                  }
+                })
+                .catch(() => {
+                  /* giữ nguyên pick local */
+                });
             }
           } catch {
             /* storage unavailable → giữ nguyên */

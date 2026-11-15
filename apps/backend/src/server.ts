@@ -1,4 +1,5 @@
 import { astronautsRepo } from "./db/repositories/astronauts";
+import { claimsRepo } from "./db/repositories/claims";
 import { handleClaimsRequest } from "./claimsRoutes";
 import { handleSettingsRequest } from "./settingsRoutes";
 import { eventsBus, handleEventsRequest } from "./eventsRoutes";
@@ -13,6 +14,24 @@ eventsBus.on("published", (event: { id: number; topic: string }) => {
 });
 
 await astronautsRepo.seed();
+
+// Claim TTL: giải phóng claim idle ngay khi start, rồi quét mỗi phút. list()/claim()/heartbeat()
+// vẫn quét lười, interval này chỉ để row hết hạn không nằm lại khi không ai gọi API.
+try {
+  const released = claimsRepo.sweepStale();
+  if (released > 0) console.log(`[claims] released ${released} stale claim(s)`);
+} catch (e) {
+  console.error("[claims] sweep failed", e);
+}
+const claimsSweep = setInterval(() => {
+  try {
+    const released = claimsRepo.sweepStale();
+    if (released > 0) console.log(`[claims] released ${released} stale claim(s)`);
+  } catch (e) {
+    console.error("[claims] sweep failed", e);
+  }
+}, 60_000);
+claimsSweep.unref?.();
 
 Bun.serve({
   port,

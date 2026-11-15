@@ -8,6 +8,7 @@ const DEFAULT_BACKEND_URL = "http://127.0.0.1:3200";
 export type ClaimReason = "taken" | "unavailable" | "error";
 export type ClaimResult = { ok: true } | { ok: false; reason: ClaimReason };
 export type ClaimsListResult = { claims: ClaimEntry[]; reachable: boolean };
+export type HeartbeatResult = { reachable: boolean; refreshed: boolean };
 
 function backendBase(): URL | null {
   const base = process.env.BACKEND_URL?.trim() || DEFAULT_BACKEND_URL;
@@ -86,4 +87,28 @@ export async function postBackendClaim(sessionId: string, astronautId: string): 
   }
   if (res.status === 409) return { ok: false, reason: "taken" };
   return { ok: false, reason: "error" };
+}
+
+/**
+ * Keep this session's claim alive (`POST /api/claims/heartbeat`). Không broadcast: heartbeat chỉ
+ * làm mới TTL, không phải sự kiện cho agent khác. Mọi failure (không backend, timeout, payload
+ * lạ) → `reachable: false, refreshed: false`; caller không bao giờ bị chặn vì việc này.
+ */
+export async function postBackendHeartbeat(sessionId: string): Promise<HeartbeatResult> {
+  const base = backendBase();
+  if (!base) return { reachable: false, refreshed: false };
+  const url = new URL("/api/claims/heartbeat", base);
+
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ sessionId }),
+  });
+  if (!res?.ok) return { reachable: false, refreshed: false };
+  try {
+    const payload = (await res.json()) as { ok?: unknown; refreshed?: unknown };
+    return { reachable: true, refreshed: payload?.ok === true && payload?.refreshed === true };
+  } catch {
+    return { reachable: false, refreshed: false };
+  }
 }

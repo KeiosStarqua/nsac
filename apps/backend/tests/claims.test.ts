@@ -33,8 +33,10 @@ seed.exec(`
 seed.close();
 
 type ClaimsModule = typeof import("../src/claimsRoutes");
+type ClaimsRepoModule = typeof import("../src/db/repositories/claims");
 
 let handleClaimsRequest: ClaimsModule["handleClaimsRequest"];
+let claimTtlMs: ClaimsRepoModule["claimTtlMs"];
 
 const claim = (sessionId: string, astronautId: string) =>
   handleClaimsRequest(
@@ -55,6 +57,30 @@ const list = (sessionId?: string) =>
 const reset = () =>
   handleClaimsRequest(new Request("http://test/api/claims/reset", { method: "POST" }));
 
+const heartbeat = (sessionId: string) =>
+  handleClaimsRequest(
+    new Request("http://test/api/claims/heartbeat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    }),
+  );
+
+// Ghi trực tiếp DB test (connection thứ hai trên cùng file, WAL): mô phỏng claim đã idle 31 phút.
+const expireRow = (astronautId: string, idleMs: number) => {
+  const writer = new Database(dbPath);
+  try {
+    const idleStart = Date.now() - idleMs;
+    writer
+      .query(
+        "UPDATE astronaut_claims SET claimed_at = ?1, last_seen_at = ?2 WHERE astronaut_id = ?3",
+      )
+      .run(idleStart, idleStart, astronautId);
+  } finally {
+    writer.close();
+  }
+};
+
 const SESSION_A = "session-aaaa-0001";
 const SESSION_B = "session-bbbb-0002";
 
@@ -62,6 +88,8 @@ beforeAll(async () => {
   // Import động sau khi SKY_DB_PATH đã trỏ vào tmp file — mọi thứ claims chạm vào đều cô lập.
   const routes: ClaimsModule = await import("../src/claimsRoutes");
   handleClaimsRequest = routes.handleClaimsRequest;
+  const repo: ClaimsRepoModule = await import("../src/db/repositories/claims");
+  claimTtlMs = repo.claimTtlMs;
 });
 
 afterAll(() => {
@@ -133,5 +161,90 @@ describe("astronaut claims", () => {
     expect(body.ok).toBe(true);
     expect(body.cleared).toBeGreaterThanOrEqual(2);
     expect(await (await list()).json()).toEqual([]);
+  });
+});
+
+describe("claim heartbeat", () => {
+  test("heartbeat refreshes the claimant and is refused to other sessions", async () => {
+    expect((await claim(SESSION_A, "ayla-reyes")).status).toBe(200);
+    const mine = await heartbeat(SESSION_A);
+    expect(mine.status).toBe(200);
+    expect(await mine.json()).toEqual({ ok: true, refreshed: true });
+    const other = await heartbeat(SESSION_B);
+    expect(other.status).toBe(200);
+    expect(await other.json()).toEqual({ ok: true, refreshed: false });
+  });
+
+  test("heartbeat with no claim → refreshed:false and creates no row", async () => {
+    const res = await heartbeat("session-cccc-0003");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, refreshed: false });
+    // Không có row nào cho session chưa claim ai (danh sách vẫn chỉ có claim của A).
+    const rows = (await (await list()).json()) as Array<{ astronautId: string }>;
+    expect(rows.map((row) => row.astronautId)).toEqual(["ayla-reyes"]);
+  });
+
+  test("heartbeat rejects a malformed body", async () => {
+    const bad = await handleClaimsRequest(
+      new Request("http://test/api/claims/heartbeat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sessionId: "tiny" }),
+      }),
+    );
+    expect(bad?.status).toBe(400);
+    expect(await bad?.json()).toEqual({ ok: false, error: "bad_body" });
+    const notJson = await handleClaimsRequest(
+      new Request("http://test/api/claims/heartbeat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "not-json",
+      }),
+    );
+    expect(notJson?.status).toBe(400);
+    // GET không thuộc route này → fall-through (server.ts trả 404).
+    const get = await handleClaimsRequest(
+      new Request("http://test/api/claims/heartbeat?sessionId=session-aaaa-0001"),
+    );
+    expect(get).toBeNull();
+  });
+});
+
+describe("claim TTL", () => {
+  test("TTL env parsing is lenient (bad values → 30 min)", () => {
+    expect(claimTtlMs(undefined)).toBe(30 * 60_000);
+    expect(claimTtlMs("")).toBe(30 * 60_000);
+    expect(claimTtlMs("abc")).toBe(30 * 60_000);
+    expect(claimTtlMs("0")).toBe(30 * 60_000);
+    expect(claimTtlMs("-5")).toBe(30 * 60_000);
+    expect(claimTtlMs("10")).toBe(10 * 60_000);
+  });
+
+  test("stale claim is released lazily on list(), then claimable by another session", async () => {
+    expect((await claim(SESSION_A, "ayla-reyes")).status).toBe(200);
+    expireRow("ayla-reyes", 31 * 60_000);
+    expect(await (await list()).json()).toEqual([]);
+    expect((await claim(SESSION_B, "ayla-reyes")).status).toBe(200);
+  });
+
+  test("stale claim does not block claim(): the expired holder is swept first", async () => {
+    expect((await claim(SESSION_A, "lena-fischer")).status).toBe(200);
+    expireRow("lena-fischer", 31 * 60_000);
+    // A (holder cũ) đã hết hạn → B claim thẳng, không cần list() trước.
+    expect((await claim(SESSION_B, "lena-fischer")).status).toBe(200);
+    expect((await claim(SESSION_A, "lena-fischer")).status).toBe(409);
+  });
+
+  test("a claim inside the TTL window is kept", async () => {
+    expect((await claim(SESSION_A, "tomas-ortega")).status).toBe(200);
+    expireRow("tomas-ortega", 29 * 60_000);
+    expect((await claim(SESSION_B, "tomas-ortega")).status).toBe(409);
+    const rows = (await (await list(SESSION_A)).json()) as Array<{
+      astronautId: string;
+      mine: boolean;
+    }>;
+    expect(rows).toEqual(
+      expect.arrayContaining([{ astronautId: "tomas-ortega", mine: true }]),
+    );
   });
 });

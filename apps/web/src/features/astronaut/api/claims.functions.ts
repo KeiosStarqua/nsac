@@ -35,3 +35,18 @@ export const claimAstronaut = createServerFn({ method: "POST" })
     const { postBackendClaim } = await import("./claims.server");
     return postBackendClaim(parsed.data.sessionId, parsed.data.astronautId);
   });
+
+/**
+ * Làm mới claim của session (heartbeat mỗi 30 s khi tab visible — xem `useClaimHeartbeat`).
+ * Không bao giờ throw và không bao giờ tạo claim: input sai hoặc backend lỗi → cả hai false.
+ */
+export const heartbeatClaim = createServerFn({ method: "POST" })
+  .validator((data?: { sessionId?: unknown }) => {
+    const parsed = sessionIdSchema.safeParse(data?.sessionId);
+    return { sessionId: parsed.success ? parsed.data : undefined };
+  })
+  .handler(async ({ data }): Promise<{ reachable: boolean; refreshed: boolean }> => {
+    if (!data.sessionId) return { reachable: false, refreshed: false };
+    const { postBackendHeartbeat } = await import("./claims.server");
+    return postBackendHeartbeat(data.sessionId);
+  });

@@ -8,4 +8,6 @@ export const astronautClaims = sqliteTable("astronaut_claims", {
   sessionId: text("session_id").notNull(),
   /** Unix ms; set on claim and on every move/re-claim. */
   claimedAt: integer("claimed_at").notNull(),
+  /** Unix ms; refreshed by heartbeat (và mỗi lần claim). 0 = chưa từng thấy (row cũ) → dùng claimed_at. */
+  lastSeenAt: integer("last_seen_at").notNull().default(0),
 });
