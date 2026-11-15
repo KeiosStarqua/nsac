@@ -137,5 +137,10 @@ export interface Copy {
     backendError: string;
     unauthorized: string;
     catalogError: string;
+    resetClaims: string;
+    resetClaimsConfirm: string;
+    resetting: string;
+    resetClaimsDone: string;
+    resetClaimsFailed: string;
   };
 }

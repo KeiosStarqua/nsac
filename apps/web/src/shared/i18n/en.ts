@@ -120,5 +120,11 @@ export const en: Copy = {
     backendError: "The backend refused the change. Try again.",
     unauthorized: "Session expired — unlock again.",
     catalogError: "Could not load the model catalog.",
+    resetClaims: "Reset claims",
+    resetClaimsConfirm:
+      "Clear ALL astronaut claims? Every session currently holding an astronaut will lose it.",
+    resetting: "Resetting…",
+    resetClaimsDone: "Cleared {count} claims.",
+    resetClaimsFailed: "Could not reset claims. Try again.",
   },
 };

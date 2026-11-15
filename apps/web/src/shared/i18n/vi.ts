@@ -120,5 +120,11 @@ export const vi: Copy = {
     backendError: "Backend từ chối thay đổi. Thử lại.",
     unauthorized: "Phiên đã hết hạn — mở khóa lại.",
     catalogError: "Không tải được catalog model.",
+    resetClaims: "Gỡ tất cả claims",
+    resetClaimsConfirm:
+      "Gỡ TẤT CẢ claims phi hành gia? Mọi phiên đang giữ một phi hành gia sẽ mất lượt giữ đó.",
+    resetting: "Đang gỡ…",
+    resetClaimsDone: "Đã gỡ {count} claims.",
+    resetClaimsFailed: "Không gỡ được claims. Thử lại.",
   },
 };

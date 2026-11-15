@@ -5,11 +5,14 @@ import {
   isAdminFn,
   adminModelFn,
   setAgentModelFn,
+  resetClaimsFn,
 } from "../api/admin.functions";
+import type { ResetClaimsResult } from "../api/admin.functions";
 import type { CatalogModel } from "../runtime/openrouter.server";
 
 type Phase = "checking" | "unconfigured" | "locked" | "admin";
 type ApplyState = { kind: "ok" } | { kind: "error"; message: string } | null;
+type ResetState = { kind: "ok"; cleared: number } | { kind: "error"; message: string } | null;
 
 const page = "min-h-screen bg-(--bg) text-(--text) font-(family-name:--font)";
 const panel = "mx-auto max-w-[1040px] px-5 pt-7 pb-12";
@@ -22,6 +25,8 @@ const inputClasses =
   "w-full rounded-(--radius-sm)! border border-(--border) bg-(--surface) px-3 py-2.5 text-[14px] text-(--text)";
 const buttonClasses =
   "cursor-pointer rounded-(--radius-sm)! border-none border-(--accent-ink) bg-(--accent) px-[18px] py-2.5 text-[14px]! font-semibold! text-(--accent-ink) disabled:opacity-60";
+const dangerButtonClasses =
+  "cursor-pointer rounded-(--radius-sm)! border border-(--red) bg-transparent px-[18px] py-2.5 text-[14px]! font-semibold! text-(--red) disabled:opacity-60";
 
 // Shared skeleton of a model row: the five columns, the 1px border and the 8px/10px padding. The
 // colour, radius and cursor differ per usage (header vs row) and are appended at the call site so the
@@ -59,6 +64,10 @@ export function AdminPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [applyState, setApplyState] = useState<ApplyState>(null);
+
+  // Claims reset (demo housekeeping — claims are HUD data, nothing here refreshes)
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetState, setResetState] = useState<ResetState>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,6 +166,27 @@ export function AdminPage() {
       setApplyState({ kind: "error", message: copy.applyFailed });
     } finally {
       setApplying(false);
+    }
+  }
+
+  async function resetClaims() {
+    if (resetBusy) return;
+    if (!window.confirm(copy.resetClaimsConfirm)) return;
+    setResetBusy(true);
+    setResetState(null);
+    try {
+      const r: ResetClaimsResult = await resetClaimsFn();
+      if (r.status === "ok") {
+        setResetState({ kind: "ok", cleared: r.cleared });
+      } else if (r.status === "unauthorized") {
+        setPhase("locked");
+      } else {
+        setResetState({ kind: "error", message: copy.resetClaimsFailed });
+      }
+    } catch {
+      setResetState({ kind: "error", message: copy.resetClaimsFailed });
+    } finally {
+      setResetBusy(false);
     }
   }
 
@@ -329,6 +359,33 @@ export function AdminPage() {
             {applyState?.kind === "error" && <span className="text-(--red)">{applyState.message}</span>}
           </div>
         </div>
+
+        <section
+          aria-label={copy.resetClaims}
+          className="mt-6 rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
+        >
+          <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>{copy.resetClaims}</div>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={resetClaims}
+              disabled={resetBusy}
+              className={dangerButtonClasses}
+            >
+              {resetBusy ? copy.resetting : copy.resetClaims}
+            </button>
+            <div aria-live="polite" className="text-[13px]">
+              {resetState?.kind === "ok" && (
+                <span className="text-(--green)">
+                  {copy.resetClaimsDone.replace("{count}", String(resetState.cleared))}
+                </span>
+              )}
+              {resetState?.kind === "error" && (
+                <span className="text-(--red)">{resetState.message}</span>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   );
