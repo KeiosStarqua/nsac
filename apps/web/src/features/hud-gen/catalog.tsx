@@ -33,7 +33,6 @@ import VoicePill from "~/shared/react-bits/VoicePill/VoicePill";
 // runtime never requires (e.g. dpr/style/fromColor/onAnimationComplete fall back to defaults).
 // Alias them to any at the boundary so the rest of this file stays type-checked.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const DepthTextAny = DepthText as any;
 import { hasDigit, type ParseProgram } from "./model/review";
 import { HUD_FACT_IDS, HUD_VITAL_KINDS } from "./model/names";
 import { FIXTURE_LABEL } from "~/features/sky-hud/vitals";
@@ -183,7 +182,7 @@ const BrandBlock = defineComponent({
       <button className={BRAND} type="button" aria-label={ctx.copy.hud.brandAria} onClick={ctx.resetView}>
         <span className={BRAND_RING} aria-hidden="true" />
         <span className={BRAND_COPY}>
-          <span className={BRAND_NAME}><DepthTextAny text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
+          <span className={BRAND_NAME}><DepthText text="S K Y" fontSize="clamp(20px, 2.2vw, 29px)" fontWeight={300} layers={10} depth={0.5} tilt={4} autoOrbit={false} intro={false} shadow={false} depthColor="#6fa8d6" /></span>
           <span className={BRAND_TAGLINE}><ShinyText color="#9bb0c8" shineColor="#d6f2ff" speed={12}>{ctx.copy.hud.tagline}</ShinyText></span>
         </span>
       </button>

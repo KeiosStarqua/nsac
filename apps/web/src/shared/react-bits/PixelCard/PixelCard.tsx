@@ -1,13 +1,96 @@
 // PixelCard
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/PixelCard/PixelCard.jsx
+// Source: @react-bits/PixelCard-TS-TW — https://reactbits.dev/r/PixelCard-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
 
-import './PixelCard.css';
+const CARD =
+  'group relative grid place-items-center w-[300px] h-[400px] overflow-hidden rounded-[var(--pixel-card-radius,24px)] isolate outline-none select-none [-webkit-tap-highlight-color:transparent] [&>:not(canvas):not([data-rim])]:relative [&>:not(canvas):not([data-rim])]:z-[1]';
 
-const VARIANTS = {
+const SURFACE: Record<Tone, string> = {
+  dark: 'bg-[linear-gradient(180deg,#17151c_0%,#0f0e13_100%)] shadow-[0_24px_48px_-24px_rgba(0,0,0,0.85),0_8px_18px_-10px_rgba(0,0,0,0.6)] focus-visible:shadow-[0_24px_48px_-24px_rgba(0,0,0,0.85),0_8px_18px_-10px_rgba(0,0,0,0.6),0_0_0_3px_rgba(127,127,140,0.45)]',
+  light:
+    'bg-[linear-gradient(180deg,#ffffff_0%,#f6f6f8_100%)] shadow-[0_24px_48px_-26px_rgba(24,24,27,0.32),0_8px_18px_-12px_rgba(24,24,27,0.18)] focus-visible:shadow-[0_24px_48px_-26px_rgba(24,24,27,0.32),0_8px_18px_-12px_rgba(24,24,27,0.18),0_0_0_3px_rgba(127,127,140,0.45)]'
+};
+
+const RIM: Record<Tone, string> = {
+  dark: 'pointer-events-none absolute inset-0 z-[2] rounded-[inherit] transition-shadow duration-[260ms] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)] group-data-[active]:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]',
+  light:
+    'pointer-events-none absolute inset-0 z-[2] rounded-[inherit] transition-shadow duration-[260ms] shadow-[inset_0_0_0_1px_rgba(24,24,27,0.08),inset_0_1px_0_rgba(255,255,255,1)] group-data-[active]:shadow-[inset_0_0_0_1px_rgba(24,24,27,0.16),inset_0_1px_0_rgba(255,255,255,1)]'
+};
+
+export interface PixelCardProps {
+  variant?: 'default' | 'blue' | 'yellow' | 'pink';
+  colors?: string | string[];
+  gap?: number;
+  speed?: number;
+  pixelSize?: number;
+  shape?: 'square' | 'circle' | 'diamond';
+  origin?: 'center' | 'pointer';
+  revealDuration?: number;
+  spotlight?: number;
+  glow?: number;
+  glowColor?: string;
+  opacity?: number;
+  fade?: number;
+  trigger?: 'hover' | 'click' | 'always';
+  clickPulse?: boolean;
+  intro?: boolean;
+  introDelay?: number;
+  noFocus?: boolean;
+  theme?: 'dark' | 'light';
+  radius?: number;
+  className?: string;
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+
+type Tone = 'dark' | 'light';
+
+interface VariantConfig {
+  gap: number;
+  speed: number;
+  colors: Record<Tone, string[]>;
+  glow: Record<Tone, string>;
+  noFocus: boolean;
+}
+
+interface Settings {
+  colors: string[];
+  gap: number;
+  speed: number;
+  pixelSize: number;
+  shape: number;
+  origin: string;
+  revealDuration: number;
+  spotlight: number;
+  glow: number;
+  glowColor: number[];
+  opacity: number;
+  fade: number;
+  trigger: string;
+  clickPulse: boolean;
+  intro: boolean;
+  introDelay: number;
+}
+
+interface Pulse {
+  x: number;
+  y: number;
+  radius: number;
+  power: number;
+}
+
+interface Engine {
+  onFocus: (event: FocusEvent<HTMLDivElement>) => void;
+  onBlur: (event: FocusEvent<HTMLDivElement>) => void;
+  wake: () => void;
+  sync: () => void;
+}
+
+const VARIANTS: Record<string, VariantConfig> = {
   default: {
     gap: 5,
     speed: 35,
@@ -38,30 +121,30 @@ const VARIANTS = {
   }
 };
 
-const SHAPES = { square: 0, circle: 1, diamond: 2 };
+const SHAPES: Record<string, number> = { square: 0, circle: 1, diamond: 2 };
 const TRIGGERS = ['hover', 'click', 'always'];
 const APPEAR = 0.26;
 const EXIT = 0.22;
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-const smoothstep = (edge0, edge1, value) => {
+const smoothstep = (edge0: number, edge1: number, value: number) => {
   const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
   return t * t * (3 - 2 * t);
 };
 
-const easeOutBack = t => {
+const easeOutBack = (t: number) => {
   const c = 1.9;
   const u = t - 1;
   return 1 + (c + 1) * u * u * u + c * u * u;
 };
 
-const toList = value =>
+const toList = (value: string | string[] | undefined): string[] =>
   (Array.isArray(value) ? value : String(value ?? '').split(',')).map(color => color.trim()).filter(Boolean);
 
 const toRgb = (() => {
-  let context = null;
-  return color => {
+  let context: CanvasRenderingContext2D | null = null;
+  return (color: string): number[] => {
     if (typeof document === 'undefined') return [255, 255, 255];
     if (!context) {
       const canvas = document.createElement('canvas');
@@ -103,14 +186,14 @@ export default function PixelCard({
   className = '',
   style,
   children
-}) {
-  const containerRef = useRef(null);
-  const canvasRef = useRef(null);
-  const engineRef = useRef(null);
-  const settingsRef = useRef(null);
+}: PixelCardProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const engineRef = useRef<Engine | null>(null);
+  const settingsRef = useRef<Settings>(null as unknown as Settings);
   const [active, setActive] = useState(false);
 
-  const tone = theme === 'light' ? 'light' : 'dark';
+  const tone: Tone = theme === 'light' ? 'light' : 'dark';
   const preset = VARIANTS[variant] || VARIANTS.default;
   const palette = colors ? toList(colors) : preset.colors[tone];
   const focusOff = noFocus ?? preset.noFocus;
@@ -178,7 +261,7 @@ export default function PixelCard({
       spotVY: 0,
       spotPower: 0,
       hovering: false,
-      pulses: [],
+      pulses: [] as Pulse[],
       dt: 1 / 60,
       releaseAt: -1,
       introAt: -1
@@ -249,7 +332,7 @@ export default function PixelCard({
       }
     };
 
-    const setActiveState = (value, x, y) => {
+    const setActiveState = (value: boolean, x?: number, y?: number) => {
       if (state.active === value) return;
       const s = settingsRef.current;
       state.active = value;
@@ -375,7 +458,7 @@ export default function PixelCard({
       return presenceSum;
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       state.raf = 0;
       if (!state.alive) return;
       const s = settingsRef.current;
@@ -430,12 +513,12 @@ export default function PixelCard({
       if (!state.raf && state.alive && state.visible) state.raf = requestAnimationFrame(frame);
     };
 
-    const local = event => {
+    const local = (event: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       return [event.clientX - rect.left, event.clientY - rect.top];
     };
 
-    const onEnter = event => {
+    const onEnter = (event: PointerEvent) => {
       const [x, y] = local(event);
       state.hovering = event.pointerType !== 'touch';
       state.pointerX = x;
@@ -454,14 +537,14 @@ export default function PixelCard({
       wake();
     };
 
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       const [x, y] = local(event);
       state.pointerX = x;
       state.pointerY = y;
       wake();
     };
 
-    const onLeave = event => {
+    const onLeave = (event: PointerEvent) => {
       state.hovering = false;
       if (state.mode === 'hover') {
         if (event.pointerType === 'touch') state.releaseAt = state.time + 1.2;
@@ -470,7 +553,7 @@ export default function PixelCard({
       wake();
     };
 
-    const onDown = event => {
+    const onDown = (event: PointerEvent) => {
       const [x, y] = local(event);
       if (state.mode === 'click') {
         state.introAt = -1;
@@ -485,24 +568,24 @@ export default function PixelCard({
       wake();
     };
 
-    const onOutside = event => {
-      if (state.mode === 'click' && state.active && !container.contains(event.target)) setActiveState(false);
+    const onOutside = (event: PointerEvent) => {
+      if (state.mode === 'click' && state.active && !container.contains(event.target as Node)) setActiveState(false);
     };
 
-    const onKey = event => {
+    const onKey = (event: KeyboardEvent) => {
       if (state.mode !== 'click' || event.target !== container) return;
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
       setActiveState(!state.active);
     };
 
-    const onFocus = event => {
-      if (event.currentTarget.contains(event.relatedTarget)) return;
+    const onFocus = (event: FocusEvent<HTMLDivElement>) => {
+      if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
       if (state.mode === 'hover') setActiveState(true);
     };
 
-    const onBlur = event => {
-      if (event.currentTarget.contains(event.relatedTarget)) return;
+    const onBlur = (event: FocusEvent<HTMLDivElement>) => {
+      if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
       if (state.mode === 'hover' && !state.hovering) setActiveState(false);
     };
 
@@ -579,16 +662,21 @@ export default function PixelCard({
   return (
     <div
       ref={containerRef}
-      className={`pixel-card ${className}`.trim()}
+      className={`${CARD} ${SURFACE[tone]} ${className}`.trim()}
       data-theme={tone}
       data-active={active || undefined}
-      style={{ '--pixel-card-radius': `${radius}px`, ...style }}
+      style={{ '--pixel-card-radius': `${radius}px`, ...style } as CSSProperties}
       onFocus={focusOff ? undefined : event => engineRef.current?.onFocus(event)}
       onBlur={focusOff ? undefined : event => engineRef.current?.onBlur(event)}
       tabIndex={focusOff ? -1 : 0}
     >
-      <canvas className="pixel-card-canvas" ref={canvasRef} aria-hidden="true" />
+      <canvas
+        className="pointer-events-none absolute inset-0 z-0 block h-full w-full"
+        ref={canvasRef}
+        aria-hidden="true"
+      />
       {children}
+      <span data-rim aria-hidden="true" className={RIM[tone]} />
     </div>
   );
 }

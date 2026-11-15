@@ -85,7 +85,6 @@ import { VitalsCard } from "./components/VitalsCard";
 
 // Vendored react-bits sources are @ts-nocheck; their inferred prop types demand props the runtime
 // defaults, so the boundary casts them (same pattern as `features/hud-gen/catalog.tsx`).
-const DepthTextAny = DepthText as any;
 
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
 
@@ -527,7 +526,7 @@ export function SkyHudMock() {
           <span className={BRAND_RING} aria-hidden="true" />
           <span className={BRAND_COPY}>
             <span className={BRAND_NAME}>
-              <DepthTextAny
+              <DepthText
                 text="S K Y"
                 fontSize="clamp(20px, 2.2vw, 29px)"
                 fontWeight={300}

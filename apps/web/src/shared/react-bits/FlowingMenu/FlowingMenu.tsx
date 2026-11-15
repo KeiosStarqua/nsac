@@ -1,32 +1,102 @@
 // FlowingMenu
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/FlowingMenu/FlowingMenu.jsx
+// Source: @react-bits/FlowingMenu-TS-TW — https://reactbits.dev/r/FlowingMenu-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FocusEvent as ReactFocusEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent
+} from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
-import './FlowingMenu.css';
 
-const ROOT = 'flowing-menu';
-const LIST = 'flowing-menu__list';
-const ITEM = 'flowing-menu__item';
-const DIVIDER = 'flowing-menu__divider';
-const LINK = 'flowing-menu__link';
-const INDEX = 'flowing-menu__index';
-const LABEL = 'flowing-menu__label';
-const LABEL_TEXT = 'flowing-menu__label-text';
-const DOT = 'flowing-menu__dot';
-const END = 'flowing-menu__end';
-const META = 'flowing-menu__meta';
-const ARROW = 'flowing-menu__arrow';
-const BAND = 'flowing-menu__band';
-const TRACK = 'flowing-menu__track';
-const PART = 'flowing-menu__part';
-const PART_TEXT = 'flowing-menu__part-text';
-const IMAGE = 'flowing-menu__image';
-const FLOAT = 'flowing-menu__float';
-const FLOAT_LAYER = 'flowing-menu__float-layer';
+export interface FlowingMenuItem {
+  text: string;
+  link?: string;
+  image?: string;
+  marquee?: string;
+  meta?: string;
+}
+
+export interface FlowingMenuProps {
+  items?: FlowingMenuItem[];
+  speed?: number;
+  direction?: 'left' | 'right' | 'alternate';
+  followCursor?: number;
+  duration?: number;
+  stretch?: number;
+  magnet?: number;
+  bandInset?: number;
+  bandRadius?: number;
+  carryContent?: boolean;
+  textColor?: string;
+  bgColor?: string;
+  marqueeBgColor?: string;
+  marqueeTextColor?: string;
+  borderColor?: string;
+  dividers?: boolean;
+  dimInactive?: boolean;
+  align?: 'center' | 'left';
+  showIndex?: boolean;
+  showArrow?: boolean;
+  imageShape?: 'pill' | 'rounded' | 'circle';
+  intro?: boolean;
+  activeIndex?: number;
+  onItemClick?: (item: FlowingMenuItem, index: number, event: ReactMouseEvent<HTMLElement>) => void;
+  ariaLabel?: string;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Row {
+  item?: HTMLLIElement | null;
+  band?: HTMLDivElement | null;
+  track?: HTMLDivElement | null;
+}
+
+interface Marquee {
+  x: number;
+  part: number;
+  spin: number;
+  covered: boolean;
+}
+
+interface Metric {
+  top: number;
+  height: number;
+}
+
+const ROOT = 'group/fm relative box-border h-full w-full overflow-hidden';
+const LIST = 'relative m-0 flex h-full list-none flex-col p-0';
+const ITEM = 'group/item relative min-h-14 flex-[1_1_0] overflow-hidden [container-type:size]';
+const DIVIDER =
+  'pointer-events-none absolute top-0 right-0 left-0 h-px origin-left bg-[var(--flowing-menu-border,rgba(255,255,255,0.14))]';
+const LINK =
+  'relative box-border grid h-full w-full cursor-pointer grid-cols-[1fr_auto_1fr] items-center gap-4 border-0 bg-transparent px-[clamp(16px,4cqw,40px)] py-0 text-left text-inherit no-underline outline-none transition-opacity duration-[450ms] ease-[ease] [-webkit-tap-highlight-color:transparent] [font:inherit] group-data-[align=left]/fm:grid-cols-[auto_1fr_auto] group-data-[dimmed]/item:opacity-32 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-current';
+const INDEX = 'min-w-[1.6em] justify-self-start text-[clamp(11px,12cqh,15px)] tabular-nums opacity-50';
+const LABEL =
+  'flex items-center gap-[0.28em] justify-self-center overflow-hidden py-[0.06em] text-[clamp(16px,40cqh,140px)] leading-[1.1] font-medium tracking-[-0.035em] whitespace-nowrap group-data-[align=left]/fm:justify-self-start';
+const LABEL_TEXT = 'block';
+const DOT = 'block h-[0.2em] w-[0.2em] shrink-0 rounded-full bg-current';
+const END = 'flex items-center gap-3.5 justify-self-end';
+const META = 'text-[clamp(11px,12cqh,15px)] tabular-nums opacity-50';
+const ARROW = 'grid place-items-center opacity-55';
+const BAND = 'pointer-events-none invisible absolute inset-0 z-[1] overflow-hidden [clip-path:inset(50%_0_50%_0)]';
+const TRACK = 'flex h-full w-max items-center will-change-transform';
+const PART = 'flex h-full shrink-0 items-center';
+const PART_TEXT =
+  'px-[0.4em] text-[clamp(14px,calc(38cqh*var(--flowing-menu-band,1)),130px)] leading-[1.1] font-normal tracking-[-0.025em] whitespace-nowrap';
+const IMAGE =
+  'mx-[calc(3.5cqh*var(--flowing-menu-band,1))] block aspect-[2.2/1] h-[calc(56cqh*var(--flowing-menu-band,1))] shrink-0 rounded-full bg-cover bg-center group-data-[shape=circle]/fm:aspect-square group-data-[shape=rounded]/fm:aspect-[3/2] group-data-[shape=rounded]/fm:rounded-[calc(10cqh*var(--flowing-menu-band,1))]';
+const FLOAT = 'pointer-events-none invisible absolute inset-0 z-[1] overflow-hidden [clip-path:inset(50%_0_50%_0)]';
+const FLOAT_LAYER = 'absolute top-0 left-0 h-1/4 w-full [container-type:size] will-change-[transform,opacity]';
 
 const DIRECTIONS = ['left', 'right', 'alternate'];
 const SHAPES = ['pill', 'rounded', 'circle'];
@@ -34,7 +104,7 @@ const EASE = 'cubic-bezier(0.2, 0.9, 0.2, 1)';
 
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const prefersReduced = () =>
   typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
@@ -67,12 +137,12 @@ function FlowingMenu({
   ariaLabel = 'Menu',
   className = '',
   style
-}) {
-  const rootRef = useRef(null);
-  const listRef = useRef(null);
-  const rows = useRef([]);
-  const marquees = useRef([]);
-  const metrics = useRef([]);
+}: FlowingMenuProps) {
+  const rootRef = useRef<HTMLElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const rows = useRef<Row[]>([]);
+  const marquees = useRef<Marquee[]>([]);
+  const metrics = useRef<(Metric | null)[]>([]);
   const band = useRef({
     top: 0,
     bottom: 0,
@@ -85,12 +155,17 @@ function FlowingMenu({
     index: -1,
     rest: 0
   });
-  const cursor = useRef({ x: 0, y: null, t: 0, vx: 0 });
-  const engine = useRef({ raf: 0, last: 0, timers: [], touched: false });
-  const [copies, setCopies] = useState([]);
-  const floatRef = useRef(null);
-  const layerRefs = useRef([]);
-  const layerTracks = useRef([]);
+  const cursor = useRef<{ x: number; y: number | null; t: number; vx: number }>({ x: 0, y: null, t: 0, vx: 0 });
+  const engine = useRef<{ raf: number; last: number; timers: ReturnType<typeof setTimeout>[]; touched: boolean }>({
+    raf: 0,
+    last: 0,
+    timers: [],
+    touched: false
+  });
+  const [copies, setCopies] = useState<number[]>([]);
+  const floatRef = useRef<HTMLDivElement>(null);
+  const layerRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const layerTracks = useRef<(HTMLDivElement | null)[]>([]);
   const roll = useRef({ current: 0, p: 1, dir: 1, slots: [-1, -1], fromOpacity: 0, fromOffset: 0 });
   const [slots, setSlots] = useState([-1, -1]);
 
@@ -110,12 +185,12 @@ function FlowingMenu({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  const marqueeAt = index => {
+  const marqueeAt = (index: number) => {
     if (!marquees.current[index]) marquees.current[index] = { x: 0, part: 0, spin: 0, covered: false };
     return marquees.current[index];
   };
 
-  const insetFor = height => Math.min(settingsRef.current.bandInset, Math.max(0, height / 2 - 2));
+  const insetFor = (height: number) => Math.min(settingsRef.current.bandInset, Math.max(0, height / 2 - 2));
 
   const markRows = () => {
     const b = band.current;
@@ -196,7 +271,7 @@ function FlowingMenu({
     else if (floatRef.current) floatRef.current.style.visibility = 'hidden';
   };
 
-  const frame = now => {
+  const frame = (now: number) => {
     const loop = engine.current;
     loop.raf = 0;
     const s = settingsRef.current;
@@ -294,7 +369,7 @@ function FlowingMenu({
     loop.raf = requestAnimationFrame(frame);
   };
 
-  const goTo = (index, from) => {
+  const goTo = (index: number, from: 'top' | 'bottom' | 'center') => {
     const m = metrics.current[index];
     if (!m) return;
     const b = band.current;
@@ -334,7 +409,7 @@ function FlowingMenu({
     kick();
   };
 
-  const release = toward => {
+  const release = (toward: 'top' | 'bottom' | 'center') => {
     const b = band.current;
     if (!b.shown) return;
     const point = toward === 'top' ? b.toTop : toward === 'bottom' ? b.toBottom : (b.toTop + b.toBottom) / 2;
@@ -347,14 +422,14 @@ function FlowingMenu({
     kick();
   };
 
-  const rowAt = clientY => {
+  const rowAt = (clientY: number) => {
     const list = listRef.current;
     if (!list) return -1;
     const y = clientY - list.getBoundingClientRect().top;
     return metrics.current.findIndex(m => m && y >= m.top && y < m.top + m.height);
   };
 
-  const halfOf = (clientY, index) => {
+  const halfOf = (clientY: number, index: number): 'top' | 'bottom' => {
     const list = listRef.current;
     const m = metrics.current[index];
     if (!list || !m) return 'top';
@@ -491,7 +566,7 @@ function FlowingMenu({
     return () => cancelAnimationFrame(loop.raf);
   }, []);
 
-  const onPointerMove = event => {
+  const onPointerMove = (event: ReactPointerEvent<HTMLUListElement>) => {
     if (event.pointerType === 'touch') return;
     stopIntro();
     const c = cursor.current;
@@ -510,7 +585,7 @@ function FlowingMenu({
     else kick();
   };
 
-  const onPointerLeave = event => {
+  const onPointerLeave = (event: ReactPointerEvent<HTMLUListElement>) => {
     if (event.pointerType === 'touch') return;
     const list = listRef.current;
     const b = band.current;
@@ -521,23 +596,23 @@ function FlowingMenu({
     else release(halfOf(event.clientY, b.index));
   };
 
-  const linkHandlers = (item, index) => ({
-    onPointerDown: event => {
+  const linkHandlers = (item: FlowingMenuItem, index: number) => ({
+    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
       if (event.pointerType !== 'touch') return;
       stopIntro();
       goTo(index, halfOf(event.clientY, index));
     },
-    onFocus: event => {
+    onFocus: (event: ReactFocusEvent<HTMLElement>) => {
       if (!event.currentTarget.matches(':focus-visible')) return;
       stopIntro();
       goTo(index, 'top');
     },
-    onBlur: event => {
-      const next = event.relatedTarget;
+    onBlur: (event: ReactFocusEvent<HTMLElement>) => {
+      const next = event.relatedTarget as Node | null;
       if (next && listRef.current?.contains(next)) return;
       release('bottom');
     },
-    onClick: event => settingsRef.current.onItemClick?.(item, index, event)
+    onClick: (event: ReactMouseEvent<HTMLElement>) => settingsRef.current.onItemClick?.(item, index, event)
   });
 
   const shape = SHAPES.includes(imageShape) ? imageShape : 'pill';
@@ -546,7 +621,9 @@ function FlowingMenu({
     <nav
       ref={rootRef}
       className={[ROOT, className].filter(Boolean).join(' ')}
-      style={{ backgroundColor: bgColor, color: textColor, '--flowing-menu-border': borderColor, ...style }}
+      style={
+        { backgroundColor: bgColor, color: textColor, '--flowing-menu-border': borderColor, ...style } as CSSProperties
+      }
       aria-label={ariaLabel}
       data-align={align === 'left' ? 'left' : 'center'}
       data-shape={shape}
