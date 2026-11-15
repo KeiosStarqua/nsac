@@ -79,10 +79,16 @@ export type SessionFacade = {
 };
 
 /**
+ * Tool call outcome captured from the SDK's `tool_execution_end` event. Name/ok/ms only —
+ * tool arguments never land in artifacts (and from there never in traces or logs).
+ */
+export type ToolOutcome = { name: string; ok: boolean; ms?: number };
+
+/**
  * Per-turn side effects a tool may produce. `prompt()` clears them when the turn starts, so a turn
  * can only report what its own tool calls did; the chat pipeline reads them once the reply settles.
  */
-export type TurnArtifacts = { hudProgram?: string };
+export type TurnArtifacts = { hudProgram?: string; tools?: ToolOutcome[] };
 
 export async function createSession(
   profile: AgentProfile,
@@ -158,6 +164,7 @@ export async function createSession(
       // Turn artifacts belong to the turn that produces them: clearing at the start keeps a stale
       // program from a previous turn out of this turn's reply.
       if (overrides?.artifacts) delete overrides.artifacts.hudProgram;
+      if (overrides?.artifacts) delete overrides.artifacts.tools;
       let total = "";
       let turnError: string | null = null;
       const unsub = session.subscribe((event: any) => {
@@ -168,6 +175,21 @@ export async function createSession(
             opts.onDelta?.(e.delta);
           } else if (e?.type === "error") {
             turnError = e.error?.errorMessage ?? e.error?.stopReason ?? e.reason ?? "error";
+          }
+        } else if (event.type === "tool_execution_end") {
+          // Real SDK events (verified in pi-coding-agent dist/core/extensions/types.d.ts):
+          // tool_execution_end carries toolName/isError/durationMs. Arguments are ignored on purpose.
+          const artifacts = overrides?.artifacts;
+          if (artifacts) {
+            const name = typeof event.toolName === "string" ? event.toolName.slice(0, 64) : "unknown";
+            const ms =
+              typeof event.durationMs === "number" && Number.isFinite(event.durationMs)
+                ? Math.max(0, Math.round(event.durationMs))
+                : undefined;
+            const arr = (artifacts.tools ??= []);
+            if (arr.length < 20) {
+              arr.push({ name, ok: event.isError !== true, ...(ms !== undefined ? { ms } : {}) });
+            }
           }
         } else if (event.type === "message_end") {
           const m = event.message;
