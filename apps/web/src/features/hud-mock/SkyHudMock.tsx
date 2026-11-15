@@ -85,7 +85,6 @@ import { VitalsCard } from "./components/VitalsCard";
 
 // Vendored react-bits sources are @ts-nocheck; their inferred prop types demand props the runtime
 // defaults, so the boundary casts them (same pattern as `features/hud-gen/catalog.tsx`).
-const ParticlesAny = Particles as any;
 const LightTunnelAny = LightTunnel as any;
 const DepthTextAny = DepthText as any;
 const ShinyTextAny = ShinyText as any;
@@ -487,7 +486,7 @@ export function SkyHudMock() {
         </div>
       ) : (
         <div className="absolute inset-0 z-0" aria-hidden="true">
-          <ParticlesAny
+          <Particles
             particleColors={["#ffffff", "#78eaff", "#c8aaff", "#5dbafa"]}
             particleCount={220}
             particleSpread={9}
