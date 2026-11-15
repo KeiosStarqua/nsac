@@ -332,6 +332,35 @@ export interface Copy {
     disclaimer: string;
     notMedicalAdvice: string;
   };
+  /** `/health` — agent configuration readiness (no secrets). Check labels come from the server; this is the page chrome + live probes. */
+  health: {
+    title: string;
+    subtitle: string;
+    /** Table headers. */
+    colCheck: string;
+    colStatus: string;
+    colDetail: string;
+    colHint: string;
+    liveTitle: string;
+    /** Live probe sections; provider id is appended. */
+    liveKey: string;
+    credits: string;
+    limit: string;
+    modelLine: string;
+    runLive: string;
+    running: string;
+    copyDiag: string;
+    rosterTitle: string;
+    colId: string;
+    colName: string;
+    colRole: string;
+    colModel: string;
+    colKey: string;
+    colProvider: string;
+    fixTitle: string;
+    fixBox: string;
+    fixLocal: string;
+  };
   /** Hidden /admin page — operator-only model switch. */
   admin: {
     title: string;
@@ -346,14 +375,6 @@ export interface Copy {
     backendSetting: string;
     envFallback: string;
     appliesNote: string;
-    searchPlaceholder: string;
-    modelsCount: string;
-    noResults: string;
-    contextLength: string;
-    pricePrompt: string;
-    priceCompletion: string;
-    created: string;
-    free: string;
     apply: string;
     applying: string;
     saved: string;
@@ -363,6 +384,30 @@ export interface Copy {
     backendError: string;
     unauthorized: string;
     catalogError: string;
+    /** Provider picker — two providers, Go default. */
+    providerLabel: string;
+    providerOpencodeGo: string;
+    providerOpencodeGoDesc: string;
+    providerOpenrouter: string;
+    providerOpenrouterDesc: string;
+    /** One line kept for the legacy OpenRouter branch. */
+    legacyNote: string;
+    /** "Default (all agents)" dropdown + the unset option. */
+    defaultAllLabel: string;
+    defaultAllHint: string;
+    inheritDefault: string;
+    /** First option of every per-profile dropdown. */
+    inheritProfile: string;
+    profileChatLabel: string;
+    profileChatHint: string;
+    profileOrchestratorLabel: string;
+    profileOrchestratorHint: string;
+    profileGenerativeUiLabel: string;
+    profileGenerativeUiHint: string;
+    profileHudComposerLabel: string;
+    profileHudComposerHint: string;
+    /** Provider + effective model of the Default dropdown, shown after Apply/load. */
+    effectiveLine: string;
     resetClaims: string;
     resetClaimsConfirm: string;
     resetting: string;

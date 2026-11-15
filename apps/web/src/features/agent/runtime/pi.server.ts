@@ -3,15 +3,32 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 export function readOpenRouterKey(): string | null {
   const raw = process.env.SKY_OPENROUTER_API_KEY;
   if (typeof raw !== "string" || raw.trim() === "") return null;
   return raw.trim();
 }
+
+export function readOpenCodeKey(): string | null {
+  const raw = process.env.SKY_OPENCODE_API_KEY ?? process.env.OPENCODE_API_KEY;
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  return raw.trim();
+}
+
+export function readProviderKey(provider: "opencode-go" | "openrouter"): string | null {
+  return provider === "opencode-go" ? readOpenCodeKey() : readOpenRouterKey();
+}
+
+/** Key của provider đang hiệu lực; chỉ dùng cho check nhanh (vd. missing_key trước khi vào turn). */
+export async function readAgentKey(): Promise<string | null> {
+  return readProviderKey(await currentAgentProvider());
+}
+
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { AgentProfile } from "../agents/types";
 import { assistantText, isProviderError } from "../model/provider-result";
-import { currentAgentModel } from "./agent-model.server";
+import { currentAgentModel, currentAgentProvider } from "./agent-model.server";
 
 type PiSdk = any;
 
@@ -32,7 +49,15 @@ function piCacheDir(): string {
 // inheriting the catalog default max output tokens.
 const SKY_MAX_TOKENS = 2048;
 
-function ensureModelsFile(parts: { model: string; withModelEntry: boolean; maxTokens?: number; baseUrl?: string }): string {
+type ModelsFileParts = {
+  provider: "opencode-go" | "openrouter";
+  model: string;
+  withModelEntry: boolean;
+  maxTokens?: number;
+  baseUrl?: string;
+};
+
+function ensureModelsFile(parts: ModelsFileParts): string {
   const hash = createHash("sha256").update(JSON.stringify(parts)).digest("hex").slice(0, 16);
   const path = join(piCacheDir(), `models-${hash}.json`);
   if (!existsSync(path)) {
@@ -40,7 +65,9 @@ function ensureModelsFile(parts: { model: string; withModelEntry: boolean; maxTo
     if (parts.baseUrl) provider.baseUrl = parts.baseUrl;
     if (parts.withModelEntry) provider.models = [{ id: parts.model, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, ...(parts.maxTokens !== undefined ? { maxTokens: parts.maxTokens } : {}) }];
     else if (parts.maxTokens !== undefined) provider.modelOverrides = { [parts.model]: { maxTokens: parts.maxTokens } };
-    const payload = Object.keys(provider).length > 0 ? { providers: { openrouter: provider } } : { providers: {} };
+    const payload = Object.keys(provider).length > 0
+      ? { providers: { [parts.provider]: provider } }
+      : { providers: {} };
     writeFileSync(path, JSON.stringify(payload), { mode: 0o600 });
   }
   return path;
@@ -62,24 +89,28 @@ export async function createSession(
   ctx?: { request?: string } & Record<string, unknown>,
   overrides?: { sessionManager?: unknown; promptSuffix?: string; customTools?: ToolDefinition[]; artifacts?: TurnArtifacts },
 ): Promise<SessionFacade> {
-  const key = readOpenRouterKey();
+  const provider = await currentAgentProvider();
+  const key = readProviderKey(provider);
   if (!key) throw new Error("missing_key");
-  // Model resolution: backend setting (agent.model) → last good → SKY_OPENROUTER_MODEL → hardcoded default.
-  const model = await currentAgentModel();
-  const baseUrl = process.env.SKY_OPENROUTER_BASE_URL?.trim() || undefined;
+  // Model resolution: backend agent.models[profile] → legacy agent.model → env → provider default.
+  const model = await currentAgentModel(profile?.id);
+  const baseUrl =
+    (provider === "opencode-go"
+      ? process.env.SKY_OPENCODE_BASE_URL?.trim()
+      : process.env.SKY_OPENROUTER_BASE_URL?.trim()) || undefined;
   const pi = await loadPiSdk();
-  const probePath = ensureModelsFile({ model, withModelEntry: false, baseUrl });
+  const probePath = ensureModelsFile({ provider, model, withModelEntry: false, baseUrl });
   const probe = await pi.ModelRuntime.create({ modelsPath: probePath, authPath: join(piCacheDir(), "auth.json") });
-  const known = !!probe.getModel("openrouter", model);
+  const known = !!probe.getModel(provider, model);
   // Cap maxTokens either way; modelOverrides keeps the catalog entry intact, while an
   // unknown model needs a full entry (metrics probed above).
   const modelsPath = known
-    ? ensureModelsFile({ model, withModelEntry: false, maxTokens: SKY_MAX_TOKENS, baseUrl })
-    : ensureModelsFile({ model, withModelEntry: true, maxTokens: SKY_MAX_TOKENS, baseUrl });
+    ? ensureModelsFile({ provider, model, withModelEntry: false, maxTokens: SKY_MAX_TOKENS, baseUrl })
+    : ensureModelsFile({ provider, model, withModelEntry: true, maxTokens: SKY_MAX_TOKENS, baseUrl });
   const modelRuntime = await pi.ModelRuntime.create({ modelsPath, authPath: join(piCacheDir(), "auth.json") });
-  const modelObj = modelRuntime.getModel("openrouter", model);
+  const modelObj = modelRuntime.getModel(provider, model);
   if (!modelObj) throw new Error("unavailable");
-  await modelRuntime.setRuntimeApiKey("openrouter", key);
+  await modelRuntime.setRuntimeApiKey(provider, key);
 
   const settingsManager = pi.SettingsManager.inMemory({ retry: { enabled: false }, cacheWarming: "off" });
   const sessionManager = (overrides?.sessionManager as any) ?? pi.SessionManager.inMemory();

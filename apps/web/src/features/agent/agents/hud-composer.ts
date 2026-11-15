@@ -8,8 +8,9 @@ export const hudComposer: AgentProfile = {
   id: "sky-hud-composer",
   name: "HUD Composer",
   role: "hud composer",
-  modelEnv: "SKY_OPENROUTER_MODEL",
-  defaultModel: "anthropic/claude-sonnet-4.5",
+  // modelEnv/defaultModel chỉ là metadata hiển thị — nguồn quyết định là server resolution (xem chat.ts).
+  modelEnv: "SKY_AGENT_MODEL",
+  defaultModel: "deepseek-v4.1-flash",
   soul: skySoul,
   systemPrompt: (ctx: AgentContext) => {
     const allow = (ctx.allowList ?? HUD_COMPONENT_NAMES).join(", ");

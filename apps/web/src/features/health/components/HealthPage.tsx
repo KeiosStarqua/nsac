@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { getSnapshot, validateOpenRouterKey, checkModel } from "../api/health.functions";
+import { useCopy } from "~/shared/i18n";
+import { getSnapshot, validateKey, checkModel } from "../api/health.functions";
 import { listAgentRoster } from "../../agent/api/agent.functions";
 import { overallLabel } from "../model/health";
 import type { Snapshot } from "../api/health.functions";
@@ -8,9 +9,18 @@ function Badge({ state }: { state: string }) {
   return <span data-state={state}>{state}</span>;
 }
 
+type LiveResult = {
+  provider: "opencode-go" | "openrouter";
+  status: "valid" | "invalid" | "unreachable" | "missing";
+  httpStatus: number | null;
+  credit: number | null;
+  limit: number | null;
+};
+
 export function HealthPage({ initial }: { initial: Snapshot }) {
+  const copy = useCopy().health;
   const [snap, setSnap] = useState<Snapshot>(initial);
-  const [live, setLive] = useState<any>(null);
+  const [live, setLive] = useState<LiveResult | null>(null);
   const [running, setRunning] = useState(false);
   const [modelResult, setModelResult] = useState<string | null>(null);
   const [roster, setRoster] = useState<any[] | null>(null);
@@ -19,7 +29,7 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
   async function runLive() {
     setRunning(true);
     try {
-      const r = await validateOpenRouterKey();
+      const r = await validateKey();
       setLive(r);
       const m = await checkModel();
       setModelResult(m.result);
@@ -36,17 +46,17 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
   return (
     <main className="mx-auto max-w-[900px] p-6 text-(--text)">
       <header className="mb-4">
-        <h1>Health</h1>
+        <h1>{copy.title}</h1>
         <div aria-live="polite">
           <Badge state={snap.overall} /> <strong>{overallLabel(snap.overall)}</strong>
           <span className="ml-3 text-(--text-muted)">checked at {snap.checkedAt}</span>
         </div>
-        <p className="text-(--text-muted)">Agent configuration readiness snapshot.</p>
+        <p className="text-(--text-muted)">{copy.subtitle}</p>
       </header>
 
       <table className="w-full border-collapse">
         <thead>
-          <tr><th>Check</th><th>Status</th><th>Detail</th><th>Hint</th></tr>
+          <tr><th>{copy.colCheck}</th><th>{copy.colStatus}</th><th>{copy.colDetail}</th><th>{copy.colHint}</th></tr>
         </thead>
         <tbody>
           {snap.checks.map((c) => (
@@ -62,27 +72,27 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
 
       {live && (
         <section aria-live="polite" className="mt-4">
-          <h2>Live checks</h2>
-          <p>OpenRouter key: {live.status} (HTTP {live.httpStatus ?? "n/a"})</p>
-          {live.credit != null && <p>Credits: {live.credit}</p>}
-          {live.limit != null && <p>Limit: {live.limit}</p>}
-          {modelResult && <p>Model: {modelResult}</p>}
+          <h2>{copy.liveTitle}</h2>
+          <p>{live.provider} · {copy.liveKey}: {live.status} (HTTP {live.httpStatus ?? "n/a"})</p>
+          {live.credit != null && <p>{copy.credits.replace("{count}", String(live.credit))}</p>}
+          {live.limit != null && <p>{copy.limit.replace("{count}", String(live.limit))}</p>}
+          {modelResult && <p>{copy.modelLine.replace("{result}", modelResult)}</p>}
         </section>
       )}
 
       <div className="mt-4 flex gap-2">
-        <button onClick={runLive} disabled={running}>{running ? "Running…" : "Run live checks"}</button>
-        <button onClick={copyDiag}>Copy diagnostics</button>
+        <button onClick={runLive} disabled={running}>{running ? copy.running : copy.runLive}</button>
+        <button onClick={copyDiag}>{copy.copyDiag}</button>
       </div>
 
       {roster && (
         <section className="mt-6">
-          <h2>Agent roster</h2>
+          <h2>{copy.rosterTitle}</h2>
           <table className="w-full border-collapse">
-            <thead><tr><th>Id</th><th>Name</th><th>Role</th><th>Model</th><th>Key</th></tr></thead>
+            <thead><tr><th>{copy.colId}</th><th>{copy.colName}</th><th>{copy.colRole}</th><th>{copy.colModel}</th><th>{copy.colKey}</th><th>{copy.colProvider}</th></tr></thead>
             <tbody>
               {roster.map((r: any) => (
-                <tr key={r.id}><td>{r.id}</td><td>{r.name}</td><td>{r.role}</td><td>{r.effectiveModel}</td><td>{r.keyConfigured ? "configured" : "missing"}</td></tr>
+                <tr key={r.id}><td>{r.id}</td><td>{r.name}</td><td>{r.role}</td><td>{r.effectiveModel}</td><td>{r.keyConfigured ? "configured" : "missing"}</td><td>{r.provider ?? "—"}</td></tr>
               ))}
             </tbody>
           </table>
@@ -90,9 +100,9 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
       )}
 
       <section className="mt-6">
-        <h2>How to fix</h2>
-        <p>On the box: edit <code>/etc/nsac-web/env</code> (SKY_OPENROUTER_API_KEY=...), then <code>systemctl restart nsac-web</code>.</p>
-        <p>Locally: create <code>.env</code> with SKY_OPENROUTER_API_KEY.</p>
+        <h2>{copy.fixTitle}</h2>
+        <p>{copy.fixBox}</p>
+        <p>{copy.fixLocal}</p>
       </section>
     </main>
   );
