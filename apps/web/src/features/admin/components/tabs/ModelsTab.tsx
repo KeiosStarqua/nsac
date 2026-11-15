@@ -4,6 +4,7 @@ import { adminModelFn, setAgentConfigFn } from "../../api/admin.functions";
 import type { AgentModelsSetting } from "../../api/admin.functions";
 import type { PickerModel } from "../../model/catalog";
 import { goAsPickerModels, bedrockAsPickerModels } from "../../model/catalog";
+import { filterModelIds, sanitizeProfileModels } from "../../model/catalogFilter";
 import type { AgentProvider } from "../../../agent/runtime/agent-model.server";
 import { useAdminGate } from "../admin-gate";
 import { buttonClasses, inputClasses, mono, muted } from "./classes";
@@ -26,6 +27,13 @@ function fmtPrice(p: string | null): string {
   return `$${perMillion.toFixed(2)}/M`;
 }
 const fmtContext = (n: number | null) => (n == null ? "—" : n.toLocaleString());
+
+/** Short provider name for the section kicker + scoped-catalog caption (brand names, locale-neutral). */
+const PROVIDER_DISPLAY: Record<AgentProvider, string> = {
+  "opencode-go": "OpenCode Go",
+  openrouter: "OpenRouter",
+  "amazon-bedrock": "AWS Bedrock",
+};
 
 /** Option label for a model: id, prices, context window. */
 function modelOptionLabel(m: PickerModel): string {
@@ -54,7 +62,7 @@ export function ModelsTab() {
   const [loadingModels, setLoadingModels] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applyState, setApplyState] = useState<ApplyState>(null);
-
+  const [droppedForeign, setDroppedForeign] = useState<number>(0);
   // The Go and Bedrock snapshots are static and imported locally — no fetch, works offline.
   const goModels = useMemo(() => goAsPickerModels(), []);
   const bedrockModels = useMemo(() => bedrockAsPickerModels(), []);
@@ -67,21 +75,37 @@ export function ModelsTab() {
     try {
       const r = await adminModelFn();
       if (r.status === "ok") {
-        setProvider(r.provider);
-        setEffectiveProvider(r.provider);
+        const storedProvider = r.provider;
+        const storedCatalog =
+          storedProvider === "opencode-go"
+            ? goModels
+            : storedProvider === "amazon-bedrock"
+              ? bedrockModels
+              : r.openrouterModels;
+        // OpenRouter's catalog is fetched live; when that fetch failed the membership is unknown.
+        const catalogKnown = storedProvider !== "openrouter" || r.openrouterOk;
+        let nextDefault = r.setting?.model ?? "";
+        let nextProfiles: Record<string, string> = {
+          "sky-chat": r.setting?.models?.["sky-chat"] ?? "",
+          "sky-orchestrator": r.setting?.models?.["sky-orchestrator"] ?? "",
+          "sky-generative-ui": r.setting?.models?.["sky-generative-ui"] ?? "",
+          "sky-hud-composer": r.setting?.models?.["sky-hud-composer"] ?? "",
+        };
+        if (catalogKnown) {
+          // Never keep an id the stored provider cannot serve — it would render as a foreign option.
+          nextDefault = filterModelIds(storedCatalog, [nextDefault]).kept[0] ?? "";
+          nextProfiles = sanitizeProfileModels(storedCatalog, nextProfiles).models;
+        }
+        setProvider(storedProvider);
+        setEffectiveProvider(storedProvider);
         setProviderSource(r.providerSource);
         setEffectiveModels(r.effectiveModels);
         setSetting(r.setting);
         setOpenrouterModels(r.openrouterModels);
         setOpenrouterOk(r.openrouterOk);
-        setDefaultModel(r.setting?.model ?? "");
-        const stored = r.setting?.models ?? {};
-        setProfileModels({
-          "sky-chat": stored["sky-chat"] ?? "",
-          "sky-orchestrator": stored["sky-orchestrator"] ?? "",
-          "sky-generative-ui": stored["sky-generative-ui"] ?? "",
-          "sky-hud-composer": stored["sky-hud-composer"] ?? "",
-        });
+        setDefaultModel(nextDefault);
+        setProfileModels(nextProfiles);
+        setDroppedForeign(0);
       } else {
         lock();
       }
@@ -105,20 +129,27 @@ export function ModelsTab() {
     { id: "sky-hud-composer" as const, label: copy.profileHudComposerLabel, hint: copy.profileHudComposerHint, effective: effectiveModels?.["hud-composer"] },
   ];
 
-  // Options for a select; a stored id missing from the catalog is kept as a visible placeholder.
-  function optionsFor(selected: string): PickerModel[] {
-    if (!selected || catalog.some((m) => m.id === selected)) return catalog;
-    return [{ id: selected, name: selected, contextLength: null, prompt: null, completion: null, created: null }, ...catalog];
-  }
-
-  function optionLabel(m: PickerModel): string {
-    const known = catalog.some((c) => c.id === m.id);
-    return known ? modelOptionLabel(m) : `${m.id} (not in catalog)`;
+  // Switching provider re-scopes the picks: every id the new catalog cannot serve is dropped.
+  function onProviderChange(next: AgentProvider) {
+    setProvider(next);
+    setDroppedForeign(0);
+    setApplyState(null);
+    // OpenRouter's catalog is live; when it is unavailable the membership is unknown — leave picks alone.
+    if (next === "openrouter" && !openrouterOk) return;
+    const nextCatalog =
+      next === "opencode-go" ? goModels : next === "amazon-bedrock" ? bedrockModels : openrouterModels;
+    const defaultDropped = filterModelIds(nextCatalog, [defaultModel]).dropped.length;
+    if (defaultDropped > 0) setDefaultModel("");
+    const profiles = sanitizeProfileModels(nextCatalog, profileModels);
+    setProfileModels(profiles.models);
+    const dropped = defaultDropped + profiles.dropped;
+    if (dropped > 0) setDroppedForeign(dropped);
   }
 
   async function apply() {
     if (applying) return;
     setApplying(true);
+    setDroppedForeign(0);
     setApplyState(null);
     const models: Record<string, string> = {};
     for (const field of profileFields) {
@@ -190,6 +221,9 @@ export function ModelsTab() {
       <div className={`${muted} mt-1 text-[12px]`}>{copy.appliesNote}</div>
     </section>
 
+    <div className={`${muted} mb-1.5 text-[12px] uppercase tracking-[1px]`}>
+      01 — {copy.providerLabel}
+    </div>
     {/* Provider */}
     <label htmlFor="admin-provider" className="mb-1.5 block text-[13px]">
       {copy.providerLabel}
@@ -197,7 +231,7 @@ export function ModelsTab() {
     <select
       id="admin-provider"
       value={provider}
-      onChange={(e) => setProvider(e.target.value as AgentProvider)}
+      onChange={(e) => onProviderChange(e.target.value as AgentProvider)}
       className={selectClasses}
     >
       <option value="opencode-go">{copy.providerOpencodeGo}</option>
@@ -213,15 +247,25 @@ export function ModelsTab() {
     </p>
     {provider === "amazon-bedrock" && <p className={`${muted} mt-1 text-[12px]`}>{copy.bedrockVerifiedNote}</p>}
     {provider === "openrouter" && <p className={`${muted} mt-1 text-[12px]`}>{copy.legacyNote}</p>}
-
+    {droppedForeign > 0 && (
+      <p role="status" className={`${muted} mt-2 text-[12px]`}>
+        {copy.modelsDroppedForeign.replace("{count}", String(droppedForeign))}
+      </p>
+    )}
     {!catalogReady && (
       <p role="alert" className="mt-2 text-[13px] text-(--yellow)">
         {copy.catalogError}
       </p>
     )}
 
+    <div className={`${muted} mt-4 mb-1.5 text-[12px] uppercase tracking-[1px]`}>
+      {copy.modelsSectionKicker.replace("{provider}", PROVIDER_DISPLAY[provider])}
+    </div>
+    <p className={`${muted} mb-1.5 text-[12px]`}>
+      {copy.catalogScopedNote.replace("{provider}", PROVIDER_DISPLAY[provider])}
+    </p>
     {/* Default (all agents) */}
-    <label htmlFor="admin-default-model" className="mt-4 mb-1.5 block text-[13px]">
+    <label htmlFor="admin-default-model" className="mb-1.5 block text-[13px]">
       {copy.defaultAllLabel}
     </label>
     <p className={`${muted} mb-1.5 text-[12px]`}>{copy.defaultAllHint}</p>
@@ -233,9 +277,9 @@ export function ModelsTab() {
       disabled={loadingModels}
     >
       <option value="">{copy.inheritDefault}</option>
-      {optionsFor(defaultModel).map((m) => (
+      {catalog.map((m) => (
         <option key={m.id} value={m.id}>
-          {optionLabel(m)}
+          {modelOptionLabel(m)}
         </option>
       ))}
     </select>
@@ -257,9 +301,9 @@ export function ModelsTab() {
           <option value="">
             {copy.inheritProfile} — {effectiveModels ? (field.effective ?? effectiveModels.default) : "…"}
           </option>
-          {optionsFor(profileModels[field.id] ?? "").map((m) => (
+          {catalog.map((m) => (
             <option key={m.id} value={m.id}>
-              {optionLabel(m)}
+              {modelOptionLabel(m)}
             </option>
           ))}
         </select>
