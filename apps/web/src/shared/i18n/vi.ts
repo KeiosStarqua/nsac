@@ -407,5 +407,10 @@ export const vi: Copy = {
     goKeyClearDone: "Đã xóa key đã lưu.",
     goKeyClearFailed: "Không xóa được key. Thử lại.",
     goKeyNote: "Chỉ lưu trên máy chủ, không bao giờ hiện lại. Dùng khi box không đặt OPENCODE_API_KEY/SKY_OPENCODE_API_KEY.",
+    tabModels: "Model agent",
+    tabOpencode: "Khóa OpenCode Go",
+    tabElevenlabs: "Khóa ElevenLabs",
+    tabClaims: "Gỡ claims",
+    tabsLabel: "Mục admin",
   },
 };

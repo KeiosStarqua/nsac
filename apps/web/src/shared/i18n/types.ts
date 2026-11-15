@@ -474,5 +474,12 @@ export interface Copy {
     goKeyClearFailed: string;
     /** Note under the panel: write-only semantics + when the stored key is used. */
     goKeyNote: string;
+    /** Tab labels for the four /admin sections. */
+    tabModels: string;
+    tabOpencode: string;
+    tabElevenlabs: string;
+    tabClaims: string;
+    /** aria-label of the tablist above the four sections. */
+    tabsLabel: string;
   };
 }

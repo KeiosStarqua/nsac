@@ -75,6 +75,17 @@
 - Used by: the `/spacecraft` crew presence overlay (`src/features/spacecraft/components/CrewPresence.tsx`) — fictional crew, initials only
 - Date: 2026-11-15
 
+## beui (Morphing Tabs)
+
+- Licence: MIT
+- Source: https://beui.dev/components/blocks/morphing-tabs
+- Repository: https://github.com/starc007/ui-components
+- Component taken: `components/motion/morphing-tabs.tsx`, adapted — the springs, drag/keyboard reorder and liquid-path animation stay byte-close to upstream; geometry constants unchanged
+- Location: src/shared/beui/morphing-tabs.tsx
+- Adaptations: `lib/ease` motion tokens inlined as local constants with the upstream values (`EASE_OUT`, `SPRING_GLIDE`, `SPRING_PRESS`); `lib/touch` inlined (`TOUCH_GESTURE_CLASS`, `capturePointer`); `lib/i18n` replaced by inline English defaults (label "Tabs", close "Close {label}") with the `labels` prop kept; `cn` from `src/shared/lib/utils.ts`; re-themed to Sky's dark HUD tokens (rail = dark navy surface + border, panel = raised navy surface, liquid surface + active tab = `--accent` cyan with `--accent-ink` text, inactive tab = `--muted`); a straight panel top edge (`rounded-t-none`) covers the liquid seam instead of upstream's fill == panel colour; `border-0 bg-transparent` on the buttons (no preflight in this app); `noUncheckedIndexedAccess` guards/non-null assertions (no `as any`, no `@ts-nocheck`). NOT vendored: beui's `lib/{ease,i18n,touch,utils}`. No new npm dependency.
+- Used by: the `/admin` page — four operator tabs (Agent models / OpenCode Go key / ElevenLabs key / Reset claims)
+- Date: 2026-11-16
+
 ## ElevenLabs client (`@elevenlabs/client`)
 
 - Licence: MIT
