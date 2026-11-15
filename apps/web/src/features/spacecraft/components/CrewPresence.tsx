@@ -1,17 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ASTRONAUTS, getOrCreateSessionId, listClaims } from "~/features/astronaut";
-import type { ClaimEntry } from "~/features/astronaut";
+import { ASTRONAUTS } from "~/features/astronaut";
 import { AvatarGroup } from "~/shared/beui/avatar-group";
-import {
-  checkedInCount,
-  resolveCrewPresence,
-  type CrewPresenceState,
-} from "../model/presence";
+import { checkedInCount, resolveCrewPresence, type CrewPresenceState } from "../model/presence";
+import { useCrewClaims } from "./useCrewClaims";
 
 // The one piece of chrome on `/spacecraft` (product decision 2026-11-15): who is checked in.
 // Fictional crew only, rendered as initials — there are no photos, and nothing here is measured.
+// The 3D markers in the scene reuse the same claims snapshot, so avatars and markers agree.
 
 // `mine` carries a solid cyan ring, `taken` a faint one, `free` recedes.
 const STATE_CLASS: Record<CrewPresenceState, string> = {
@@ -36,29 +32,12 @@ const CAPTION =
  *
  * The backend may be down (`reachable: false`) — the group still renders, and the caption says the
  * status is unavailable instead of pretending the crew is absent.
+ *
+ * `POSITIONS SIMULATED` is a static second line: the glowing markers on the station are an
+ * illustrative fixture (model/crew-positions.ts), never telemetry.
  */
 export function CrewPresence() {
-  const [claims, setClaims] = useState<ClaimEntry[]>([]);
-  // `null` until the first answer: the count is not shown before it is known.
-  const [reachable, setReachable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    const sessionId = getOrCreateSessionId();
-    void listClaims({ data: { sessionId } })
-      .then((res) => {
-        if (!alive) return;
-        setClaims(Array.isArray(res?.claims) ? res.claims : []);
-        setReachable(res?.reachable !== false);
-      })
-      .catch(() => {
-        if (alive) setReachable(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
+  const { claims, reachable } = useCrewClaims();
   const presence = resolveCrewPresence(ASTRONAUTS, claims);
   const checkedIn = checkedInCount(presence);
   const members = presence.map(({ astronaut, state }) => ({
@@ -77,6 +56,7 @@ export function CrewPresence() {
             ? `CREW ON STATION · ${checkedIn}/${presence.length}`
             : "CREW ON STATION · STATUS UNAVAILABLE"}
       </p>
+      <p className={CAPTION}>POSITIONS SIMULATED</p>
       <AvatarGroup members={members} max={6} size="md" label="Crew on station" />
     </div>
   );

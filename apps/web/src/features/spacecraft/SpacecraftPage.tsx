@@ -1,9 +1,12 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 // The nebula drift keyframes (the one bit of motion Tailwind cannot inline).
 import "./nebula-drift.css";
+import { ASTRONAUTS } from "~/features/astronaut";
 import { CrewPresence } from "./components/CrewPresence";
+import { useCrewClaims } from "./components/useCrewClaims";
 import { DEFAULT_MODEL_ID, SPACECRAFT_MODELS } from "./model/models";
+import { resolveCrewPresence } from "./model/presence";
 import { usePausedWhenHidden, useReducedMotion } from "./model/preferences";
 
 // three.js and the models sit behind this import, so the HUD entry chunk stays light.
@@ -39,6 +42,9 @@ export function SpacecraftPage() {
   const reducedMotion = useReducedMotion();
   const paused = usePausedWhenHidden();
   const navigate = useNavigate();
+  // Same claims snapshot the overlay reads, so marker colours and avatar rings agree.
+  const { claims } = useCrewClaims();
+  const crewPresence = useMemo(() => resolveCrewPresence(ASTRONAUTS, claims), [claims]);
 
   useEffect(() => {
     setSupported(webglAvailable());
@@ -90,6 +96,7 @@ export function SpacecraftPage() {
             autoRotate
             reducedMotion={reducedMotion}
             paused={paused}
+            crewPresence={crewPresence}
           />
         </Suspense>
       ) : (
