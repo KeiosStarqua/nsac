@@ -44,6 +44,7 @@ import {
 } from "../sky-hud/hud-classes";
 import { DETAILS } from "../sky-hud/vitals";
 import { SkyOrb } from "../sky-hud/SkyOrb";
+import { agentStateForVoiceChat } from "../sky-hud/agent-state";
 import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
 import { PHASE_TEXT } from "../sky-hud/voiceCopy";
@@ -193,6 +194,7 @@ export function SkyHudMock() {
     stop: stopVoiceChat,
     setNotice: setVoiceNotice,
   } = useVoiceChat(astronautId);
+  const orbState = agentStateForVoiceChat(voiceStatus, voiceMode, voiceNotice);
 
   // Quiet hints (not configured / failed) clear themselves back to the idle line.
   useEffect(() => {
@@ -467,10 +469,10 @@ export function SkyHudMock() {
   const orbNode = useMemo(
     () => (
       <div className={`${ORB_ZONE}${voiceStatus === "connecting" ? ` ${ORB_ZONE_THINKING}` : ""}`} aria-hidden="true">
-        <SkyOrb phase={phase} energyRef={energyRef} />
+        <SkyOrb state={orbState} />
       </div>
     ),
-    [phase, voiceStatus, energyRef],
+    [orbState, voiceStatus],
   );
 
   const holo = useMemo(() => <HologramBody reducedMotion={!!reduce} />, [reduce]);
@@ -478,7 +480,7 @@ export function SkyHudMock() {
   const insightText = buildInsightText(copy.hudMock.insightText);
 
   return (
-    <main className={MOCK_ROOT} data-phase={phase} aria-label="SKY astronaut wellness overview">
+    <main className={MOCK_ROOT} data-phase={phase} data-agent-state={orbState} aria-label="SKY astronaut wellness overview">
       {bg === "light-tunnel" ? (
         <div className="absolute inset-0 z-0" aria-hidden="true">
           <LightTunnel cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />

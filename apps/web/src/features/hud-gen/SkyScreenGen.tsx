@@ -5,6 +5,7 @@ import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import Particles from "../../shared/react-bits/Particles/Particles";
 import { DETAIL_ACTION, DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY, DETAIL_VALUE, CHAT_OVERRIDE_CHIP, SKY_APP, SPACE_VIGNETTE } from "../sky-hud/hud-classes";
 import { useSkyVoice } from "../sky-hud/useSkyVoice";
+import { agentStateForVoicePhase } from "../sky-hud/agent-state";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
 import { PHASE_TEXT, MIC_ARIA } from "../sky-hud/voiceCopy";
 import { SkyOrb } from "../sky-hud/SkyOrb";
@@ -116,6 +117,7 @@ export function SkyScreenGen() {
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
 
   const { phase, energyRef, toggle, readEnergy, readSpectrum } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
+  const orbState = agentStateForVoicePhase(phase);
 
   // ⌘K / Ctrl+K anywhere on the console toggles the chat card (the watch layout has no chat card).
   useToggleChatShortcut(() => setChatOpen((open) => !open), !isWatch);
@@ -435,7 +437,7 @@ export function SkyScreenGen() {
   }, []);
 
   const facts = useMemo(buildHudFacts, []);
-  const orbNode = useMemo(() => <SkyOrb phase={phase} energyRef={energyRef} />, [phase, energyRef]);
+  const orbNode = useMemo(() => <SkyOrb state={orbState} />, [orbState]);
   const waveNode = useMemo(() => <VoiceWaveform phase={phase} energyRef={energyRef} />, [phase, energyRef]);
 
   const captions =

@@ -1,26 +1,27 @@
-import type { RefObject } from "react";
 import { CrystalizedBall } from "../../shared/react-bits";
-import type { VoicePhase } from "./types";
+import { AGENT_STATE_BALL, type AgentState } from "./agent-state";
 
 /**
- * Ambient Crystalized Ball (React Bits) for the HUD orb zone.
- * The component is cursor-reactive, not mic-reactive, so the old mic-energy
- * sampling was dropped — `energyRef` is accepted (unused) to keep the
- * SkyScreen / SkyScreenGen call sites untouched. The orb zone's size comes from the
- * `.orb-zone` utilities (enlarged 2026-11-15: 26vw/355px → 34vw/465px so the
- * shader's outer halo is no longer clipped by the canvas bounds); `size` is
- * scaled by the same factor (0.94 → 0.72) to keep the ball's on-screen diameter
- * unchanged (~335px). `style` stays a required pass-through prop of the vendored
- * component (its @ts-nocheck types demand it) and matches its own 100% × 100% sizing.
+ * Ambient Crystalized Ball (React Bits) for the HUD orb zone. The ball renders purely from the
+ * caller's `AgentState` — see `agent-state.ts`, the single source of truth every screen derives
+ * its signals onto. The component is cursor-reactive; `size` scales the ball's diameter (~335px)
+ * inside the enlarged orb zone while the shader's outer halo stays unclipped (`size={0.72}`).
+ * `style` stays a required pass-through prop of the vendored component (its @ts-nocheck types demand it).
  */
-export function SkyOrb({ phase, energyRef }: { phase: VoicePhase; energyRef: RefObject<number> }) {
-  void phase;
-  void energyRef;
+export function SkyOrb({ state }: { state: AgentState }) {
+  const tune = AGENT_STATE_BALL[state];
 
   return (
     <CrystalizedBall
       theme="dark"
-      preset="aurora"
+      preset={tune.preset}
+      speed={tune.speed}
+      glow={tune.glow}
+      crackle={tune.crackle}
+      sparks={tune.sparks}
+      twinkle={tune.twinkle}
+      haze={tune.haze}
+      particleCount={tune.particleCount}
       size={0.72}
       interactive
       hoverStrength={0.6}

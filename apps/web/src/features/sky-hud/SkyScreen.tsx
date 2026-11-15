@@ -26,6 +26,7 @@ import {
   WATCH_FRAME, WATCH_SCREEN, WATCH_STAGE,
 } from "./hud-classes";
 import { useSkyVoice } from "./useSkyVoice";
+import { agentStateForVoicePhase } from "./agent-state";
 import { useToggleChatShortcut } from "./useToggleChatShortcut";
 import { PHASE_TEXT, MIC_ARIA } from "./voiceCopy";
 import { SkyOrb } from "./SkyOrb";
@@ -136,6 +137,7 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
   const conversationCopyRef = useRef<HTMLDivElement | null>(null);
 
   const { phase, energyRef, toggle, readEnergy, readSpectrum, stop } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
+  const orbState = agentStateForVoicePhase(phase);
 
   // ⌘K / Ctrl+K toggles the chat card on the console; `/watch` keeps the legacy in-face panel.
   useToggleChatShortcut(() => setChatOpen((open) => !open), variant !== "watch");
@@ -646,7 +648,7 @@ export function SkyScreen({ variant }: { variant: "console" | "watch" }) {
 
       {/* Conversation */}
       <section className={CONVERSATION} aria-label="SKY conversation">
-        <div className={`${ORB_ZONE}${phase === "thinking" ? ` ${ORB_ZONE_THINKING}` : ""}`} aria-hidden="true"><SkyOrb phase={phase} energyRef={energyRef} /></div>
+        <div className={`${ORB_ZONE}${phase === "thinking" ? ` ${ORB_ZONE_THINKING}` : ""}`} aria-hidden="true"><SkyOrb state={orbState} /></div>
         <div className={CONVERSATION_COPY} ref={conversationCopyRef}>
           <h1 id="greeting">{fx ? <BlurText text={greeting} animationFrom={{filter:"blur(10px)",opacity:0}} animationTo={[{filter:"blur(0px)",opacity:1}]} color="#ecf7ff" easing="easeOut" /> : greeting}</h1>
           <p id="prompt"><VariableProximity label={prompt} containerRef={conversationCopyRef} radius={60} /></p>
