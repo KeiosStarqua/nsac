@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setChatSessionFactory, resetChatStateForTests, sendChatTurn, loadChatHistory } from "./astro-chat.server";
+import { resetAgentModelCacheForTests } from "./agent-model.server";
 
 // astro-chat.server resolves NSAC_SKY_SESSIONS_DIR at call time; each test gets a
 // fresh tmp dir and a reset session cache, and real state is never touched.
@@ -10,11 +11,15 @@ describe("astro-chat", () => {
   let dir: string;
   const prevSessions = process.env.NSAC_SKY_SESSIONS_DIR;
   const prevKey = process.env.SKY_OPENROUTER_API_KEY;
+  const prevProvider = process.env.SKY_AGENT_PROVIDER;
+  const prevBackend = process.env.BACKEND_URL;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "nsac-sky-sessions-"));
     process.env.NSAC_SKY_SESSIONS_DIR = dir;
     process.env.SKY_OPENROUTER_API_KEY = "sk-or-test-fake";
+    process.env.SKY_AGENT_PROVIDER = "openrouter";
+    process.env.BACKEND_URL = "http://127.0.0.1:1";
     resetChatStateForTests();
   });
 
@@ -25,6 +30,7 @@ describe("astro-chat", () => {
     else process.env.SKY_OPENROUTER_API_KEY = prevKey;
     setChatSessionFactory(null);
     resetChatStateForTests();
+    resetAgentModelCacheForTests();
     rmSync(dir, { recursive: true, force: true });
   });
 

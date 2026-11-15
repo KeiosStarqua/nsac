@@ -4,15 +4,23 @@ import {
   unlockAdminFn,
   isAdminFn,
   adminModelFn,
-  setAgentModelFn,
+  setAgentConfigFn,
   resetClaimsFn,
 } from "../api/admin.functions";
-import type { ResetClaimsResult } from "../api/admin.functions";
-import type { CatalogModel } from "../runtime/openrouter.server";
+import type { ResetClaimsResult, AgentModelsSetting } from "../api/admin.functions";
+import { goAsPickerModels, type PickerModel } from "../model/catalog";
+import type { AgentProvider } from "../../agent/runtime/agent-model.server";
 
 type Phase = "checking" | "unconfigured" | "locked" | "admin";
 type ApplyState = { kind: "ok" } | { kind: "error"; message: string } | null;
 type ResetState = { kind: "ok"; cleared: number } | { kind: "error"; message: string } | null;
+type EffectiveModels = {
+  default: string;
+  chat: string;
+  orchestrator: string;
+  "generative-ui": string;
+  "hud-composer": string;
+};
 
 const page = "min-h-screen bg-(--bg) text-(--text) font-(family-name:--font)";
 const panel = "mx-auto max-w-[1040px] px-5 pt-7 pb-12";
@@ -28,12 +36,6 @@ const buttonClasses =
 const dangerButtonClasses =
   "cursor-pointer rounded-(--radius-sm)! border border-(--red) bg-transparent px-[18px] py-2.5 text-[14px]! font-semibold! text-(--red) disabled:opacity-60";
 
-// Shared skeleton of a model row: the five columns, the 1px border and the 8px/10px padding. The
-// colour, radius and cursor differ per usage (header vs row) and are appended at the call site so the
-// two never disagree.
-const rowGrid =
-  "grid w-full grid-cols-[minmax(0,1.7fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.7fr)] items-baseline gap-2 border px-2.5 py-2 text-left";
-
 function fmtPrice(p: string | null): string {
   if (p == null) return "—";
   const perMillion = Number(p) * 1e6;
@@ -43,7 +45,11 @@ function fmtPrice(p: string | null): string {
   return `$${perMillion.toFixed(2)}/M`;
 }
 const fmtContext = (n: number | null) => (n == null ? "—" : n.toLocaleString());
-const fmtCreated = (s: number | null) => (s == null ? "—" : new Date(s * 1000).toISOString().slice(0, 10));
+
+/** Option label for a model: id, prices, context window. */
+function modelOptionLabel(m: PickerModel): string {
+  return `${m.id} — ${fmtPrice(m.prompt)} in / ${fmtPrice(m.completion)} out · ctx ${fmtContext(m.contextLength)}`;
+}
 
 export function AdminPage() {
   const copy = useCopy().admin;
@@ -55,19 +61,63 @@ export function AdminPage() {
   const [unlockError, setUnlockError] = useState<string | null>(null);
 
   // Authenticated state
-  const [effectiveModel, setEffectiveModel] = useState<string | null>(null);
-  const [setting, setSetting] = useState<{ model: string | null; updatedAt: number | null } | null | undefined>(undefined);
-  const [models, setModels] = useState<CatalogModel[]>([]);
-  const [catalogOk, setCatalogOk] = useState(true);
+  const [effectiveModels, setEffectiveModels] = useState<EffectiveModels | null>(null);
+  const [provider, setProvider] = useState<AgentProvider>("opencode-go");
+  const [effectiveProvider, setEffectiveProvider] = useState<AgentProvider>("opencode-go");
+  const [providerSource, setProviderSource] = useState<string>("default");
+  const [setting, setSetting] = useState<AgentModelsSetting | null | undefined>(undefined);
+  const [openrouterModels, setOpenrouterModels] = useState<PickerModel[]>([]);
+  const [openrouterOk, setOpenrouterOk] = useState(true);
+  const [defaultModel, setDefaultModel] = useState<string>("");
+  const [profileModels, setProfileModels] = useState<Record<string, string>>({
+    "sky-chat": "",
+    "sky-orchestrator": "",
+    "sky-generative-ui": "",
+    "sky-hud-composer": "",
+  });
   const [loadingModels, setLoadingModels] = useState(false);
-  const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [applyState, setApplyState] = useState<ApplyState>(null);
 
   // Claims reset (demo housekeeping — claims are HUD data, nothing here refreshes)
   const [resetBusy, setResetBusy] = useState(false);
   const [resetState, setResetState] = useState<ResetState>(null);
+
+  // The Go snapshot is static and imported locally — no fetch, works offline.
+  const goModels = useMemo(() => goAsPickerModels(), []);
+  const catalog = provider === "opencode-go" ? goModels : openrouterModels;
+  const catalogReady = provider === "opencode-go" || openrouterOk;
+
+  async function loadConfig() {
+    setLoadingModels(true);
+    try {
+      const r = await adminModelFn();
+      if (r.status === "ok") {
+        setProvider(r.provider);
+        setEffectiveProvider(r.provider);
+        setProviderSource(r.providerSource);
+        setEffectiveModels(r.effectiveModels);
+        setSetting(r.setting);
+        setOpenrouterModels(r.openrouterModels);
+        setOpenrouterOk(r.openrouterOk);
+        setDefaultModel(r.setting?.model ?? "");
+        const stored = r.setting?.models ?? {};
+        setProfileModels({
+          "sky-chat": stored["sky-chat"] ?? "",
+          "sky-orchestrator": stored["sky-orchestrator"] ?? "",
+          "sky-generative-ui": stored["sky-generative-ui"] ?? "",
+          "sky-hud-composer": stored["sky-hud-composer"] ?? "",
+        });
+      } else {
+        setPhase("locked");
+      }
+    } catch {
+      setOpenrouterModels([]);
+      setOpenrouterOk(false);
+    } finally {
+      setLoadingModels(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -86,39 +136,27 @@ export function AdminPage() {
 
   useEffect(() => {
     if (phase !== "admin") return;
-    let cancelled = false;
-    setLoadingModels(true);
-    adminModelFn()
-      .then((r) => {
-        if (cancelled) return;
-        if (r.status === "ok") {
-          setEffectiveModel(r.effectiveModel);
-          setSetting(r.setting);
-          setModels(r.models);
-          setCatalogOk(r.catalogOk);
-          setSelectedId((prev) => prev ?? r.effectiveModel);
-        } else {
-          setPhase("locked");
-        }
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setModels([]);
-        setCatalogOk(false);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingModels(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    void loadConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return models;
-    return models.filter((m) => m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q));
-  }, [models, query]);
+  const profileFields = [
+    { id: "sky-chat" as const, label: copy.profileChatLabel, hint: copy.profileChatHint, effective: effectiveModels?.chat },
+    { id: "sky-orchestrator" as const, label: copy.profileOrchestratorLabel, hint: copy.profileOrchestratorHint, effective: effectiveModels?.orchestrator },
+    { id: "sky-generative-ui" as const, label: copy.profileGenerativeUiLabel, hint: copy.profileGenerativeUiHint, effective: effectiveModels?.["generative-ui"] },
+    { id: "sky-hud-composer" as const, label: copy.profileHudComposerLabel, hint: copy.profileHudComposerHint, effective: effectiveModels?.["hud-composer"] },
+  ];
+
+  // Options for a select; a stored id missing from the catalog is kept as a visible placeholder.
+  function optionsFor(selected: string): PickerModel[] {
+    if (!selected || catalog.some((m) => m.id === selected)) return catalog;
+    return [{ id: selected, name: selected, contextLength: null, prompt: null, completion: null, created: null }, ...catalog];
+  }
+
+  function optionLabel(m: PickerModel): string {
+    const known = catalog.some((c) => c.id === m.id);
+    return known ? modelOptionLabel(m) : `${m.id} (not in catalog)`;
+  }
 
   async function submitUnlock(e: FormEvent) {
     e.preventDefault();
@@ -143,15 +181,21 @@ export function AdminPage() {
   }
 
   async function apply() {
-    if (!selectedId || applying) return;
+    if (applying) return;
     setApplying(true);
     setApplyState(null);
+    const models: Record<string, string> = {};
+    for (const field of profileFields) {
+      const v = profileModels[field.id]?.trim();
+      if (v) models[field.id] = v;
+    }
     try {
-      const r = await setAgentModelFn({ data: { model: selectedId } });
+      const r = await setAgentConfigFn({
+        data: { provider, model: defaultModel.trim() ? defaultModel.trim() : null, models },
+      });
       if (r.status === "ok") {
-        setEffectiveModel(r.model);
-        setSetting({ model: r.model, updatedAt: r.updatedAt });
         setApplyState({ kind: "ok" });
+        await loadConfig();
       } else if (r.status === "invalid_model") {
         setApplyState({ kind: "error", message: copy.invalidModel });
       } else if (r.status === "catalog_unavailable") {
@@ -250,6 +294,11 @@ export function AdminPage() {
     );
   }
 
+  const selectClasses = `${inputClasses} cursor-pointer`;
+  const effectiveLine = copy.effectiveLine
+    .replace("{model}", effectiveModels?.default ?? "…")
+    .replace("{provider}", effectiveProvider);
+
   return (
     <main className={page}>
       <div className={panel}>
@@ -262,94 +311,108 @@ export function AdminPage() {
           <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
             {copy.currentEffective}
           </div>
-          <div className={`${mono} mt-1 text-[16px] break-all`}>
-            {effectiveModel ?? "…"}
-          </div>
+          <div className={`${mono} mt-1 text-[13px] break-all`}>{effectiveLine}</div>
+          <ul className={`${mono} mt-2 list-none p-0 text-[12px] leading-6`}>
+            <li>default={effectiveModels?.default ?? "…"}</li>
+            <li>sky-chat={effectiveModels?.chat ?? "…"}</li>
+            <li>sky-orchestrator={effectiveModels?.orchestrator ?? "…"}</li>
+            <li>sky-generative-ui={effectiveModels?.["generative-ui"] ?? "…"}</li>
+            <li>sky-hud-composer={effectiveModels?.["hud-composer"] ?? "…"}</li>
+          </ul>
           <div className={`${muted} mt-1.5 text-[12px]`}>
-            {setting?.model
-              ? `${copy.backendSetting}${setting.updatedAt ? ` · ${new Date(setting.updatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC` : ""}`
-              : copy.envFallback}
+            {(() => {
+              const parts = [
+                setting?.provider ? `provider=${setting.provider}` : null,
+                setting?.model ? `model=${setting.model}` : null,
+                setting?.models && Object.keys(setting.models).length > 0
+                  ? `models=${Object.keys(setting.models).join(",")}`
+                  : null,
+              ].filter((part): part is string => part !== null);
+              if (parts.length === 0) return copy.envFallback;
+              const stamp = setting?.updatedAt
+                ? ` · ${new Date(setting.updatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC`
+                : "";
+              return `${copy.backendSetting} (${providerSource}): ${parts.join(" · ")}${stamp}`;
+            })()}
           </div>
           <div className={`${muted} mt-1 text-[12px]`}>{copy.appliesNote}</div>
         </section>
 
-        {!catalogOk && (
-          <p role="alert" className="text-[13px] text-(--yellow)">
+        {/* Provider */}
+        <label htmlFor="admin-provider" className="mb-1.5 block text-[13px]">
+          {copy.providerLabel}
+        </label>
+        <select
+          id="admin-provider"
+          value={provider}
+          onChange={(e) => setProvider(e.target.value as AgentProvider)}
+          className={selectClasses}
+        >
+          <option value="opencode-go">{copy.providerOpencodeGo}</option>
+          <option value="openrouter">{copy.providerOpenrouter}</option>
+        </select>
+        <p className={`${muted} mt-1.5 text-[12px]`}>
+          {provider === "opencode-go" ? copy.providerOpencodeGoDesc : copy.providerOpenrouterDesc}
+        </p>
+        {provider === "openrouter" && <p className={`${muted} mt-1 text-[12px]`}>{copy.legacyNote}</p>}
+
+        {!catalogReady && (
+          <p role="alert" className="mt-2 text-[13px] text-(--yellow)">
             {copy.catalogError}
           </p>
         )}
 
-        <div className="mb-2.5 flex items-center gap-2.5">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={copy.searchPlaceholder}
-            aria-label={copy.searchPlaceholder}
-            className={`${inputClasses} flex-1`}
-          />
-          <span className={`${muted} text-[12px] whitespace-nowrap`}>
-            {copy.modelsCount.replace("{count}", String(filtered.length))}
-          </span>
-        </div>
+        {/* Default (all agents) */}
+        <label htmlFor="admin-default-model" className="mt-4 mb-1.5 block text-[13px]">
+          {copy.defaultAllLabel}
+        </label>
+        <p className={`${muted} mb-1.5 text-[12px]`}>{copy.defaultAllHint}</p>
+        <select
+          id="admin-default-model"
+          value={defaultModel}
+          onChange={(e) => setDefaultModel(e.target.value)}
+          className={selectClasses}
+          disabled={loadingModels}
+        >
+          <option value="">{copy.inheritDefault}</option>
+          {optionsFor(defaultModel).map((m) => (
+            <option key={m.id} value={m.id}>
+              {optionLabel(m)}
+            </option>
+          ))}
+        </select>
 
-        <div className="overflow-hidden rounded-(--radius-sm) border border-(--border)">
-          <div
-            className={`${rowGrid} cursor-default border-transparent border-b-(--border) text-[11px] uppercase tracking-[0.6px] text-(--muted)`}
-          >
-            <span>id</span>
-            <span>{copy.contextLength}</span>
-            <span>{copy.pricePrompt}</span>
-            <span>{copy.priceCompletion}</span>
-            <span>{copy.created}</span>
+        {/* Per-profile overrides */}
+        {profileFields.map((field) => (
+          <div key={field.id} className="mt-4">
+            <label htmlFor={`admin-model-${field.id}`} className="block text-[13px]">
+              {field.label}
+            </label>
+            <p className={`${muted} mt-0.5 mb-1.5 text-[12px]`}>{field.hint}</p>
+            <select
+              id={`admin-model-${field.id}`}
+              value={profileModels[field.id] ?? ""}
+              onChange={(e) => setProfileModels((prev) => ({ ...prev, [field.id]: e.target.value }))}
+              className={selectClasses}
+              disabled={loadingModels}
+            >
+              <option value="">
+                {copy.inheritProfile} — {effectiveModels ? (field.effective ?? effectiveModels.default) : "…"}
+              </option>
+              {optionsFor(profileModels[field.id] ?? "").map((m) => (
+                <option key={m.id} value={m.id}>
+                  {optionLabel(m)}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="max-h-[52vh] overflow-y-auto">
-            {loadingModels ? (
-              <p className={`${muted} p-3 text-[13px]`}>…</p>
-            ) : filtered.length === 0 ? (
-              <p className={`${muted} p-3 text-[13px]`}>{copy.noResults}</p>
-            ) : (
-              filtered.map((m) => {
-                const selected = m.id === selectedId;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setSelectedId(m.id)}
-                    className={`${rowGrid} cursor-pointer rounded-(--radius-sm)! text-[13px]! text-inherit ${
-                      selected
-                        ? "border-(--accent) bg-[rgba(94,234,212,0.1)]"
-                        : "border-transparent bg-transparent"
-                    }`}
-                  >
-                    <span className="min-w-0">
-                      <span className={`${mono} block break-all`}>
-                        {m.id}
-                        {m.prompt === "0" && (
-                          <span className="ml-1.5 text-[11px] text-(--green)">
-                            {copy.free.toUpperCase()}
-                          </span>
-                        )}
-                      </span>
-                      <span className={`${muted} block text-[11px]`}>{m.name}</span>
-                    </span>
-                    <span className={mono}>{fmtContext(m.contextLength)}</span>
-                    <span className={mono}>{fmtPrice(m.prompt)}</span>
-                    <span className={mono}>{fmtPrice(m.completion)}</span>
-                    <span className={mono}>{fmtCreated(m.created)}</span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
+        ))}
 
-        <div className="mt-3.5 flex items-center gap-3">
+        <div className="mt-5 flex items-center gap-3">
           <button
             type="button"
             onClick={apply}
-            disabled={!selectedId || applying || !catalogOk}
+            disabled={applying || loadingModels || !catalogReady}
             className={buttonClasses}
           >
             {applying ? copy.applying : copy.apply}

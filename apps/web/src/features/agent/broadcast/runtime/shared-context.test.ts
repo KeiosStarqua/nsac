@@ -12,6 +12,8 @@ describe("shared-context", () => {
   let dir: string;
   const prevSessions = process.env.NSAC_SKY_SESSIONS_DIR;
   const prevKey = process.env.SKY_OPENROUTER_API_KEY;
+  const prevProvider = process.env.SKY_AGENT_PROVIDER;
+  const prevBackend = process.env.BACKEND_URL;
 
   const eventsPage = (events: unknown[], cursor: number) =>
     new Response(JSON.stringify({ events, cursor }), { status: 200, headers: { "content-type": "application/json" } });
@@ -33,6 +35,8 @@ describe("shared-context", () => {
     dir = mkdtempSync(join(tmpdir(), "nsac-broadcast-test-"));
     process.env.NSAC_SKY_SESSIONS_DIR = dir;
     process.env.SKY_OPENROUTER_API_KEY = "sk-test-fake";
+    process.env.SKY_AGENT_PROVIDER = "openrouter";
+    process.env.BACKEND_URL = "http://127.0.0.1:1";
     resetChatStateForTests();
   });
 
@@ -42,6 +46,10 @@ describe("shared-context", () => {
     else process.env.NSAC_SKY_SESSIONS_DIR = prevSessions;
     if (prevKey === undefined) delete process.env.SKY_OPENROUTER_API_KEY;
     else process.env.SKY_OPENROUTER_API_KEY = prevKey;
+    if (prevProvider === undefined) delete process.env.SKY_AGENT_PROVIDER;
+    else process.env.SKY_AGENT_PROVIDER = prevProvider;
+    if (prevBackend === undefined) delete process.env.BACKEND_URL;
+    else process.env.BACKEND_URL = prevBackend;
     setChatSessionFactory(null);
     resetChatStateForTests();
     rmSync(dir, { recursive: true, force: true });

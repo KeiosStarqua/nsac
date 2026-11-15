@@ -6,9 +6,9 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
 
 ## Ownership
 
-- Package này sở hữu `/health`, `/api/astronauts`, `/api/claims`, `/api/events` + `/api/cursors`, `/api/sensors/*` + `/ws/telemetry`, `/api/settings/agent-model`, `/api/health/*`.
+- Package này sở hữu `/health`, `/api/astronauts`, `/api/claims`, `/api/events` + `/api/cursors`, `/api/sensors/*` + `/ws/telemetry`, `/api/settings/agent-model` + `/api/settings/agent-models`, `/api/health/*`.
 - Không sở hữu UI: `apps/web` là consumer. Không import lẫn với backend Python `backend/src/nsac/` (layer khác, contract riêng).
-- `tests/` phản chiếu module trong `src/`; fixture DB đi qua `SKY_DB_PATH` tmp.
+- `tests/` phản chiếu module trong `src/`; fixture DB đi qua `SKY_DB_PATH` tmp (`tests/settings-agent-models.test.ts` cover route mới).
 
 ## Local Contracts
 
@@ -20,6 +20,14 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
 - `health_observations` dùng chung `db` như `readingsRepo` — không mở connection thứ ba (một writer, WAL).
 
 ### Routes
+
+- `/api/settings/agent-model` (legacy): `GET` → `{ model, updatedAt }`; `PUT { model }` (MODEL_ID_REGEX, trim) → upsert. Giữ nguyên hành vi cho back-compat; box deploy sau đổi web nên chạy được cả hai.
+- `/api/settings/agent-models`: `GET` → `{ provider, model, models, updatedAt }`
+  (`provider`/`models` null khi chưa set, `model` = legacy raw, `updatedAt` = max của 2 key mới hoặc null).
+  `PUT { provider?, model?, models? }` — mỗi field optional, `null` = xoá key tương ứng; `models` là thay thế
+  **toàn bộ** map `{profileId: modelId}` (`{}`/null xoá key): keys `^[a-z0-9-]{1,64}$`, ≤16 entries, values MODEL_ID_REGEX;
+  provider enum strict `opencode-go|openrouter`. Mọi field ghi trong **một** transaction.
+  DB keys: `agent.provider`, `agent.models` (JSON string) trong `app_settings`.
 
 - Handler dạng `handleXRequest(req): Promise<Response | null>`; trả `null` khi path/method không thuộc module để `server.ts` fall-through về 404. Thứ tự wire trong `server.ts`: claims → settings → events → sensors → health → astronauts.
 - Lỗi luôn JSON `{ ok: false, error }` với 400/404/409/413. Đọc body có cap `Content-Length` + kiểm tra lại sau khi đọc (xem `eventsRoutes.ts`).

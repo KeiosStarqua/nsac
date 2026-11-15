@@ -3,17 +3,20 @@ import { listAgents } from "../agents/registry";
 import { askSky } from "../runtime/orchestrator.server";
 
 export const listAgentRoster = createServerFn({ method: "GET" }).handler(async () => {
-  const { readOpenRouterKey } = await import("../runtime/pi.server");
-  const { currentAgentModel } = await import("../runtime/agent-model.server");
-  const keyConfigured = readOpenRouterKey() !== null;
-  const effectiveModel = await currentAgentModel();
-  return listAgents().map((a) => ({
-    id: a.id,
-    name: a.name,
-    role: a.role,
-    effectiveModel,
-    keyConfigured,
-  }));
+  const { readProviderKey } = await import("../runtime/pi.server");
+  const { currentAgentModel, currentAgentProvider } = await import("../runtime/agent-model.server");
+  const provider = await currentAgentProvider();
+  const keyConfigured = readProviderKey(provider) !== null;
+  return Promise.all(
+    listAgents().map(async (a) => ({
+      id: a.id,
+      name: a.name,
+      role: a.role,
+      effectiveModel: await currentAgentModel(a.id),
+      keyConfigured,
+      provider,
+    })),
+  );
 });
 
 export const composeSurface = createServerFn({ method: "POST" })

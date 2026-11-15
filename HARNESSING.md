@@ -22,7 +22,7 @@ runtime/pi.server.ts                     (Pi SDK boundary — duy nhất chỗ i
         ▼
 @earendil-works/pi-coding-agent          (lazy dynamic import, không nằm trong client bundle)
         ▼
-OpenRouter (OpenAI-compatible /v1)       (model chỉnh được qua /admin → backend SQLite)
+OpenCode Go (OpenAI-compatible, mặc định) / OpenRouter (legacy)  (provider + model chỉnh qua /admin → backend SQLite)
 ```
 
 Song song là kênh dữ liệu nội bộ (không phải agent→agent):
@@ -103,10 +103,11 @@ composeHud(astronautId, locale)                     [api/hud-compose.functions.t
 ```
 sendChatTurn(astronautId, message)                   [api/chat.functions.ts — dùng bởi /watch]
   → sanitize id → findAstronaut → validateMessage (1..500 ký tự)
-  → thiếu SKY_OPENROUTER_API_KEY → { status: "missing_key" }
+  → thiếu key của provider đang chọn (mặc định OpenCode Go: SKY_OPENCODE_API_KEY/OPENCODE_API_KEY;
+    legacy OpenRouter: SKY_OPENROUTER_API_KEY) → { status: "missing_key" }
   → append user message vào var/sky-sessions/<id>.json (trim 40 message, mode 0600)
   → enqueue theo id (mỗi astronaut một hàng đợi)
-  → getSession: reuse nếu còn hạn + model không đổi; ngược lại tạo mới
+  → getSession: reuse nếu còn hạn + `provider:model` không đổi; ngược lại tạo mới
     (OpenOrCreateSessionManager mở/tạo var/sky-sessions/<id>.jsonl)
   → SHARED CONTEXT: sharedEventsBlock(id, `<id>-orchestrator`) — ghép SAU user message
   → prompt → trim 2000 ký tự → append assistant message → trả về transcript
@@ -238,14 +239,20 @@ Ghép vào prompt SAU user message, rõ ràng là data:
 
 Những gì `createSession()` làm, theo thứ tự:
 
-1. **Key**: đọc `SKY_OPENROUTER_API_KEY` (chỉ env; trim; rỗng ⇒ throw `missing_key`).
-2. **Model**: `currentAgentModel()` (xem §5); `SKY_OPENROUTER_BASE_URL` trỏ `/v1` tương thích OpenAI
-   (dùng cho smoke test với mock server).
+1. **Provider**: `currentAgentProvider()` (backend `agent.provider` → `SKY_AGENT_PROVIDER` →
+   `"opencode-go"`; xem §5). **Key**: provider `opencode-go` đọc `SKY_OPENCODE_API_KEY` ?? `OPENCODE_API_KEY`;
+   provider `openrouter` đọc `SKY_OPENROUTER_API_KEY` (chỉ env; trim; rỗng ⇒ throw `missing_key`).
+2. **Model**: `currentAgentModel(profile?.id)` (xem §5); `SKY_OPENCODE_BASE_URL` (go) / `SKY_OPENROUTER_BASE_URL`
+   (openrouter) trỏ `/v1` tương thích OpenAI (dùng cho smoke test với mock server).
 3. **Lazy import**: `await import("@earendil-works/pi-coding-agent")` — cache promise, SDK không
    bao giờ nằm trên critical path lúc module load hay trong client bundle.
 4. **models.json tạm** (`tmpdir()/nsac-pi-models-<pid>/models-<hash>.json`, sha256 16 ký tự):
    - *Probe*: `ModelRuntime.create({ modelsPath: probe, authPath })` — kiểm tra model đã có trong
-     catalog OpenRouter không (`getModel("openrouter", model)`).
+     catalog của provider không (`getModel(provider, model)`).
+
+   **`x-opencode-session`**: SDK tự inject header này từ `sessionManager.getSessionId()` khi provider là
+   `opencode-go` (bắt buộc per-conversation id). Sky dùng session file per-astronaut
+   (`var/sky-sessions/<id>.jsonl`) nên id ổn định qua mọi turn của một phi hành gia.
    - *Known model*: `modelOverrides: { <id>: { maxTokens: 2048 } }` — giữ nguyên entry catalog.
    - *Unknown model*: ghi full `models` entry kèm `maxTokens: 2048`.
    - `authPath` chỉ đặt trong tmpdir (0600), **không** chạm keychain/config thật của user.
@@ -273,19 +280,30 @@ Những gì `createSession()` làm, theo thứ tự:
 
 Constant: `SKY_MAX_TOKENS = 2048` (Sky trả lời vài câu ngắn; không kế thừa catalog default).
 
-## 5. Model resolution (`runtime/agent-model.server.ts`)
+## 5. Provider & model resolution (`runtime/agent-model.server.ts`)
 
-Thứ tự ưu tiên — **toàn cục, không theo từng profile**:
+**Provider** (`currentAgentProvider()`):
 
-1. Backend SQLite `app_settings.agent.model` (`GET /api/settings/agent-model`, timeout 1200 ms;
-   `PUT` từ `/admin` với `SKY_ADMIN_KEY` — xem `apps/web/AGENTS.md`)
-2. `lastGood` — giá trị backend trả về lần gần nhất (backend lỗi tạm thời)
-3. `SKY_OPENROUTER_MODEL`
-4. Hardcoded `DEFAULT_MODEL = "thinkingmachines/inkling-2-small:free"`
+1. Backend SQLite `app_settings.agent.provider` (`opencode-go` | `openrouter`) đọc qua
+   `GET /api/settings/agent-models` (timeout 1200 ms; `PUT` từ `/admin` với `SKY_ADMIN_KEY`)
+2. `lastGood` provider gần nhất (backend lỗi tạm thời)
+3. `SKY_AGENT_PROVIDER` (case/trim, giá trị lạ bỏ qua)
+4. `"opencode-go"` (mặc định)
 
-Cache: TTL 2 s (burst: composer + orchestrator + chat cùng turn); fail → TTL 0.5 s, không kéo dài.
-`modelChanged()` dùng để huỷ session chat khi admin đổi model. `/health` hiển thị effective model
-bằng đúng hàm này.
+**Model** (`currentAgentModel(profile?)`) — theo từng profile khi caller truyền `profile.id`:
+
+1. Backend `agent.models[profile]` — chỉ khi `profile` được truyền và có trong map (regex validate lại; rác ⇒ bỏ qua)
+2. Backend legacy `agent.model`
+3. `SKY_AGENT_MODEL` (global) → provider-specific `SKY_OPENCODE_MODEL` (go) / `SKY_OPENROUTER_MODEL` (openrouter)
+4. Provider default: opencode-go → `deepseek-v4.1-flash`; openrouter → `thinkingmachines/inkling-2-small:free`
+
+Fetch backend một lần cho cả provider + model (`GET /api/settings/agent-models`, cache burst).
+Backward compat: nếu `/api/settings/agent-models` lỗi/404 ⇒ thử `GET /api/settings/agent-model` cho legacy
+model global (provider/models coi như chưa cài; không crash-loop khi box chưa deploy backend mới).
+Cache: TTL 2 s (burst: composer + orchestrator + chat cùng turn), key theo profile; fail → TTL 0.5 s.
+`lastGood` mỗi profile + global, dùng khi backend unreachable. `modelChanged()` dùng để huỷ session khi
+admin đổi provider/model (khoá cache chat là `provider:model`). `/health` hiển thị provider (kèm nguồn
+backend|env|default) và effective model từng profile bằng đúng các hàm này.
 
 ## 6. Profiles & registry
 
@@ -297,7 +315,7 @@ bằng đúng hàm này.
 | `sky-hud-composer` | hud composer | `openui-program` | 4000 | 30 s | per-astronaut, `var/sky-sessions/<id>.hud.jsonl` | — |
 
 Mọi profile: `soul = skySoul`, `handoff` = regex tĩnh (orchestrator) hoặc rỗng,
-model env `SKY_OPENROUTER_MODEL`. Constraints voice Sky (chat profile): tối đa 3 câu, một câu hỏi,
+model env `SKY_AGENT_MODEL` (override global; per-profile override qua backend `agent.models`). Constraints voice Sky (chat profile): tối đa 3 câu, một câu hỏi,
 không chẩn đoán, không bịa số/ngưỡng, không claim dữ liệu sensor live, nhắc "chưa actioned đến khi
 bạn xác nhận", không dùng chữ "AI".
 
@@ -388,7 +406,7 @@ Phần còn lại của SDK **vẫn chưa bật** ở đây:
 | Status | Nghĩa | Xử lý phía caller |
 |---|---|---|
 | `ok` | Turn xong, text non-empty | Dùng kết quả |
-| `missing_key` | Không có `SKY_OPENROUTER_API_KEY` | UI báo cấu hình; không retry |
+| `missing_key` | Không có key của provider đang chọn (Go: `SKY_OPENCODE_API_KEY`/`OPENCODE_API_KEY`; OpenRouter: `SKY_OPENROUTER_API_KEY`) | UI báo cấu hình; không retry |
 | `unavailable` | SDK lỗi / provider lỗi / `empty_reply` / input không hợp lệ | Session bị huỷ; HUD giữ preset |
 | `timeout` | Quá `profile.timeoutMs` (AbortController + Promise.race) | Session bị huỷ; báo timeout |
 | `rejected` | OpenUI program không qua gate | Không cache; preset giữ nguyên |
@@ -424,12 +442,18 @@ mọi layer (runner → function → UI). Không có retry tự động; lỗi l
 
 | Biến / file | Ý nghĩa |
 |---|---|
-| `SKY_OPENROUTER_API_KEY` | Key OpenRouter (env-only trong `features/agent`; đặt qua `/etc/nsac-web/env` trên box) |
-| `SKY_OPENROUTER_MODEL` | Model mặc định khi backend chưa cài `agent.model` |
+| `SKY_AGENT_PROVIDER` | Provider: `opencode-go` (mặc định) \| `openrouter` (legacy) |
+| `SKY_OPENCODE_API_KEY` | Key OpenCode Go (env-only; đặt qua `/etc/nsac-web/env` trên box). Fallback: `OPENCODE_API_KEY` |
+| `OPENCODE_API_KEY` | Fallback key OpenCode Go nếu `SKY_OPENCODE_API_KEY` không có |
+| `SKY_AGENT_MODEL` | Override global cho mọi agent (cả 2 provider) |
+| `SKY_OPENCODE_MODEL` | Override model khi provider = `opencode-go` |
+| `SKY_OPENCODE_BASE_URL` | Override base Go (smoke test với mock OpenAI-compatible) |
+| `SKY_OPENROUTER_API_KEY` | Key OpenRouter (legacy provider; đặt qua `/etc/nsac-web/env` trên box) |
+| `SKY_OPENROUTER_MODEL` | Override model khi provider = `openrouter` |
 | `SKY_OPENROUTER_BASE_URL` | Override `/v1` base (smoke test với mock OpenAI-compatible) |
 | `BACKEND_URL` | Base backend cho `agent-model.server` **và toàn bộ broadcast** (default `http://127.0.0.1:3200`) |
 | `NSAC_SKY_SESSIONS_DIR` | Override thư mục session (default `var/sky-sessions`) |
-| `SKY_ADMIN_KEY` | Bật `/admin`; model đổi qua backend `PUT /api/settings/agent-model` |
+| `SKY_ADMIN_KEY` | Bật `/admin`; provider+model đổi qua backend `PUT /api/settings/agent-models` (legacy `agent-model` vẫn giữ cho back-compat) |
 | `var/sky-sessions/<id>.jsonl` | SessionManager history của chat |
 | `var/sky-sessions/<id>.hud.jsonl` | SessionManager history của hud-composer |
 | `var/sky-sessions/<id>.json` | Transcript UI (trim 40 message, 0600) |
@@ -438,9 +462,9 @@ mọi layer (runner → function → UI). Không có retry tự động; lỗi l
 
 ## 13. Giới hạn & điểm cần biết
 
-- `AgentProfile.modelEnv` và `defaultModel` là **metadata**; model thực tế resolve toàn cục qua
-  `currentAgentModel()` — profile không override được. `hud-composer.ts` đang ghi
-  `anthropic/claude-sonnet-4.5` trong `defaultModel` nhưng **không có hiệu lực** (lỗi thời, cần dọn).
+- `AgentProfile.modelEnv` và `defaultModel` là **metadata** (hiển thị); `modelEnv` = `SKY_AGENT_MODEL`,
+  `defaultModel` = `deepseek-v4.1-flash` cho mọi profile. Model thực tế resolve theo profile qua
+  `currentAgentModel(profileId)` — profile có thể có model riêng qua backend `agent.models`.
 - `maxSteps` / `handoff` trong profile vẫn **không** được enforce; chỉ `sky-chat` có một tool thật
   (`show_on_hud`, §3.4) — các agent còn lại là single-shot không tool. Khi muốn agent nhiều bước thật,
   phải thêm vòng lặp + trần bước + gate.

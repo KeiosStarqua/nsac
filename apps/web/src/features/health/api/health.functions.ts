@@ -3,12 +3,16 @@ import { existsSync } from "node:fs";
 import {
   redactEnv,
   reduceOverall,
-  formatDiagnostics,
   overallLabel,
   type Check,
   type CheckState,
 } from "../model/health";
-import { currentAgentModel } from "../../agent/runtime/agent-model.server";
+import {
+  currentAgentModel,
+  currentAgentProvider,
+  currentAgentProviderInfo,
+} from "../../agent/runtime/agent-model.server";
+import { readOpenCodeKey, readOpenRouterKey } from "../../agent/runtime/pi.server";
 
 export type Snapshot = {
   checks: Check[];
@@ -21,24 +25,55 @@ function makeCheck(checkId: string, label: string, state: CheckState, detail: st
   return { checkId, label, state, detail, hint };
 }
 
+const AGENT_PROFILE_CHECKS: Array<{ readonly id: string; readonly label: string }> = [
+  { id: "sky-chat", label: "Chat" },
+  { id: "sky-orchestrator", label: "Orchestrator" },
+  { id: "sky-generative-ui", label: "Generative UI" },
+  { id: "sky-hud-composer", label: "HUD Composer" },
+];
+
 export const getSnapshot = createServerFn({ method: "GET" }).handler(async (): Promise<Snapshot> => {
   const checks: Check[] = [];
-  const keyInfo = redactEnv(process.env.SKY_OPENROUTER_API_KEY);
+
+  const { provider, source } = await currentAgentProviderInfo();
   checks.push(
     makeCheck(
-      "openrouter.key",
-      "OpenRouter API key",
-      keyInfo.configured ? "ok" : "fail",
-      keyInfo.configured ? `configured (length ${keyInfo.length})` : "not configured",
-      keyInfo.configured ? undefined : "Set SKY_OPENROUTER_API_KEY in /etc/nsac-web/env or .env",
+      "agent.provider",
+      "Agent provider",
+      "ok",
+      `${provider} (source: ${source})`,
+      source === "default" ? "Default when nothing is set — set agent.provider on the backend or SKY_AGENT_PROVIDER" : undefined,
     ),
   );
 
-  // Effective model: backend setting → env → default (same source the agent uses).
-  const modelId = await currentAgentModel();
+  const keyInfo =
+    provider === "opencode-go"
+      ? redactEnv(process.env.SKY_OPENCODE_API_KEY ?? process.env.OPENCODE_API_KEY)
+      : redactEnv(process.env.SKY_OPENROUTER_API_KEY);
   checks.push(
-    makeCheck("openrouter.model", "OpenRouter model", "ok", `effective model: ${modelId}`),
+    makeCheck(
+      provider === "opencode-go" ? "go.key" : "openrouter.key",
+      provider === "opencode-go" ? "OpenCode Go API key" : "OpenRouter API key",
+      keyInfo.configured ? "ok" : "fail",
+      keyInfo.configured ? `configured (length ${keyInfo.length})` : "not configured",
+      keyInfo.configured
+        ? undefined
+        : provider === "opencode-go"
+          ? "Set SKY_OPENCODE_API_KEY (or OPENCODE_API_KEY) in /etc/nsac-web/env or .env"
+          : "Set SKY_OPENROUTER_API_KEY in /etc/nsac-web/env or .env",
+    ),
   );
+
+  // Effective model per profile (same source the agent uses), một dòng.
+  const [fallbackModel, ...profileModels] = await Promise.all([
+    currentAgentModel(),
+    ...AGENT_PROFILE_CHECKS.map((p) => currentAgentModel(p.id)),
+  ]);
+  const effective = [
+    `default=${fallbackModel}`,
+    ...AGENT_PROFILE_CHECKS.map((p, i) => `${p.id}=${profileModels[i]}`),
+  ].join("; ");
+  checks.push(makeCheck("agent.models", "Agent models", "ok", effective));
 
   const nodeVersion = process.version;
   const env = process.env.NODE_ENV ?? "development";
@@ -128,13 +163,24 @@ export const getSnapshot = createServerFn({ method: "GET" }).handler(async (): P
   return { checks, overall, overallLabel: overallLabel(overall), checkedAt };
 });
 
-export const validateOpenRouterKey = createServerFn({ method: "POST" }).handler(async () => {
-  const key = process.env.SKY_OPENROUTER_API_KEY?.trim();
-  if (!key) return { status: "missing" as const, httpStatus: null, credit: null, limit: null };
+/**
+ * Live check (thủ công): xác nhận key của provider đang chọn. OpenCode Go dùng `GET /inference/v1/models`
+ * với bearer key (endpoint danh sách models cần auth theo docs OpenCode); OpenRouter giữ probe `/api/v1/key` cũ.
+ */
+export const validateKey = createServerFn({ method: "POST" }).handler(async () => {
+  const provider = await currentAgentProvider();
+  const key = provider === "opencode-go" ? readOpenCodeKey() : readOpenRouterKey();
+  if (!key) {
+    return { provider, status: "missing" as const, httpStatus: null, credit: null, limit: null };
+  }
   try {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch("https://openrouter.ai/api/v1/key", {
+    const url =
+      provider === "opencode-go"
+        ? "https://opencode.ai/inference/v1/models"
+        : "https://openrouter.ai/api/v1/key";
+    const res = await fetch(url, {
       headers: { Authorization: `Bearer ${key}` },
       signal: controller.signal,
     });
@@ -142,41 +188,48 @@ export const validateOpenRouterKey = createServerFn({ method: "POST" }).handler(
     if (res.status === 200) {
       let credit: number | null = null;
       let limit: number | null = null;
-      try {
-        const json = await res.json();
-        credit = typeof json?.data?.total_credits === "number" ? json.data.total_credits : null;
-        limit = typeof json?.data?.limit === "number" ? json.data.limit : null;
-      } catch {
-        // ignore
+      if (provider === "openrouter") {
+        try {
+          const json = await res.json();
+          credit = typeof json?.data?.total_credits === "number" ? json.data.total_credits : null;
+          limit = typeof json?.data?.limit === "number" ? json.data.limit : null;
+        } catch {
+          // ignore
+        }
       }
-      return { status: "valid" as const, httpStatus: res.status, credit, limit };
+      return { provider, status: "valid" as const, httpStatus: res.status, credit, limit };
     }
-    if (res.status === 401 || res.status === 403) {
-      return { status: "invalid" as const, httpStatus: res.status, credit: null, limit: null };
-    }
-    return { status: "invalid" as const, httpStatus: res.status, credit: null, limit: null };
+    return { provider, status: "invalid" as const, httpStatus: res.status, credit: null, limit: null };
   } catch {
-    return { status: "unreachable" as const, httpStatus: null, credit: null, limit: null };
+    return { provider, status: "unreachable" as const, httpStatus: null, credit: null, limit: null };
   }
 });
 
+/** Live check (thủ công): model id hiệu lực có nằm trong catalog của provider đang chọn không. */
 export const checkModel = createServerFn({ method: "POST" }).handler(async () => {
-  const key = process.env.SKY_OPENROUTER_API_KEY?.trim();
+  const provider = await currentAgentProvider();
+  const key = provider === "opencode-go" ? readOpenCodeKey() : readOpenRouterKey();
   const modelId = await currentAgentModel();
-  if (!key) return { result: "missing" as const };
+  if (!key) return { provider, result: "missing" as const };
   try {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch("https://openrouter.ai/api/v1/models", {
+    const url =
+      provider === "opencode-go"
+        ? "https://opencode.ai/inference/v1/models"
+        : "https://openrouter.ai/api/v1/models";
+    const res = await fetch(url, {
       headers: { Authorization: `Bearer ${key}` },
       signal: controller.signal,
     });
     clearTimeout(t);
-    if (!res.ok) return { result: "unreachable" as const };
+    if (!res.ok) return { provider, result: "unreachable" as const };
     const json = await res.json();
-    const ids: string[] = Array.isArray(json?.data) ? json.data.map((m: any) => m?.id).filter(Boolean) : [];
-    return { result: ids.includes(modelId) ? ("found" as const) : ("not-found" as const) };
+    const ids: string[] = Array.isArray(json?.data)
+      ? json.data.map((m: any) => m?.id).filter(Boolean)
+      : [];
+    return { provider, result: ids.includes(modelId) ? ("found" as const) : ("not-found" as const) };
   } catch {
-    return { result: "unreachable" as const };
+    return { provider, result: "unreachable" as const };
   }
 });

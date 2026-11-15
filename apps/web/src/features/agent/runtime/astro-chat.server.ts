@@ -1,10 +1,10 @@
 import "@tanstack/react-start/server-only";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { readOpenRouterKey } from "./pi.server";
+import { readAgentKey } from "./pi.server";
 import type { TurnArtifacts } from "./pi.server";
 import { createShowHudTool } from "./hud-show.server";
-import { currentAgentModel, modelChanged } from "./agent-model.server";
+import { currentAgentModel, currentAgentProvider, modelChanged } from "./agent-model.server";
 import { getAgent } from "../agents/registry";
 import { findAstronaut } from "../../astronaut/model/astronauts";
 import type { SessionFactory } from "./run.server";
@@ -41,7 +41,7 @@ export async function openOrCreateSessionManager(id: string, dir: string, cwd: s
   }
 }
 
-type Cached = { session: SessionFacade; lastUsed: number; model: string; artifacts: TurnArtifacts };
+type Cached = { session: SessionFacade; lastUsed: number; modelKey: string; artifacts: TurnArtifacts };
 const cache = new Map<string, Cached>();
 const queues = new Map<string, Promise<unknown>>();
 
@@ -68,11 +68,13 @@ async function getSession(
   id: string,
   astronaut: { name: string; role: string; callsign: string },
 ): Promise<{ session: SessionFacade; artifacts: TurnArtifacts }> {
-  // Model gắn với session lúc tạo; admin đổi model → huỷ session cũ và tạo lại.
+  // Provider gắn với session lúc tạo; admin đổi provider/model → huỷ session cũ và tạo lại.
   // Lịch sử hội thoại vẫn nằm trong SessionManager files (var/sky-sessions).
-  const model = await currentAgentModel();
+  const provider = await currentAgentProvider();
+  const model = await currentAgentModel("sky-chat");
+  const modelKey = `${provider}:${model}`;
   const existing = cache.get(id);
-  if (existing && modelChanged(existing.model, model)) {
+  if (existing && modelChanged(existing.modelKey, modelKey)) {
     existing.session.dispose();
     cache.delete(id);
   } else if (existing && Date.now() - existing.lastUsed < IDLE_TTL) {
@@ -96,7 +98,7 @@ async function getSession(
     artifacts,
     customTools: [createShowHudTool(artifacts)],
   });
-  cache.set(id, { session: sess, lastUsed: Date.now(), model, artifacts });
+  cache.set(id, { session: sess, lastUsed: Date.now(), modelKey, artifacts });
   return { session: sess, artifacts };
 }
 
@@ -172,7 +174,7 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
   if (!astronaut) return { status: "unavailable" as ChatStatus };
   const message = validateMessage(messageRaw);
   if (!message) return { status: "unavailable" as ChatStatus };
-  if (!readOpenRouterKey()) return { status: "missing_key" as ChatStatus };
+  if (!(await readAgentKey())) return { status: "missing_key" as ChatStatus };
   const ctx = { name: astronaut.name, role: astronaut.role, callsign: astronaut.callsign };
   const msgs = readTranscript(id);
   msgs.push({ role: "user", text: message, at: new Date().toISOString() });

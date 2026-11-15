@@ -5,8 +5,11 @@ export const chat: AgentProfile = {
   id: "sky-chat",
   name: "Sky",
   role: "companion",
-  modelEnv: "SKY_OPENROUTER_MODEL",
-  defaultModel: "thinkingmachines/inkling-2-small:free",
+  // modelEnv/defaultModel chỉ là metadata hiển thị — nguồn quyết định là server resolution
+  // (backend agent.models[profile] → legacy agent.model → SKY_AGENT_MODEL → SKY_OPENCODE_MODEL /
+  // SKY_OPENROUTER_MODEL → provider default `deepseek-v4.1-flash`).
+  modelEnv: "SKY_AGENT_MODEL",
+  defaultModel: "deepseek-v4.1-flash",
   soul: skySoul,
   systemPrompt: (ctx: AgentContext) => {
     const a = ctx.astronaut;

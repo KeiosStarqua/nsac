@@ -5,8 +5,11 @@ import {
   setHudSessionFactory,
   resetHudComposeStateForTests,
 } from "./hud-compose.server";
+import { resetAgentModelCacheForTests } from "./agent-model.server";
 
 const savedKey = process.env.SKY_OPENROUTER_API_KEY;
+const savedProvider = process.env.SKY_AGENT_PROVIDER;
+const savedBackend = process.env.BACKEND_URL;
 
 function fakeFactory(reply: string | (() => Promise<string>)) {
   const calls: string[] = [];
@@ -21,14 +24,22 @@ function fakeFactory(reply: string | (() => Promise<string>)) {
 }
 
 beforeEach(() => {
+  resetAgentModelCacheForTests();
   process.env.SKY_OPENROUTER_API_KEY = "sk-test-fake";
+  process.env.SKY_AGENT_PROVIDER = "openrouter";
+  process.env.BACKEND_URL = "http://127.0.0.1:1"; // không backend thật trong test
 });
 
 afterEach(() => {
   if (savedKey === undefined) delete process.env.SKY_OPENROUTER_API_KEY;
   else process.env.SKY_OPENROUTER_API_KEY = savedKey;
+  if (savedProvider === undefined) delete process.env.SKY_AGENT_PROVIDER;
+  else process.env.SKY_AGENT_PROVIDER = savedProvider;
+  if (savedBackend === undefined) delete process.env.BACKEND_URL;
+  else process.env.BACKEND_URL = savedBackend;
   setHudSessionFactory(null);
   resetHudComposeStateForTests();
+  resetAgentModelCacheForTests();
 });
 
 describe("composeHud", () => {

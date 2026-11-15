@@ -9,8 +9,9 @@ export const orchestrator: AgentProfile = {
   id: "sky-orchestrator",
   name: "Sky",
   role: "orchestrator",
-  modelEnv: "SKY_OPENROUTER_MODEL",
-  defaultModel: "thinkingmachines/inkling-2-small:free",
+  // modelEnv/defaultModel chỉ là metadata hiển thị — nguồn quyết định là server resolution (xem chat.ts).
+  modelEnv: "SKY_AGENT_MODEL",
+  defaultModel: "deepseek-v4.1-flash",
   soul: skySoul,
   systemPrompt: (ctx: AgentContext) => [
     skySoul,
