@@ -1,14 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ElevenLabsTab } from "~/features/admin";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-// Hidden operator page (see ../admin): noindex + data-only SSR, same contract as the layout.
+// Legacy deep link — the ElevenLabs key panel folded into "API Keys".
 export const Route = createFileRoute("/admin/elevenlabs")({
-  ssr: "data-only",
-  head: () => ({
-    meta: [
-      { title: "Sky" },
-      { name: "robots", content: "noindex,nofollow" },
-    ],
-  }),
-  component: ElevenLabsTab,
+  beforeLoad: () => {
+    throw redirect({ to: "/admin/keys" });
+  },
 });

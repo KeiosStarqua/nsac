@@ -4,18 +4,13 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readOpenCodeKey } from "./opencode-key.server";
+import { readBedrockKey } from "./bedrock-key.server";
 
 // Re-exported with the signature intact — every existing import site keeps working.
-export { readOpenCodeKey };
+export { readOpenCodeKey, readBedrockKey };
 
 export function readOpenRouterKey(): string | null {
   const raw = process.env.SKY_OPENROUTER_API_KEY;
-  if (typeof raw !== "string" || raw.trim() === "") return null;
-  return raw.trim();
-}
-
-export function readBedrockKey(): string | null {
-  const raw = process.env.AWS_BEARER_TOKEN_BEDROCK;
   if (typeof raw !== "string" || raw.trim() === "") return null;
   return raw.trim();
 }

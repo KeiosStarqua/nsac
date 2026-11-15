@@ -14,6 +14,7 @@ import {
 } from "../../agent/runtime/agent-model.server";
 import { readOpenCodeKey, readOpenRouterKey, readBedrockKey } from "../../agent/runtime/pi.server";
 import { openCodeKeySource, openCodeKeyFileInfo } from "../../agent/runtime/opencode-key.server";
+import { bedrockKeySource, bedrockKeyFileInfo } from "../../agent/runtime/bedrock-key.server";
 
 export type OpenCodeKeySnapshot = { source: "env" | "file" | "none"; updatedAt: number | null };
 
@@ -62,15 +63,27 @@ export const getSnapshot = createServerFn({ method: "GET" }).handler(async (): P
           ? `stored key (updated ${new Date(goUpdatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC)`
           : "stored key"
         : "missing";
+  // Bedrock shows where the token comes from (env / stored file / missing) — never the value or its length.
+  const bedrockSource = bedrockKeySource();
+  const bedrockUpdatedAt = bedrockSource === "file" ? bedrockKeyFileInfo().updatedAt : null;
+  const bedrockDetail =
+    bedrockSource === "env"
+      ? "env"
+      : bedrockSource === "file"
+        ? bedrockUpdatedAt != null
+          ? `stored token (updated ${new Date(bedrockUpdatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC)`
+          : "stored token"
+        : "missing";
   const providerKeys = [
     ["openrouter", redactEnv(process.env.SKY_OPENROUTER_API_KEY).configured],
-    ["amazon-bedrock", redactEnv(process.env.AWS_BEARER_TOKEN_BEDROCK).configured],
+    ["amazon-bedrock", bedrockSource !== "none"],
   ] as const;
-  const effectiveKeyOk = provider === "opencode-go" ? goSource !== "none" : (providerKeys.find(([p]) => p === provider)?.[1] ?? false);
   const providerKeysDetail = [
     `opencode-go: ${goDetail}`,
-    ...providerKeys.map(([p, configured]) => `${p}: ${configured ? "configured" : "missing"}`),
+    `openrouter: ${providerKeys[0][1] ? "configured" : "missing"}`,
+    `amazon-bedrock: ${bedrockDetail}`,
   ].join(" · ");
+  const effectiveKeyOk = provider === "opencode-go" ? goSource !== "none" : (providerKeys.find(([p]) => p === provider)?.[1] ?? false);
   checks.push(
     makeCheck(
       "agent.keys",
@@ -79,7 +92,7 @@ export const getSnapshot = createServerFn({ method: "GET" }).handler(async (): P
       providerKeysDetail,
       effectiveKeyOk
         ? undefined
-        : "Set the env var for the effective provider in /etc/nsac-web/env (SKY_OPENCODE_API_KEY or OPENCODE_API_KEY · SKY_OPENROUTER_API_KEY · AWS_BEARER_TOKEN_BEDROCK) plus AWS_REGION=ap-southeast-1 for Bedrock, or paste an OpenCode Go key in /admin (stored on the server, write-only), then systemctl restart nsac-web if you changed the env file",
+        : "Set the env var for the effective provider in /etc/nsac-web/env (SKY_OPENCODE_API_KEY or OPENCODE_API_KEY · SKY_OPENROUTER_API_KEY · AWS_BEARER_TOKEN_BEDROCK), or paste a key in /admin → API Keys (stored on the server, write-only — no restart needed), then systemctl restart nsac-web if you changed the env file",
     ),
   );
 

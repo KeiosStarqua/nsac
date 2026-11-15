@@ -1,9 +1,17 @@
 import { useState } from "react";
+import { RotateCcw } from "lucide-react";
 import { useCopy } from "~/shared/i18n";
 import { resetClaimsFn } from "../../api/admin.functions";
 import type { ResetClaimsResult } from "../../api/admin.functions";
 import { useAdminGate } from "../admin-gate";
-import { dangerButtonClasses, muted } from "./classes";
+import {
+  dangerButtonClasses,
+  muted,
+  sectionCard,
+  sectionHeader,
+  sectionIcon,
+  sectionTitle,
+} from "./classes";
 
 type ResetState = { kind: "ok"; cleared: number } | { kind: "error"; message: string } | null;
 
@@ -37,13 +45,15 @@ export function ClaimsTab() {
   }
 
   return (
-    <>
-    <section
-      aria-label={copy.resetClaims}
-      className="rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
-    >
-      <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>{copy.resetClaims}</div>
-      <div className="mt-2 flex items-center gap-3">
+    <section aria-label={copy.resetClaims} className={sectionCard}>
+      <div className={sectionHeader}>
+        <h2 className={sectionTitle}>
+          <RotateCcw aria-hidden className={sectionIcon} strokeWidth={1.75} />
+          {copy.resetClaims}
+        </h2>
+      </div>
+      <p className={`${muted} mt-2 max-w-[68ch] text-[12px] leading-5`}>{copy.claimsDescription}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={resetClaims}
@@ -52,7 +62,7 @@ export function ClaimsTab() {
         >
           {resetBusy ? copy.resetting : copy.resetClaims}
         </button>
-        <div aria-live="polite" className="text-[13px]">
+        <div aria-live="polite" className="text-[14px]">
           {resetState?.kind === "ok" && (
             <span className="text-(--green)">
               {copy.resetClaimsDone.replace("{count}", String(resetState.cleared))}
@@ -64,6 +74,5 @@ export function ClaimsTab() {
         </div>
       </div>
     </section>
-    </>
   );
 }

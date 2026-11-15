@@ -1,14 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { OpenCodeTab } from "~/features/admin";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-// Hidden operator page (see ../admin): noindex + data-only SSR, same contract as the layout.
+// Legacy deep link — the OpenCode key panel folded into "API Keys".
 export const Route = createFileRoute("/admin/opencode")({
-  ssr: "data-only",
-  head: () => ({
-    meta: [
-      { title: "Sky" },
-      { name: "robots", content: "noindex,nofollow" },
-    ],
-  }),
-  component: OpenCodeTab,
+  beforeLoad: () => {
+    throw redirect({ to: "/admin/keys" });
+  },
 });

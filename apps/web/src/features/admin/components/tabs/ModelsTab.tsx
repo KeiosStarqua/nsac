@@ -7,7 +7,18 @@ import { goAsPickerModels, bedrockAsPickerModels } from "../../model/catalog";
 import { filterModelIds, sanitizeProfileModels } from "../../model/catalogFilter";
 import type { AgentProvider } from "../../../agent/runtime/agent-model.server";
 import { useAdminGate } from "../admin-gate";
-import { buttonClasses, inputClasses, mono, muted } from "./classes";
+import { Gauge, Server, SlidersHorizontal } from "lucide-react";
+import {
+  buttonClasses,
+  labelClasses,
+  mono,
+  muted,
+  sectionCard,
+  sectionHeader,
+  sectionIcon,
+  sectionTitle,
+  selectClasses,
+} from "./classes";
 
 type ApplyState = { kind: "ok" } | { kind: "error"; message: string } | null;
 type EffectiveModels = {
@@ -180,150 +191,177 @@ export function ModelsTab() {
     }
   }
 
-  const selectClasses = `${inputClasses} cursor-pointer`;
-  const effectiveLine = copy.effectiveLine
-    .replace("{model}", effectiveModels?.default ?? "…")
-    .replace("{provider}", effectiveProvider);
-
   return (
-    <>
-    <section
-      aria-label={copy.currentEffective}
-      className="mb-4 rounded-(--radius-sm) border border-(--border) bg-(--surface) px-3.5 py-3"
-    >
-      <div className={`${muted} text-[12px] uppercase tracking-[1px]`}>
-        {copy.currentEffective}
-      </div>
-      <div className={`${mono} mt-1 text-[13px] break-all`}>{effectiveLine}</div>
-      <ul className={`${mono} mt-2 list-none p-0 text-[12px] leading-6`}>
-        <li>default={effectiveModels?.default ?? "…"}</li>
-        <li>sky-chat={effectiveModels?.chat ?? "…"}</li>
-        <li>sky-orchestrator={effectiveModels?.orchestrator ?? "…"}</li>
-        <li>sky-generative-ui={effectiveModels?.["generative-ui"] ?? "…"}</li>
-        <li>sky-hud-composer={effectiveModels?.["hud-composer"] ?? "…"}</li>
-      </ul>
-      <div className={`${muted} mt-1.5 text-[12px]`}>
-        {(() => {
-          const parts = [
-            setting?.provider ? `provider=${setting.provider}` : null,
-            setting?.model ? `model=${setting.model}` : null,
-            setting?.models && Object.keys(setting.models).length > 0
-              ? `models=${Object.keys(setting.models).join(",")}`
-              : null,
-          ].filter((part): part is string => part !== null);
-          if (parts.length === 0) return copy.envFallback;
-          const stamp = setting?.updatedAt
-            ? ` · ${new Date(setting.updatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC`
-            : "";
-          return `${copy.backendSetting} (${providerSource}): ${parts.join(" · ")}${stamp}`;
-        })()}
-      </div>
-      <div className={`${muted} mt-1 text-[12px]`}>{copy.appliesNote}</div>
-    </section>
+    <div className="flex flex-col gap-4">
+      {/* Effective configuration — what Sky will actually run */}
+      <section aria-label={copy.currentEffective} className={sectionCard}>
+        <div className={sectionHeader}>
+          <h2 className={sectionTitle}>
+            <Gauge aria-hidden className={sectionIcon} strokeWidth={1.75} />
+            {copy.currentEffective}
+          </h2>
+        </div>
+        <dl className={`${mono} mt-2.5 grid grid-cols-[max-content_1fr] gap-x-5 gap-y-1 text-[12px] leading-6`}>
+          <dt className={muted}>provider</dt>
+          <dd className="break-words">
+            {effectiveProvider}{" "}
+            <span className={`${muted} whitespace-nowrap`}>({providerSource})</span>
+          </dd>
+          <dt className={muted}>default</dt>
+          <dd className="break-all">{effectiveModels?.default ?? "…"}</dd>
+          <dt className={muted}>sky-chat</dt>
+          <dd className="break-all">{effectiveModels?.chat ?? "…"}</dd>
+          <dt className={muted}>sky-orchestrator</dt>
+          <dd className="break-all">{effectiveModels?.orchestrator ?? "…"}</dd>
+          <dt className={muted}>sky-generative-ui</dt>
+          <dd className="break-all">{effectiveModels?.["generative-ui"] ?? "…"}</dd>
+          <dt className={muted}>sky-hud-composer</dt>
+          <dd className="break-all">{effectiveModels?.["hud-composer"] ?? "…"}</dd>
+        </dl>
+        <div className={`${muted} mt-2.5 text-[12px] leading-5`}>
+          {(() => {
+            const parts = [
+              setting?.provider ? `provider=${setting.provider}` : null,
+              setting?.model ? `model=${setting.model}` : null,
+              setting?.models && Object.keys(setting.models).length > 0
+                ? `models=${Object.keys(setting.models).join(",")}`
+                : null,
+            ].filter((part): part is string => part !== null);
+            if (parts.length === 0) return copy.envFallback;
+            const stamp = setting?.updatedAt
+              ? ` · ${new Date(setting.updatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC`
+              : "";
+            return `${copy.backendSetting} (${providerSource}): ${parts.join(" · ")}${stamp}`;
+          })()}
+        </div>
+        <div className={`${muted} mt-1 text-[12px] leading-5`}>{copy.appliesNote}</div>
+      </section>
 
-    <div className={`${muted} mb-1.5 text-[12px] uppercase tracking-[1px]`}>
-      01 — {copy.providerLabel}
-    </div>
-    {/* Provider */}
-    <label htmlFor="admin-provider" className="mb-1.5 block text-[13px]">
-      {copy.providerLabel}
-    </label>
-    <select
-      id="admin-provider"
-      value={provider}
-      onChange={(e) => onProviderChange(e.target.value as AgentProvider)}
-      className={selectClasses}
-    >
-      <option value="opencode-go">{copy.providerOpencodeGo}</option>
-      <option value="openrouter">{copy.providerOpenrouter}</option>
-      <option value="amazon-bedrock">{copy.providerAmazonBedrock}</option>
-    </select>
-    <p className={`${muted} mt-1.5 text-[12px]`}>
-      {provider === "opencode-go"
-        ? copy.providerOpencodeGoDesc
-        : provider === "amazon-bedrock"
-          ? copy.providerAmazonBedrockDesc
-          : copy.providerOpenrouterDesc}
-    </p>
-    {provider === "amazon-bedrock" && <p className={`${muted} mt-1 text-[12px]`}>{copy.bedrockVerifiedNote}</p>}
-    {provider === "openrouter" && <p className={`${muted} mt-1 text-[12px]`}>{copy.legacyNote}</p>}
-    {droppedForeign > 0 && (
-      <p role="status" className={`${muted} mt-2 text-[12px]`}>
-        {copy.modelsDroppedForeign.replace("{count}", String(droppedForeign))}
-      </p>
-    )}
-    {!catalogReady && (
-      <p role="alert" className="mt-2 text-[13px] text-(--yellow)">
-        {copy.catalogError}
-      </p>
-    )}
-
-    <div className={`${muted} mt-4 mb-1.5 text-[12px] uppercase tracking-[1px]`}>
-      {copy.modelsSectionKicker.replace("{provider}", PROVIDER_DISPLAY[provider])}
-    </div>
-    <p className={`${muted} mb-1.5 text-[12px]`}>
-      {copy.catalogScopedNote.replace("{provider}", PROVIDER_DISPLAY[provider])}
-    </p>
-    {/* Default (all agents) */}
-    <label htmlFor="admin-default-model" className="mb-1.5 block text-[13px]">
-      {copy.defaultAllLabel}
-    </label>
-    <p className={`${muted} mb-1.5 text-[12px]`}>{copy.defaultAllHint}</p>
-    <select
-      id="admin-default-model"
-      value={defaultModel}
-      onChange={(e) => setDefaultModel(e.target.value)}
-      className={selectClasses}
-      disabled={loadingModels}
-    >
-      <option value="">{copy.inheritDefault}</option>
-      {catalog.map((m) => (
-        <option key={m.id} value={m.id}>
-          {modelOptionLabel(m)}
-        </option>
-      ))}
-    </select>
-
-    {/* Per-profile overrides */}
-    {profileFields.map((field) => (
-      <div key={field.id} className="mt-4">
-        <label htmlFor={`admin-model-${field.id}`} className="block text-[13px]">
-          {field.label}
+      {/* Provider */}
+      <section aria-label={copy.providerLabel} className={sectionCard}>
+        <div className={sectionHeader}>
+          <h2 className={sectionTitle}>
+            <Server aria-hidden className={sectionIcon} strokeWidth={1.75} />
+            {copy.providerLabel}
+          </h2>
+        </div>
+        <label htmlFor="admin-provider" className={`${labelClasses} mt-2.5`}>
+          {copy.providerLabel}
         </label>
-        <p className={`${muted} mt-0.5 mb-1.5 text-[12px]`}>{field.hint}</p>
         <select
-          id={`admin-model-${field.id}`}
-          value={profileModels[field.id] ?? ""}
-          onChange={(e) => setProfileModels((prev) => ({ ...prev, [field.id]: e.target.value }))}
+          id="admin-provider"
+          value={provider}
+          onChange={(e) => onProviderChange(e.target.value as AgentProvider)}
+          className={selectClasses}
+        >
+          <option value="opencode-go">{copy.providerOpencodeGo}</option>
+          <option value="openrouter">{copy.providerOpenrouter}</option>
+          <option value="amazon-bedrock">{copy.providerAmazonBedrock}</option>
+        </select>
+        <p className={`${muted} mt-1.5 text-[12px] leading-5`}>
+          {provider === "opencode-go"
+            ? copy.providerOpencodeGoDesc
+            : provider === "amazon-bedrock"
+              ? copy.providerAmazonBedrockDesc
+              : copy.providerOpenrouterDesc}
+        </p>
+        {provider === "amazon-bedrock" && (
+          <p className={`${muted} mt-1 text-[12px] leading-5`}>{copy.bedrockVerifiedNote}</p>
+        )}
+        {provider === "amazon-bedrock" && (
+          <p className={`${muted} mt-1 text-[12px] leading-5`}>{copy.bedrockKeyNote}</p>
+        )}
+        {provider === "openrouter" && (
+          <p className={`${muted} mt-1 text-[12px] leading-5`}>{copy.legacyNote}</p>
+        )}
+        {droppedForeign > 0 && (
+          <p role="status" className={`${muted} mt-2 text-[12px] leading-5`}>
+            {copy.modelsDroppedForeign.replace("{count}", String(droppedForeign))}
+          </p>
+        )}
+        {!catalogReady && (
+          <p role="alert" className="mt-2 text-[14px] text-(--yellow)">
+            {copy.catalogError}
+          </p>
+        )}
+      </section>
+
+      {/* Model picks */}
+      <section
+        aria-label={copy.modelsSectionKicker.replace("{provider}", PROVIDER_DISPLAY[provider])}
+        className={sectionCard}
+      >
+        <div className={sectionHeader}>
+          <h2 className={sectionTitle}>
+            <SlidersHorizontal aria-hidden className={sectionIcon} strokeWidth={1.75} />
+            {copy.modelsSectionKicker.replace("{provider}", PROVIDER_DISPLAY[provider])}
+          </h2>
+        </div>
+        <p className={`${muted} mt-1.5 text-[12px] leading-5`}>
+          {copy.catalogScopedNote.replace("{provider}", PROVIDER_DISPLAY[provider])}
+        </p>
+
+        {/* Default (all agents) */}
+        <label htmlFor="admin-default-model" className={`${labelClasses} mt-3`}>
+          {copy.defaultAllLabel}
+        </label>
+        <p className={`${muted} mb-1.5 text-[12px] leading-5`}>{copy.defaultAllHint}</p>
+        <select
+          id="admin-default-model"
+          value={defaultModel}
+          onChange={(e) => setDefaultModel(e.target.value)}
           className={selectClasses}
           disabled={loadingModels}
         >
-          <option value="">
-            {copy.inheritProfile} — {effectiveModels ? (field.effective ?? effectiveModels.default) : "…"}
-          </option>
+          <option value="">{copy.inheritDefault}</option>
           {catalog.map((m) => (
             <option key={m.id} value={m.id}>
               {modelOptionLabel(m)}
             </option>
           ))}
         </select>
-      </div>
-    ))}
 
-    <div className="mt-5 flex items-center gap-3">
-      <button
-        type="button"
-        onClick={apply}
-        disabled={applying || loadingModels || !catalogReady}
-        className={buttonClasses}
-      >
-        {applying ? copy.applying : copy.apply}
-      </button>
-      <div aria-live="polite" className="text-[13px]">
-        {applyState?.kind === "ok" && <span className="text-(--green)">{copy.saved}</span>}
-        {applyState?.kind === "error" && <span className="text-(--red)">{applyState.message}</span>}
-      </div>
+        {/* Per-profile overrides */}
+        {profileFields.map((field) => (
+          <div key={field.id} className="mt-3.5">
+            <label htmlFor={`admin-model-${field.id}`} className="block text-[14px]">
+              {field.label}
+            </label>
+            <p className={`${muted} mt-0.5 mb-1.5 text-[12px] leading-5`}>{field.hint}</p>
+            <select
+              id={`admin-model-${field.id}`}
+              value={profileModels[field.id] ?? ""}
+              onChange={(e) => setProfileModels((prev) => ({ ...prev, [field.id]: e.target.value }))}
+              className={selectClasses}
+              disabled={loadingModels}
+            >
+              <option value="">
+                {copy.inheritProfile} — {effectiveModels ? (field.effective ?? effectiveModels.default) : "…"}
+              </option>
+              {catalog.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {modelOptionLabel(m)}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-(--border-subtle) pt-4">
+          <button
+            type="button"
+            onClick={apply}
+            disabled={applying || loadingModels || !catalogReady}
+            className={buttonClasses}
+          >
+            {applying ? copy.applying : copy.apply}
+          </button>
+          <div aria-live="polite" className="text-[14px]">
+            {applyState?.kind === "ok" && <span className="text-(--green)">{copy.saved}</span>}
+            {applyState?.kind === "error" && <span className="text-(--red)">{applyState.message}</span>}
+          </div>
+        </div>
+      </section>
     </div>
-    </>
   );
 }
