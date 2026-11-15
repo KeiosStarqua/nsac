@@ -8,6 +8,7 @@ import {
 } from "../../astronaut";
 import { format, useCopy, useLocale } from "../../../shared/i18n";
 import { getPerformance } from "../api/health.functions";
+import { LiveVitalsStrip, useLiveHealth } from "../../live-health";
 import { ClinicalPanel } from "./ClinicalPanel";
 import { InsightPanel } from "./InsightPanel";
 import { MetricGrid } from "./MetricGrid";
@@ -91,6 +92,10 @@ export function PerformancePage({ initial }: PerformancePageProps) {
 
   const astronaut = findAstronaut(astronautId) ?? findAstronaut(DEFAULT_ASTRONAUT_ID)!;
 
+  // Simulated habitat telemetry, polled every 5 s after mount. Until the first read settles the
+  // strip stays hidden; a failed read never removes the last good payload.
+  const live = useLiveHealth(astronautId);
+
   const metricLabels: Record<MetricId, string> = {
     energy_burned: copy.performance.metricEnergyBurned,
     calories_intake: copy.performance.metricCaloriesIntake,
@@ -168,7 +173,11 @@ export function PerformancePage({ initial }: PerformancePageProps) {
           </div>
         </header>
 
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,352px)] xl:gap-6">
+        <div className="mt-5">
+          <LiveVitalsStrip state={live} copy={copy.live} locale={locale} />
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,352px)] xl:gap-6">
           <MetricGrid
             tiles={tiles}
             ariaLabel={copy.performance.metricsAria}
