@@ -45,6 +45,9 @@ const LABEL_OFFSET_Y = 2.4;
 const RENDER_ORDER = 20;
 const PULSE_SPEED = 2.2;
 const PULSE_AMPLITUDE = 0.18;
+// A standing marker settles into a smaller, calmer dot; walking ones stay full size. The motion
+// itself is the cue (see `positionsAt`) — this only keeps a stopped crew member from looking restless.
+const HOLD_SCALE = 0.72;
 
 /** Display-only: markers must never intercept the stream loader's click-to-prioritise raycast. */
 const NO_RAYCAST = () => null;
@@ -134,9 +137,11 @@ function labelTexture(astronaut: { readonly id: string; readonly initial: string
 
 /**
  * The six fictional crew members on the station, as telemetry-style markers: an emissive dot plus
- * a camera-facing portrait sprite per member (initials fallback), drifting around a module anchor
- * (fixture data in `model/crew-positions.ts`). Rendering ignores depth so the markers read through
- * the hull — that is the point of the layer — and stops drifting entirely under reduced motion.
+ * a camera-facing portrait sprite per member (initials fallback), walking a closed patrol loop
+ * through the connected modules with a standing pause at every waypoint (fixture data in
+ * `model/crew-positions.ts`) — `phase: "walk" | "hold"` settles the dot while the member is
+ * standing. Rendering ignores depth so the markers read through the hull — that is the point of
+ * the layer — and stops moving entirely under reduced motion.
  *
  * Display only: no pointer handlers, no picking, no decisions.
  */
@@ -191,10 +196,11 @@ export function CrewMarkers({ presence, reducedMotion }: CrewMarkersProps) {
       if (!sphere) return;
       // `mine` breathes gently so the visitor finds their own marker; static under reduced motion.
       const pulse =
-        !reducedMotion && marker.state === "mine"
+        !reducedMotion && marker.state === "mine" && position.phase !== "hold"
           ? 1 + PULSE_AMPLITUDE * Math.sin(t * PULSE_SPEED)
           : 1;
-      sphere.scale.setScalar(pulse);
+      const settle = position.phase === "hold" ? HOLD_SCALE : 1;
+      sphere.scale.setScalar(pulse * settle);
     });
   });
 
