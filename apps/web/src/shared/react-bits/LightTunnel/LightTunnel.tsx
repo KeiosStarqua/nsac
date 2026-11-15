@@ -1,6 +1,90 @@
+// LightTunnel
+// Source: @react-bits/LightTunnel-TS-TW — https://reactbits.dev/r/LightTunnel-TS-TW.json
+// React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
-import { useEffect, useRef } from 'react';
-import './LightTunnel.css'
+'use client';
+
+import { useEffect, useRef, type HTMLAttributes } from 'react';
+
+export type FlowDirection = 'inward' | 'outward';
+
+export interface LightTunnelProps extends HTMLAttributes<HTMLDivElement> {
+  cableColor?: string;
+  pulseColor?: string;
+  tunnelColor?: string;
+  tunnelOpacity?: number;
+  speed?: number;
+  flowDirection?: FlowDirection;
+  pulseSpeed?: number;
+  pulseLength?: number;
+  pulseBlend?: number;
+  pulseWidth?: number;
+  pulseDensity?: number;
+  cableCount?: number;
+  thickness?: number;
+  rimWidth?: number;
+  waviness?: number;
+  sway?: number;
+  bend?: number;
+  size?: number;
+  centerX?: number;
+  centerY?: number;
+  glow?: number;
+  fadeNear?: number;
+  fadeFar?: number;
+  brightness?: number;
+  colorVariance?: boolean;
+  grain?: boolean;
+  grainIntensity?: number;
+  opacity?: number;
+  mouseInteraction?: boolean;
+  mouseStrength?: number;
+  clickSurge?: boolean;
+  intro?: boolean;
+  variation?: number;
+  lightMode?: boolean;
+  dpr?: number;
+}
+
+type Settings = {
+  cableColor: string;
+  pulseColor: string;
+  tunnelColor: string;
+  tunnelOpacity: number;
+  speed: number;
+  flow: number;
+  pulseSpeed: number;
+  pulseLength: number;
+  pulseBlend: number;
+  pulseWidth: number;
+  pulseDensity: number;
+  cableCount: number;
+  thickness: number;
+  rimWidth: number;
+  waviness: number;
+  sway: number;
+  bend: number;
+  size: number;
+  centerX: number;
+  centerY: number;
+  glow: number;
+  fadeNear: number;
+  fadeFar: number;
+  brightness: number;
+  colorVariance: boolean;
+  grain: boolean;
+  grainIntensity: number;
+  opacity: number;
+  mouseInteraction: boolean;
+  mouseStrength: number;
+  clickSurge: boolean;
+  intro: boolean;
+  variation: number;
+  lightMode: boolean;
+  dpr?: number;
+};
+
+type Program = { program: WebGLProgram; uniforms: Record<string, WebGLUniformLocation | null> };
 
 const INTRO_SECONDS = 1.8;
 
@@ -159,9 +243,9 @@ void main() {
   outColor = vec4(mapped, max(mapped.r, max(mapped.g, mapped.b)));
 }`;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -171,7 +255,7 @@ const compile = (gl, type, source) => {
   return null;
 };
 
-const link = gl => {
+const link = (gl: WebGL2RenderingContext): Program | null => {
   const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
   const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT);
   const program = gl.createProgram();
@@ -186,7 +270,7 @@ const link = gl => {
     gl.deleteProgram(program);
     return null;
   }
-  const uniforms = {};
+  const uniforms: Record<string, WebGLUniformLocation | null> = {};
   const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < count; i++) {
     const info = gl.getActiveUniform(program, i);
@@ -234,11 +318,11 @@ const LightTunnel = ({
   className = '',
   style,
   ...rest
-}) => {
-  const containerRef = useRef(null);
-  const canvasRef = useRef(null);
-  const wakeRef = useRef(null);
-  const settings = {
+}: LightTunnelProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
+  const settings: Settings = {
     cableColor,
     pulseColor,
     tunnelColor,
@@ -303,11 +387,12 @@ const LightTunnel = ({
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
     const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-    const cache = new Map();
-    const parse = (value, fallback) => {
+    const cache = new Map<string, number[]>();
+    const parse = (value: string | undefined, fallback: number[]): number[] => {
       if (!value) return fallback;
       const key = String(value);
-      if (cache.has(key)) return cache.get(key);
+      const cached = cache.get(key);
+      if (cached) return cached;
       let rgb = fallback;
       if (probe) {
         probe.clearRect(0, 0, 1, 1);
@@ -386,7 +471,7 @@ const LightTunnel = ({
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (!visible || document.hidden) return;
       const s = settingsRef.current;
@@ -428,7 +513,7 @@ const LightTunnel = ({
       wake();
     };
 
-    const locate = event => {
+    const locate = (event: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
@@ -438,19 +523,19 @@ const LightTunnel = ({
       pointer.y = (rect.height / 2 - y) / Math.max(1, scale);
     };
 
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       locate(event);
       wake();
     };
 
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       locate(event);
       if (!pointer.inside || !settingsRef.current.clickSurge || reduce) return;
       surge.age = 0;
       wake();
     };
 
-    const onPointerUp = event => {
+    const onPointerUp = (event: PointerEvent) => {
       if (event.pointerType !== 'mouse') pointer.inside = false;
     };
 
@@ -507,7 +592,7 @@ const LightTunnel = ({
       gl.deleteProgram(program.program);
       gl.deleteBuffer(buffer);
       gl.deleteVertexArray(vao);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      if (!canvas.isConnected) gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, []);
 
@@ -518,11 +603,11 @@ const LightTunnel = ({
   return (
     <div
       ref={containerRef}
-      className={`light-tunnel-container${className ? ` ${className}` : ''}`}
+      className={['relative h-full w-full overflow-hidden', className].filter(Boolean).join(' ')}
       style={style}
       {...rest}
     >
-      <canvas ref={canvasRef} className="light-tunnel-canvas" aria-hidden="true" />
+      <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full" aria-hidden="true" />
     </div>
   );
 };

@@ -4,8 +4,6 @@ import { useReducedMotion } from "motion/react";
 import LightTunnel from "../../shared/react-bits/LightTunnel/LightTunnel";
 import Particles from "../../shared/react-bits/Particles/Particles";
 import { DETAIL_ACTION, DETAIL_CLOSE, DETAIL_EYEBROW, DETAIL_FOOTER, DETAIL_GLASS, DETAIL_MESSAGE, DETAIL_OVERLAY, DETAIL_VALUE, CHAT_OVERRIDE_CHIP, SKY_APP, SPACE_VIGNETTE } from "../sky-hud/hud-classes";
-// LightTunnel is @ts-nocheck; its inferred prop types demand props with runtime defaults.
-const LightTunnelAny = LightTunnel as any;
 import { useSkyVoice } from "../sky-hud/useSkyVoice";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
 import { PHASE_TEXT, MIC_ARIA } from "../sky-hud/voiceCopy";
@@ -527,7 +525,7 @@ export function SkyScreenGen() {
     <main className={SKY_APP} data-phase={phase} aria-label="SKY astronaut wellness overview">
       {bg === "light-tunnel" ? (
         <div className="absolute inset-0 z-0" aria-hidden="true">
-          <LightTunnelAny cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
+          <LightTunnel cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
         </div>
       ) : (
         <div className="absolute inset-0 z-0" aria-hidden="true">

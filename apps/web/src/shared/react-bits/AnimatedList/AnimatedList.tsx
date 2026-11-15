@@ -1,10 +1,11 @@
 // AnimatedList
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/AnimatedList/AnimatedList.jsx
+// Source: @react-bits/AnimatedList-TS-TW — https://reactbits.dev/r/AnimatedList-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { HugeiconsIcon } from '@hugeicons/react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
   CodeIcon,
   FigmaIcon,
@@ -20,11 +21,56 @@ import {
   Video01Icon
 } from '@hugeicons/core-free-icons';
 
-import './AnimatedList.css';
-
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const THEMES = {
+export interface AnimatedListEntry {
+  id?: string | number;
+  icon?: ReactNode;
+  image?: string;
+  title: ReactNode;
+  description?: ReactNode;
+  meta?: ReactNode;
+}
+
+export type AnimatedListItem = string | AnimatedListEntry;
+
+type Animation = 'pop' | 'slide' | 'fade';
+type State = 'in' | 'above' | 'below';
+
+interface AnimatedListProps {
+  items?: AnimatedListItem[];
+  onItemSelect?: (item: AnimatedListItem, index: number) => void;
+  renderItem?: (item: AnimatedListItem, index: number, isSelected: boolean) => ReactNode;
+  initialSelectedIndex?: number;
+  selectOnHover?: boolean;
+  enableArrowNavigation?: boolean;
+  loop?: boolean;
+  animation?: Animation | 'none';
+  animateOnce?: boolean;
+  stagger?: number;
+  showGradients?: boolean;
+  fadeSize?: number;
+  displayScrollbar?: boolean;
+  frame?: boolean;
+  theme?: 'dark' | 'light';
+  accentColor?: string;
+  radius?: number;
+  gap?: number;
+  width?: number | string;
+  maxHeight?: number | string;
+  className?: string;
+  itemClassName?: string;
+  style?: CSSProperties;
+}
+
+interface Engine {
+  place: (snap: boolean) => void;
+  syncRing: () => void;
+  updateFades: () => void;
+  sync: () => void;
+}
+
+const THEMES: Record<'dark' | 'light', Record<string, string>> = {
   dark: {
     '--al-frame': 'rgba(38, 35, 46, 0.66)',
     '--al-frame-edge': 'rgba(255, 255, 255, 0.08)',
@@ -65,9 +111,9 @@ const THEMES = {
   }
 };
 
-const glyph = icon => <HugeiconsIcon icon={icon} size={18} strokeWidth={1.8} />;
+const glyph = (icon: IconSvgElement) => <HugeiconsIcon icon={icon} size={18} strokeWidth={1.8} />;
 
-const DEFAULT_ITEMS = [
+const DEFAULT_ITEMS: AnimatedListEntry[] = [
   { icon: glyph(Folder01Icon), title: 'Brand assets', description: '24 files', meta: '2m' },
   { icon: glyph(Image01Icon), title: 'Launch hero.png', description: '2.4 MB', meta: '18m' },
   { icon: glyph(Video01Icon), title: 'Product tour.mp4', description: '148 MB', meta: '1h' },
@@ -85,7 +131,7 @@ const DEFAULT_ITEMS = [
   { icon: glyph(Video01Icon), title: 'Teaser cut.mov', description: '86 MB', meta: '3w' }
 ];
 
-const HIDDEN = {
+const HIDDEN: Record<Animation, Record<'above' | 'below', string>> = {
   pop: { above: 'translate3d(0, -12px, 0) scale(0.8)', below: 'translate3d(0, 12px, 0) scale(0.8)' },
   slide: { above: 'translate3d(0, -28px, 0) scale(0.98)', below: 'translate3d(0, 28px, 0) scale(0.98)' },
   fade: { above: 'translate3d(0, -4px, 0)', below: 'translate3d(0, 4px, 0)' }
@@ -94,7 +140,7 @@ const HIDDEN = {
 const SPRING =
   'linear(0, 0.0603, 0.2033, 0.3821, 0.5633, 0.7258, 0.8584, 0.9574, 1.0242, 1.0634, 1.0809, 1.0828, 1.0747, 1.0613, 1.046, 1.0313, 1.0186, 1.0085, 1.0012, 0.9965, 0.994, 0.9931, 0.9933, 0.9941, 0.9953, 0.9966, 0.9978, 0.9988, 1)';
 
-const smootherstep = t => t * t * t * (t * (t * 6 - 15) + 10);
+const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
 
 const FADE_MASK = (() => {
   const steps = [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1];
@@ -105,7 +151,29 @@ const FADE_MASK = (() => {
   return `linear-gradient(to bottom, ${[...top, ...bottom].join(', ')})`;
 })();
 
-const size = value => (typeof value === 'number' ? `${value}px` : value);
+const size = (value: number | string) => (typeof value === 'number' ? `${value}px` : value);
+
+const ROOT_CLASS =
+  'relative box-border w-[min(100%,var(--al-width))] min-w-0 max-w-full rounded-[calc(var(--al-radius)+12px)] text-[color:var(--al-ink)] [-webkit-tap-highlight-color:transparent] has-[>[role=listbox]:focus-visible]:outline-2 has-[>[role=listbox]:focus-visible]:outline-offset-[3px] has-[>[role=listbox]:focus-visible]:outline-[color:var(--al-accent)]';
+const FRAMED_CLASS =
+  'p-[6px] [background:var(--al-frame)] [box-shadow:var(--al-frame-shadow)] backdrop-blur-[20px] backdrop-saturate-[1.6]';
+const FRAME_RIM_CLASS =
+  'pointer-events-none absolute inset-0 z-[3] rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--al-frame-edge),inset_0_1px_0_var(--al-frame-highlight)]';
+const VIEWPORT_CLASS =
+  'relative box-border overflow-x-hidden overflow-y-auto overscroll-contain rounded-[calc(var(--al-radius)+6px)] p-[6px] outline-none [--al-fade-bottom:0px] [--al-fade-top:0px]';
+const SCROLLBAR_CLASS =
+  '[scrollbar-width:thin] [scrollbar-color:var(--al-thumb)_transparent] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-[color:var(--al-thumb)]';
+const BARE_CLASS = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const ITEM_CLASS =
+  'relative box-border flex min-w-0 cursor-pointer items-center gap-3 rounded-[var(--al-radius)] py-[10px] pr-[14px] pl-[10px] text-[color:var(--al-ink)] select-none [background:var(--al-tile)] [box-shadow:var(--al-tile-shadow)] [[data-animated]_&:not([data-state])]:opacity-0 hover:[filter:var(--al-hover)] active:[filter:var(--al-press)] data-[selected]:not-active:[filter:var(--al-active)]';
+const LEAD_CLASS =
+  'grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-[max(8px,calc(var(--al-radius)-4px))] bg-[color:var(--al-well)] text-[color:var(--al-ink)]';
+const RIM_CLASS =
+  'pointer-events-none absolute inset-0 rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--al-tile-edge),inset_0_1px_0_var(--al-tile-highlight)]';
+const INDICATOR_CLASS =
+  'pointer-events-none absolute top-0 right-0 left-0 z-[2] h-0 opacity-0 transition-opacity duration-200 ease-[ease]';
+const RING_CLASS =
+  'absolute inset-0 rounded-[var(--al-radius)] [background:var(--al-ring-fill)] [box-shadow:inset_0_0_0_1px_var(--al-ring)]';
 
 const AnimatedList = ({
   items = DEFAULT_ITEMS,
@@ -131,14 +199,14 @@ const AnimatedList = ({
   className = '',
   itemClassName = '',
   style
-}) => {
-  const rootRef = useRef(null);
-  const viewportRef = useRef(null);
-  const trackRef = useRef(null);
-  const indicatorRef = useRef(null);
-  const ringRef = useRef(null);
-  const itemRefs = useRef([]);
-  const engineRef = useRef(null);
+}: AnimatedListProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+  const ringRef = useRef<HTMLSpanElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const engineRef = useRef<Engine | null>(null);
   const keyboardRef = useRef(false);
   const navigatingRef = useRef(false);
   const [selected, setSelected] = useState(initialSelectedIndex);
@@ -174,21 +242,21 @@ const AnimatedList = ({
     const transition = `transform 620ms ${springEase}, opacity 300ms cubic-bezier(0.22, 1, 0.36, 1), filter 200ms ease`;
     const motion = { y: 0, h: 0, vy: 0, vh: 0, ty: 0, th: 0, ready: false };
     const fades = { top: '', bottom: '' };
-    let boxes = [];
-    let current = null;
+    let boxes: (number[] | null)[] = [];
+    let current: Animation | 'none' | null = null;
     let entered = false;
     let engaged = false;
     let pointer = [0, 0];
     let raf = 0;
     let last = 0;
 
-    const mode = () => {
+    const mode = (): Animation | 'none' => {
       const chosen = settingsRef.current.animation;
       if (chosen === 'none' || !HIDDEN[chosen]) return 'none';
       return reduced ? 'fade' : chosen;
     };
 
-    const apply = (element, state) => {
+    const apply = (element: HTMLElement, state: State) => {
       element.dataset.state = state;
       const pose = current && current !== 'none' && state !== 'in' ? HIDDEN[current][state] : '';
       element.style.transform = pose;
@@ -198,7 +266,7 @@ const AnimatedList = ({
     const syncRing = () => {
       const item = itemRefs.current[settingsRef.current.selected];
       if (!item) return;
-      const state = item.dataset.state || 'in';
+      const state = (item.dataset.state as State | undefined) || 'in';
       if (state === ring.dataset.state) return;
       ring.style.transitionDelay = item.style.transitionDelay;
       apply(ring, state);
@@ -209,7 +277,7 @@ const AnimatedList = ({
       indicator.style.height = `${motion.h.toFixed(2)}px`;
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       const dt = Math.min(0.05, (now - last) / 1000 || 0);
       last = now;
@@ -236,7 +304,7 @@ const AnimatedList = ({
       if (moving) raf = requestAnimationFrame(frame);
     };
 
-    const place = snap => {
+    const place = (snap: boolean) => {
       const item = itemRefs.current[settingsRef.current.selected];
       if (!item) {
         indicator.style.opacity = '0';
@@ -283,7 +351,7 @@ const AnimatedList = ({
       boxes = itemRefs.current.map(item => (item ? [offset + item.offsetTop, item.offsetHeight] : null));
     };
 
-    const reveal = entrance => {
+    const reveal = (entrance: boolean) => {
       if (!entered) return;
       const s = settingsRef.current;
       const top = viewport.scrollTop;
@@ -309,7 +377,7 @@ const AnimatedList = ({
     const sync = () => {
       const s = settingsRef.current;
       itemRefs.current.length = s.items.length;
-      const items = itemRefs.current.filter(Boolean);
+      const items = itemRefs.current.filter((item): item is HTMLDivElement => Boolean(item));
       const next = mode();
       const changed = next !== current;
       const restyle = changed ? items : items.filter(item => !item.dataset.state);
@@ -318,8 +386,9 @@ const AnimatedList = ({
       if (restyle.length) {
         const elements = changed ? [...restyle, ring] : restyle;
         for (const element of elements) element.style.transition = 'none';
-        for (const item of restyle) apply(item, current === 'none' ? 'in' : item.dataset.state || 'below');
-        if (changed) apply(ring, itemRefs.current[s.selected]?.dataset.state || 'in');
+        for (const item of restyle)
+          apply(item, current === 'none' ? 'in' : (item.dataset.state as State | undefined) || 'below');
+        if (changed) apply(ring, (itemRefs.current[s.selected]?.dataset.state as State | undefined) || 'in');
         void root.offsetHeight;
         for (const element of elements) element.style.transition = transition;
       }
@@ -365,7 +434,7 @@ const AnimatedList = ({
       reveal(false);
     };
 
-    const onKey = event => {
+    const onKey = (event: KeyboardEvent) => {
       const s = settingsRef.current;
       if (!s.enableArrowNavigation || event.defaultPrevented) return;
       if (event.altKey || event.ctrlKey || event.metaKey) return;
@@ -376,7 +445,7 @@ const AnimatedList = ({
       const count = s.items.length;
       if (!count) return;
       const index = s.selected;
-      let next = null;
+      let next: number | null = null;
       if (event.key === 'ArrowDown') next = index < 0 ? 0 : index + 1;
       else if (event.key === 'ArrowUp') next = index < 0 ? count - 1 : index - 1;
       else if (event.key === 'Home') next = 0;
@@ -394,12 +463,12 @@ const AnimatedList = ({
       setSelected(next);
     };
 
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       const moved = event.clientX !== pointer[0] || event.clientY !== pointer[1];
       pointer = [event.clientX, event.clientY];
       if (!navigatingRef.current || !moved) return;
       navigatingRef.current = false;
-      const item = event.target instanceof Element ? event.target.closest('[data-index]') : null;
+      const item = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-index]') : null;
       if (item && root.contains(item) && settingsRef.current.selectOnHover) setSelected(Number(item.dataset.index));
     };
 
@@ -465,11 +534,11 @@ const AnimatedList = ({
     engineRef.current?.updateFades();
   }, [showGradients, fadeSize, maxHeight, gap]);
 
-  const hover = index => {
+  const hover = (index: number) => {
     if (!navigatingRef.current) setSelected(index);
   };
 
-  const choose = (item, index) => {
+  const choose = (item: AnimatedListItem, index: number) => {
     setSelected(index);
     onItemSelect?.(item, index);
   };
@@ -477,23 +546,25 @@ const AnimatedList = ({
   return (
     <div
       ref={rootRef}
-      className={`animated-list${frame ? ' animated-list--framed' : ''} ${className}`.trim()}
+      className={`${ROOT_CLASS} ${frame ? FRAMED_CLASS : ''} ${className}`.replace(/\s+/g, ' ').trim()}
       data-animated={animation !== 'none' ? '' : undefined}
-      style={{
-        ...(THEMES[theme] ?? THEMES.dark),
-        '--al-radius': `${Math.max(0, radius)}px`,
-        '--al-gap': `${Math.max(0, gap)}px`,
-        '--al-width': size(width),
-        '--al-accent': accentColor || 'var(--al-ink)',
-        ...(accentColor
-          ? { '--al-ring': accentColor, '--al-ring-fill': `color-mix(in srgb, ${accentColor} 8%, transparent)` }
-          : {}),
-        ...style
-      }}
+      style={
+        {
+          ...(THEMES[theme] ?? THEMES.dark),
+          '--al-radius': `${Math.max(0, radius)}px`,
+          '--al-gap': `${Math.max(0, gap)}px`,
+          '--al-width': size(width),
+          '--al-accent': accentColor || 'var(--al-ink)',
+          ...(accentColor
+            ? { '--al-ring': accentColor, '--al-ring-fill': `color-mix(in srgb, ${accentColor} 8%, transparent)` }
+            : {}),
+          ...style
+        } as CSSProperties
+      }
     >
       <div
         ref={viewportRef}
-        className={`animated-list__viewport${displayScrollbar ? '' : ' animated-list__viewport--bare'}`}
+        className={`${VIEWPORT_CLASS} ${displayScrollbar ? SCROLLBAR_CLASS : BARE_CLASS}`}
         role="listbox"
         tabIndex={0}
         aria-activedescendant={selected >= 0 && selected < items.length ? `${baseId}-${selected}` : undefined}
@@ -503,9 +574,9 @@ const AnimatedList = ({
           WebkitMaskImage: showGradients ? FADE_MASK : undefined
         }}
       >
-        <div ref={trackRef} className="animated-list__track">
+        <div ref={trackRef} className="relative flex flex-col gap-[var(--al-gap)]">
           {items.map((item, index) => {
-            const entry = item !== null && typeof item === 'object' ? item : { title: item };
+            const entry: AnimatedListEntry = item !== null && typeof item === 'object' ? item : { title: item };
             const isSelected = index === selected;
             return (
               <div
@@ -514,7 +585,7 @@ const AnimatedList = ({
                   itemRefs.current[index] = element;
                 }}
                 id={`${baseId}-${index}`}
-                className={`animated-list__item ${itemClassName}`.trim()}
+                className={`${ITEM_CLASS} ${itemClassName}`.trim()}
                 role="option"
                 aria-selected={isSelected}
                 data-index={index}
@@ -527,27 +598,46 @@ const AnimatedList = ({
                 ) : (
                   <>
                     {(entry.image || entry.icon) && (
-                      <span className="animated-list__lead">
-                        {entry.image ? <img src={entry.image} alt="" draggable={false} /> : entry.icon}
+                      <span className={LEAD_CLASS}>
+                        {entry.image ? (
+                          <img
+                            className="block h-full w-full object-cover"
+                            src={entry.image}
+                            alt=""
+                            draggable={false}
+                          />
+                        ) : (
+                          entry.icon
+                        )}
                       </span>
                     )}
-                    <span className="animated-list__text">
-                      <span className="animated-list__title">{entry.title}</span>
-                      {entry.description && <span className="animated-list__description">{entry.description}</span>}
+                    <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
+                      <span className="overflow-hidden text-[14.5px] leading-[1.3] font-semibold tracking-[-0.01em] text-ellipsis whitespace-nowrap">
+                        {entry.title}
+                      </span>
+                      {entry.description && (
+                        <span className="overflow-hidden text-[13px] leading-[1.35] text-ellipsis whitespace-nowrap text-[color:var(--al-muted)]">
+                          {entry.description}
+                        </span>
+                      )}
                     </span>
-                    {entry.meta && <span className="animated-list__meta">{entry.meta}</span>}
+                    {entry.meta && (
+                      <span className="flex-none text-[12.5px] tabular-nums text-[color:var(--al-muted)]">
+                        {entry.meta}
+                      </span>
+                    )}
                   </>
                 )}
-                <span className="animated-list__rim" aria-hidden="true" />
+                <span className={RIM_CLASS} aria-hidden="true" />
               </div>
             );
           })}
-          <span ref={indicatorRef} className="animated-list__indicator" aria-hidden="true">
-            <span ref={ringRef} className="animated-list__ring" />
+          <span ref={indicatorRef} className={INDICATOR_CLASS} aria-hidden="true">
+            <span ref={ringRef} className={RING_CLASS} />
           </span>
         </div>
       </div>
-      {frame && <span className="animated-list__frame-rim" aria-hidden="true" />}
+      {frame && <span className={FRAME_RIM_CLASS} aria-hidden="true" />}
     </div>
   );
 };

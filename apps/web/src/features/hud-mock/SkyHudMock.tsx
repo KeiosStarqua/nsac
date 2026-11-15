@@ -85,7 +85,6 @@ import { VitalsCard } from "./components/VitalsCard";
 
 // Vendored react-bits sources are @ts-nocheck; their inferred prop types demand props the runtime
 // defaults, so the boundary casts them (same pattern as `features/hud-gen/catalog.tsx`).
-const LightTunnelAny = LightTunnel as any;
 const DepthTextAny = DepthText as any;
 
 const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
@@ -481,7 +480,7 @@ export function SkyHudMock() {
     <main className={MOCK_ROOT} data-phase={phase} aria-label="SKY astronaut wellness overview">
       {bg === "light-tunnel" ? (
         <div className="absolute inset-0 z-0" aria-hidden="true">
-          <LightTunnelAny cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
+          <LightTunnel cableColor="#78eaff" pulseColor="#5dbafa" speed={0.08} tunnelOpacity={0} />
         </div>
       ) : (
         <div className="absolute inset-0 z-0" aria-hidden="true">
