@@ -10,6 +10,7 @@ import { sessionsDir, openOrCreateSessionManager } from "./astro-chat.server";
 import { sharedEventsBlock, publishEvent } from "../broadcast";
 import { hudSessionId } from "../../hud-gen/model/hud-session";
 import { currentAgentModel, currentAgentProvider } from "./agent-model.server";
+import { recordTurnTrace } from "./agent-trace.server";
 import { extractProgram, reviewProgram } from "../../hud-gen/model/review";
 import { HUD_COMPONENT_NAMES } from "../../hud-gen/model/names";
 import { parseHudProgram } from "../../hud-gen/catalog";
@@ -59,10 +60,14 @@ function evictOldestSession() {
   if (oldest) { sessionCache.get(oldest)?.session.dispose(); sessionCache.delete(oldest); }
 }
 
-async function getSession(sessionId: string, astronaut: { name: string; role: string; callsign: string }): Promise<SessionFacade> {
+async function getSession(
+  sessionId: string,
+  astronaut: { name: string; role: string; callsign: string },
+): Promise<{ session: SessionFacade; provider: string; model: string }> {
   // Cùng contract với chat: provider+model đổi → huỷ session cũ, tạo lại (model gắn lúc tạo).
   const provider = await currentAgentProvider();
-  const modelKey = `${provider}:${await currentAgentModel("sky-hud-composer")}`;
+  const model = await currentAgentModel("sky-hud-composer");
+  const modelKey = `${provider}:${model}`;
   const existing = sessionCache.get(sessionId);
   if (existing && (existing.modelKey !== modelKey || Date.now() - existing.lastUsed >= IDLE_TTL)) {
     existing.session.dispose();
@@ -71,7 +76,7 @@ async function getSession(sessionId: string, astronaut: { name: string; role: st
   const fresh = sessionCache.get(sessionId);
   if (fresh) {
     fresh.lastUsed = Date.now();
-    return fresh.session;
+    return { session: fresh.session, provider, model };
   }
   evictOldestSession();
   const profile = getAgent("sky-hud-composer");
@@ -80,7 +85,7 @@ async function getSession(sessionId: string, astronaut: { name: string; role: st
   const sessionManager = factory ? undefined : await openOrCreateSessionManager(sessionId, dir);
   const sess = await (sessFactory as any)(profile, { request: "", surface: "SKY HUD", astronaut }, sessionManager ? { sessionManager } : undefined);
   sessionCache.set(sessionId, { session: sess, lastUsed: Date.now(), modelKey });
-  return sess;
+  return { session: sess, provider, model };
 }
 
 function enqueue<T>(id: string, fn: () => Promise<T>): Promise<T> {
@@ -88,6 +93,33 @@ function enqueue<T>(id: string, fn: () => Promise<T>): Promise<T> {
   const next = prev.then(fn, fn);
   queues.set(id, next);
   return next;
+}
+
+// Trace mỗi compose turn vào backend SQLite (HARNESSING §16) — debug telemetry cho coding agents.
+// recordTurnTrace không throw và bị chặn cứng bởi timeout 1200 ms; await để thứ tự deterministic.
+async function traceComposeTurn(args: {
+  id: string;
+  sessionId: string;
+  userText: string;
+  startedAt: number;
+  ok: boolean;
+  replyText?: string;
+  errorCode?: string;
+  provider?: string | null;
+  model?: string | null;
+}): Promise<void> {
+  await recordTurnTrace({
+    astronautId: args.id,
+    agentId: "sky-hud-composer",
+    sessionId: args.sessionId,
+    provider: args.provider ?? undefined,
+    model: args.model ?? undefined,
+    ok: args.ok,
+    errorCode: args.errorCode,
+    latencyMs: Date.now() - args.startedAt,
+    userText: args.userText,
+    replyText: args.replyText,
+  });
 }
 
 // agent.turn.completed là telemetry: best-effort sau mỗi turn, nuốt mọi lỗi.
@@ -138,6 +170,7 @@ function briefFor(locale: Locale): string {
 }
 
 export async function composeHud(astronautIdRaw: string, localeRaw: string): Promise<ComposeHudResult> {
+  const startedAt = Date.now();
   const id = sanitizeAstronautId(astronautIdRaw);
   if (!id) return { status: "unavailable" };
   const locale = localeRaw === "vi" ? "vi" : localeRaw === "en" ? "en" : null;
@@ -152,7 +185,10 @@ export async function composeHud(astronautIdRaw: string, localeRaw: string): Pro
   }
   programCache.delete(cacheKey);
 
-  if (!(await readAgentKey())) return { status: "missing_key" };
+  if (!(await readAgentKey())) {
+    await traceComposeTurn({ id, sessionId: hudSessionId(id) ?? id, userText: `compose hud (${locale})`, startedAt, ok: false, errorCode: "missing_key" });
+    return { status: "missing_key" };
+  }
 
   const sessionId = hudSessionId(id);
   if (!sessionId) return { status: "unavailable" };
@@ -168,14 +204,26 @@ export async function composeHud(astronautIdRaw: string, localeRaw: string): Pro
   ].join("\n");
 
   return enqueue(sessionId, async () => {
-    let session: SessionFacade;
+    let live: { session: SessionFacade; provider: string; model: string };
     try {
-      session = await getSession(sessionId, ctx);
+      live = await getSession(sessionId, ctx);
     } catch {
       sessionCache.delete(sessionId);
       await publishTurnCompleted(id, false);
+      await traceComposeTurn({
+        id, sessionId, userText: instruction, startedAt, ok: false, errorCode: "session_failed",
+      });
       return { status: "unavailable" } as const;
     }
+    const { session, provider, model } = live;
+    // Mọi exit path của compose đi qua finish() → đúng một chỗ ghi trace.
+    const finish = async <R extends ComposeHudResult>(
+      result: R,
+      extra: { ok: boolean; replyText?: string; errorCode?: string },
+    ): Promise<R> => {
+      await traceComposeTurn({ id, sessionId, userText: instruction, startedAt, provider, model, ...extra });
+      return result;
+    };
     // Shared context (v1 broadcast): same suffix contract as the chat orchestrator.
     const sharedBlock = await sharedEventsBlock(id, `${id}-composer`);
     const promptText = sharedBlock
@@ -196,22 +244,27 @@ export async function composeHud(astronautIdRaw: string, localeRaw: string): Pro
         console.info("[sky] hud-compose: program rejected", review.reasons);
         // Not cached: a retry must hit the model again.
         await publishTurnCompleted(id, false);
-        return { status: "rejected", reasons: review.reasons } as const;
+        return finish({ status: "rejected", reasons: review.reasons } as const, { ok: false, errorCode: "rejected" });
       }
       const now = Date.now();
       evictOldestProgram(now);
       programCache.set(cacheKey, { program: review.program, ts: now });
       if (sessionCache.get(sessionId)) sessionCache.get(sessionId)!.lastUsed = Date.now();
       await publishTurnCompleted(id, true);
-      return { status: "ok", program: review.program, cached: false } as const;
+      return finish({ status: "ok", program: review.program, cached: false } as const, {
+        ok: true,
+        replyText: review.program,
+      });
     } catch (e) {
       clearTimeout(timer);
       const cachedSession = sessionCache.get(sessionId);
       cachedSession?.session.dispose();
       sessionCache.delete(sessionId);
       await publishTurnCompleted(id, false);
-      if ((e as { message?: string })?.message === "timeout" || ac.signal.aborted) return { status: "timeout" } as const;
-      return { status: "unavailable" } as const;
+      if ((e as { message?: string })?.message === "timeout" || ac.signal.aborted) {
+        return finish({ status: "timeout" } as const, { ok: false, errorCode: "timeout" });
+      }
+      return finish({ status: "unavailable" } as const, { ok: false, errorCode: "turn_error" });
     }
   });
 }
