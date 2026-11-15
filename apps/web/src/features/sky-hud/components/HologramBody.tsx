@@ -48,7 +48,7 @@ class HoloSceneBoundary extends Component<HoloSceneBoundaryProps, { failed: bool
 
 function HoloViewport({ reducedMotion }: { reducedMotion: boolean }) {
   // The drawn figure stays until the model has actually mounted, so the card never shows an empty
-  // box while the 878 KB GLB loads in the background (the page paints first regardless).
+  // box while the 876 KB GLB loads in the background (the page paints first regardless).
   const [ready, setReady] = useState(false);
   const handleReady = useCallback(() => setReady(true), []);
 
@@ -68,11 +68,12 @@ export interface HologramBodyProps {
 }
 
 /**
- * Minimal 3D body for the staged HUD health card (`/?gen=0`): the Open Anatomy skin shell and
- * skeleton only, framed whole-body on a transparent canvas, slowly turning. It reuses the body
- * map's material spec (`features/body-map/model/materials.ts`) and camera framing, drops every
- * interaction (no orbit, no picking, no hotspots, no rail) and leaves the pointer to the
- * `#hologramButton` link around it.
+ * Minimal 3D body for the HUD health card, on both HUDs (`/` declarative, `/?gen=0` staged): the
+ * Open Anatomy skin shell and skeleton only, framed whole-body on a transparent canvas, slowly
+ * turning. It reuses the body map's material spec (`features/body-map/model/materials.ts`) and
+ * camera framing, drops every interaction (no orbit, no picking, no hotspots, no rail) and leaves
+ * the pointer to the `#hologramButton` link around it. The asset is pre-flattened at the pubis by
+ * `scripts/holo-model.ts`, so the card keeps no runtime geometry surgery of its own.
  *
  * Fallbacks: the hand-drawn `HoloSvg` is what SSR and first paint render, and it comes back while
  * the scene chunk loads, when WebGL is unavailable, and when the GLB fails.
