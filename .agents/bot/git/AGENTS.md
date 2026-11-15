@@ -41,7 +41,7 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
 ## Quy trình merge (mỗi nhánh một lượt)
 
 1. `git fetch origin`; đọc `BRANCHES.md`; chọn nhánh `ready` **đầu tiên chưa bị ghi chú chặn** (thứ tự file). Nếu không có → dừng, không làm gì.
-2. Detached worktree từ `origin/main` mới nhất; `git merge --no-ff <branch>`.
+2. **Merge trên local `main` rồi push** (Keios, 2026-11-16): luôn fast-forward local `main` theo `origin/main` trước (`git merge --ff-only origin/main`) — shared tree phải nằm trên tip mới nhất trước khi chạm vào; sau đó merge `--no-ff <branch>` trực tiếp trên local `main` (trong shared tree, DOX chain vẫn được tôn trọng), hoặc trong detached worktree từ local `main` nếu cần cách ly. Sau push, local `main` và `origin/main` phải trùng sha — **luôn giữ "main on remote" và "main local" sync**, không merge lệch (app/deploy đọc `origin/main`; session code đọc local). Trước khi push luôn xác minh `git status --short` sạch và `git log` đúng series.
 3. Doc conflicts → hợp nhất theo kiểu union (giữ cả hai ý, không xoá nội dung nào có nguồn); sau merge **LUÔN** `grep -n -F '<<<<<<<'` trên mọi file đã đụng — không marker nào được phép ở commit. Code conflicts ngoài docs/scripts → `rejected` (trả lại owner), không tự ý sáng tạo.
 4. Chạy gates trong merge worktree: `bun install --frozen-lockfile` (root), `cd apps/web && bun run build && bun run typecheck && bun run test` (backend `readings` fail là pre-existing). Fail → `rejected` với log, không push.
 5. Push `origin/main`. Nếu `Request` yêu cầu deploy: chạy `scripts/deploy.sh` (một deploy tại một thời điểm máy; không deploy khi có deploy khác đang chạy — nếu đang có, bỏ qua deploy, ghi chú). Tag sinh tự động bởi script.
