@@ -1,14 +1,42 @@
 // AccordionGallery
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/AccordionGallery/AccordionGallery.jsx
+// Source: @react-bits/AccordionGallery-TS-TW — https://reactbits.dev/r/AccordionGallery-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import { gsap } from 'gsap';
 
-import './AccordionGallery.css';
+export interface AccordionGalleryItem {
+  image: string;
+  label?: string;
+  link?: string;
+  alt?: string;
+}
 
-const DEFAULT_ITEMS = [
+export interface AccordionGalleryProps {
+  items?: AccordionGalleryItem[];
+  defaultIndex?: number;
+  accentColor?: string;
+  overlayColor?: string;
+  textColor?: string;
+  height?: number;
+  gap?: number;
+  radius?: number;
+  expandRatio?: number;
+  orientation?: 'horizontal' | 'vertical';
+  duration?: number;
+  ease?: string;
+  parallax?: number;
+  tilt?: number;
+  stagger?: number;
+  trigger?: 'hover' | 'click';
+  showLabels?: boolean;
+  grayscale?: boolean;
+  className?: string;
+}
+
+const DEFAULT_ITEMS: AccordionGalleryItem[] = [
   { image: 'https://picsum.photos/id/1015/900/1200', label: 'Canyon', link: '#' },
   { image: 'https://picsum.photos/id/1018/900/1200', label: 'Ridgeline', link: '#' },
   { image: 'https://picsum.photos/id/1039/900/1200', label: 'Falls', link: '#' },
@@ -36,13 +64,13 @@ const AccordionGallery = ({
   showLabels = true,
   grayscale = true,
   className = ''
-}) => {
-  const rootRef = useRef(null);
-  const panelRefs = useRef([]);
-  const mediaRefs = useRef([]);
-  const barRefs = useRef([]);
-  const textRefs = useRef([]);
-  const tlRef = useRef(null);
+}: AccordionGalleryProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRefs = useRef<(HTMLElement | null)[]>([]);
+  const mediaRefs = useRef<(HTMLElement | null)[]>([]);
+  const barRefs = useRef<(HTMLElement | null)[]>([]);
+  const textRefs = useRef<(HTMLElement | null)[]>([]);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
   const firstRunRef = useRef(true);
   const mediaSizeRef = useRef(320);
 
@@ -55,8 +83,10 @@ const AccordionGallery = ({
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : false;
 
+  const overlayBg = `linear-gradient(180deg, transparent 45%, color-mix(in srgb, ${overlayColor} 78%, transparent) 100%), color-mix(in srgb, ${overlayColor} calc(var(--ag-dim, 0.35) * 100%), transparent)`;
+
   const applyLayout = useCallback(
-    animate => {
+    (animate: boolean) => {
       const panels = panelRefs.current;
       if (!panels.length) return;
 
@@ -159,18 +189,18 @@ const AccordionGallery = ({
     []
   );
 
-  const handleEnter = i => {
+  const handleEnter = (i: number) => {
     if (trigger === 'hover') setActive(i);
   };
 
-  const handleClick = (i, e) => {
+  const handleClick = (i: number, e: MouseEvent) => {
     if (i !== active) {
       e.preventDefault();
       setActive(i);
     }
   };
 
-  const handleKeyDown = (i, e) => {
+  const handleKeyDown = (i: number, e: KeyboardEvent) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault();
       setActive((i + 1) % count);
@@ -183,27 +213,28 @@ const AccordionGallery = ({
   return (
     <div
       ref={rootRef}
-      className={`accordion-gallery${vertical ? ' accordion-gallery--vertical' : ''}${className ? ` ${className}` : ''}`}
-      style={{
-        '--ag-accent': accentColor,
-        '--ag-overlay': overlayColor,
-        '--ag-text': textColor,
-        '--ag-gap': `${gap}px`,
-        '--ag-radius': `${radius}px`,
-        height: vertical ? `${Math.round(height * 1.6)}px` : `${height}px`
-      }}
+      className={`flex ${vertical ? 'flex-col' : 'flex-row'} w-full max-w-full [perspective:1400px] max-[520px]:!flex-col max-[520px]:[perspective:none] ${className}`}
+      style={{ gap: `${gap}px`, height: vertical ? `${Math.round(height * 1.6)}px` : `${height}px` }}
       role="list"
       aria-label="Image accordion gallery"
     >
       {items.map((item, i) => {
         const isActive = i === active;
-        const Tag = item.link ? 'a' : 'div';
+        const Tag = (item.link ? 'a' : 'div') as 'a';
         return (
           <Tag
             key={i}
-            ref={el => (panelRefs.current[i] = el)}
-            className={`ag-panel${isActive ? ' ag-panel--active' : ''}`}
-            style={{ borderRadius: `${radius}px` }}
+            ref={(el: HTMLElement | null) => {
+              panelRefs.current[i] = el;
+            }}
+            className="group relative block min-w-0 min-h-0 flex-[1_1_0] cursor-pointer overflow-hidden bg-[#0a0713] no-underline outline-none [transform-style:preserve-3d] [transform-origin:center] [box-shadow:0_10px_30px_-18px_rgba(0,0,0,0.8)] focus-visible:[box-shadow:0_0_0_2px_var(--ag-accent),0_10px_30px_-18px_rgba(0,0,0,0.8)] max-[520px]:min-h-[84px] max-[520px]:!transform-none"
+            style={
+              {
+                borderRadius: `${radius}px`,
+                '--ag-accent': accentColor,
+                willChange: 'flex-grow, transform'
+              } as CSSProperties
+            }
             href={item.link || undefined}
             onClick={e => handleClick(i, e)}
             onMouseEnter={() => handleEnter(i)}
@@ -214,16 +245,53 @@ const AccordionGallery = ({
             aria-current={isActive ? 'true' : undefined}
             aria-label={item.label}
           >
-            <span className="ag-panel__frame">
-              <span className="ag-panel__media" ref={el => (mediaRefs.current[i] = el)}>
-                <img src={item.image} alt={item.alt || item.label || ''} draggable="false" />
+            <span className="absolute inset-0 overflow-hidden [border-radius:inherit]">
+              <span
+                ref={(el: HTMLElement | null) => {
+                  mediaRefs.current[i] = el;
+                }}
+                className="absolute top-1/2 left-1/2 [filter:grayscale(var(--ag-gray,1))]"
+                style={{
+                  width: vertical ? '100%' : 'var(--ag-media-size, 320px)',
+                  height: vertical ? 'var(--ag-media-size, 320px)' : '100%',
+                  willChange: 'transform, filter'
+                }}
+              >
+                <img
+                  src={item.image}
+                  alt={item.alt || item.label || ''}
+                  draggable={false}
+                  className="block h-full w-full select-none object-cover [-webkit-user-drag:none]"
+                />
               </span>
-              <span className="ag-panel__overlay" aria-hidden="true" />
+              <span
+                className="pointer-events-none absolute inset-0"
+                style={{ background: overlayBg }}
+                aria-hidden="true"
+              />
             </span>
             {showLabels && (
-              <span className="ag-panel__label" aria-hidden="true">
-                <span className="ag-panel__bar" ref={el => (barRefs.current[i] = el)} />
-                <span className="ag-panel__text" ref={el => (textRefs.current[i] = el)}>
+              <span
+                className="pointer-events-none absolute bottom-5 left-5 right-5 z-[2] flex items-center gap-3"
+                aria-hidden="true"
+              >
+                <span
+                  ref={(el: HTMLElement | null) => {
+                    barRefs.current[i] = el;
+                  }}
+                  className="h-[26px] w-[3px] flex-none rounded-[3px] opacity-0"
+                  style={{
+                    background: accentColor,
+                    boxShadow: `0 0 12px color-mix(in srgb, ${accentColor} 60%, transparent)`
+                  }}
+                />
+                <span
+                  ref={(el: HTMLElement | null) => {
+                    textRefs.current[i] = el;
+                  }}
+                  className="overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(1rem,1.4vw,1.4rem)] font-semibold tracking-[0.01em] opacity-0 [text-shadow:0_2px_14px_rgba(0,0,0,0.55)]"
+                  style={{ color: textColor }}
+                >
                   {item.label}
                 </span>
               </span>

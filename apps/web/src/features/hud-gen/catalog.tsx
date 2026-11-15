@@ -34,7 +34,6 @@ import VoicePill from "~/shared/react-bits/VoicePill/VoicePill";
 // Alias them to any at the boundary so the rest of this file stays type-checked.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const BlurTextAny = BlurText as any;
-const CountUpAny = CountUp as any;
 const DecryptedTextAny = DecryptedText as any;
 const DepthTextAny = DepthText as any;
 const GradientTextAny = GradientText as any;
@@ -290,7 +289,7 @@ const MetricTile = defineComponent({
           {fact.segments.map((segment, index) => (
             <Fragment key={index}>
               {index > 0 ? " " : null}
-              {ctx.fx ? <CountUpAny to={Number(segment.value)} trigger="load" duration={1.2} decimals={0} /> : segment.value}{" "}
+              {ctx.fx ? <CountUp to={Number(segment.value)} trigger="load" duration={1.2} decimals={0} /> : segment.value}{" "}
               {segment.unit ? <small>{segment.unit}</small> : null}
             </Fragment>
           ))}

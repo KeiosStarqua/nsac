@@ -1,24 +1,107 @@
 // Counter
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/Counter/Counter.jsx
+// Source: @react-bits/Counter-TS-TW — https://reactbits.dev/r/Counter-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import './Counter.css';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode
+} from 'react';
 
-const ROOT = 'counter';
-const SR = 'counter__sr';
-const ROW = 'counter__row';
-const AFFIX = 'counter__affix';
-const DIGIT = 'counter__digit';
-const SIZER = 'counter__sizer';
-const WINDOW = 'counter__window';
-const STRIP = 'counter__strip';
-const NUMERAL = 'counter__numeral';
-const SYMBOL = 'counter__symbol';
-const SYMBOL_TEXT = 'counter__symbol-text';
-const BLUR = 'counter__blur';
-const MEASURE = 'counter__measure';
+export interface CounterProps {
+  value?: number;
+  locale?: string | string[];
+  format?: Intl.NumberFormatOptions;
+  decimals?: number;
+  minDigits?: number;
+  prefix?: ReactNode;
+  suffix?: ReactNode;
+  direction?: 'auto' | 'up' | 'down' | 'shortest';
+  duration?: number;
+  bounce?: number;
+  stagger?: number;
+  motionBlur?: boolean;
+  intro?: boolean;
+  fade?: number;
+  fontSize?: number | string;
+  fontWeight?: CSSProperties['fontWeight'];
+  textColor?: string;
+  gap?: number;
+  padding?: number;
+  tabular?: boolean;
+  digitStyle?: CSSProperties;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Slot {
+  key: string;
+  kind: 'digit' | 'symbol';
+  digit: number;
+  text: string;
+  rank: number;
+}
+
+interface ListSlot extends Slot {
+  start: number;
+}
+
+interface Item {
+  kind: 'digit' | 'symbol';
+  rank: number;
+  pos: number;
+  vel: number;
+  target: number;
+  shown: number;
+  shownVel: number;
+  shownTarget: number;
+  wait: number;
+  exiting: boolean;
+  natural: number;
+  el: HTMLElement | null;
+  numerals: HTMLElement[] | null;
+  strip: HTMLElement | null;
+  blur: SVGFEGaussianBlurElement | null;
+  filter: string;
+  blurred: boolean;
+}
+
+interface Engine {
+  items: Map<string, Item>;
+  raf: number;
+  last: number;
+  ready: boolean;
+  value: number;
+  widths: number[];
+  em: number;
+}
+
+const ROOT =
+  'relative inline-flex items-baseline leading-none whitespace-nowrap [direction:ltr] [unicode-bidi:isolate]';
+const SR = 'absolute -m-px h-px w-px overflow-hidden border-0 p-0 whitespace-nowrap [clip-path:inset(50%)]';
+const ROW = 'mx-[calc(var(--counter-gap,0px)/-2)] inline-flex items-baseline select-none';
+const AFFIX =
+  'mx-[calc(var(--counter-gap,0px)/2*var(--counter-shown,1))] opacity-[var(--counter-shown,1)] whitespace-pre';
+const DIGIT =
+  'relative box-content inline-block mx-[calc(var(--counter-gap,0px)/2*var(--counter-shown,1))] opacity-[var(--counter-shown,1)] text-center leading-[calc(1em_+_var(--counter-padding,0px))]';
+const SIZER = 'invisible';
+const WINDOW =
+  'pointer-events-none absolute top-[calc(var(--counter-fade,0em)*-1)] right-0 bottom-[calc(var(--counter-fade,0em)*-1)] left-0 overflow-hidden';
+const STRIP = 'absolute inset-0';
+const NUMERAL = 'absolute inset-0 flex items-center justify-center will-change-transform';
+const SYMBOL =
+  'relative inline-flex justify-center mx-[calc(var(--counter-gap,0px)/2*var(--counter-shown,1))] opacity-[var(--counter-shown,1)] [clip-path:inset(-0.5em_0)]';
+const SYMBOL_TEXT = 'inline-block whitespace-pre';
+const BLUR = 'absolute h-0 w-0 overflow-hidden';
+const MEASURE =
+  'pointer-events-none invisible absolute top-0 left-0 h-0 overflow-hidden whitespace-nowrap *:inline-block';
 
 const TAU = Math.PI * 2;
 const NUMERIC = new Set(['integer', 'group', 'decimal', 'fraction']);
@@ -28,23 +111,23 @@ const MASK =
 
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const mod = (value, base) => ((value % base) + base) % base;
+const mod = (value: number, base: number) => ((value % base) + base) % base;
 
-const wrap = offset => mod(offset + 5, 10) - 5;
+const wrap = (offset: number) => mod(offset + 5, 10) - 5;
 
 const prefersReduced = () =>
   typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
 
-const stepBetween = (from, to, direction) => {
+const stepBetween = (from: number, to: number, direction: string) => {
   const up = mod(to - from, 10);
   if (direction === 'up') return up;
   if (direction === 'down') return up === 0 ? 0 : up - 10;
   return up > 5 ? up - 10 : up;
 };
 
-const createFormatter = (locale, options) => {
+const createFormatter = (locale: string | string[], options: Intl.NumberFormatOptions) => {
   try {
     return new Intl.NumberFormat(locale, options);
   } catch {
@@ -52,13 +135,13 @@ const createFormatter = (locale, options) => {
   }
 };
 
-const digitsFor = formatter => {
+const digitsFor = (formatter: Intl.NumberFormat) => {
   const { locale, numberingSystem } = formatter.resolvedOptions();
   const plain = createFormatter(locale, { numberingSystem, useGrouping: false });
   return Array.from({ length: 10 }, (_, digit) => plain.format(digit));
 };
 
-const slotsFor = (formatter, digits, value) => {
+const slotsFor = (formatter: Intl.NumberFormat, digits: string[], value: number): Slot[] => {
   const parts = formatter.formatToParts(value);
   let first = -1;
   let last = -1;
@@ -70,8 +153,8 @@ const slotsFor = (formatter, digits, value) => {
     if (part.type === 'integer') place += [...part.value].length;
   });
   let fraction = 0;
-  const counts = {};
-  const slots = [];
+  const counts: Record<string, number> = {};
+  const slots: Slot[] = [];
   parts.forEach((part, index) => {
     if (part.type === 'integer' || part.type === 'fraction') {
       [...part.value].forEach(char => {
@@ -104,7 +187,7 @@ const slotsFor = (formatter, digits, value) => {
   return slots;
 };
 
-const makeItem = (slot, position, shown) => ({
+const makeItem = (slot: Slot, position: number, shown: number): Item => ({
   kind: slot.kind,
   rank: slot.rank,
   pos: position,
@@ -148,16 +231,16 @@ function Counter({
   digitStyle,
   className = '',
   style
-}) {
-  const rootRef = useRef(null);
-  const rowRef = useRef(null);
-  const measureRef = useRef(null);
+}: CounterProps) {
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const rowRef = useRef<HTMLSpanElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
   const blurId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const amount = typeof value === 'number' ? (Object.is(value, -0) ? 0 : value) : Number(value);
   const formatKey = JSON.stringify(format ?? {});
 
   const formatter = useMemo(() => {
-    const options = { ...JSON.parse(formatKey) };
+    const options: Intl.NumberFormatOptions = { ...JSON.parse(formatKey) };
     if (decimals !== undefined) {
       const fixed = clamp(Math.round(decimals), 0, 20);
       options.minimumFractionDigits = fixed;
@@ -170,11 +253,19 @@ function Counter({
   const digits = useMemo(() => digitsFor(formatter), [formatter]);
   const slots = useMemo(() => slotsFor(formatter, digits, amount), [formatter, digits, amount]);
   const label = useMemo(() => formatter.format(amount), [formatter, amount]);
-  const [list, setList] = useState(() =>
+  const [list, setList] = useState<ListSlot[]>(() =>
     slots.map(slot => ({ ...slot, start: slot.kind === 'digit' ? slot.digit : 0 }))
   );
 
-  const engine = useRef({ items: new Map(), raf: 0, last: 0, ready: false, value: amount, widths: [], em: 16 });
+  const engine = useRef<Engine>({
+    items: new Map(),
+    raf: 0,
+    last: 0,
+    ready: false,
+    value: amount,
+    widths: [],
+    em: 16
+  });
   const settings = {
     direction: DIRECTIONS.includes(direction) ? direction : 'auto',
     duration: Math.max(0.05, duration),
@@ -186,7 +277,7 @@ function Counter({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  const paint = item => {
+  const paint = (item: Item) => {
     const el = item.el;
     if (!el) return;
     const e = engine.current;
@@ -225,7 +316,7 @@ function Counter({
     el.style.setProperty('--counter-shown', shown >= 1 ? '' : shown.toFixed(3));
   };
 
-  const frame = now => {
+  const frame = (now: number) => {
     const e = engine.current;
     e.raf = 0;
     const s = settingsRef.current;
@@ -235,7 +326,7 @@ function Counter({
     const omega = TAU / s.duration;
     const zeta = 1 - s.bounce;
     const presence = TAU / (s.duration * 0.85);
-    const done = [];
+    const done: string[] = [];
     let busy = false;
     e.items.forEach((item, key) => {
       if (reduced) {
@@ -318,7 +409,7 @@ function Counter({
             ? 'down'
             : 'shortest';
     const next = new Set(slots.map(slot => slot.key));
-    const moving = [];
+    const moving: Item[] = [];
     slots.forEach(slot => {
       let item = e.items.get(slot.key);
       if (!item) {
@@ -377,13 +468,13 @@ function Counter({
     const row = rowRef.current;
     if (!row) return;
     const e = engine.current;
-    row.querySelectorAll('[data-slot]').forEach(el => {
+    row.querySelectorAll<HTMLElement>('[data-slot]').forEach(el => {
       const item = e.items.get(el.dataset.slot ?? '');
       if (!item) return;
       item.el = el;
       if (item.kind === 'digit') {
-        item.numerals = [...el.querySelectorAll('[data-numeral]')];
-        item.strip = el.querySelector('[data-strip]');
+        item.numerals = [...el.querySelectorAll<HTMLElement>('[data-numeral]')];
+        item.strip = el.querySelector<HTMLElement>('[data-strip]');
         item.blur = el.querySelector('feGaussianBlur');
         item.filter = el.querySelector('filter')?.id ?? '';
         if (!item.blur && item.strip) item.strip.style.filter = '';
@@ -458,23 +549,25 @@ function Counter({
     return () => cancelAnimationFrame(e.raf);
   }, []);
 
-  const affix = node =>
+  const affix = (node: ReactNode) =>
     node === undefined || node === null || node === false ? null : <span className={AFFIX}>{node}</span>;
 
   return (
     <span
       ref={rootRef}
       className={[ROOT, className].filter(Boolean).join(' ')}
-      style={{
-        fontSize: typeof fontSize === 'number' ? `${fontSize}px` : fontSize,
-        fontWeight,
-        color: textColor,
-        fontVariantNumeric: tabular ? 'tabular-nums' : undefined,
-        '--counter-fade': `${Math.max(0, fade)}em`,
-        '--counter-gap': `${Math.max(0, gap)}px`,
-        '--counter-padding': `${Math.max(0, padding)}px`,
-        ...style
-      }}
+      style={
+        {
+          fontSize: typeof fontSize === 'number' ? `${fontSize}px` : fontSize,
+          fontWeight,
+          color: textColor,
+          fontVariantNumeric: tabular ? 'tabular-nums' : undefined,
+          '--counter-fade': `${Math.max(0, fade)}em`,
+          '--counter-gap': `${Math.max(0, gap)}px`,
+          '--counter-padding': `${Math.max(0, padding)}px`,
+          ...style
+        } as CSSProperties
+      }
     >
       <span className={SR}>
         {prefix}

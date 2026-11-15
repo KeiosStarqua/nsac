@@ -1,28 +1,113 @@
 // ElasticSlider
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/ElasticSlider/ElasticSlider.jsx
+// Source: @react-bits/ElasticSlider-TS-TW — https://reactbits.dev/r/ElasticSlider-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode
+} from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { VolumeHighIcon, VolumeLowIcon } from '@hugeicons/core-free-icons';
-import './ElasticSlider.css';
 
-const ROOT = 'elastic-slider';
-const VALUE = 'elastic-slider__value';
-const BODY = 'elastic-slider__body';
-const ICON = 'elastic-slider__icon';
-const ICON_INNER = 'elastic-slider__icon-inner';
-const HIT = 'elastic-slider__hit';
-const TRACK = 'elastic-slider__track';
-const RANGE = 'elastic-slider__range';
-const CONTENT = 'elastic-slider__content';
-const FILL_CONTENT = 'elastic-slider__content elastic-slider__content--fill';
-const TICK = 'elastic-slider__tick';
-const FILL_TICK = 'elastic-slider__tick elastic-slider__tick--fill';
-const THUMB = 'elastic-slider__thumb';
-const BUBBLE = 'elastic-slider__bubble';
-const BUBBLE_TEXT = 'elastic-slider__bubble-text';
+export interface ElasticSliderProps {
+  value?: number;
+  defaultValue?: number;
+  startingValue?: number;
+  maxValue?: number;
+  isStepped?: boolean;
+  stepSize?: number;
+  onChange?: (value: number) => void;
+  onChangeEnd?: (value: number) => void;
+  orientation?: 'horizontal' | 'vertical';
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  iconPlacement?: 'outside' | 'inside';
+  valuePosition?: 'top' | 'bubble' | 'inside' | 'none';
+  formatValue?: (value: number) => string;
+  ticks?: boolean | number[];
+  thumb?: boolean;
+  fillFrom?: number;
+  thickness?: number;
+  activeThickness?: number;
+  radius?: number;
+  restOpacity?: number;
+  growOnHover?: boolean;
+  maxStretch?: number;
+  bounce?: number;
+  jumpToClick?: boolean;
+  wheel?: boolean;
+  trackColor?: string;
+  rangeColor?: string;
+  iconColor?: string;
+  contentColor?: string;
+  fillContentColor?: string;
+  thumbColor?: string;
+  disabled?: boolean;
+  ariaLabel?: string;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Motion {
+  p: number;
+  vp: number;
+  target: number;
+  s: number;
+  vs: number;
+  side: number;
+  held: boolean;
+  a: number;
+  va: number;
+  goal: number;
+  length: number;
+  dragging: boolean;
+  hovered: boolean;
+  focused: boolean;
+  raf: number;
+  last: number;
+  ready: boolean;
+}
+
+interface Drag {
+  id: number;
+  origin: number;
+  from: number | null;
+}
+
+const ROOT =
+  'group/es flex w-48 touch-none flex-col items-center gap-2 text-inherit select-none [-webkit-tap-highlight-color:transparent] data-[disabled]:pointer-events-none data-[disabled]:opacity-45 data-[orientation=vertical]:h-48 data-[orientation=vertical]:w-auto';
+const VALUE = 'text-xs leading-none font-medium tabular-nums opacity-60';
+const BODY =
+  'flex min-h-0 w-full flex-1 items-center gap-3 group-data-[orientation=vertical]/es:h-full group-data-[orientation=vertical]/es:w-auto group-data-[orientation=vertical]/es:flex-col-reverse';
+const ICON =
+  'grid shrink-0 place-items-center text-[color:var(--elastic-slider-icon,currentColor)] will-change-transform';
+const ICON_INNER = 'grid place-items-center';
+const HIT =
+  'group/hit relative flex h-[var(--elastic-slider-hit,34px)] min-w-0 flex-1 cursor-grab touch-none items-center outline-none data-[dragging]:cursor-grabbing group-data-[orientation=vertical]/es:h-auto group-data-[orientation=vertical]/es:min-h-0 group-data-[orientation=vertical]/es:w-[var(--elastic-slider-hit,34px)] group-data-[orientation=vertical]/es:flex-col group-data-[orientation=vertical]/es:justify-end';
+const TRACK =
+  'relative h-1.5 w-full shrink-0 overflow-hidden rounded-[var(--elastic-slider-radius,999px)] [background:var(--elastic-slider-track)] will-change-transform group-focus-visible/hit:outline-2 group-focus-visible/hit:outline-offset-3 group-focus-visible/hit:outline-current group-data-[orientation=vertical]/es:h-full group-data-[orientation=vertical]/es:w-1.5';
+const RANGE = 'absolute inset-0 [background:var(--elastic-slider-range)] [clip-path:inset(0_100%_0_0)]';
+const CONTENT =
+  'pointer-events-none absolute inset-0 flex items-center justify-between px-[var(--elastic-slider-pad,12px)] text-[13px] leading-none font-semibold tabular-nums opacity-[var(--elastic-slider-reveal,1)] *:grid *:place-items-center *:[transform:var(--elastic-slider-unscale,none)] group-data-[orientation=vertical]/es:flex-col-reverse group-data-[orientation=vertical]/es:px-0 group-data-[orientation=vertical]/es:py-[var(--elastic-slider-pad,12px)] text-[color:var(--elastic-slider-content)]';
+const FILL_CONTENT =
+  'pointer-events-none absolute inset-0 flex items-center justify-between px-[var(--elastic-slider-pad,12px)] text-[13px] leading-none font-semibold tabular-nums opacity-[var(--elastic-slider-reveal,1)] *:grid *:place-items-center *:[transform:var(--elastic-slider-unscale,none)] group-data-[orientation=vertical]/es:flex-col-reverse group-data-[orientation=vertical]/es:px-0 group-data-[orientation=vertical]/es:py-[var(--elastic-slider-pad,12px)] text-[color:var(--elastic-slider-fill-content)]';
+const TICK =
+  'absolute top-1/2 -mt-[1.5px] -ml-[1.5px] size-[3px] rounded-full group-data-[orientation=vertical]/es:top-auto group-data-[orientation=vertical]/es:left-1/2 group-data-[orientation=vertical]/es:mt-0 group-data-[orientation=vertical]/es:-mb-[1.5px] [background:var(--elastic-slider-content)] opacity-40';
+const FILL_TICK =
+  'absolute top-1/2 -mt-[1.5px] -ml-[1.5px] size-[3px] rounded-full group-data-[orientation=vertical]/es:top-auto group-data-[orientation=vertical]/es:left-1/2 group-data-[orientation=vertical]/es:mt-0 group-data-[orientation=vertical]/es:-mb-[1.5px] [background:var(--elastic-slider-fill-content)] opacity-50';
+const THUMB =
+  'pointer-events-none absolute top-1/2 left-0 mt-[calc(var(--elastic-slider-thumb-size,18px)/-2)] ml-[calc(var(--elastic-slider-thumb-size,18px)/-2)] size-[var(--elastic-slider-thumb-size,18px)] rounded-full [background:var(--elastic-slider-thumb,#ffffff)] shadow-[0_1px_4px_rgba(0,0,0,0.28),0_0_0_0.5px_rgba(0,0,0,0.12)] will-change-transform group-data-[orientation=vertical]/es:top-auto group-data-[orientation=vertical]/es:bottom-0 group-data-[orientation=vertical]/es:left-1/2 group-data-[orientation=vertical]/es:mt-0 group-data-[orientation=vertical]/es:mb-[calc(var(--elastic-slider-thumb-size,18px)/-2)]';
+const BUBBLE =
+  'pointer-events-none absolute bottom-[calc(50%+var(--elastic-slider-bubble-offset,14px))] left-0 origin-bottom rounded-lg px-2 py-[5px] text-xs leading-[1.2] font-semibold whitespace-nowrap tabular-nums opacity-0 [background:var(--elastic-slider-range)] will-change-[transform,opacity] group-data-[orientation=vertical]/es:bottom-0 group-data-[orientation=vertical]/es:left-[calc(50%+var(--elastic-slider-bubble-offset,14px))] group-data-[orientation=vertical]/es:origin-left';
+const BUBBLE_TEXT = 'text-[color:var(--elastic-slider-fill-content)]';
 
 const TAU = Math.PI * 2;
 const VALUE_POSITIONS = ['top', 'bubble', 'inside', 'none'];
@@ -31,21 +116,22 @@ const LIGHT_INK = 'rgba(255, 255, 255, 0.94)';
 
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const decimalsOf = step => {
+const decimalsOf = (step: number) => {
   const text = String(step);
   return text.includes('.') ? text.split('.')[1].length : 0;
 };
 
-const rubber = (distance, limit) => (limit > 0 ? 2 * (1 / (1 + Math.exp(-distance / limit)) - 0.5) * limit : 0);
+const rubber = (distance: number, limit: number) =>
+  limit > 0 ? 2 * (1 / (1 + Math.exp(-distance / limit)) - 0.5) * limit : 0;
 
 const prefersReduced = () =>
   typeof window !== 'undefined' && (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
 
-let probe = null;
+let probe: CanvasRenderingContext2D | null = null;
 
-const readColor = text => {
+const readColor = (text: string): number[] | null => {
   const match = /^rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)$/.exec(text);
   if (match)
     return [Number(match[1]), Number(match[2]), Number(match[3]), match[4] === undefined ? 1 : Number(match[4])];
@@ -102,17 +188,17 @@ function ElasticSlider({
   ariaLabel = 'Slider',
   className = '',
   style
-}) {
-  const rootRef = useRef(null);
-  const hitRef = useRef(null);
-  const bodyRef = useRef(null);
-  const trackRef = useRef(null);
-  const rangeRef = useRef(null);
-  const thumbRef = useRef(null);
-  const bubbleRef = useRef(null);
-  const startIconRef = useRef(null);
-  const endIconRef = useRef(null);
-  const motion = useRef({
+}: ElasticSliderProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const hitRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const rangeRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLSpanElement>(null);
+  const bubbleRef = useRef<HTMLSpanElement>(null);
+  const startIconRef = useRef<HTMLSpanElement>(null);
+  const endIconRef = useRef<HTMLSpanElement>(null);
+  const motion = useRef<Motion>({
     p: 0,
     vp: 0,
     target: 0,
@@ -131,7 +217,7 @@ function ElasticSlider({
     last: 0,
     ready: false
   });
-  const drag = useRef(null);
+  const drag = useRef<Drag | null>(null);
 
   const lo = Math.min(startingValue, maxValue);
   const hi = Math.max(startingValue, maxValue);
@@ -165,7 +251,7 @@ function ElasticSlider({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  const snap = raw => {
+  const snap = (raw: number) => {
     const s = settingsRef.current;
     let next = clamp(raw, s.lo, s.hi);
     if (s.step) next = clamp(s.lo + Math.round((next - s.lo) / s.step) * s.step, s.lo, s.hi);
@@ -229,7 +315,7 @@ function ElasticSlider({
     }
   };
 
-  const frame = now => {
+  const frame = (now: number) => {
     const m = motion.current;
     m.raf = 0;
     const s = settingsRef.current;
@@ -310,7 +396,7 @@ function ElasticSlider({
     kick();
   };
 
-  const pulse = side => {
+  const pulse = (side: number) => {
     const icon = (side > 0 ? endIconRef : startIconRef).current?.firstElementChild;
     if (!icon || prefersReduced()) return;
     icon.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }], {
@@ -319,7 +405,7 @@ function ElasticSlider({
     });
   };
 
-  const bump = side => {
+  const bump = (side: number) => {
     const m = motion.current;
     const s = settingsRef.current;
     if (!s.maxStretch || m.held || Math.abs(m.vs) > 40 || Math.abs(m.s) > 2) return;
@@ -329,7 +415,7 @@ function ElasticSlider({
     kick();
   };
 
-  const commit = next => {
+  const commit = (next: number) => {
     const s = settingsRef.current;
     motion.current.target = (next - s.lo) / s.span;
     kick();
@@ -388,8 +474,8 @@ function ElasticSlider({
   useEffect(() => {
     const hit = hitRef.current;
     if (!hit || !wheel || disabled) return undefined;
-    let timer = 0;
-    const onWheel = event => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const s = settingsRef.current;
       const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? -event.deltaY : event.deltaX;
@@ -416,13 +502,13 @@ function ElasticSlider({
     return () => cancelAnimationFrame(m.raf);
   }, []);
 
-  const along = event => {
+  const along = (event: ReactPointerEvent<HTMLDivElement>) => {
     const rect = hitRef.current?.getBoundingClientRect();
     if (!rect) return 0;
     return settingsRef.current.vertical ? rect.bottom - event.clientY : event.clientX - rect.left;
   };
 
-  const follow = event => {
+  const follow = (event: ReactPointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d) return;
     const m = motion.current;
@@ -444,7 +530,7 @@ function ElasticSlider({
     commit(snap(s.lo + clamp(fraction, 0, 1) * s.span));
   };
 
-  const onPointerDown = event => {
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const hit = hitRef.current;
     if (disabled || event.button !== 0 || !hit) return;
     hit.setPointerCapture(event.pointerId);
@@ -461,7 +547,7 @@ function ElasticSlider({
     if (s.jumpToClick) commit(snap(s.lo + clamp(along(event) / Math.max(1, m.length), 0, 1) * s.span));
   };
 
-  const onPointerMove = event => {
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!drag.current || drag.current.id !== event.pointerId) return;
     follow(event);
   };
@@ -477,13 +563,13 @@ function ElasticSlider({
     settingsRef.current.onChangeEnd?.(currentRef.current);
   };
 
-  const onKeyDown = event => {
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (disabled) return;
     const s = settingsRef.current;
     const unit = s.step || s.span / 100;
     const large = Math.max(unit, s.span / 10);
     const now = currentRef.current;
-    const keys = {
+    const keys: Record<string, number> = {
       ArrowRight: now + unit,
       ArrowUp: now + unit,
       ArrowLeft: now - unit,
@@ -523,7 +609,7 @@ function ElasticSlider({
         : Array.from({ length: 11 }, (_, index) => lo + (index / 10) * (hi - lo))
       : [];
   const marks = tickValues.map(tick => (tick - lo) / span).filter(fraction => fraction > 0.001 && fraction < 0.999);
-  const marksFor = name =>
+  const marksFor = (name: string) =>
     marks.map(fraction => (
       <span
         key={fraction}
@@ -531,7 +617,7 @@ function ElasticSlider({
         style={vertical ? { bottom: `${fraction * 100}%` } : { left: `${fraction * 100}%` }}
       />
     ));
-  const contentFor = name =>
+  const contentFor = (name: string) =>
     insideStart || insideEnd ? (
       <span className={name}>
         <span>{insideStart}</span>
@@ -544,20 +630,22 @@ function ElasticSlider({
     <div
       ref={rootRef}
       className={[ROOT, className].filter(Boolean).join(' ')}
-      style={{
-        '--elastic-slider-track': trackColor,
-        '--elastic-slider-range': rangeColor,
-        '--elastic-slider-icon': iconColor,
-        '--elastic-slider-content': contentColor,
-        ...(fillContentColor !== 'auto' ? { '--elastic-slider-fill-content': fillContentColor } : {}),
-        '--elastic-slider-thumb': thumbColor,
-        '--elastic-slider-thumb-size': `${thumbSize}px`,
-        '--elastic-slider-hit': `${Math.max(34, thickness, activeThickness)}px`,
-        '--elastic-slider-pad': `${Math.max(8, Math.round(thickness * 0.32))}px`,
-        '--elastic-slider-bubble-offset': `${(thumb ? thumbSize * 1.12 : activeThickness) / 2 + 8}px`,
-        ...(radius !== undefined ? { '--elastic-slider-radius': `${radius}px` } : {}),
-        ...style
-      }}
+      style={
+        {
+          '--elastic-slider-track': trackColor,
+          '--elastic-slider-range': rangeColor,
+          '--elastic-slider-icon': iconColor,
+          '--elastic-slider-content': contentColor,
+          ...(fillContentColor !== 'auto' ? { '--elastic-slider-fill-content': fillContentColor } : {}),
+          '--elastic-slider-thumb': thumbColor,
+          '--elastic-slider-thumb-size': `${thumbSize}px`,
+          '--elastic-slider-hit': `${Math.max(34, thickness, activeThickness)}px`,
+          '--elastic-slider-pad': `${Math.max(8, Math.round(thickness * 0.32))}px`,
+          '--elastic-slider-bubble-offset': `${(thumb ? thumbSize * 1.12 : activeThickness) / 2 + 8}px`,
+          ...(radius !== undefined ? { '--elastic-slider-radius': `${radius}px` } : {}),
+          ...style
+        } as CSSProperties
+      }
       data-orientation={vertical ? 'vertical' : 'horizontal'}
       data-disabled={disabled ? '' : undefined}
       onPointerEnter={() => {

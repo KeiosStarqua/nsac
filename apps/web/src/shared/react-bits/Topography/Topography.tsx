@@ -1,12 +1,10 @@
 // Topography
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/Topography/Topography.jsx
+// Source: @react-bits/Topography-TS-TW — https://reactbits.dev/r/Topography-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
-
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import './Topography.css';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 const FOV = 0.32;
 const ORBIT = 9;
@@ -21,9 +19,114 @@ const SCULPT_SIZE = 256;
 const SCULPT_SPAN = 48;
 const MAX_CELLS = 200000;
 const SUN = [-0.81, 0.58, -0.02];
-const DIRECTIONS = { forward: [0, 1], backward: [0, -1], left: [-1, 0], right: [1, 0] };
+export type TopographyDirection = 'forward' | 'backward' | 'left' | 'right';
+export type TopographyHoverEffect = 'lift' | 'trace' | 'light';
+export type TopographyClickEffect = 'pulse' | 'peak' | 'none';
+export type TopographyMarkers = 'none' | 'plus' | 'dots';
+
+export interface TopographyProps {
+  color?: string;
+  lineCount?: number;
+  lineWidth?: number;
+  majorLines?: boolean;
+  elevation?: number;
+  foreground?: number;
+  scale?: number;
+  detail?: number;
+  tilt?: number;
+  speed?: number;
+  direction?: TopographyDirection;
+  morph?: number;
+  glow?: number;
+  depthOfField?: number;
+  fog?: number;
+  brightness?: number;
+  opacity?: number;
+  mouseInteraction?: boolean;
+  hoverEffect?: TopographyHoverEffect;
+  mouseRadius?: number;
+  mouseStrength?: number;
+  trail?: number;
+  parallax?: number;
+  clickEffect?: TopographyClickEffect;
+  markers?: TopographyMarkers;
+  glitch?: number;
+  intro?: boolean;
+  lightMode?: boolean;
+  dpr?: number;
+  className?: string;
+  style?: CSSProperties;
+}
+
+interface Program {
+  program: WebGLProgram;
+  uniforms: Record<string, WebGLUniformLocation | null>;
+}
+
+interface Target {
+  texture: WebGLTexture | null;
+  framebuffer: WebGLFramebuffer | null;
+  depth: WebGLRenderbuffer | null;
+  width: number;
+  height: number;
+}
+
+interface Frame {
+  f: number[];
+  r: number[];
+  u: number[];
+  eye: number[];
+  distance: number;
+}
+
+interface Hit {
+  x: number;
+  y: number;
+  z: number;
+  depth: number;
+}
+
+interface Box {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  near: number;
+}
+
+interface Pulse {
+  x: number;
+  z: number;
+  age: number;
+}
+
+interface TopographyState {
+  intro: number;
+  rise: number;
+  travelX: number;
+  travelZ: number;
+  morph: number;
+  yaw: number;
+  pitch: number;
+  yawVelocity: number;
+  pitchVelocity: number;
+  presence: number;
+  focus: number;
+  hit: Hit | null;
+  brushFrom: { x: number; z: number } | null;
+  sculptLife: number;
+  burst: Pulse | null;
+  level: number;
+  trace: number;
+  clock: number;
+  tilt: number;
+  elevation: number;
+  scale: number;
+}
+
+const DIRECTIONS: Record<string, number[]> = { forward: [0, 1], backward: [0, -1], left: [-1, 0], right: [1, 0] };
 const HOVER_EFFECTS = ['lift', 'trace', 'light'];
-const MARKER_STYLES = { plus: 0, dots: 1 };
+const MARKER_STYLES: Record<string, number> = { plus: 0, dots: 1 };
 const MARKER_SPACING = 1.25;
 
 const COMMON = `
@@ -123,7 +226,7 @@ void main() {
   outHeight = vec4(ground + uDetail * 0.1 * fine, 0.0, 0.0, 1.0);
 }`;
 
-const terrainVertex = baked => `#version 300 es
+const terrainVertex = (baked: boolean) => `#version 300 es
 #define BAKED ${baked ? 1 : 0}
 ${COMMON}
 uniform sampler2D uField;
@@ -176,7 +279,7 @@ void main() {
   vLift = h * uHeight;
 }`;
 
-const terrainFragment = baked => `#version 300 es
+const terrainFragment = (baked: boolean) => `#version 300 es
 #define BAKED ${baked ? 1 : 0}
 ${COMMON}
 uniform sampler2D uField;
@@ -527,26 +630,26 @@ void main() {
   outColor = vec4(color, max(max(color.r, color.g), color.b));
 }`;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const smoother = x => {
+const smoother = (x: number) => {
   const t = clamp(x, 0, 1);
   return t * t * t * (t * (t * 6 - 15) + 10);
 };
 
-const lattice = (x, y) => {
+const lattice = (x: number, y: number) => {
   let h = (Math.imul(x + 1073741824, 2654435761) + Math.imul(y + 1073741824, 2246822519)) >>> 0;
   h = Math.imul(h ^ (h >>> 15), 739982445) >>> 0;
   h = Math.imul(h ^ (h >>> 12), 695872825) >>> 0;
   return (h ^ (h >>> 15)) >>> 0;
 };
 
-const corner = (cx, cy, fx, fy) => {
+const corner = (cx: number, cy: number, fx: number, fy: number) => {
   const h = lattice(cx, cy);
   return ((h & 65535) / 32767.5 - 1) * fx + ((h >>> 16) / 32767.5 - 1) * fy;
 };
 
-const noise = (x, y) => {
+const noise = (x: number, y: number) => {
   const ix = Math.floor(x);
   const iy = Math.floor(y);
   const fx = x - ix;
@@ -561,7 +664,7 @@ const noise = (x, y) => {
   return top + (d + (e - d) * ux - top) * uy;
 };
 
-const relief = (tx, tz, frequency, morphX, morphZ) => {
+const relief = (tx: number, tz: number, frequency: number, morphX: number, morphZ: number) => {
   let px = tx * frequency;
   let pz = tz * frequency;
   const wx = noise(px * 0.42 + morphX, pz * 0.42 + morphZ);
@@ -577,13 +680,13 @@ const relief = (tx, tz, frequency, morphX, morphZ) => {
   return s * s * 1.4 + 0.1 * n;
 };
 
-const fineDetail = (tx, tz, frequency) => {
+const fineDetail = (tx: number, tz: number, frequency: number) => {
   const px = tx * frequency * 5 + 13.1;
   const pz = tz * frequency * 5 + 4.7;
   return noise(px, pz) * 0.6 + noise(1.6 * px - 1.2 * pz + 2.3, 1.2 * px + 1.6 * pz + 6.1) * 0.3;
 };
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -591,7 +694,7 @@ const compile = (gl, type, source) => {
   return shader;
 };
 
-const link = (gl, vertexSource, fragmentSource) => {
+const link = (gl: WebGL2RenderingContext, vertexSource: string, fragmentSource: string): Program | null => {
   const vertex = compile(gl, gl.VERTEX_SHADER, vertexSource);
   const fragment = compile(gl, gl.FRAGMENT_SHADER, fragmentSource);
   const program = gl.createProgram();
@@ -604,7 +707,7 @@ const link = (gl, vertexSource, fragmentSource) => {
   return { program, uniforms: {} };
 };
 
-const resolve = (gl, item) => {
+const resolve = (gl: WebGL2RenderingContext, item: Program) => {
   if (!gl.getProgramParameter(item.program, gl.LINK_STATUS)) return false;
   const total = gl.getProgramParameter(item.program, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < total; i++) {
@@ -614,7 +717,7 @@ const resolve = (gl, item) => {
   return true;
 };
 
-const toRgb = hex => {
+const toRgb = (hex: string): number[] => {
   let h = String(hex || '#ffffff')
     .replace('#', '')
     .trim();
@@ -629,7 +732,7 @@ const toRgb = hex => {
   return [((num >> 16) & 255) / 255, ((num >> 8) & 255) / 255, (num & 255) / 255];
 };
 
-const orient = (yaw, pitch) => {
+const orient = (yaw: number, pitch: number) => {
   const cp = Math.cos(pitch);
   const f = [Math.sin(yaw) * cp, -Math.sin(pitch), Math.cos(yaw) * cp];
   const r = [Math.cos(yaw), 0, -Math.sin(yaw)];
@@ -637,9 +740,9 @@ const orient = (yaw, pitch) => {
   return { f, r, u };
 };
 
-const lens = aspect => clamp(0.4877 / aspect, FOV, 0.6);
+const lens = (aspect: number) => clamp(0.4877 / aspect, FOV, 0.6);
 
-const viewProjection = ({ eye, f, r, u }, aspect, out) => {
+const viewProjection = ({ eye, f, r, u }: Frame, aspect: number, out: Float32Array) => {
   const t = 1 / lens(aspect);
   const nf = 1 / (NEAR - FAR);
   const view = [
@@ -703,10 +806,10 @@ const Topography = ({
   dpr,
   className = '',
   style
-}) => {
-  const containerRef = useRef(null);
-  const canvasRef = useRef(null);
-  const wakeRef = useRef(null);
+}: TopographyProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
   const releaseRef = useRef(0);
   const [generation, setGeneration] = useState(0);
   const settings = {
@@ -770,10 +873,12 @@ const Topography = ({
     const markerProgram = link(gl, MARKER_VERTEX, MARKER_FRAGMENT);
     if (!terrain || !downProgram || !blurProgram || !compositeProgram || !markerProgram) return undefined;
     const current = () =>
-      [terrain, fieldProgram, sculptProgram, downProgram, blurProgram, compositeProgram, markerProgram].filter(Boolean);
+      [terrain, fieldProgram, sculptProgram, downProgram, blurProgram, compositeProgram, markerProgram].filter(
+        Boolean
+      ) as Program[];
     const linked = () =>
       !parallel || current().every(item => gl.getProgramParameter(item.program, parallel.COMPLETION_STATUS_KHR));
-    const optional = item => {
+    const optional = (item: Program | null) => {
       if (!item || resolve(gl, item)) return item;
       gl.deleteProgram(item.program);
       return null;
@@ -788,7 +893,7 @@ const Topography = ({
       return undefined;
     }
 
-    const onContextLost = event => event.preventDefault();
+    const onContextLost = (event: Event) => event.preventDefault();
     const onContextRestored = () => setGeneration(value => value + 1);
     canvas.addEventListener('webglcontextlost', onContextLost);
     canvas.addEventListener('webglcontextrestored', onContextRestored);
@@ -796,7 +901,7 @@ const Topography = ({
     const vao = gl.createVertexArray();
     const format = floatTargets ? gl.RGBA16F : gl.RGBA8;
 
-    const createTexture = (width, height, internal, wrap) => {
+    const createTexture = (width: number, height: number, internal: number, wrap: number) => {
       const texture = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texStorage2D(gl.TEXTURE_2D, 1, internal, width, height);
@@ -807,7 +912,7 @@ const Topography = ({
       return texture;
     };
 
-    const createTarget = () => ({
+    const createTarget = (): Target => ({
       texture: null,
       framebuffer: gl.createFramebuffer(),
       depth: null,
@@ -815,7 +920,7 @@ const Topography = ({
       height: 0
     });
 
-    const allocate = (target, width, height, withDepth) => {
+    const allocate = (target: Target, width: number, height: number, withDepth: boolean) => {
       if (target.texture && target.width === width && target.height === height) return;
       if (target.texture) gl.deleteTexture(target.texture);
       target.texture = createTexture(width, height, format, gl.CLAMP_TO_EDGE);
@@ -845,10 +950,16 @@ const Topography = ({
         })
       : null;
     const blank = createTexture(1, 1, gl.RGBA8, gl.REPEAT);
-    const field = { texture: null, heights: null, framebuffer: gl.createFramebuffer(), width: 0, height: 0 };
+    const field: {
+      texture: WebGLTexture | null;
+      heights: WebGLTexture | null;
+      framebuffer: WebGLFramebuffer | null;
+      width: number;
+      height: number;
+    } = { texture: null, heights: null, framebuffer: gl.createFramebuffer(), width: 0, height: 0 };
     let sculptIndex = 0;
 
-    const reserveField = (width, height) => {
+    const reserveField = (width: number, height: number) => {
       if (field.texture && width <= field.width && height <= field.height) return;
       if (field.texture) gl.deleteTexture(field.texture);
       if (field.heights) gl.deleteTexture(field.heights);
@@ -865,7 +976,7 @@ const Topography = ({
       gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
     };
 
-    const bind = (unit, texture) => {
+    const bind = (unit: number, texture: WebGLTexture | null) => {
       gl.activeTexture(gl.TEXTURE0 + unit);
       gl.bindTexture(gl.TEXTURE_2D, texture);
     };
@@ -880,10 +991,10 @@ const Topography = ({
       entropy = (entropy * 16807) % 2147483647;
       return (entropy - 1) / 2147483646;
     };
-    const pulses = [];
+    const pulses: Pulse[] = [];
     const pointer = { x: 0, y: 0, inside: false };
     const view = { width: 1, height: 1, ratio: 1, cell: 0.05, cellKey: '' };
-    const state = {
+    const state: TopographyState = {
       intro: settingsRef.current.intro && !reduce ? 0 : 1,
       rise: 1,
       travelX: 0,
@@ -914,7 +1025,7 @@ const Topography = ({
     let ready = !parallel;
     let disposed = false;
 
-    const camera = () => {
+    const camera = (): Frame => {
       const pitch = Math.min((state.tilt * Math.PI) / 180 + state.pitch, Math.PI / 2 - 1e-4);
       const frame = orient(state.yaw, pitch);
       const lift = state.elevation * HEIGHT * state.rise * 0.18;
@@ -927,7 +1038,7 @@ const Topography = ({
       };
     };
 
-    const rayDirection = (cam, nx, ny) => {
+    const rayDirection = (cam: Frame, nx: number, ny: number) => {
       const aspect = view.width / view.height;
       const t = lens(aspect);
       const d = [0, 1, 2].map(i => cam.f[i] + cam.r[i] * nx * t * aspect + cam.u[i] * ny * t);
@@ -935,27 +1046,27 @@ const Topography = ({
       return d.map(v => v / length);
     };
 
-    const along = (cam, d) => d[0] * cam.f[0] + d[1] * cam.f[1] + d[2] * cam.f[2];
+    const along = (cam: Frame, d: number[]) => d[0] * cam.f[0] + d[1] * cam.f[1] + d[2] * cam.f[2];
 
-    const groundDepth = (cam, ny) => {
+    const groundDepth = (cam: Frame, ny: number) => {
       const d = rayDirection(cam, 0, ny);
       if (d[1] > -1e-3) return Infinity;
       return (cam.eye[1] / -d[1]) * along(cam, d);
     };
 
-    const nearRange = (cam, s) => [groundDepth(cam, -1) * 0.9, cam.distance, s.foreground];
+    const nearRange = (cam: Frame, s: typeof settings) => [groundDepth(cam, -1) * 0.9, cam.distance, s.foreground];
 
-    const settleAt = (cam, near, x, z) => {
+    const settleAt = (cam: Frame, near: number[], x: number, z: number) => {
       const depth = (x - cam.eye[0]) * cam.f[0] - cam.eye[1] * cam.f[1] + (z - cam.eye[2]) * cam.f[2];
       return near[2] + (1 - near[2]) * smoother((depth - near[0]) / Math.max(near[1] - near[0], 1e-3));
     };
 
-    const pick = (cam, s, nx, ny) => {
+    const pick = (cam: Frame, s: typeof settings, nx: number, ny: number): Hit | null => {
       const d = rayDirection(cam, nx, ny);
       const height = state.elevation * HEIGHT * state.rise;
       const frequency = FREQUENCY / state.scale;
       const near = nearRange(cam, s);
-      const above = distance => {
+      const above = (distance: number) => {
         const x = cam.eye[0] + d[0] * distance;
         const z = cam.eye[2] + d[2] * distance;
         const ground = relief(state.travelX + x, state.travelZ + z, frequency, state.morph * 0.37, state.morph * 0.23);
@@ -987,10 +1098,10 @@ const Topography = ({
       return null;
     };
 
-    const footprint = (cam, s, fadeEnd) => {
+    const footprint = (cam: Frame, s: typeof settings, fadeEnd: number) => {
       const ceiling = state.elevation * HEIGHT * state.rise * 1.7 + 0.2 + s.mouseStrength;
-      const box = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity, near: Infinity };
-      const add = (d, distance) => {
+      const box: Box = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity, near: Infinity };
+      const add = (d: number[], distance: number) => {
         const x = cam.eye[0] + d[0] * distance;
         const z = cam.eye[2] + d[2] * distance;
         box.minX = Math.min(box.minX, x);
@@ -1017,7 +1128,7 @@ const Topography = ({
       return box;
     };
 
-    const grid = (box, cell) => {
+    const grid = (box: Box, cell: number) => {
       const camX = Math.floor(state.travelX / cell);
       const camZ = Math.floor(state.travelZ / cell);
       const fracX = state.travelX - camX * cell;
@@ -1092,7 +1203,7 @@ const Topography = ({
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
 
-      const drawTerrain = (pixel, width, targetHeight, stride) => {
+      const drawTerrain = (pixel: number, width: number, targetHeight: number, stride: number) => {
         gl.viewport(0, 0, width, targetHeight);
         gl.useProgram(terrain.program);
         const u = terrain.uniforms;
@@ -1249,7 +1360,7 @@ const Topography = ({
       for (let unit = BLOOM_LEVELS; unit >= 0; unit--) bind(unit, null);
     };
 
-    const updateSculpt = (s, dt) => {
+    const updateSculpt = (s: typeof settings, dt: number) => {
       if (!sculpt || !sculptProgram) return false;
       const brush = s.mouseInteraction && s.hoverEffect === 'lift' && state.presence > 0.001 ? state.hit : null;
       const burst = state.burst;
@@ -1306,7 +1417,7 @@ const Topography = ({
       wake();
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (!visible || document.hidden) return;
       if (!ready) {
@@ -1446,14 +1557,14 @@ const Topography = ({
       }
     }
 
-    const locate = event => {
+    const locate = (event: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
       return { x, y, inside: x >= 0 && y >= 0 && x <= rect.width && y <= rect.height };
     };
 
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       const { x, y, inside } = locate(event);
       const was = pointer.inside;
       pointer.inside = inside;
@@ -1464,7 +1575,7 @@ const Topography = ({
       if (inside || was) wake();
     };
 
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       const s = settingsRef.current;
       const { x, y, inside } = locate(event);
       if (!inside) return;
@@ -1487,7 +1598,7 @@ const Topography = ({
       }
     };
 
-    const onPointerUp = event => {
+    const onPointerUp = (event: PointerEvent) => {
       if (event.pointerType !== 'touch') return;
       pointer.inside = false;
       wake();
@@ -1573,8 +1684,12 @@ const Topography = ({
   });
 
   return (
-    <div ref={containerRef} className={`topography-container ${className}`.trim()} style={style}>
-      <canvas ref={canvasRef} className="topography-canvas" aria-hidden="true" />
+    <div
+      ref={containerRef}
+      className={['relative w-full h-full overflow-hidden', className].filter(Boolean).join(' ')}
+      style={style}
+    >
+      <canvas ref={canvasRef} className="block w-full h-full" aria-hidden="true" />
     </div>
   );
 };
