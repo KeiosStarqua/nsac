@@ -106,6 +106,55 @@ export interface Copy {
     /** Chat-composed program on the declarative `/` HUD: chip that restores Sky's own view. */
     chatOverrideBack: string;
   };
+  /** `/performance` — SKY / Human Performance, the fitness-style 12-metric demo face. */
+  performance: {
+    metaTitle: string;
+    brand: string;
+    brandSub: string;
+    brandAria: string;
+    /** Header right block. `{day}` is the simulated mission day. */
+    crewHealth: string;
+    missionDay: string;
+    simulatedData: string;
+    /** The small chip every tile carries. */
+    simulatedTag: string;
+    backToHud: string;
+    bodyMap: string;
+    metricsAria: string;
+    /** Caption under every delta. */
+    deltaVs: string;
+    insightTitle: string;
+    insightCaption: string;
+    insightSource: string;
+    insightMuscle: string;
+    insightSleep: string;
+    insightHrv: string;
+    insightHydration: string;
+    insightSteady: string;
+    methodTitle: string;
+    methodNote: string;
+    methodEstimated: string;
+    methodMeasured: string;
+    methodSelfReported: string;
+    methodSimulated: string;
+    /** Quiet footnote when the backend could not be read. */
+    fallbackNote: string;
+    /** Quiet footnote when the backend answered. `{asOf}` is its timestamp. */
+    reachableNote: string;
+    disclaimer: string;
+    metricEnergyBurned: string;
+    metricCaloriesIntake: string;
+    metricEnergyBalance: string;
+    metricMuscleMass: string;
+    metricMuscleStrength: string;
+    metricBodyFat: string;
+    metricSleepDuration: string;
+    metricSleepEfficiency: string;
+    metricHrv: string;
+    metricHydration: string;
+    metricExerciseDuration: string;
+    metricHeartRate: string;
+  };
   /** Hidden /admin page — operator-only model switch. */
   admin: {
     title: string;
