@@ -1,14 +1,123 @@
 // Dock
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/Dock/Dock.jsx
+// Source: @react-bits/Dock-TS-TW — https://reactbits.dev/r/Dock-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import './Dock.css';
+export type DockSide = 'bottom' | 'top' | 'left' | 'right';
 
-const SIDES = ['bottom', 'top', 'left', 'right'];
+export type DockMenuItem = {
+  label?: React.ReactNode;
+  onClick?: () => void;
+  icon?: React.ReactNode;
+  checked?: boolean;
+  disabled?: boolean;
+  shortcut?: React.ReactNode;
+  items?: DockMenuItem[];
+  separator?: boolean;
+};
+
+export type DockItemData = {
+  icon?: React.ReactNode;
+  label?: string;
+  onClick?: () => void;
+  className?: string;
+  active?: boolean;
+  badge?: React.ReactNode;
+  menu?: DockMenuItem[];
+  separator?: boolean;
+};
+
+export type DockSpring = {
+  mass?: number;
+  stiffness?: number;
+  damping?: number;
+};
+
+export type DockProps = {
+  items?: DockItemData[];
+  position?: DockSide;
+  theme?: 'dark' | 'light';
+  baseItemSize?: number;
+  magnification?: number;
+  distance?: number;
+  panelHeight?: number;
+  gap?: number;
+  roundness?: number;
+  spring?: DockSpring;
+  bounce?: boolean;
+  autoHide?: boolean;
+  tiles?: boolean;
+  showLabels?: boolean;
+  showIndicators?: boolean;
+  showBadges?: boolean;
+  badgeColor?: string;
+  accentColor?: string;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+type Tokens = Record<string, string>;
+type Point = { x: number; y: number };
+type Edge = { left: number; right: number; top: number };
+type Frame = { left: number; top: number; width: number; height: number };
+type SubMenu = { index: number; keyboard: boolean; edge: Edge };
+
+type MenuState = {
+  id: number;
+  index: number;
+  point: Point;
+  keyboard: boolean;
+  closing: boolean;
+  restore: boolean;
+  rows?: DockMenuItem[];
+};
+
+type MenuCallbacks = {
+  onSelect?: (row: DockMenuItem, keyboard: boolean) => void;
+  onDismiss?: (restore: boolean) => void;
+  onBack?: () => void;
+  onExited?: () => void;
+};
+
+type DockMenuProps = MenuCallbacks & {
+  rows: DockMenuItem[];
+  label?: string;
+  side?: DockSide | null;
+  point?: Point;
+  edge?: Edge;
+  tokens: Tokens;
+  nested?: boolean;
+  focusFirst?: boolean;
+  closing?: boolean;
+  pressingRef: { current: boolean };
+  onEnter?: () => void;
+};
+
+type Motion = {
+  size: number;
+  velocity: number;
+  lift: number;
+  rise: number;
+  launch: number;
+  gravity: number;
+  hopping: boolean;
+  drawn: string;
+  node: HTMLButtonElement | null;
+};
+
+type Actions = {
+  hop: (index: number) => void;
+  focus: (index: number) => void;
+  hold: (index: number | null) => void;
+};
+
+type Press = { id: number; x: number; y: number; timer: number; cleanup: () => void };
+
+const SIDES: DockSide[] = ['bottom', 'top', 'left', 'right'];
 const EDGE = 12;
 const HOP = 0.4;
 const HOP_TIME = 0.38;
@@ -20,7 +129,87 @@ const MENU_GAP = 8;
 const MARGIN = 8;
 const POP = 'cubic-bezier(0.2, 1.25, 0.4, 1)';
 
-const THEMES = {
+const ROOT =
+  'absolute z-10 flex box-border gap-[var(--dock-gap)] p-[var(--dock-pad)] rounded-[calc(var(--dock-base)*var(--dock-round)*0.5_+_var(--dock-pad))] [background:var(--dock-panel)] [box-shadow:inset_0_0_0_1px_var(--dock-panel-edge),inset_0_1px_0_var(--dock-panel-highlight),var(--dock-panel-shadow)] backdrop-blur-[20px] backdrop-saturate-[1.6] touch-none [transition:translate_0.5s_cubic-bezier(0.22,1,0.36,1),opacity_0.2s_ease] data-[hidden]:pointer-events-none data-[hidden]:opacity-0 data-[hidden]:[transition:translate_0.36s_cubic-bezier(0.55,0,0.75,0.15),opacity_0.24s_ease_0.1s] motion-reduce:!transition-none before:absolute before:-z-10 before:hidden before:content-[""] hover:before:block';
+
+const ROOT_SIDES = {
+  bottom:
+    'bottom-[12px] left-1/2 h-[var(--dock-thickness)] items-end [transform:translateX(-50%)] data-[hidden]:[translate:0_calc(100%_+_12px)] before:inset-x-0 before:bottom-full before:h-[calc(var(--dock-reach)_+_8px)]',
+  top: 'top-[12px] left-1/2 h-[var(--dock-thickness)] items-start [transform:translateX(-50%)] data-[hidden]:[translate:0_calc(-100%_-_12px)] before:inset-x-0 before:top-full before:h-[calc(var(--dock-reach)_+_8px)]',
+  left: 'left-[12px] top-1/2 w-[var(--dock-thickness)] flex-col items-start [transform:translateY(-50%)] data-[hidden]:[translate:calc(-100%_-_12px)_0] before:inset-y-0 before:left-full before:w-[calc(var(--dock-reach)_+_8px)]',
+  right:
+    'right-[12px] top-1/2 w-[var(--dock-thickness)] flex-col items-end [transform:translateY(-50%)] data-[hidden]:[translate:calc(100%_+_12px)_0] before:inset-y-0 before:right-full before:w-[calc(var(--dock-reach)_+_8px)]'
+};
+
+const ITEM =
+  'group relative m-0 flex-none cursor-pointer select-none border-0 bg-transparent p-0 outline-none [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] [font:inherit] w-[var(--dock-base)] h-[var(--dock-base)] text-[color:var(--dock-ink)] hover:z-[1] focus-visible:z-[1]';
+
+const TILE = 'pointer-events-none absolute left-0 top-0 w-[var(--dock-base)] h-[var(--dock-base)] origin-top-left';
+
+const FACE =
+  'absolute inset-0 flex items-center justify-center leading-none rounded-[calc(var(--dock-base)*var(--dock-round)*0.5)] [transition:filter_0.2s_ease] group-active:[filter:var(--dock-press)] group-active:[transition-duration:0s] group-data-[open]:[filter:var(--dock-press)] group-data-[open]:[transition-duration:0s] group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-[3px] group-focus-visible:outline-[color:var(--dock-accent)]';
+
+const FACE_TILE =
+  'overflow-hidden [background:var(--dock-tile)] [box-shadow:inset_0_0_0_1px_var(--dock-tile-edge),inset_0_1px_0_var(--dock-tile-highlight),var(--dock-tile-shadow)] [font-size:calc(var(--dock-base)*0.44)]';
+
+const FACE_BARE = '[font-size:calc(var(--dock-base)*0.62)]';
+
+const BADGE =
+  'pointer-events-none absolute box-border text-center font-semibold tabular-nums text-white [background:var(--dock-badge)] [box-shadow:0_1px_3px_rgba(0,0,0,0.3)]';
+
+const BADGE_COUNT =
+  'top-[calc(var(--dock-base)*(0.1465*var(--dock-round)_-_0.19))] right-[calc(var(--dock-base)*(0.1465*var(--dock-round)_-_0.19))] h-[calc(var(--dock-base)*0.38)] min-w-[calc(var(--dock-base)*0.38)] px-[calc(var(--dock-base)*0.1)] rounded-[calc(var(--dock-base)*0.19)] [font-size:calc(var(--dock-base)*0.22)] [line-height:calc(var(--dock-base)*0.38)]';
+
+const BADGE_DOT =
+  'top-[calc(var(--dock-base)*(0.1465*var(--dock-round)_-_0.11))] right-[calc(var(--dock-base)*(0.1465*var(--dock-round)_-_0.11))] h-[calc(var(--dock-base)*0.22)] w-[calc(var(--dock-base)*0.22)] rounded-full';
+
+const DOT = 'pointer-events-none absolute h-1 w-1 rounded-full [background:var(--dock-dot)]';
+
+const DOT_SIDES = {
+  bottom: 'left-1/2 -ml-[2px] top-[calc(100%_+_max(var(--dock-pad)/2,5px)_-_2px)]',
+  top: 'left-1/2 -ml-[2px] bottom-[calc(100%_+_max(var(--dock-pad)/2,5px)_-_2px)]',
+  left: 'top-1/2 -mt-[2px] right-[calc(100%_+_max(var(--dock-pad)/2,5px)_-_2px)]',
+  right: 'top-1/2 -mt-[2px] left-[calc(100%_+_max(var(--dock-pad)/2,5px)_-_2px)]'
+};
+
+const SEPARATOR = 'flex-none self-center rounded-[1px] [background:var(--dock-separator)]';
+
+const LABEL =
+  'pointer-events-none absolute whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[12px] font-medium leading-none opacity-0 [background:var(--dock-label)] text-[color:var(--dock-label-ink)] [box-shadow:inset_0_0_0_1px_var(--dock-panel-edge),0_8px_20px_-8px_rgba(0,0,0,0.35)] [transition:opacity_0.16s_ease,transform_0.16s_ease] group-hover:opacity-100 group-focus-visible:opacity-100 group-data-[hop]:!opacity-0';
+
+const LABEL_SIDES = {
+  bottom:
+    'bottom-[calc(100%_+_12px)] left-1/2 [transform:translate(-50%,4px)] group-hover:[transform:translate(-50%,0)] group-focus-visible:[transform:translate(-50%,0)]',
+  top: 'top-[calc(100%_+_12px)] left-1/2 [transform:translate(-50%,-4px)] group-hover:[transform:translate(-50%,0)] group-focus-visible:[transform:translate(-50%,0)]',
+  left: 'left-[calc(100%_+_12px)] top-1/2 [transform:translate(-4px,-50%)] group-hover:[transform:translate(0,-50%)] group-focus-visible:[transform:translate(0,-50%)]',
+  right:
+    'right-[calc(100%_+_12px)] top-1/2 [transform:translate(4px,-50%)] group-hover:[transform:translate(0,-50%)] group-focus-visible:[transform:translate(0,-50%)]'
+};
+
+const MENU = 'invisible fixed left-0 top-0 z-[1000] text-[13px] leading-none text-[color:var(--dock-menu-ink)]';
+
+const MENU_SHADOW = 'pointer-events-none absolute inset-0 rounded-[10px] [box-shadow:var(--dock-menu-shadow)]';
+
+const MENU_GLASS = 'pointer-events-none absolute -inset-[9px] backdrop-blur-[24px] backdrop-saturate-[1.8]';
+
+const MENU_SHAPE =
+  'pointer-events-none absolute -left-[9px] -top-[9px] h-[calc(100%_+_18px)] w-[calc(100%_+_18px)] overflow-visible';
+
+const MENU_PATH = '[fill:var(--dock-menu)] [stroke:var(--dock-menu-edge)] [stroke-width:1px]';
+
+const MENU_LIST = 'relative box-border flex min-w-[172px] max-w-[280px] flex-col p-[5px] outline-none';
+
+const MENU_HIGHLIGHT =
+  'pointer-events-none absolute left-[5px] right-[5px] top-0 h-6 rounded-md opacity-0 [background:var(--dock-accent)] [transition:transform_0.16s_cubic-bezier(0.3,0.8,0.3,1),height_0.16s_cubic-bezier(0.3,0.8,0.3,1),opacity_0.12s_ease] motion-reduce:!transition-none';
+
+const MENU_ROW =
+  'relative m-0 box-border flex h-6 w-full cursor-default items-center gap-[5px] whitespace-nowrap rounded-md border-0 bg-transparent pl-[7px] pr-2.5 text-left outline-none [-webkit-tap-highlight-color:transparent] [font:inherit]';
+
+const MENU_SEPARATOR = 'mx-2.5 my-[5px] h-px flex-none [background:var(--dock-menu-separator)]';
+
+const MUTED = 'text-[color:var(--dock-menu-muted)]';
+
+const THEMES: Record<'dark' | 'light', Tokens> = {
   dark: {
     '--dock-panel': 'rgba(38, 35, 46, 0.66)',
     '--dock-panel-edge': 'rgba(255, 255, 255, 0.08)',
@@ -69,15 +258,15 @@ const THEMES = {
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const hasBadge = badge => badge !== undefined && badge !== null && badge !== false;
-const usable = row => !!row && !row.separator && !row.disabled;
-const clamp = (value, min, max) => Math.min(Math.max(value, min), Math.max(min, max));
+const hasBadge = (badge: React.ReactNode) => badge !== undefined && badge !== null && badge !== false;
+const usable = (row?: DockMenuItem | null): row is DockMenuItem => !!row && !row.separator && !row.disabled;
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), Math.max(min, max));
 
-const menuPath = (width, height, side, at) => {
+const menuPath = (width: number, height: number, side: DockSide | null, at: number) => {
   const r = MENU_RADIUS;
-  const p = (x, y) => `${(x + TAIL).toFixed(2)} ${(y + TAIL).toFixed(2)}`;
-  const tail = (x, y, dx, dy, nx, ny) => {
-    const q = (u, v) => p(x + dx * u + nx * v, y + dy * u + ny * v);
+  const p = (x: number, y: number) => `${(x + TAIL).toFixed(2)} ${(y + TAIL).toFixed(2)}`;
+  const tail = (x: number, y: number, dx: number, dy: number, nx: number, ny: number) => {
+    const q = (u: number, v: number) => p(x + dx * u + nx * v, y + dy * u + ny * v);
     return `L ${q(-TAIL_HALF, 0)} L ${q(-TAIL_HALF * 0.18, TAIL * 0.82)} Q ${q(0, TAIL)} ${q(TAIL_HALF * 0.18, TAIL * 0.82)} L ${q(TAIL_HALF, 0)}`;
   };
   return [
@@ -121,21 +310,21 @@ function DockMenu({
   onBack,
   onEnter,
   onExited
-}) {
-  const outerRef = useRef(null);
-  const listRef = useRef(null);
-  const glassRef = useRef(null);
-  const shapeRef = useRef(null);
-  const pathRef = useRef(null);
-  const highlightRef = useRef(null);
-  const rowRefs = useRef([]);
-  const frameRef = useRef(null);
+}: DockMenuProps) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const glassRef = useRef<HTMLSpanElement>(null);
+  const shapeRef = useRef<SVGSVGElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
+  const highlightRef = useRef<HTMLSpanElement>(null);
+  const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const frameRef = useRef<Frame | null>(null);
   const timerRef = useRef(0);
   const aliveRef = useRef(true);
   const reduceRef = useRef(false);
-  const callbacks = useRef({});
+  const callbacks = useRef<MenuCallbacks>({});
   const [active, setActive] = useState(-1);
-  const [sub, setSub] = useState(null);
+  const [sub, setSub] = useState<SubMenu | null>(null);
   const [blink, setBlink] = useState(false);
   const [chosen, setChosen] = useState(false);
   const checks = rows.some(row => row && !row.separator && row.checked !== undefined);
@@ -149,7 +338,9 @@ function DockMenu({
     const shape = pathRef.current;
     if (!outer || !list || !glass || !shape) return undefined;
     aliveRef.current = true;
-    const layers = [outer.firstElementChild, glass, shapeRef.current, list].filter(Boolean);
+    const layers = [outer.firstElementChild, glass, shapeRef.current, list].filter((layer): layer is Element =>
+      Boolean(layer)
+    );
     const { x, y } = point ?? { x: 0, y: 0 };
     const box = edge ?? { left: 0, right: 0, top: 0 };
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
@@ -158,10 +349,10 @@ function DockMenu({
     const height = list.offsetHeight;
     const vw = document.documentElement.clientWidth;
     const vh = document.documentElement.clientHeight;
-    let left;
-    let top;
+    let left: number;
+    let top: number;
     let at = 0;
-    let origin;
+    let origin: string;
     if (side === 'bottom' || side === 'top') {
       left = clamp(x - width / 2, MARGIN, vw - MARGIN - width);
       top = side === 'bottom' ? y - TAIL - height : y + TAIL;
@@ -213,7 +404,9 @@ function DockMenu({
   useEffect(() => {
     if (!closing) return undefined;
     const outer = outerRef.current;
-    const layers = [outer?.firstElementChild, glassRef.current, shapeRef.current, listRef.current].filter(Boolean);
+    const layers = [outer?.firstElementChild, glassRef.current, shapeRef.current, listRef.current].filter(
+      (layer): layer is Element => Boolean(layer)
+    );
     const duration = reduceRef.current ? 100 : 150;
     let done = false;
     const finish = () => {
@@ -255,12 +448,12 @@ function DockMenu({
     }
   }, [active, blink]);
 
-  const activate = index => {
+  const activate = (index: number) => {
     setActive(index);
     rowRefs.current[index]?.focus({ preventScroll: true });
   };
 
-  const openSub = (index, keyboard) => {
+  const openSub = (index: number, keyboard: boolean) => {
     window.clearTimeout(timerRef.current);
     const frame = frameRef.current;
     const row = rowRefs.current[index];
@@ -277,7 +470,7 @@ function DockMenu({
     setSub(null);
   };
 
-  const choose = (index, keyboard) => {
+  const choose = (index: number, keyboard: boolean) => {
     if (chosen) return;
     const row = rows[index];
     setChosen(true);
@@ -292,7 +485,7 @@ function DockMenu({
     window.setTimeout(() => aliveRef.current && callbacks.current.onSelect?.(row, keyboard), 150);
   };
 
-  const enterRow = index => {
+  const enterRow = (index: number) => {
     if (chosen || active === index || !usable(rows[index])) return;
     activate(index);
     window.clearTimeout(timerRef.current);
@@ -303,7 +496,7 @@ function DockMenu({
     }
   };
 
-  const onKeyDown = event => {
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (chosen) return;
     const { key } = event;
     const order = rows.flatMap((row, i) => (usable(row) ? [i] : []));
@@ -338,15 +531,15 @@ function DockMenu({
   return (
     <>
       {createPortal(
-        <div ref={outerRef} className="dock-menu" style={tokens} data-dock-menu="">
-          <span className="dock-menu-shadow" />
-          <span ref={glassRef} className="dock-menu-glass" />
-          <svg ref={shapeRef} className="dock-menu-shape" aria-hidden="true">
-            <path ref={pathRef} />
+        <div ref={outerRef} className={MENU} style={tokens as React.CSSProperties} data-dock-menu="">
+          <span className={MENU_SHADOW} />
+          <span ref={glassRef} className={MENU_GLASS} />
+          <svg ref={shapeRef} className={MENU_SHAPE} aria-hidden="true">
+            <path ref={pathRef} className={MENU_PATH} />
           </svg>
           <div
             ref={listRef}
-            className="dock-menu-list"
+            className={MENU_LIST}
             role="menu"
             aria-label={label}
             tabIndex={-1}
@@ -358,10 +551,10 @@ function DockMenu({
               listRef.current?.focus({ preventScroll: true });
             }}
           >
-            <span ref={highlightRef} className="dock-menu-highlight" />
+            <span ref={highlightRef} className={MENU_HIGHLIGHT} />
             {rows.map((row, index) => {
               if (!row) return null;
-              if (row.separator) return <span key={index} className="dock-menu-separator" role="separator" />;
+              if (row.separator) return <span key={index} className={MENU_SEPARATOR} role="separator" />;
               const lit = index === active && !blink;
               const submenu = Boolean(row.items?.length);
               return (
@@ -371,7 +564,7 @@ function DockMenu({
                     rowRefs.current[index] = node;
                   }}
                   type="button"
-                  className="dock-menu-row"
+                  className={`${MENU_ROW} ${lit ? 'text-white' : row.disabled ? MUTED : 'text-inherit'}`}
                   role={row.checked !== undefined ? 'menuitemcheckbox' : 'menuitem'}
                   aria-checked={row.checked !== undefined ? Boolean(row.checked) : undefined}
                   aria-disabled={row.disabled ? true : undefined}
@@ -392,12 +585,20 @@ function DockMenu({
                     else choose(index, event.detail === 0);
                   }}
                 >
-                  {checks ? <span className="dock-menu-check">{row.checked ? <CheckGlyph /> : null}</span> : null}
-                  {row.icon ? <span className="dock-menu-icon">{row.icon}</span> : null}
-                  <span className="dock-menu-text">{row.label}</span>
-                  {row.shortcut ? <span className="dock-menu-shortcut">{row.shortcut}</span> : null}
+                  {checks ? (
+                    <span className="flex w-[14px] flex-none items-center justify-center">
+                      {row.checked ? <CheckGlyph /> : null}
+                    </span>
+                  ) : null}
+                  {row.icon ? (
+                    <span className="mr-px flex flex-none items-center justify-center text-[15px]">{row.icon}</span>
+                  ) : null}
+                  <span className="min-w-0 flex-1 overflow-hidden text-ellipsis">{row.label}</span>
+                  {row.shortcut ? (
+                    <span className={`ml-[18px] flex-none ${lit ? 'text-white/70' : MUTED}`}>{row.shortcut}</span>
+                  ) : null}
                   {submenu ? (
-                    <span className="dock-menu-chevron">
+                    <span className={`ml-[14px] flex flex-none ${lit ? 'text-inherit' : MUTED}`}>
                       <ChevronGlyph />
                     </span>
                   ) : null}
@@ -457,18 +658,18 @@ export default function Dock({
   accentColor = '#0a84ff',
   className = '',
   style
-}) {
-  const rootRef = useRef(null);
-  const itemRefs = useRef([]);
-  const wakeRef = useRef(null);
-  const actionsRef = useRef(null);
-  const menuRef = useRef(null);
+}: DockProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const wakeRef = useRef<(() => void) | null>(null);
+  const actionsRef = useRef<Actions | null>(null);
+  const menuRef = useRef<MenuState | null>(null);
   const serialRef = useRef(0);
-  const pressRef = useRef(null);
+  const pressRef = useRef<Press | null>(null);
   const pressingRef = useRef(false);
   const skipRef = useRef(-1);
   const [fit, setFit] = useState(1);
-  const [menu, setMenu] = useState(null);
+  const [menu, setMenu] = useState<MenuState | null>(null);
   const side = SIDES.includes(position) ? position : 'bottom';
   const vertical = side === 'left' || side === 'right';
   const rawBase = Math.max(16, baseItemSize);
@@ -483,7 +684,11 @@ export default function Dock({
   const base = rawBase * fit;
   const peak = rawPeak * fit;
   const thickness = rawThickness * fit;
-  const tokens = { ...(THEMES[theme] ?? THEMES.dark), '--dock-accent': accentColor, '--dock-badge': badgeColor };
+  const tokens: Tokens = {
+    ...(THEMES[theme] ?? THEMES.dark),
+    '--dock-accent': accentColor,
+    '--dock-badge': badgeColor
+  };
 
   const settings = {
     items,
@@ -534,12 +739,12 @@ export default function Dock({
     if (!root) return undefined;
 
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const motion = new Map();
+    const motion = new Map<number, Motion>();
     const pointer = { x: 0, y: 0, inside: false };
     let focused = -1;
-    let held = null;
-    let lastFocus = null;
-    let lastRest = [];
+    let held: number | null = null;
+    let lastFocus: number | null = null;
+    let lastRest: number[] = [];
     let lastBase = settingsRef.current.base;
     let hidden = root.hasAttribute('data-hidden');
     let hiding = settingsRef.current.autoHide;
@@ -548,7 +753,7 @@ export default function Dock({
     let last = 0;
     let alive = true;
 
-    const entry = index => {
+    const entry = (index: number): Motion => {
       let state = motion.get(index);
       if (!state) {
         state = {
@@ -567,7 +772,7 @@ export default function Dock({
       return state;
     };
 
-    const tick = now => {
+    const tick = (now: number) => {
       raf = 0;
       if (!alive) return;
       const s = settingsRef.current;
@@ -590,7 +795,7 @@ export default function Dock({
         cursor += span + s.gap;
         return middle;
       });
-      let focus = null;
+      let focus: number | null = null;
       if (held !== null) focus = held;
       else if (pointer.inside) focus = (s.vertical ? pointer.y : pointer.x) - center;
       else if (rest[focused] !== undefined) focus = rest[focused];
@@ -641,7 +846,7 @@ export default function Dock({
         state.drawn = drawn;
         state.node = node;
         const lift = s.side === 'bottom' || s.side === 'right' ? -state.lift : state.lift;
-        const tile = node.firstElementChild;
+        const tile = node.firstElementChild as HTMLElement | null;
         node.style.width = `${size}px`;
         node.style.height = `${size}px`;
         if (tile)
@@ -690,7 +895,7 @@ export default function Dock({
     };
 
     actionsRef.current = {
-      hop: index => {
+      hop: (index: number) => {
         const node = itemRefs.current[index];
         if (reduce || !settingsRef.current.bounce || !node) return;
         const state = entry(index);
@@ -703,11 +908,11 @@ export default function Dock({
         node.setAttribute('data-hop', '');
         wake();
       },
-      focus: index => {
+      focus: (index: number) => {
         focused = index;
         wake();
       },
-      hold: index => {
+      hold: (index: number | null) => {
         if (index === null) {
           held = null;
           wake();
@@ -720,7 +925,7 @@ export default function Dock({
       }
     };
 
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       pointer.x = event.clientX;
       pointer.y = event.clientY;
       pointer.inside = true;
@@ -732,10 +937,10 @@ export default function Dock({
       wake();
       hideLater();
     };
-    const onFocusOut = event => {
-      if (!root.contains(event.relatedTarget)) hideLater();
+    const onFocusOut = (event: FocusEvent) => {
+      if (!root.contains(event.relatedTarget as Node | null)) hideLater();
     };
-    const onWindowMove = event => {
+    const onWindowMove = (event: PointerEvent) => {
       const s = settingsRef.current;
       if (!s.autoHide || pointer.inside) return;
       const host = root.offsetParent;
@@ -788,7 +993,7 @@ export default function Dock({
     };
   }, []);
 
-  const closeMenu = useCallback(restore => {
+  const closeMenu = useCallback((restore: boolean) => {
     const current = menuRef.current;
     if (!current || current.closing) return;
     const rows = settingsRef.current.items[current.index]?.menu ?? [];
@@ -808,12 +1013,12 @@ export default function Dock({
   useEffect(() => {
     if (!menu || menu.closing) return undefined;
     const owner = itemRefs.current[menu.index];
-    const onDown = event => {
+    const onDown = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Element && (target.closest('[data-dock-menu]') || owner?.contains(target))) return;
       closeMenu(false);
     };
-    const onScroll = event => {
+    const onScroll = (event: Event) => {
       if (event.target instanceof Element && event.target.closest('[data-dock-menu]')) return;
       closeMenu(false);
     };
@@ -830,7 +1035,7 @@ export default function Dock({
     };
   }, [menu, closeMenu]);
 
-  const openMenu = (index, mode) => {
+  const openMenu = (index: number, mode: 'pointer' | 'keyboard' | 'press') => {
     const node = itemRefs.current[index];
     if (!node || !items[index]?.menu?.length) return false;
     const current = menuRef.current;
@@ -844,7 +1049,7 @@ export default function Dock({
       right: { x: rect.left - MENU_GAP, y: rect.top + rect.height / 2 }
     }[side];
     serialRef.current += 1;
-    const next = {
+    const next: MenuState = {
       id: serialRef.current,
       index,
       point,
@@ -865,16 +1070,16 @@ export default function Dock({
     pressRef.current = null;
   };
 
-  const startPress = (event, index) => {
+  const startPress = (event: React.PointerEvent<HTMLButtonElement>, index: number) => {
     endPress();
     const target = event.currentTarget;
-    const press = { id: event.pointerId, x: event.clientX, y: event.clientY, timer: 0, cleanup: () => {} };
+    const press: Press = { id: event.pointerId, x: event.clientX, y: event.clientY, timer: 0, cleanup: () => {} };
     if (target.hasPointerCapture?.(event.pointerId)) target.releasePointerCapture(event.pointerId);
-    const onMove = moved => {
+    const onMove = (moved: PointerEvent) => {
       if (moved.pointerId !== press.id) return;
       if (Math.hypot(moved.clientX - press.x, moved.clientY - press.y) > 8) endPress();
     };
-    const onUp = released => {
+    const onUp = (released: PointerEvent) => {
       if (released.pointerId === press.id) endPress();
     };
     press.cleanup = () => {
@@ -902,7 +1107,7 @@ export default function Dock({
     pressRef.current = press;
   };
 
-  const onItemKeyDown = (event, index) => {
+  const onItemKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     const toward = { bottom: 'ArrowUp', top: 'ArrowDown', left: 'ArrowRight', right: 'ArrowLeft' }[side];
     if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10') || event.key === toward) {
       if (openMenu(index, 'keyboard')) event.preventDefault();
@@ -911,7 +1116,7 @@ export default function Dock({
     const order = items.flatMap((item, i) => (item?.separator ? [] : [i]));
     const at = order.indexOf(index);
     const keys = vertical ? ['ArrowUp', 'ArrowDown'] : ['ArrowLeft', 'ArrowRight'];
-    let next;
+    let next: number | undefined;
     if (event.key === keys[0]) next = order[(at - 1 + order.length) % order.length];
     else if (event.key === keys[1]) next = order[(at + 1) % order.length];
     else if (event.key === 'Home') next = order[0];
@@ -926,24 +1131,30 @@ export default function Dock({
   return (
     <div
       ref={rootRef}
-      className={`dock dock--${side}${tiles ? '' : ' dock--bare'}${className ? ` ${className}` : ''}`}
+      className={`${ROOT} ${ROOT_SIDES[side]}${className ? ` ${className}` : ''}`}
       role="toolbar"
       aria-label="Dock"
       aria-orientation={vertical ? 'vertical' : 'horizontal'}
-      style={{
-        ...tokens,
-        '--dock-base': `${base}px`,
-        '--dock-thickness': `${thickness}px`,
-        '--dock-gap': `${rawGap * fit}px`,
-        '--dock-pad': `${(thickness - base) / 2}px`,
-        '--dock-reach': `${peak - base}px`,
-        '--dock-round': clamp(roundness, 0, 1),
-        ...style
-      }}
+      style={
+        {
+          ...tokens,
+          '--dock-base': `${base}px`,
+          '--dock-thickness': `${thickness}px`,
+          '--dock-gap': `${rawGap * fit}px`,
+          '--dock-pad': `${(thickness - base) / 2}px`,
+          '--dock-reach': `${peak - base}px`,
+          '--dock-round': clamp(roundness, 0, 1),
+          ...style
+        } as React.CSSProperties
+      }
     >
       {items.map((item, index) =>
         item?.separator ? (
-          <span key={index} className="dock-separator" aria-hidden="true" />
+          <span
+            key={index}
+            className={`${SEPARATOR} ${vertical ? 'h-px w-[calc(var(--dock-base)*0.72)]' : 'h-[calc(var(--dock-base)*0.72)] w-px'}`}
+            aria-hidden="true"
+          />
         ) : (
           <button
             key={index}
@@ -951,7 +1162,7 @@ export default function Dock({
               itemRefs.current[index] = node;
             }}
             type="button"
-            className={`dock-item${item.className ? ` ${item.className}` : ''}`}
+            className={`${ITEM}${item.className ? ` ${item.className}` : ''}`}
             aria-label={item.label}
             aria-haspopup={item.menu?.length ? 'menu' : undefined}
             aria-expanded={item.menu?.length ? openIndex === index : undefined}
@@ -987,15 +1198,17 @@ export default function Dock({
             onBlur={() => actionsRef.current?.focus(-1)}
             onKeyDown={event => onItemKeyDown(event, index)}
           >
-            <span className="dock-tile">
-              <span className="dock-face">{item.icon}</span>
+            <span className={TILE}>
+              <span className={`${FACE} ${tiles ? FACE_TILE : FACE_BARE}`}>{item.icon}</span>
               {showBadges && hasBadge(item.badge) ? (
-                <span className="dock-badge">{item.badge === true ? null : item.badge}</span>
+                <span className={`${BADGE} ${item.badge === true ? BADGE_DOT : BADGE_COUNT}`}>
+                  {item.badge === true ? null : item.badge}
+                </span>
               ) : null}
             </span>
-            {showIndicators && item.active ? <span className="dock-dot" aria-hidden="true" /> : null}
+            {showIndicators && item.active ? <span className={`${DOT} ${DOT_SIDES[side]}`} aria-hidden="true" /> : null}
             {showLabels && item.label && !menu ? (
-              <span className="dock-label" aria-hidden="true">
+              <span className={`${LABEL} ${LABEL_SIDES[side]}`} aria-hidden="true">
                 {item.label}
               </span>
             ) : null}

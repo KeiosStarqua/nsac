@@ -1,17 +1,80 @@
 // Stepper
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/Stepper/Stepper.jsx
+// Source: @react-bits/Stepper-TS-TW — https://reactbits.dev/r/Stepper-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { Children, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Children,
+  isValidElement,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type CSSProperties,
+  type HTMLAttributes,
+  type ReactElement,
+  type ReactNode
+} from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, ArrowRight01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 
-import './Stepper.css';
-
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-const THEMES = {
+export interface StepProps {
+  children?: ReactNode;
+  title?: ReactNode;
+  description?: ReactNode;
+  icon?: ReactNode;
+}
+
+interface StepIndicatorProps {
+  step: number;
+  currentStep: number;
+  onStepClick: (step: number) => void;
+}
+
+interface StepperProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'className' | 'style'> {
+  children?: ReactNode;
+  step?: number;
+  initialStep?: number;
+  onStepChange?: (step: number) => void;
+  onFinalStepCompleted?: () => void;
+  indicator?: 'numbers' | 'dots' | 'bars';
+  orientation?: 'horizontal' | 'vertical';
+  transition?: 'slide' | 'fade' | 'none';
+  linear?: boolean;
+  disableStepIndicators?: boolean;
+  renderStepIndicator?: (props: StepIndicatorProps) => ReactNode;
+  showFooter?: boolean;
+  backButtonText?: string;
+  nextButtonText?: string;
+  completeButtonText?: string;
+  backButtonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
+  nextButtonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
+  completedContent?: ReactNode;
+  theme?: 'dark' | 'light';
+  accentColor?: string;
+  frame?: boolean;
+  radius?: number;
+  width?: number | string;
+  className?: string;
+  stepCircleContainerClassName?: string;
+  stepContainerClassName?: string;
+  contentClassName?: string;
+  footerClassName?: string;
+  style?: CSSProperties;
+}
+
+interface View {
+  step: number;
+  previous: number | null;
+  direction: number;
+  id: number;
+}
+
+const THEMES: Record<string, Record<string, string>> = {
   dark: {
     '--stepper-frame': 'rgba(38, 35, 46, 0.66)',
     '--stepper-frame-edge': 'rgba(255, 255, 255, 0.08)',
@@ -62,10 +125,10 @@ const SPRING =
   'linear(0, 0.0603, 0.2033, 0.3821, 0.5633, 0.7258, 0.8584, 0.9574, 1.0242, 1.0634, 1.0809, 1.0828, 1.0747, 1.0613, 1.046, 1.0313, 1.0186, 1.0085, 1.0012, 0.9965, 0.994, 0.9931, 0.9933, 0.9941, 0.9953, 0.9966, 0.9978, 0.9988, 1)';
 const SETTLE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const size = value => (typeof value === 'number' ? `${value}px` : value);
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const size = (value: number | string) => (typeof value === 'number' ? `${value}px` : value);
 
-const readableOn = color => {
+const readableOn = (color: string) => {
   let hex = String(color || '')
     .trim()
     .replace('#', '');
@@ -83,8 +146,48 @@ const ease = () =>
     ? SPRING
     : 'cubic-bezier(0.34, 1.4, 0.64, 1)';
 
+const INK = 'text-[color:var(--stepper-ink)]';
+const MUTED = 'text-[color:var(--stepper-muted)]';
+const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--stepper-ink)]';
+const ROOT_CLASS =
+  'relative box-border flex w-[min(100%,var(--stepper-width))] max-w-full min-w-0 rounded-[var(--stepper-radius)] text-[color:var(--stepper-ink)] [-webkit-tap-highlight-color:transparent] [--stepper-tile-radius:max(4px,calc(var(--stepper-well-radius)-4px))] [--stepper-well-radius:max(6px,calc(var(--stepper-radius)-8px))]';
+const FRAMED_CLASS =
+  '[--stepper-bleed:20px] [--stepper-inset:12px] [--stepper-pad:8px] p-[var(--stepper-pad)] [background:var(--stepper-frame)] [box-shadow:var(--stepper-frame-shadow)] backdrop-blur-[20px] backdrop-saturate-[1.6]';
+const BARE_CLASS = '[--stepper-bleed:8px] [--stepper-inset:0px] [--stepper-pad:0px]';
+const RIM_CLASS =
+  'pointer-events-none absolute inset-0 z-[2] rounded-[inherit] [box-shadow:inset_0_0_0_1px_var(--stepper-frame-edge),inset_0_1px_0_var(--stepper-frame-highlight)]';
+const TRACK_CLASS = 'relative flex gap-1 rounded-[var(--stepper-well-radius)] p-1 [background:var(--stepper-well)]';
+const GLIDER_CLASS =
+  'pointer-events-none absolute top-0 left-0 rounded-[var(--stepper-tile-radius)] opacity-0 [background:var(--stepper-tile)] [box-shadow:inset_0_0_0_1px_var(--stepper-tile-edge),inset_0_1px_0_var(--stepper-tile-highlight),var(--stepper-tile-shadow)]';
+const SEGMENT_CLASS = `relative box-border flex min-w-0 cursor-pointer rounded-[var(--stepper-tile-radius)] border-none bg-transparent font-[inherit] ${MUTED} [transition:background-color_0.2s_ease] disabled:cursor-default [@media(hover:hover)]:[&:not(:disabled):hover]:[background:var(--stepper-hover-fill)] ${FOCUS}`;
+const SEGMENT_ROW = 'h-10 flex-[1_1_auto] items-center justify-center gap-2 px-2.5';
+const SEGMENT_RAIL = 'h-auto flex-none items-start justify-start gap-2.5 p-2.5';
+const BADGE_CLASS = `grid h-[22px] w-[22px] flex-none place-items-center rounded-full text-[11.5px] leading-none font-semibold tabular-nums ${MUTED} [box-shadow:inset_0_0_0_1px_var(--stepper-faint)] [transition:background-color_0.15s_ease,box-shadow_0.15s_ease,color_0.15s_ease] data-[status=active]:text-[color:var(--stepper-ink)] data-[status=active]:[box-shadow:inset_0_0_0_1.5px_var(--stepper-ink)] data-[status=complete]:text-[color:var(--stepper-solid-ink)] data-[status=complete]:[background:var(--stepper-solid)] data-[status=complete]:[box-shadow:none]`;
+const TITLE_CLASS =
+  'overflow-hidden text-[13px] leading-[1.2] font-semibold text-ellipsis whitespace-nowrap transition-colors duration-200';
+const DESCRIPTION_CLASS = `overflow-hidden text-[12px] leading-[1.35] text-ellipsis whitespace-nowrap ${MUTED}`;
+const DOT_CLASS = `group/dot grid h-[22px] w-[22px] cursor-pointer place-items-center rounded-full border-none bg-transparent p-0 disabled:cursor-default ${FOCUS}`;
+const DOT_MARK_CLASS =
+  'h-2 w-2 rounded-full [background:var(--stepper-faint)] [transition:background-color_0.25s_ease,transform_0.45s_var(--stepper-spring)] data-[status=active]:[background:var(--stepper-solid)] data-[status=active]:[transform:scale(1.3)] data-[status=complete]:[background:var(--stepper-muted)] motion-reduce:[transition-duration:0.01ms] [@media(hover:hover)]:group-[:not(:disabled):hover]/dot:[transform:scale(1.3)]';
+const BAR_CLASS = `group/bar flex h-[18px] flex-1 cursor-pointer items-center border-none bg-transparent p-0 disabled:cursor-default ${FOCUS}`;
+const BAR_TRACK_CLASS =
+  'relative h-1 w-full overflow-hidden rounded-[4px] [background:var(--stepper-track)] [@media(hover:hover)]:group-[:not(:disabled):hover]/bar:[background:var(--stepper-faint)]';
+const BAR_FILL_CLASS =
+  'absolute inset-0 origin-left [background:var(--stepper-solid)] [transform:scaleX(0)] [transition:transform_560ms_var(--stepper-spring)] data-[filled]:[transform:none] motion-reduce:[transition-duration:0.01ms]';
+const VIEWPORT_CLASS = 'relative -my-1.5 mx-[calc(var(--stepper-bleed)*-1)] overflow-hidden';
+const PANE_CLASS = 'box-border px-[var(--stepper-bleed)] py-1.5 outline-none';
+const LEAVING_CLASS = 'pointer-events-none absolute top-0 right-0 left-0';
+const FOOTER_WRAP_CLASS =
+  'group/footer grid grid-rows-[1fr] [transition:grid-template-rows_480ms_var(--stepper-spring),opacity_0.2s_ease] data-[hidden]:pointer-events-none data-[hidden]:grid-rows-[0fr] data-[hidden]:opacity-0 motion-reduce:[transition-duration:0.01ms]';
+const FOOTER_CLIP_CLASS = 'min-h-0 group-data-[hidden]/footer:overflow-hidden';
+const FOOTER_CLASS = 'flex items-center justify-between gap-3 pt-5';
+const BUTTON_CLASS = `inline-flex h-[38px] flex-none cursor-pointer items-center gap-1.5 rounded-[max(8px,calc(var(--stepper-radius)*0.5))] border-none px-3.5 font-[inherit] text-[13.5px] leading-none font-semibold [transition:filter_0.2s_ease,transform_0.2s_ease,opacity_0.2s_ease] disabled:cursor-not-allowed disabled:opacity-40 active:enabled:[filter:var(--stepper-press)] active:enabled:[transform:scale(0.96)] active:enabled:duration-0 ${FOCUS}`;
+const BACK_CLASS = `pl-2.5 ${INK} [background:var(--stepper-tile)] [box-shadow:inset_0_0_0_1px_var(--stepper-tile-edge),inset_0_1px_0_var(--stepper-tile-highlight),var(--stepper-tile-shadow)] hover:enabled:[filter:var(--stepper-hover)] data-[hidden]:invisible data-[hidden]:opacity-0 data-[hidden]:[transition:opacity_0.2s_ease,visibility_0s_0.2s]`;
+const NEXT_CLASS =
+  'ml-auto pr-[11px] text-[color:var(--stepper-solid-ink)] [background:var(--stepper-solid)] [box-shadow:0_4px_12px_-6px_rgba(0,0,0,0.5)] hover:enabled:[filter:var(--stepper-solid-hover)]';
+
 function Check() {
-  const ref = useRef(null);
+  const ref = useRef<HTMLSpanElement>(null);
 
   useIsomorphicLayoutEffect(() => {
     const path = ref.current?.querySelector('path');
@@ -98,14 +201,14 @@ function Check() {
   }, []);
 
   return (
-    <span ref={ref} className="stepper__check">
+    <span ref={ref} className="grid place-items-center">
       <HugeiconsIcon icon={Tick02Icon} size={16} strokeWidth={2.4} />
     </span>
   );
 }
 
-export function Step({ children }) {
-  return <div className="stepper__step">{children}</div>;
+export function Step({ children }: StepProps) {
+  return <div className="min-w-0">{children}</div>;
 }
 
 export default function Stepper({
@@ -139,8 +242,8 @@ export default function Stepper({
   footerClassName = '',
   style,
   ...rest
-}) {
-  const steps = Children.toArray(children).filter(isValidElement);
+}: StepperProps) {
+  const steps = Children.toArray(children).filter(isValidElement) as ReactElement<StepProps>[];
   const total = steps.length;
   const controlled = typeof step === 'number';
   const [internal, setInternal] = useState(initialStep);
@@ -156,26 +259,26 @@ export default function Stepper({
   const [reached, setReached] = useState(current);
   if (current > reached) setReached(current);
 
-  const [view, setView] = useState({ step: current, previous: null, direction: 1, id: 0 });
+  const [view, setView] = useState<View>({ step: current, previous: null, direction: 1, id: 0 });
   if (view.step !== current) {
     setView({ step: current, previous: view.step, direction: current > view.step ? 1 : -1, id: view.id + 1 });
   }
 
-  const rootRef = useRef(null);
-  const trackRef = useRef(null);
-  const gliderRef = useRef(null);
-  const markerRefs = useRef([]);
-  const titleRefs = useRef([]);
-  const viewportRef = useRef(null);
-  const paneRef = useRef(null);
-  const leavingRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const gliderRef = useRef<HTMLSpanElement>(null);
+  const markerRefs = useRef<(HTMLElement | null)[]>([]);
+  const titleRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const paneRef = useRef<HTMLDivElement>(null);
+  const leavingRef = useRef<HTMLDivElement>(null);
   const heightRef = useRef(0);
-  const labelWidths = useRef([]);
+  const labelWidths = useRef<number[]>([]);
   const tightRef = useRef(false);
   tightRef.current = tight;
   const placedRef = useRef(false);
 
-  const go = target => {
+  const go = (target: number) => {
     const next = clamp(target, 1, total + 1);
     if (next === current) return;
     if (!controlled) setInternal(next);
@@ -183,7 +286,7 @@ export default function Stepper({
     else onStepChange(next);
   };
 
-  const reachable = number =>
+  const reachable = (number: number) =>
     !disableStepIndicators && number !== current && (!linear || number <= Math.min(reached, total));
 
   useIsomorphicLayoutEffect(() => {
@@ -285,7 +388,7 @@ export default function Stepper({
     const track = trackRef.current;
     const glider = gliderRef.current;
     if (!track || !glider) return;
-    const place = animate => {
+    const place = (animate: boolean) => {
       const segment = markerRefs.current[Math.min(current, total) - 1];
       if (!segment) return;
       const spring = ease();
@@ -304,17 +407,17 @@ export default function Stepper({
     return () => observer.disconnect();
   }, [current, total, completed, kind, labelled, vertical, compact, tight]);
 
-  const paneContent = number => (number > total ? (completedContent ?? null) : steps[number - 1]);
-  const accentVars = accentColor
+  const paneContent = (number: number) => (number > total ? (completedContent ?? null) : steps[number - 1]);
+  const accentVars: Record<string, string> = accentColor
     ? { '--stepper-solid': accentColor, '--stepper-solid-ink': readableOn(accentColor) }
     : {};
 
-  const badge = (entry, number, status) => (
-    <span className="stepper__badge" data-status={status}>
+  const badge = (entry: ReactElement<StepProps>, number: number, status: 'complete' | 'active' | 'upcoming') => (
+    <span className={BADGE_CLASS} data-status={status}>
       {status === 'complete' ? (
         <Check />
       ) : entry.props.icon ? (
-        <span className="stepper__glyph">{entry.props.icon}</span>
+        <span className="grid place-items-center">{entry.props.icon}</span>
       ) : (
         number
       )}
@@ -324,7 +427,7 @@ export default function Stepper({
   const header = () => {
     if (kind === 'dots') {
       return (
-        <div className="stepper__dots">
+        <div className="flex justify-center gap-[2px]">
           {steps.map((entry, index) => {
             const number = index + 1;
             const status = completed || number < current ? 'complete' : number === current ? 'active' : 'upcoming';
@@ -332,14 +435,14 @@ export default function Stepper({
               <button
                 key={number}
                 type="button"
-                className="stepper__dot"
+                className={DOT_CLASS}
                 data-status={status}
                 aria-label={entry.props.title ? `Step ${number}: ${entry.props.title}` : `Step ${number}`}
                 aria-current={number === current ? 'step' : undefined}
                 disabled={!reachable(number)}
                 onClick={() => go(number)}
               >
-                <span className="stepper__dot-mark" data-status={status} />
+                <span className={DOT_MARK_CLASS} data-status={status} />
               </button>
             );
           })}
@@ -348,7 +451,7 @@ export default function Stepper({
     }
     if (kind === 'bars') {
       return (
-        <div className="stepper__bars">
+        <div className="flex gap-1.5">
           {steps.map((entry, index) => {
             const number = index + 1;
             const filled = completed || number <= current;
@@ -356,15 +459,15 @@ export default function Stepper({
               <button
                 key={number}
                 type="button"
-                className="stepper__bar"
+                className={BAR_CLASS}
                 data-status={completed || number < current ? 'complete' : number === current ? 'active' : 'upcoming'}
                 aria-label={entry.props.title ? `Step ${number}: ${entry.props.title}` : `Step ${number}`}
                 aria-current={number === current ? 'step' : undefined}
                 disabled={!reachable(number)}
                 onClick={() => go(number)}
               >
-                <span className="stepper__bar-track">
-                  <span className="stepper__bar-fill" data-filled={filled ? '' : undefined} />
+                <span className={BAR_TRACK_CLASS}>
+                  <span className={BAR_FILL_CLASS} data-filled={filled ? '' : undefined} />
                 </span>
               </button>
             );
@@ -373,34 +476,41 @@ export default function Stepper({
       );
     }
     return (
-      <div ref={trackRef} className="stepper__track" data-layout={rail ? 'rail' : 'row'}>
-        <span ref={gliderRef} className="stepper__glider" aria-hidden="true" />
+      <div
+        ref={trackRef}
+        className={`${TRACK_CLASS} ${rail ? 'flex-1 flex-col' : ''}`}
+        data-layout={rail ? 'rail' : 'row'}
+      >
+        <span ref={gliderRef} className={GLIDER_CLASS} aria-hidden="true" />
         {steps.map((entry, index) => {
           const number = index + 1;
           const status = completed || number < current ? 'complete' : number === current ? 'active' : 'upcoming';
           const title = entry.props.title;
           const text = title && !(tight && !rail) && (
-            <span className="stepper__text">
+            <span className={`flex min-w-0 flex-col gap-[2px] text-left ${rail ? 'pt-[3px]' : ''}`}>
               <span
                 ref={element => {
                   titleRefs.current[index] = element;
                 }}
-                className="stepper__title"
+                className={`${TITLE_CLASS} ${status === 'upcoming' ? MUTED : INK}`}
                 data-status={status}
               >
                 {title}
               </span>
-              {rail && entry.props.description && (
-                <span className="stepper__description">{entry.props.description}</span>
-              )}
+              {rail && entry.props.description && <span className={DESCRIPTION_CLASS}>{entry.props.description}</span>}
             </span>
           );
-          const ref = element => {
+          const ref = (element: HTMLElement | null) => {
             markerRefs.current[index] = element;
           };
           if (renderStepIndicator) {
             return (
-              <div key={number} ref={ref} className="stepper__segment" data-status={status}>
+              <div
+                key={number}
+                ref={ref}
+                className={`${SEGMENT_CLASS} ${rail ? SEGMENT_RAIL : SEGMENT_ROW}`}
+                data-status={status}
+              >
                 {renderStepIndicator({ step: number, currentStep: current, onStepClick: clicked => go(clicked) })}
                 {text}
               </div>
@@ -411,7 +521,7 @@ export default function Stepper({
               key={number}
               ref={ref}
               type="button"
-              className="stepper__segment"
+              className={`${SEGMENT_CLASS} ${rail ? SEGMENT_RAIL : SEGMENT_ROW}`}
               data-status={status}
               aria-label={typeof title === 'string' ? `Step ${number}: ${title}` : `Step ${number}`}
               aria-current={number === current ? 'step' : undefined}
@@ -436,43 +546,53 @@ export default function Stepper({
     <div
       {...rest}
       ref={rootRef}
-      className={`stepper stepper--${rail ? 'vertical' : 'horizontal'}${frame ? ' stepper--framed' : ''} ${stepCircleContainerClassName} ${className}`
+      className={`${ROOT_CLASS} ${rail ? 'flex-row items-stretch' : 'flex-col'} ${frame ? FRAMED_CLASS : BARE_CLASS} ${stepCircleContainerClassName} ${className}`
         .replace(/\s+/g, ' ')
         .trim()}
       data-completed={completed ? '' : undefined}
-      style={{
-        ...(THEMES[theme] ?? THEMES.dark),
-        '--stepper-radius': `${Math.max(0, radius)}px`,
-        '--stepper-spring': SPRING,
-        '--stepper-width': size(width),
-        ...accentVars,
-        ...style
-      }}
+      style={
+        {
+          ...(THEMES[theme] ?? THEMES.dark),
+          '--stepper-radius': `${Math.max(0, radius)}px`,
+          '--stepper-spring': SPRING,
+          '--stepper-width': size(width),
+          ...accentVars,
+          ...style
+        } as CSSProperties
+      }
     >
-      <div className={`stepper__header stepper__header--${kind} ${stepContainerClassName}`.trim()}>{header()}</div>
-      <div className="stepper__body">
-        <div ref={viewportRef} className={`stepper__viewport ${contentClassName}`.trim()} aria-live="polite">
+      <div
+        className={`${kind === 'numbers' ? '' : 'px-[var(--stepper-inset)] pt-[var(--stepper-inset)]'} ${rail ? 'flex w-[212px] max-w-[42%] flex-none' : ''} ${stepContainerClassName}`
+          .replace(/\s+/g, ' ')
+          .trim()}
+      >
+        {header()}
+      </div>
+      <div
+        className={`flex min-w-0 flex-col ${rail ? 'flex-1 pt-[var(--stepper-inset)] pr-[var(--stepper-inset)] pb-[var(--stepper-inset)] pl-5' : 'px-[var(--stepper-inset)] pt-5 pb-[var(--stepper-inset)]'}`}
+      >
+        <div ref={viewportRef} className={`${VIEWPORT_CLASS} ${contentClassName}`.trim()} aria-live="polite">
           {view.previous !== null && (
-            <div key={view.id - 1} ref={leavingRef} className="stepper__pane stepper__pane--leaving" aria-hidden="true">
+            <div key={view.id - 1} ref={leavingRef} className={`${PANE_CLASS} ${LEAVING_CLASS}`} aria-hidden="true">
               {paneContent(view.previous)}
             </div>
           )}
-          <div key={view.id} ref={paneRef} className="stepper__pane" tabIndex={-1}>
+          <div key={view.id} ref={paneRef} className={PANE_CLASS} tabIndex={-1}>
             {paneContent(view.step)}
           </div>
         </div>
         {showFooter && (
           <div
-            className="stepper__footer-wrap"
+            className={FOOTER_WRAP_CLASS}
             data-hidden={completed ? '' : undefined}
             aria-hidden={completed ? true : undefined}
           >
-            <div className="stepper__footer-clip">
-              <div className={`stepper__footer ${footerClassName}`.trim()}>
+            <div className={FOOTER_CLIP_CLASS}>
+              <div className={`${FOOTER_CLASS} ${footerClassName}`.trim()}>
                 <button
                   type="button"
                   {...backRest}
-                  className={`stepper__button stepper__button--back ${backClass}`.trim()}
+                  className={`${BUTTON_CLASS} ${BACK_CLASS} ${backClass}`.trim()}
                   data-hidden={current <= 1 ? '' : undefined}
                   tabIndex={completed ? -1 : backRest.tabIndex}
                   onClick={event => {
@@ -486,7 +606,7 @@ export default function Stepper({
                 <button
                   type="button"
                   {...nextRest}
-                  className={`stepper__button stepper__button--next ${nextClass}`.trim()}
+                  className={`${BUTTON_CLASS} ${NEXT_CLASS} ${nextClass}`.trim()}
                   tabIndex={completed ? -1 : nextRest.tabIndex}
                   onClick={event => {
                     onNextClick?.(event);
@@ -501,7 +621,7 @@ export default function Stepper({
           </div>
         )}
       </div>
-      {frame && <span className="stepper__rim" aria-hidden="true" />}
+      {frame && <span className={RIM_CLASS} aria-hidden="true" />}
     </div>
   );
 }

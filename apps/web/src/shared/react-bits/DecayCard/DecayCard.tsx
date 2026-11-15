@@ -1,14 +1,42 @@
 // DecayCard
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/DecayCard/DecayCard.jsx
+// Source: @react-bits/DecayCard-TS-TW — https://reactbits.dev/r/DecayCard-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-import './DecayCard.css';
+export type DecayCardProps = {
+  image?: string;
+  width?: number;
+  height?: number;
+  intensity?: number;
+  sensitivity?: number;
+  hoverDecay?: number;
+  recovery?: number;
+  idle?: number;
+  grain?: number;
+  detail?: number;
+  pattern?: number;
+  flow?: number;
+  chroma?: number;
+  travel?: number;
+  tilt?: number;
+  scope?: 'window' | 'card';
+  radius?: number;
+  grayscale?: boolean;
+  children?: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+};
 
-const SCOPES = ['window', 'card'];
+const SCOPES: NonNullable<DecayCardProps['scope']>[] = ['window', 'card'];
 const BLEED = 1.24;
+
+const ROOT = 'relative flex-none will-change-transform';
+const CANVAS = 'pointer-events-none absolute top-[-12%] left-[-12%] block h-[124%] w-[124%]';
+const FALLBACK = 'absolute top-[8.33%] left-[8.33%] h-[83.33%] w-[83.33%] object-cover';
+const CONTENT = 'pointer-events-none absolute right-[8.33%] bottom-[8.33%] left-[8.33%] p-5 text-white';
 
 const VERTEX = `#version 300 es
 in vec2 position;
@@ -142,15 +170,15 @@ void main() {
   fragColor = vec4(color * alpha, alpha);
 }`;
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const soften = (value, bound) => {
+const soften = (value: number, bound: number) => {
   if (value > bound) return bound + (value - bound) * 0.2;
   if (value < -bound) return -bound + (value + bound) * 0.2;
   return value;
 };
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -182,11 +210,11 @@ const DecayCard = ({
   children,
   className = '',
   style
-}) => {
-  const rootRef = useRef(null);
-  const canvasRef = useRef(null);
-  const loadRef = useRef(null);
-  const wakeRef = useRef(null);
+}: DecayCardProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const loadRef = useRef<((src: string) => void) | null>(null);
+  const wakeRef = useRef<(() => void) | null>(null);
   const [fallback, setFallback] = useState(false);
   const settings = {
     intensity: clamp(intensity, 0, 2),
@@ -215,10 +243,10 @@ const DecayCard = ({
 
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
-    let program = null;
-    let texture = null;
-    let buffer = null;
-    const uniforms = {};
+    let program: WebGLProgram | null = null;
+    let texture: WebGLTexture | null = null;
+    let buffer: WebGLBuffer | null = null;
+    const uniforms: Record<string, WebGLUniformLocation | null> = {};
 
     if (gl) {
       const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
@@ -326,7 +354,7 @@ const DecayCard = ({
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (!alive) return;
       const s = settingsRef.current;
@@ -397,7 +425,7 @@ const DecayCard = ({
       draw();
     };
 
-    loadRef.current = src => {
+    loadRef.current = (src: string) => {
       state.ready = false;
       draw();
       if (!src) return;
@@ -431,7 +459,7 @@ const DecayCard = ({
       img.src = src;
     };
 
-    const onMove = event => {
+    const onMove = (event: PointerEvent) => {
       state.cursorX = event.clientX;
       state.cursorY = event.clientY;
       if (!state.seen) {
@@ -489,17 +517,17 @@ const DecayCard = ({
   });
 
   return (
-    <div ref={rootRef} className={`decay-card${className ? ` ${className}` : ''}`} style={{ width, height, ...style }}>
-      <canvas ref={canvasRef} className="decay-card__canvas" aria-hidden="true" />
+    <div ref={rootRef} className={`${ROOT}${className ? ` ${className}` : ''}`} style={{ width, height, ...style }}>
+      <canvas ref={canvasRef} className={CANVAS} aria-hidden="true" />
       {fallback && image && (
         <img
-          className="decay-card__fallback"
+          className={FALLBACK}
           src={image}
           alt=""
           style={{ borderRadius: radius, filter: grayscale ? 'grayscale(1)' : undefined }}
         />
       )}
-      {children && <div className="decay-card__content">{children}</div>}
+      {children && <div className={CONTENT}>{children}</div>}
     </div>
   );
 };

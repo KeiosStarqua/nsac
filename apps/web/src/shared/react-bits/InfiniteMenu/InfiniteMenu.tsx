@@ -1,11 +1,43 @@
 // InfiniteMenu
-// Source: https://github.com/DavidHDev/react-bits (main), src/content/Components/InfiniteMenu/InfiniteMenu.jsx
+// Source: @react-bits/InfiniteMenu-TS-TW — https://reactbits.dev/r/InfiniteMenu-TS-TW.json
 // React Bits — MIT + Commons Clause, see ../LICENSE.md
 // @ts-nocheck
+'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-import './InfiniteMenu.css';
+export interface InfiniteMenuItem {
+  image: string;
+  title?: string;
+  description?: string;
+  link?: string;
+}
+
+export interface InfiniteMenuProps {
+  items?: InfiniteMenuItem[];
+  count?: number;
+  tileSize?: number;
+  roundness?: number;
+  zoom?: number;
+  pullBack?: number;
+  stretch?: number;
+  inertia?: number;
+  autoplay?: number;
+  grayscale?: boolean;
+  dim?: number;
+  intro?: boolean;
+  showInfo?: boolean;
+  renderInfo?: (item: InfiniteMenuItem, index: number, moving: boolean) => React.ReactNode;
+  theme?: 'dark' | 'light';
+  accentColor?: string;
+  backgroundColor?: string;
+  onActiveChange?: (item: InfiniteMenuItem, index: number) => void;
+  onItemClick?: (item: InfiniteMenuItem, index: number) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+type Engine = { loadItems: (list: InfiniteMenuItem[]) => void; wake: () => void };
 
 const VERTEX = `#version 300 es
 in vec2 aCorner;
@@ -84,39 +116,59 @@ void main() {
   outColor = vec4(color * alpha, alpha);
 }`;
 
+const ROOT =
+  'relative h-full w-full overflow-hidden outline-none @container text-[var(--infinite-menu-text)] [-webkit-tap-highlight-color:transparent] focus-visible:shadow-[inset_0_0_0_2px_var(--infinite-menu-text)]';
+const CANVAS = 'absolute inset-0 block h-full w-full cursor-grab touch-none active:cursor-grabbing';
+const LAYER = 'group pointer-events-none absolute inset-0';
+const CUSTOM = 'pointer-events-none absolute inset-0';
+const MOTION =
+  'transition-[opacity,translate,scale] duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[moving=true]:opacity-0 group-data-[moving=true]:duration-[180ms]';
+const TITLE =
+  MOTION +
+  ' absolute top-1/2 right-[calc(50%_+_var(--infinite-menu-tile,160px)_+_28px)] m-0 max-w-[calc(50%_-_var(--infinite-menu-tile,160px)_-_48px)] -translate-y-1/2 text-right text-[clamp(1.2rem,calc((50cqw_-_var(--infinite-menu-tile,160px))_*_0.2),3.4rem)] leading-[1.05] font-semibold tracking-[-0.03em] text-balance [text-shadow:var(--infinite-menu-shadow)] group-data-[moving=true]:translate-x-4 group-data-[layout=stacked]:top-auto group-data-[layout=stacked]:right-[88px] group-data-[layout=stacked]:bottom-[52px] group-data-[layout=stacked]:left-5 group-data-[layout=stacked]:max-w-none group-data-[layout=stacked]:translate-y-0 group-data-[layout=stacked]:text-left group-data-[layout=stacked]:text-[clamp(1.3rem,6cqw,1.8rem)] group-data-[layout=stacked]:group-data-[moving=true]:translate-x-0 group-data-[layout=stacked]:group-data-[moving=true]:translate-y-3';
+const DESCRIPTION =
+  MOTION +
+  ' absolute top-1/2 left-[calc(50%_+_var(--infinite-menu-tile,160px)_+_28px)] m-0 max-w-[min(22ch,calc(50%_-_var(--infinite-menu-tile,160px)_-_48px))] -translate-y-1/2 text-[clamp(0.85rem,1.5cqw,1.05rem)] leading-[1.55] opacity-[0.72] [text-shadow:var(--infinite-menu-shadow)] group-data-[moving=true]:-translate-x-4 group-data-[layout=stacked]:top-auto group-data-[layout=stacked]:right-[88px] group-data-[layout=stacked]:bottom-[22px] group-data-[layout=stacked]:left-5 group-data-[layout=stacked]:max-w-[36ch] group-data-[layout=stacked]:translate-y-0 group-data-[layout=stacked]:truncate group-data-[layout=stacked]:group-data-[moving=true]:translate-x-0 group-data-[layout=stacked]:group-data-[moving=true]:translate-y-3';
+const ACTION =
+  'absolute bottom-[7%] left-1/2 grid h-[52px] w-[52px] -translate-x-1/2 cursor-pointer place-items-center rounded-full border-0 bg-[var(--infinite-menu-accent)] p-0 text-[var(--infinite-menu-on-accent)] pointer-events-auto transition-[opacity,translate,scale] duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.06] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--infinite-menu-accent)] group-data-[moving=true]:pointer-events-none group-data-[moving=true]:translate-y-4 group-data-[moving=true]:scale-[0.6] group-data-[moving=true]:opacity-0 group-data-[moving=true]:duration-[180ms] group-data-[layout=stacked]:right-5 group-data-[layout=stacked]:bottom-[22px] group-data-[layout=stacked]:left-auto group-data-[layout=stacked]:translate-x-0 group-data-[layout=stacked]:group-data-[moving=true]:translate-y-3';
+
 const GRID = 12;
 const RADIUS = 2;
 const FOV = (30 * Math.PI) / 180;
 const FRONT = [0, 0, 1];
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-const normalize = v => {
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a: number[], b: number[]) => [
+  a[1] * b[2] - a[2] * b[1],
+  a[2] * b[0] - a[0] * b[2],
+  a[0] * b[1] - a[1] * b[0]
+];
+const normalize = (v: number[]) => {
   const length = Math.hypot(v[0], v[1], v[2]) || 1;
   return [v[0] / length, v[1] / length, v[2] / length];
 };
-const quatMultiply = (a, b) => [
+const quatMultiply = (a: number[], b: number[]) => [
   a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
   a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
   a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
   a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]
 ];
-const quatAxisAngle = (axis, angle) => {
+const quatAxisAngle = (axis: number[], angle: number) => {
   const s = Math.sin(angle / 2);
   return [axis[0] * s, axis[1] * s, axis[2] * s, Math.cos(angle / 2)];
 };
-const quatNormalize = q => {
+const quatNormalize = (q: number[]) => {
   const length = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
   return [q[0] / length, q[1] / length, q[2] / length, q[3] / length];
 };
-const rotate = (q, v) => {
+const rotate = (q: number[], v: number[]) => {
   const t = cross(q, v).map(value => value * 2);
   const u = cross(q, t);
   return [v[0] + q[3] * t[0] + u[0], v[1] + q[3] * t[1] + u[1], v[2] + q[3] * t[2] + u[2]];
 };
 
-const sphere = count => {
+const sphere = (count: number) => {
   const golden = Math.PI * (3 - Math.sqrt(5));
   return Array.from({ length: count }, (_, i) => {
     const y = 1 - (2 * (i + 0.5)) / count;
@@ -125,7 +177,7 @@ const sphere = count => {
   });
 };
 
-const luminance = hex => {
+const luminance = (hex: string) => {
   const value = hex.replace('#', '');
   const full = value.length === 3 ? value.replace(/./g, c => c + c) : value.slice(0, 6);
   const n = parseInt(full, 16);
@@ -133,7 +185,7 @@ const luminance = hex => {
   return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
 };
 
-const compile = (gl, type, source) => {
+const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type);
   if (!shader) return null;
   gl.shaderSource(shader, source);
@@ -177,10 +229,10 @@ const InfiniteMenu = ({
   onItemClick,
   className = '',
   style
-}) => {
-  const rootRef = useRef(null);
-  const canvasRef = useRef(null);
-  const engineRef = useRef(null);
+}: InfiniteMenuProps) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const engineRef = useRef<Engine | null>(null);
   const [active, setActive] = useState(0);
   const [moving, setMoving] = useState(true);
   const [layout, setLayout] = useState('side');
@@ -221,7 +273,7 @@ const InfiniteMenu = ({
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return undefined;
     gl.useProgram(program);
 
-    const uniforms = {};
+    const uniforms: Record<string, WebGLUniformLocation | null> = {};
     for (const name of [
       'uOrientation',
       'uProjection',
@@ -244,8 +296,8 @@ const InfiniteMenu = ({
       uniforms[name] = gl.getUniformLocation(program, name);
     }
 
-    const corners = [];
-    const indices = [];
+    const corners: number[] = [];
+    const indices: number[] = [];
     for (let y = 0; y <= GRID; y++) {
       for (let x = 0; x <= GRID; x++) corners.push((x / GRID) * 2 - 1, (y / GRID) * 2 - 1);
     }
@@ -291,8 +343,8 @@ const InfiniteMenu = ({
     const state = {
       width: 1,
       height: 1,
-      tiles: [],
-      assign: [],
+      tiles: [] as number[][],
+      assign: [] as number[],
       count: 0,
       orientation: quatNormalize([0.08, -0.3, 0, 1]),
       axis: [0, 1, 0],
@@ -366,7 +418,7 @@ const InfiniteMenu = ({
       gl.generateMipmap(gl.TEXTURE_2D);
     };
 
-    const loadItems = list => {
+    const loadItems = (list: InfiniteMenuItem[]) => {
       const request = ++atlas.request;
       const total = Math.max(1, list.length);
       atlas.cells = Math.ceil(Math.sqrt(total));
@@ -452,7 +504,7 @@ const InfiniteMenu = ({
       return best;
     };
 
-    const neighbor = (from, direction) => {
+    const neighbor = (from: number, direction: number[]) => {
       const origin = rotate(state.orientation, state.tiles[from]);
       let best = -1;
       let bestScore = Infinity;
@@ -475,7 +527,7 @@ const InfiniteMenu = ({
       return best;
     };
 
-    const goTo = index => {
+    const goTo = (index: number) => {
       if (index < 0) return;
       state.target = index;
       state.speed = 0;
@@ -483,7 +535,7 @@ const InfiniteMenu = ({
       wake();
     };
 
-    const pick = (clientX, clientY) => {
+    const pick = (clientX: number, clientY: number) => {
       const rect = canvas.getBoundingClientRect();
       const aspect = rect.width / rect.height;
       const span = Math.tan(FOV / 2);
@@ -508,7 +560,7 @@ const InfiniteMenu = ({
       return best;
     };
 
-    const activate = index => {
+    const activate = (index: number) => {
       const list = itemsRef.current;
       if (!list.length) return;
       const itemIndex = (state.assign[index] ?? 0) % list.length;
@@ -528,7 +580,7 @@ const InfiniteMenu = ({
       }
     };
 
-    const frame = now => {
+    const frame = (now: number) => {
       raf = 0;
       if (!alive || !visible) return;
       const s = settingsRef.current;
@@ -692,7 +744,7 @@ const InfiniteMenu = ({
       raf = requestAnimationFrame(frame);
     };
 
-    const onPointerDown = event => {
+    const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return;
       canvas.setPointerCapture?.(event.pointerId);
       drag.active = true;
@@ -707,7 +759,7 @@ const InfiniteMenu = ({
       wake();
     };
 
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       if (!drag.active || event.pointerId !== drag.id) return;
       const dx = event.clientX - drag.x;
       const dy = event.clientY - drag.y;
@@ -719,7 +771,7 @@ const InfiniteMenu = ({
       wake();
     };
 
-    const onPointerUp = event => {
+    const onPointerUp = (event: PointerEvent) => {
       if (!drag.active || event.pointerId !== drag.id) return;
       drag.active = false;
       canvas.releasePointerCapture?.(event.pointerId);
@@ -731,8 +783,13 @@ const InfiniteMenu = ({
       wake();
     };
 
-    const onKeyDown = event => {
-      const directions = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+    const onKeyDown = (event: KeyboardEvent) => {
+      const directions: Record<string, number[]> = {
+        ArrowRight: [1, 0],
+        ArrowLeft: [-1, 0],
+        ArrowUp: [0, 1],
+        ArrowDown: [0, -1]
+      };
       if (directions[event.key]) {
         event.preventDefault();
         goTo(neighbor(state.target >= 0 ? state.target : state.front, directions[event.key]));
@@ -752,8 +809,8 @@ const InfiniteMenu = ({
     const onFocusIn = () => {
       state.focused = true;
     };
-    const onFocusOut = event => {
-      if (root.contains(event.relatedTarget)) return;
+    const onFocusOut = (event: FocusEvent) => {
+      if (root.contains(event.relatedTarget as Node | null)) return;
       state.focused = false;
       wake();
     };
@@ -833,7 +890,7 @@ const InfiniteMenu = ({
   const onAccent = luminance(accent) > 0.5 ? '#120f17' : '#ffffff';
   const hasAction = Boolean(current?.link || onItemClick);
 
-  const handleAction = event => {
+  const handleAction = (event: React.MouseEvent) => {
     if (!current) return;
     if (onItemClick) {
       onItemClick(current, active % items.length);
@@ -844,34 +901,36 @@ const InfiniteMenu = ({
   return (
     <div
       ref={rootRef}
-      className={`infinite-menu${className ? ` ${className}` : ''}`}
+      className={`${ROOT}${className ? ` ${className}` : ''}`}
       tabIndex={0}
       role="group"
       aria-roledescription="carousel"
       aria-label={current?.title || 'Infinite menu'}
-      style={{
-        backgroundColor,
-        '--infinite-menu-text': ink,
-        '--infinite-menu-accent': accent,
-        '--infinite-menu-on-accent': onAccent,
-        '--infinite-menu-shadow':
-          settings.theme === 'light' ? '0 2px 18px rgba(255, 255, 255, 0.7)' : '0 2px 18px rgba(0, 0, 0, 0.45)',
-        ...style
-      }}
+      style={
+        {
+          backgroundColor,
+          '--infinite-menu-text': ink,
+          '--infinite-menu-accent': accent,
+          '--infinite-menu-on-accent': onAccent,
+          '--infinite-menu-shadow':
+            settings.theme === 'light' ? '0 2px 18px rgba(255, 255, 255, 0.7)' : '0 2px 18px rgba(0, 0, 0, 0.45)',
+          ...style
+        } as React.CSSProperties
+      }
     >
-      <canvas ref={canvasRef} className="infinite-menu__canvas" />
+      <canvas ref={canvasRef} className={CANVAS} />
       {showInfo &&
         current &&
         (renderInfo ? (
-          <div className="infinite-menu__custom">{renderInfo(current, active % items.length, moving)}</div>
+          <div className={CUSTOM}>{renderInfo(current, active % items.length, moving)}</div>
         ) : (
-          <div className="infinite-menu__info" data-moving={moving} data-layout={layout}>
-            {current.title && <h2 className="infinite-menu__title">{current.title}</h2>}
-            {current.description && <p className="infinite-menu__description">{current.description}</p>}
+          <div className={LAYER} data-moving={moving} data-layout={layout}>
+            {current.title && <h2 className={TITLE}>{current.title}</h2>}
+            {current.description && <p className={DESCRIPTION}>{current.description}</p>}
             {hasAction &&
               (current.link ? (
                 <a
-                  className="infinite-menu__action"
+                  className={ACTION}
                   href={current.link}
                   target={current.link.startsWith('http') ? '_blank' : undefined}
                   rel={current.link.startsWith('http') ? 'noreferrer' : undefined}
@@ -883,7 +942,7 @@ const InfiniteMenu = ({
               ) : (
                 <button
                   type="button"
-                  className="infinite-menu__action"
+                  className={ACTION}
                   aria-label={current.title ? `Open ${current.title}` : 'Open'}
                   onClick={handleAction}
                 >
