@@ -449,7 +449,10 @@ export interface Copy {
     profileHudComposerHint: string;
     /** Provider + effective model of the Default dropdown, shown after Apply/load. */
     effectiveLine: string;
-    resetClaims: string;
+    /** Models pickers scoped to the selected provider. */
+    modelsSectionKicker: string;
+    catalogScopedNote: string;
+    modelsDroppedForeign: string;    resetClaims: string;
     resetClaimsConfirm: string;
     resetting: string;
     resetClaimsDone: string;
