@@ -36,7 +36,14 @@ export const FILL_CARD =
 
 /** Centre-column stage that hosts the orb in the free vertical space (≥1101px). */
 export const ORB_STAGE =
-  "relative grid w-full flex-1 min-h-0 place-items-center";
+  "relative grid w-full flex-1 min-h-0 place-items-center [transition:translate_.3s_ease,scale_.3s_ease] motion-reduce:transition-none";
+
+/**
+ * Chat-open variant of `ORB_STAGE`: the orb shrinks a little and lifts, leaving breathing room for
+ * the floating chat card. Transform only (translate/scale) — the stage keeps its layout box, so the
+ * greeting, grid and insight band do not reflow.
+ */
+export const ORB_STAGE_CHAT = `${ORB_STAGE} -translate-y-[4%] scale-[.85]`;
 
 const FOCUS_RING = "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!";
 
@@ -189,9 +196,14 @@ export const VOICE_HINT = [
 ].join(" ");
 
 export const VOICE_CLUSTER =
-  "flex flex-col items-center [transition:opacity_.24s_ease,scale_.24s_ease] motion-reduce:transition-none";
+  "flex flex-col items-center [transition:opacity_.24s_ease,scale_.24s_ease,translate_.24s_ease] motion-reduce:transition-none";
 
-export const VOICE_CLUSTER_DIMMED = "scale-[.85] opacity-45";
+/**
+ * Chat-open state of `VOICE_CLUSTER`: the whole voice control fades out and settles back a touch.
+ * The cluster stays in the layout (transform/opacity only), so nothing jumps; the host also marks it
+ * `inert` + `aria-hidden`, and `pointer-events-none` keeps the vanishing pill from taking clicks.
+ */
+export const VOICE_CLUSTER_HIDDEN = "pointer-events-none scale-[.92] opacity-0 select-none -translate-y-[6px]";
 
 // ---- Readiness -----------------------------------------------------------------------------------
 
@@ -294,9 +306,25 @@ export const INSIGHT_BAND = [
   "flex w-full cursor-pointer items-center gap-3 rounded-full! border border-[rgba(122,222,255,.24)]",
   "bg-[linear-gradient(100deg,rgba(13,40,66,.9),rgba(21,26,58,.9))] px-4 py-[10px] text-left text-[#eaf8ff]",
   "shadow-[0_0_24px_-8px_rgba(94,234,212,.45)]",
-  "[transition:border-color_.18s,background_.18s] hover:border-[rgba(139,233,255,.6)]",
+  "[transition:border-color_.18s,background_.18s,translate_.3s_ease,opacity_.3s_ease] hover:border-[rgba(139,233,255,.6)]",
   FOCUS_RING,
 ].join(" ");
+
+/**
+ * Chat-open state of the insight band: it slides down out of the way (plus a fade) so the floating
+ * chat card can rise from the bottom. Transform/opacity only — the band keeps its layout box, so the
+ * centre column does not reflow; the host also marks it `inert` + `aria-hidden` (no tab stop, no
+ * click) and `pointer-events-none`.
+ */
+export const INSIGHT_BAND_DISMISSED = "pointer-events-none translate-y-[115%] opacity-0 select-none";
+
+/**
+ * The insight band's dock: a full-width box of exactly the band's height that clips its downward
+ * slide, so the exit never adds scrollable overflow to the centre column (`overflow-y-auto` there
+ * would grow a scrollbar and shift the whole column by 15px). The band therefore sinks out of view
+ * at the dock's bottom edge while it fades — no height change, no grid reflow, identical at rest.
+ */
+export const INSIGHT_BAND_DOCK = "w-full [overflow:clip]";
 
 export const INSIGHT_ICON = "size-[18px] flex-none text-[#8ef0d9]";
 
