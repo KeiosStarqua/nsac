@@ -13,7 +13,7 @@ import { PHASE_TEXT, MIC_ARIA } from "../sky-hud/voiceCopy";
 import { SkyOrb } from "../sky-hud/SkyOrb";
 import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
 import { DETAILS, VITAL_DETAILS } from "../sky-hud/vitals";
-import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId } from "../astronaut";
+import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId, useClaimHeartbeat } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
 import { SkyChatPanel } from "../sky-hud/components/SkyChatPanel";
 import { WatchHud } from "../sky-hud/components/WatchHud";
@@ -123,6 +123,10 @@ export function SkyScreenGen() {
   // ⌘K / Ctrl+K anywhere on the console toggles the chat card (the watch layout has no chat card).
   useToggleChatShortcut(() => setChatOpen((open) => !open), !isWatch);
 
+  // Claim TTL: đập heartbeat mỗi 30 s khi tab visible để claim không bị backend giải phóng sau
+  // 30 phút idle (no-op khi SSR).
+  useClaimHeartbeat();
+
   // The backend roster is metadata only: the bundled fixture renders first and stays if the
   // request fails (no network, backend down), so the picker never blocks on it.
   useEffect(() => {
@@ -176,6 +180,37 @@ export function SkyScreenGen() {
               setAstronautId(null);
               setGreeting(copy.hud.greetingFallback);
               setPickerOpen(true);
+            } else if (normalized) {
+              // Quay lại sau một thời gian idle: claim cũ có thể đã bị TTL giải phóng. Còn trống
+              // → claim lại im lặng (không mở picker, không đổi gì trên HUD); thua race với
+              // session khác → cùng đường đi như takenByOther.
+              void claimAstronaut({ data: { sessionId: sid, astronautId: normalized } })
+                .then((claimed) => {
+                  if (!alive || claimed.ok) {
+                    // Claim lại thành công → card trong picker chuyển sang "của mình" ngay,
+                    // không phải chờ lần refresh sau.
+                    if (claimed.ok) {
+                      setClaims((prev) =>
+                        prev.map((c) =>
+                          c.astronautId === normalized ? { ...c, mine: true } : c,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+                  if (claimed.reason !== "taken") return; // unavailable/error → giữ nguyên
+                  try {
+                    window.localStorage.removeItem(ASTRONAUT_STORAGE_KEY);
+                    setAstronautId(null);
+                    setGreeting(copy.hud.greetingFallback);
+                    setPickerOpen(true);
+                  } catch {
+                    /* storage unavailable → giữ nguyên */
+                  }
+                })
+                .catch(() => {
+                  /* giữ nguyên pick local */
+                });
             }
           } catch {
             /* storage unavailable → giữ nguyên */

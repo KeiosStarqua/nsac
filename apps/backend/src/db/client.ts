@@ -26,9 +26,22 @@ function ensureSchema() {
     CREATE TABLE IF NOT EXISTS astronaut_claims (
       astronaut_id TEXT PRIMARY KEY REFERENCES astronauts(id) ON DELETE CASCADE,
       session_id TEXT NOT NULL,
-      claimed_at INTEGER NOT NULL
+      claimed_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL DEFAULT 0
     );
   `);
+  // Claim TTL (tự giải phóng claim idle): DB cũ chưa có last_seen_at → thêm cột + backfill từ
+  // claimed_at. Không có lịch sử migration nên phải idempotent (PRAGMA trước khi ALTER) và phải
+  // giống hệt khối tương ứng trong claimsClient.ts — hai file cùng tạo/migrate một bảng.
+  const claimColumns = sqlite.query("PRAGMA table_info('astronaut_claims')").all() as Array<{
+    name: string;
+  }>;
+  if (!claimColumns.some((column) => column.name === "last_seen_at")) {
+    sqlite.exec(
+      "ALTER TABLE astronaut_claims ADD COLUMN last_seen_at INTEGER NOT NULL DEFAULT 0;",
+    );
+    sqlite.exec("UPDATE astronaut_claims SET last_seen_at = claimed_at WHERE last_seen_at = 0;");
+  }
   // Cùng lý do như astronaut_claims: không migration, tạo idempotent cho DB mới và prod cũ.
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS app_settings (

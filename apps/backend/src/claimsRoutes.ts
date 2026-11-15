@@ -10,12 +10,34 @@ const claimBodySchema = z.object({
   astronautId: z.string().trim().min(1),
 });
 
+const heartbeatBodySchema = z.object({
+  sessionId: sessionIdSchema,
+});
+
 /**
  * Xử lý các route /api/claims*. Trả về `null` khi pathname không thuộc claims để server.ts
- * tiếp tục fall-through về 404 như hiện có. Không log/echo sessionId của người khác.
+ * tiếp tục fall-through về 404 như hiện có (mọi method khác cũng vậy: chỉ đúng method của
+ * từng route mới được xử lý). Không log/echo sessionId của người khác.
  */
 export async function handleClaimsRequest(req: Request): Promise<Response | null> {
   const url = new URL(req.url);
+
+  if (url.pathname === "/api/claims/heartbeat") {
+    // Heartbeat chỉ làm mới claim đang có; không tạo claim, không trả gì về session khác.
+    if (req.method !== "POST") return null;
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ ok: false, error: "bad_body" }, { status: 400 });
+    }
+    const parsed = heartbeatBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ ok: false, error: "bad_body" }, { status: 400 });
+    }
+    const { refreshed } = claimsRepo.heartbeat(parsed.data.sessionId);
+    return Response.json({ ok: true, refreshed });
+  }
 
   if (url.pathname === "/api/claims") {
     if (req.method === "GET") {
