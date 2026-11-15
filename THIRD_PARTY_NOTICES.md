@@ -4,10 +4,11 @@
 
 - Licence: MIT + Commons Clause
 - Link: https://github.com/DavidHDev/react-bits
-- Components taken: all 60 (7 prior + 52 new; CrystalizedBall 2026-11-14, Topography 2026-11-15, VoicePill 2026-11-15; Particles switched to the TS-TW registry variant 2026-11-16, no more Particles.css)
+- Components taken: all 61 (7 prior + 52 new; CrystalizedBall 2026-11-14, Topography 2026-11-15, VoicePill 2026-11-15, Galaxy 2026-11-16 TS-TW variant, dormant; Particles switched to the TS-TW registry variant 2026-11-16, no more Particles.css)
 - CrystalizedBall: https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/CrystalizedBall/CrystalizedBall.jsx — orb for `/`
 - Topography: https://github.com/DavidHDev/react-bits (main), src/content/Backgrounds/Topography/Topography.jsx — backdrop for `/watch`
 - VoicePill: https://github.com/DavidHDev/react-bits (main), src/content/Micro/VoicePill/VoicePill.jsx — console mic on `/` (uses `@hugeicons/react` + `@hugeicons/core-free-icons`, both already direct deps)
+- Galaxy: https://reactbits.dev/c/backgrounds/galaxy (shadcn registry: @react-bits/Galaxy-TS-TW) — vendored dormant, zero dependencies, WebGL2
 - Location: apps/web/src/shared/react-bits/
 - Licence file: apps/web/src/shared/react-bits/LICENSE.md
 - Date: 2026-11-14
