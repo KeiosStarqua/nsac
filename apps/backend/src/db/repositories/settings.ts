@@ -49,6 +49,12 @@ export function parseAgentModels(raw: string): Record<string, string> | null {
 export const CLAIMS_RESET_EPOCH_KEY = "claims.reset.epoch";
 
 /**
+ * Speech Engine id (ElevenLabs) — public instance handle, không phải secret. Resolution order:
+ * env `ELEVENLABS_SPEECH_ENGINE_ID` thắng; DB row này là fallback khi env chưa set.
+ */
+export const SPEECH_ENGINE_ID_KEY = "speech_engine.id";
+
+/**
  * ElevenLabs API key cho Sky TTS. Write-only theo hợp đồng: không GET nào trả về key này
  * (`/api/settings/elevenlabs-key` chỉ trả `{ configured, updatedAt }`); chỉ route TTS nội bộ
  * được phép đọc giá trị thật qua `getElevenLabsKey()`.
@@ -197,6 +203,38 @@ export const settingsRepo = {
     const existed = settingsRepo.getElevenLabsKey() !== null;
     if (!existed) return false;
     settingsDb().delete(appSettings).where(eq(appSettings.key, ELEVENLABS_KEY)).run();
+    return true;
+  },
+
+  /**
+   * Speech Engine id trong DB (fallback khi env `ELEVENLABS_SPEECH_ENGINE_ID` chưa set).
+   * Engine id là public instance handle — được phép hiển thị cho admin; vẫn không log lung tung.
+   */
+  getSpeechEngineId(): { engineId: string; updatedAt: number } | null {
+    const row = settingsDb().select().from(appSettings).where(eq(appSettings.key, SPEECH_ENGINE_ID_KEY)).all()[0];
+    if (!row) return null;
+    const engineId = row.value.trim();
+    if (!engineId) return null;
+    return { engineId, updatedAt: row.updatedAt };
+  },
+
+  setSpeechEngineId(engineId: string): { engineId: string; updatedAt: number } {
+    const now = Date.now();
+    settingsDb().insert(appSettings)
+      .values({ key: SPEECH_ENGINE_ID_KEY, value: engineId, updatedAt: now })
+      .onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: engineId, updatedAt: now },
+      })
+      .run();
+    return { engineId, updatedAt: now };
+  },
+
+  /** Xoá row; trả về `true` nếu trước đó có id. */
+  clearSpeechEngineId(): boolean {
+    const existed = settingsRepo.getSpeechEngineId() !== null;
+    if (!existed) return false;
+    settingsDb().delete(appSettings).where(eq(appSettings.key, SPEECH_ENGINE_ID_KEY)).run();
     return true;
   },
 

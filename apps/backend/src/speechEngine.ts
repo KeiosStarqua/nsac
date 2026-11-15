@@ -18,7 +18,8 @@
 // Phase 1 scope: accumulate the reply and `session.sendResponse` it whole on `done` — no streaming.
 // The `ui` SSE frame (generative UI → HUD swap) is dropped with a log line.
 //
-// Wiring: `startSpeechEngine()` is called once from `server.ts` (same process). The HTTP surface
+// Wiring: `startSpeechEngine()` is called once from `server.ts` (same process); the admin surface
+// (`speechAdmin.ts`) can stop/start/restart it and reads `speechEngineStatus()`. The HTTP surface
 // (`/api/speech/register`, `/api/speech/config`) delegates through `handleSpeechRequest`.
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
@@ -512,10 +513,40 @@ export const speechWsHandlers = {
 };
 
 // ---------------------------------------------------------------------------
+// Engine id resolution — env `ELEVENLABS_SPEECH_ENGINE_ID` wins; DB `speech_engine.id` is the
+// fallback (set via /admin → "Speech Engine" tab or `settingsRepo.setSpeechEngineId`).
+// ---------------------------------------------------------------------------
+
+export type SpeechEngineIdSource = "env" | "db";
+
+export interface EffectiveEngineId {
+  engineId: string;
+  source: SpeechEngineIdSource;
+}
+
+/**
+ * Effective engine id: env wins over DB. Blank env values count as unset. Returns null when
+ * neither is set (or the DB value is blank). The id is a public instance handle — logging it is fine.
+ */
+export function resolveEngineId(): EffectiveEngineId | null {
+  const fromEnv = process.env.ELEVENLABS_SPEECH_ENGINE_ID?.trim();
+  if (fromEnv) return { engineId: fromEnv, source: "env" };
+  const fromDb = settingsRepo.getSpeechEngineId();
+  if (fromDb) return { engineId: fromDb.engineId, source: "db" };
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Startup — one process with the HTTP server (called from server.ts). Never throws.
 // ---------------------------------------------------------------------------
 
-let speechServer: { port: number } | null = null;
+/** Structural slice of Bun's Server — avoids importing "bun" types in this package. */
+export interface SpeechServerHandle {
+  stop(closeActiveConnections?: boolean): void | Promise<void>;
+}
+
+let speechServer: { server: SpeechServerHandle; port: number } | null = null;
+let lastSpeechError: string | null = null;
 
 /**
  * Starts the speech engine websocket server on `127.0.0.1:SPEECH_WS_PORT` (default 3300).
@@ -524,9 +555,10 @@ let speechServer: { port: number } | null = null;
  */
 export function startSpeechEngine(): boolean {
   if (speechServer) return true;
-  const engineId = process.env.ELEVENLABS_SPEECH_ENGINE_ID?.trim();
-  if (!engineId) {
-    console.error("[speech] ELEVENLABS_SPEECH_ENGINE_ID is not set — speech engine websocket not started");
+  const resolved = resolveEngineId();
+  if (!resolved) {
+    lastSpeechError = "no engine id (set ELEVENLABS_SPEECH_ENGINE_ID or create one in /admin)";
+    console.error("[speech] no engine id (env ELEVENLABS_SPEECH_ENGINE_ID unset and no speech_engine.id in app_settings) — speech engine websocket not started");
     return false;
   }
   const envKey = process.env.ELEVENLABS_API_KEY?.trim();
@@ -542,6 +574,7 @@ export function startSpeechEngine(): boolean {
     }
   }
   if (!apiKey || !source) {
+    lastSpeechError = "no ElevenLabs API key (set ELEVENLABS_API_KEY or save one in /admin)";
     console.error("[speech] no ElevenLabs API key (set ELEVENLABS_API_KEY or save one in /admin) — speech engine websocket not started");
     return false;
   }
@@ -549,10 +582,10 @@ export function startSpeechEngine(): boolean {
   if (!Number.isFinite(port) || port <= 0 || port > 65535) port = DEFAULT_SPEECH_PORT;
   const keyForVerify = apiKey;
   try {
-    Bun.serve({
+    const server = Bun.serve({
       port,
       hostname: "127.0.0.1",
-      fetch(req, server) {
+      fetch(req, bunServer) {
         // ElevenLabs is the WebSocket client; the JWT rides a custom header on the upgrade.
         const token = req.headers.get("x-elevenlabs-speech-engine-authorization");
         if (!token) {
@@ -565,21 +598,69 @@ export function startSpeechEngine(): boolean {
           console.warn(`[speech] rejected connection: ${(err as Error).message}`);
           return Response.json({ ok: false, error: "invalid_token" }, { status: 401 });
         }
-        if (server.upgrade(req, { data: freshSocketData() })) return undefined;
+        if (bunServer.upgrade(req, { data: freshSocketData() })) return undefined;
         return new Response("websocket upgrade failed", { status: 400 });
       },
       // Any path is accepted: the port is single-purpose and JWT-gated. The Caddy route strips or
       // preserves `/speech/ws` — both work.
       websocket: { ...speechWsHandlers, maxPayloadLength: 64 * 1024 },
     });
+    speechServer = { server, port };
   } catch (err) {
-    console.error(`[speech] websocket failed to start on 127.0.0.1:${port}: ${(err as Error).message}`);
+    lastSpeechError = `websocket failed to start on 127.0.0.1:${port}: ${(err as Error).message}`;
+    console.error(`[speech] ${lastSpeechError}`);
     return false;
   }
+  lastSpeechError = null;
+  // Engine id is a public instance handle — logging source and id is fine.
+  console.log(`[speech] engine id source: ${resolved.source} (${resolved.engineId})`);
   console.log(`[speech] api key source: ${source}`);
   console.log(`[speech] engine listening on 127.0.0.1:${port} (jwt verify on)`);
-  speechServer = { port };
   return true;
+}
+
+/**
+ * Stops the speech engine websocket (closes active sockets). Idempotent. The HTTP routes and the
+ * engine id setting are untouched.
+ */
+export function stopSpeechEngine(): void {
+  const current = speechServer;
+  speechServer = null;
+  if (!current) return;
+  try {
+    void current.server.stop(true);
+    console.log(`[speech] engine websocket stopped on 127.0.0.1:${current.port}`);
+  } catch (err) {
+    console.error(`[speech] websocket stop failed: ${(err as Error).message}`);
+  }
+}
+
+/** Stop + start. Returns whether the websocket ended up running. */
+export function restartSpeechEngine(): boolean {
+  stopSpeechEngine();
+  return startSpeechEngine();
+}
+
+export interface SpeechEngineStatus {
+  wsRunning: boolean;
+  port: number;
+  lastError: string | null;
+  engineId: string | null;
+  engineSource: SpeechEngineIdSource | null;
+}
+
+/** Local state only — never calls ElevenLabs. */
+export function speechEngineStatus(): SpeechEngineStatus {
+  const resolved = resolveEngineId();
+  let port = Number(process.env.SPEECH_WS_PORT ?? DEFAULT_SPEECH_PORT);
+  if (!Number.isFinite(port) || port <= 0 || port > 65535) port = DEFAULT_SPEECH_PORT;
+  return {
+    wsRunning: speechServer !== null,
+    port: speechServer?.port ?? port,
+    lastError: lastSpeechError,
+    engineId: resolved?.engineId ?? null,
+    engineSource: resolved?.source ?? null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -625,12 +706,12 @@ async function handleRegister(req: Request): Promise<Response> {
 }
 
 function handleConfig(): Response {
-  const engineId = process.env.ELEVENLABS_SPEECH_ENGINE_ID?.trim();
-  if (!engineId) {
+  const resolved = resolveEngineId();
+  if (!resolved) {
     return Response.json({ ok: false, error: "no_engine" }, { status: 404 });
   }
   // engineId is a public instance handle, not a secret — the API key never leaves this process.
-  return Response.json({ engineId });
+  return Response.json({ engineId: resolved.engineId });
 }
 
 /**
