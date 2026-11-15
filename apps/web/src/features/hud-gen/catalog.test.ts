@@ -11,14 +11,11 @@ describe("hud catalog", () => {
     expect(registered).toEqual([...HUD_COMPONENT_NAMES].sort());
     expect(new Set(registered).size).toBe(registered.length);
   });
-  it("registers the eight HUD actions", () => {
+  it("registers the five HUD actions", () => {
     expect(Object.keys(hudLibrary.actions).sort()).toEqual([
       "ChangeAstronaut",
       "DismissComposeHint",
-      "OpenHologram",
       "OpenMission",
-      "OpenVital",
-      "OpenWellness",
       "ToggleChat",
       "ToggleMic",
     ]);
@@ -41,7 +38,7 @@ describe("hud presets", () => {
   });
   it("every Fact id a preset-style program could use resolves in the facts builder", () => {
     for (const id of HUD_FACT_IDS) {
-      const program = `root = Surface([footer, fact])\nfooter = FooterNote()\nfact = Fact("${id}")`;
+      const program = `root = Surface([left])\nleft = LeftColumn([fact])\nfact = Fact("${id}")`;
       const parsed = parseHudProgram(program);
       expect(parsed.meta.errors, `Fact(${id}) must parse`).toEqual([]);
       const used = collectFacts(parsed.root);

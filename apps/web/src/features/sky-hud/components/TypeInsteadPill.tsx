@@ -1,6 +1,6 @@
 /**
  * TypeInsteadPill — the "Type instead" trigger on the `/` voice control, shared by the declarative
- * HUD (`features/hud-gen/catalog.tsx` `ChatButton`) and the `/` mock console (`SkyHudMock`).
+ * HUD (`features/hud-gen/catalog.tsx` `VoiceCluster`, shared `features/hud-mock/components/VoiceCluster.tsx`).
  *
  * Same glass pill + cyan→purple rim as the listening bar, dimmer, with the ⌘K / Ctrl K chip the
  * global shortcut (`useToggleChatShortcut`) listens for. macOS is detected once, after mount, so SSR

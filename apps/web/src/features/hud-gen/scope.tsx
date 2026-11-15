@@ -3,7 +3,7 @@
 // (no IO) so the catalog stays thin and testable.
 import { createContext, useContext } from "react";
 import type { ReactNode, RefObject } from "react";
-import type { Copy, Locale } from "~/shared/i18n";
+import type { Copy } from "~/shared/i18n";
 import type { HudFacts } from "./model/facts";
 import type { VoicePhase } from "~/features/sky-hud/types";
 
@@ -13,36 +13,38 @@ export interface HudAction {
   readonly params?: Record<string, unknown>;
 }
 
+/** The followed crew member, as the profile card renders them. */
+export interface HudAstronaut {
+  readonly id: string;
+  readonly name: string;
+  readonly initial: string;
+  /** Roster role string (`commander`, `flight_engineer`, …) mapped through `hudMock.roles`. */
+  readonly role: string;
+}
+
 export interface HudScopeValue {
   readonly copy: Copy;
-  readonly locale: Locale;
   readonly facts: HudFacts;
-  /** Fixture mission label, digits included (fixture data, not program text). */
-  readonly missionLabel: string;
+  /** The crew member the console is showing (the local pick, or the roster's first as fallback). */
+  readonly astronaut: HudAstronaut;
   /** `mounted && !reducedMotion` — when true, animated text/count-up render. */
   readonly fx: boolean;
   readonly phase: VoicePhase;
   /** `PHASE_TEXT[phase]` from sky-hud/voiceCopy. */
   readonly hint: string;
-  /** `MIC_ARIA[phase]` from sky-hud/voiceCopy. */
-  readonly micAria: string;
-  /** Smoothed 0..1 mic envelope from `useSkyVoice` — the listening bar's fallback amplitude. */
+  /** Smoothed 0..1 mic envelope — the listening bar's fallback amplitude. */
   readonly energyRef: RefObject<number>;
   /** `useSkyVoice().readSpectrum` — fills bars from the analyser, false when none is attached. */
   readonly readSpectrum: (bars: Uint8Array) => boolean;
-  readonly captions: string;
   readonly greeting: string;
+  /** The locale fallback question, or the last Sky reply. */
   readonly prompt: string;
   readonly chatOpen: boolean;
-  readonly pickerOpen: boolean;
   readonly composeOrigin: "preset" | "agent";
   readonly composeHint: string;
   readonly composeHintDismissed: boolean;
-  readonly conversationCopyRef: RefObject<HTMLDivElement | null>;
-  /** The orb node (SkyOrb) — rendered by OrbCanvas in declarative order. */
+  /** The orb node (SkyOrb) — rendered by OrbStage in declarative order. */
   readonly orbNode: ReactNode;
-  /** The waveform node (VoiceWaveform) — rendered by WaveCanvas in declarative order. */
-  readonly waveNode: ReactNode;
   /** Brand button: reset the view (close dialogs/chat, restore greeting and prompt). */
   readonly resetView: () => void;
   /**

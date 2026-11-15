@@ -40,7 +40,7 @@ describe("collectFacts / collectComponents", () => {
   it("walks the parsed preset tree", () => {
     const parsed = parseHudProgram(HUD_PRESET_EN);
     expect(collectComponents(parsed.root)).toContain("Surface");
-    expect(collectComponents(parsed.root)).toContain("MetricTile");
+    expect(collectComponents(parsed.root)).toContain("VitalsCard");
   });
 });
 
@@ -54,16 +54,16 @@ describe("reviewProgram", () => {
     expect(result.ok, result.ok ? "" : result.reasons.join(", ")).toBe(true);
   });
   it("rejects a digit in free text", () => {
-    const result = review(`root = Surface([header])
-header = Section("header", [alert])
+    const result = review(`root = Surface([left])
+left = LeftColumn([alert])
 alert = Alert("info", "Heart rate is 62 bpm")`);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reasons).toContain("digit in free text");
   });
   it("accepts a digit only inside the spo2 machine token", () => {
-    const result = review(`root = Surface([header])
-header = Section("vitals", [tile])
-tile = MetricTile("spo2")`);
+    const result = review(`root = Surface([left])
+left = LeftColumn([fact])
+fact = Fact("spo2")`);
     expect(result.ok).toBe(true);
   });
   it("rejects an unknown component", () => {
