@@ -106,7 +106,8 @@
 
   <!-- ═════════ overlays (chips & credits) ═════════ -->
   <div id="overlays" data-track-kind="graphics">
-    <div id="simChip" class="clip chip" style="z-index:10" data-start="9.5" data-duration="13" data-track-index="30">Simulated telemetry</div>
+    <div id="simChip" class="clip chip" style="z-index:10" data-start="9.5" data-duration="6.5" data-track-index="30">Simulated telemetry</div>
+    <div id="simChipChat" class="clip chip" style="z-index:10; top:104px; bottom:auto" data-start="16.0" data-duration="6.5" data-track-index="32">Simulated telemetry</div>
     <div id="nasaCredit" class="clip micro nasa-credit" style="z-index:10" data-start="0.5" data-duration="4.0" data-track-index="31">NASA · STS-134 · May 2011</div>
   </div>
 
@@ -122,10 +123,10 @@
     <div id="cap-intel-1" class="clip cap-md" style="z-index:10; left:132px; bottom:196px;" data-start="10.0" data-duration="6.0" data-track-index="44">An AI companion</div>
     <div id="cap-intel-2" class="clip cap-md" style="z-index:10; left:132px; bottom:112px;" data-start="10.55" data-duration="5.45" data-track-index="45">that understands your body.</div>
 
-    <div id="cap-you-label" class="clip micro" style="z-index:10; left:132px; bottom:230px; color:var(--mute);" data-start="17.05" data-duration="5.45" data-track-index="46">You</div>
-    <div id="cap-you-line" class="clip" style="z-index:10; left:132px; bottom:168px; width:760px; font-size:37px; font-weight:550; color:var(--ink); line-height:1.15;" data-start="17.05" data-duration="5.45" data-track-index="47">&ldquo;Sky, how am I doing?&rdquo;</div>
-    <div id="cap-sky-label" class="clip micro micro-teal" style="z-index:10; left:132px; bottom:96px;" data-start="19.6" data-duration="2.9" data-track-index="48">Sky</div>
-    <div id="cap-sky-line" class="clip" style="z-index:10; left:132px; bottom:22px; width:840px; font-size:38px; font-weight:620; color:var(--ink); line-height:1.12;" data-start="19.6" data-duration="2.9" data-track-index="49">Your recovery is on track. You&rsquo;re ready for today.</div>
+    <div id="cap-you-label" class="clip micro" style="z-index:10; left:132px; bottom:258px; color:var(--mute);" data-start="17.05" data-duration="5.45" data-track-index="46">You</div>
+    <div id="cap-you-line" class="clip" style="z-index:10; left:132px; bottom:196px; width:760px; font-size:37px; font-weight:550; color:var(--ink); line-height:1.15;" data-start="17.05" data-duration="5.45" data-track-index="47">&ldquo;Sky, how am I doing?&rdquo;</div>
+    <div id="cap-sky-label" class="clip micro micro-teal" style="z-index:10; left:132px; bottom:152px;" data-start="19.6" data-duration="2.9" data-track-index="48">Sky</div>
+    <div id="cap-sky-line" class="clip" style="z-index:10; left:132px; bottom:56px; width:840px; font-size:38px; font-weight:620; color:var(--ink); line-height:1.12;" data-start="19.6" data-duration="2.9" data-track-index="49">Your recovery is on track. You&rsquo;re ready for today.</div>
 
     <div id="cap-prom-1" class="clip cap-xl" style="z-index:10; left:132px; bottom:212px; font-size:66px;" data-start="23.2" data-duration="3.3" data-track-index="50">Beyond monitoring.</div>
     <div id="cap-prom-2" class="clip cap-xl" style="z-index:10; left:132px; bottom:112px; font-size:66px; color:var(--accent);" data-start="23.95" data-duration="2.55" data-track-index="51">Toward understanding.</div>
@@ -199,6 +200,8 @@ tl.fromTo("#vidHud", { scale: 1.0 }, { scale: 1.08, duration: 6.5, ease: "power1
 tl.fromTo("#cap-intel-1", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "expo.out" }, 10.0);
 tl.fromTo("#cap-intel-2", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "expo.out" }, 10.55);
 tl.fromTo("#simChip", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 9.7);
+tl.to("#simChip", { opacity: 0, duration: 0.3, ease: "power1.in" }, 15.95);
+tl.fromTo("#simChipChat", { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 16.05);
 
 function ping(id, at) {
   tl.fromTo(id, { scale: 0.5, opacity: 0.95 }, { keyframes: [
@@ -228,7 +231,7 @@ tl.fromTo("#vidIss", { scale: 1.02 }, { scale: 1.075, duration: 4.0, ease: "powe
 tl.to(["#vidChat", "#scrim-chat", "#shot-chat-end", "#scrim-chat2", "#cap-you-label", "#cap-you-line", "#cap-sky-label", "#cap-sky-line"], { opacity: 0, duration: 0.3, ease: "power1.in" }, 22.5);
 tl.fromTo("#cap-prom-1", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.85, ease: "expo.out" }, 23.2);
 tl.fromTo("#cap-prom-2", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.85, ease: "expo.out" }, 23.95);
-tl.to("#simChip", { opacity: 0, duration: 0.3, ease: "power1.in" }, 22.6);
+tl.to("#simChipChat", { opacity: 0, duration: 0.3, ease: "power1.in" }, 22.6);
 
 /* ── Shot 6 · REVEAL ─────────────────────────────────── */
 tl.fromTo("#revealDot", { scale: 1, opacity: 0 }, { scale: 2.6, opacity: 1, duration: 0.42, ease: "power2.out" }, 26.7);
