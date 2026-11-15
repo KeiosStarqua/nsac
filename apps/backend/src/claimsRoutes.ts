@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { claimsRepo } from "./db/repositories/claims";
+import { settingsRepo } from "./db/repositories/settings";
 
 // sessionId do client tự tạo (crypto.randomUUID), không phải danh tính thật: chỉ đủ để phân biệt
 // trình duyệt trong demo. Lenient như phần còn lại — định dạng sai thì coi như không có.
@@ -46,7 +47,9 @@ export async function handleClaimsRequest(req: Request): Promise<Response | null
       const parsed = sessionIdSchema.safeParse(raw);
       const sessionId = parsed.success ? parsed.data : undefined;
       const claims = await claimsRepo.list(sessionId);
-      return Response.json(claims);
+      // `epoch` đi kèm mọi lần đọc: client so với giá trị đã lưu để biết có force reset ở nơi
+      // khác hay không (đọc mỗi request, một row app_settings — rẻ).
+      return Response.json({ claims, epoch: settingsRepo.getClaimsResetEpoch() });
     }
     if (req.method === "POST") {
       let body: unknown;
@@ -73,10 +76,11 @@ export async function handleClaimsRequest(req: Request): Promise<Response | null
 
   if (url.pathname === "/api/claims/reset") {
     if (req.method !== "POST") return null;
-    // Chỉ dành cho demo/test: xóa sạch claims, không có auth theo thiết kế trên demo box,
-    // không được public-phô bày — endpoint này không có UI, chỉ gọi tay hoặc từ script test.
-    const cleared = claimsRepo.reset();
-    return Response.json({ ok: true, cleared });
+    // Chỉ dành cho demo/test: xóa sạch claims + bump epoch, không có auth theo thiết kế trên demo
+    // box — người dùng mới bị kẹt ở một phi hành đoàn đầy phải gỡ được chỗ. Epoch đổi là tín hiệu
+    // để mọi tab đang mở bỏ pick của mình (web poll 45 s, xem useClaimsWatcher).
+    const { cleared, epoch } = claimsRepo.reset();
+    return Response.json({ ok: true, cleared, epoch });
   }
 
   return null;
