@@ -25,6 +25,10 @@ dist/
 *.tsbuildinfo
 apps/web/src/routeTree.gen.ts
 
+# Local agent tool state
+.codex/
+.cursor/
+
 # CEO bot local state
 .agents/bot/ceo/HC-AGENTS.md
 
