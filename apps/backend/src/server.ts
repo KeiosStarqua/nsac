@@ -7,6 +7,8 @@ import { handleTtsRequest } from "./ttsRoutes";
 import { eventsBus, handleEventsRequest } from "./eventsRoutes";
 import { handleSensorsRequest } from "./sensors/routes";
 import { wsHandlers } from "./sensors/ws";
+import { handleClinicalRequest } from "./clinical/routes";
+import { startClinicalScheduler } from "./clinical/scheduler";
 import { handleHealthRequest } from "./healthRoutes";
 import { handleSpeechRequest, startSpeechEngine } from "./speechEngine";
 import { handleSpeechAdminRequest } from "./speechAdmin";
@@ -50,6 +52,9 @@ if (healthSeed.inserted > 0) {
 // Thiếu engine id / API key thì chỉ HTTP routes chạy; JWT verify luôn bật.
 startSpeechEngine();
 
+// Clinical routine engine (HARNESSING §17): deterministic, không LLM; tick CLINICAL_TICK_SECONDS.
+startClinicalScheduler();
+
 Bun.serve({
   port,
   // Mặc định chỉ lắng nghe 127.0.0.1: route ẩn (/api/claims/reset) không được lộ ra LAN/public; dev override bằng HOST.
@@ -80,8 +85,12 @@ Bun.serve({
     if (tts) return tts;
     const events = await handleEventsRequest(req);
     if (events) return events;
+    // Sensors trước clinical: clinical đọc telemetry_events (read-only) của sensors.
     const sensors = await handleSensorsRequest(req);
     if (sensors) return sensors;
+    // Clinical routine engine (findings / routines) — sau sensors, trước health.
+    const clinical = await handleClinicalRequest(req);
+    if (clinical) return clinical;
     // Health observation layer (energy/muscle/sleep/hydration) — trước astronauts để giữ thứ tự route.
     const health = await handleHealthRequest(req);
     if (health) return health;
