@@ -13,7 +13,7 @@ import { PHASE_TEXT, MIC_ARIA } from "../sky-hud/voiceCopy";
 import { SkyOrb } from "../sky-hud/SkyOrb";
 import { VoiceWaveform } from "../sky-hud/VoiceWaveform";
 import { DETAILS, VITAL_DETAILS } from "../sky-hud/vitals";
-import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, getOrCreateSessionId, takenIdsOf, normalizeAstronautId, useClaimHeartbeat } from "../astronaut";
+import { AstronautPicker, ASTRONAUT_STORAGE_KEY, ASTRONAUTS, findAstronaut, firstName, getAstronauts, listClaims, claimAstronaut, releaseAllClaims, getOrCreateSessionId, takenIdsOf, normalizeAstronautId, useClaimHeartbeat, useClaimsWatcher, CLAIMS_EPOCH_STORAGE_KEY } from "../astronaut";
 import type { ClaimEntry } from "../astronaut";
 import { SkyChatPanel } from "../sky-hud/components/SkyChatPanel";
 import { WatchHud } from "../sky-hud/components/WatchHud";
@@ -127,6 +127,19 @@ export function SkyScreenGen() {
   // 30 phút idle (no-op khi SSR).
   useClaimHeartbeat();
 
+  // Force release ở tab khác: backend bump epoch → tab đang mở cũng bỏ pick của mình (poll 45 s,
+  // chỉ khi tab visible). PickerOpening là phản hồi duy nhất, không cần announcer.
+  useClaimsWatcher(() => {
+    try {
+      window.localStorage.removeItem(ASTRONAUT_STORAGE_KEY);
+    } catch {
+      /* storage unavailable → vẫn kick */
+    }
+    setAstronautId(null);
+    setGreeting(copy.hud.greetingFallback);
+    setPickerOpen(true);
+  });
+
   // The backend roster is metadata only: the bundled fixture renders first and stays if the
   // request fails (no network, backend down), so the picker never blocks on it.
   useEffect(() => {
@@ -170,6 +183,39 @@ export function SkyScreenGen() {
         // (claim cũ từ session đã wipe) → xóa và mở picker, không khóa khung shell mãi.
         // Claims unreachable → giữ nguyên hành vi cũ (tin localStorage).
         if (res?.reachable) {
+          const epoch = typeof res.epoch === "number" ? res.epoch : null;
+          let storedEpoch: string | null = null;
+          try {
+            storedEpoch = window.localStorage.getItem(CLAIMS_EPOCH_STORAGE_KEY);
+          } catch {
+            storedEpoch = null;
+          }
+          // Force release ở nơi khác (epoch backend đã bump): bỏ pick local và về picker, KHÔNG
+          // re-claim — người bấm force release muốn mọi người chọn lại từ đầu.
+          if (epoch !== null && storedEpoch !== null && storedEpoch !== String(epoch)) {
+            try {
+              window.localStorage.setItem(CLAIMS_EPOCH_STORAGE_KEY, String(epoch));
+            } catch {
+              /* storage unavailable → vẫn kick */
+            }
+            try {
+              window.localStorage.removeItem(ASTRONAUT_STORAGE_KEY);
+            } catch {
+              /* storage unavailable → vẫn kick */
+            }
+            setAstronautId(null);
+            setGreeting(copy.hud.greetingFallback);
+            setPickerOpen(true);
+            return;
+          }
+          if (epoch !== null && storedEpoch === null) {
+            // Lần đầu thấy epoch → chỉ ghi nhận, không kick.
+            try {
+              window.localStorage.setItem(CLAIMS_EPOCH_STORAGE_KEY, String(epoch));
+            } catch {
+              /* ignore */
+            }
+          }
           try {
             const stored = window.localStorage.getItem(ASTRONAUT_STORAGE_KEY);
             const normalized = normalizeAstronautId(stored);
@@ -286,6 +332,35 @@ export function SkyScreenGen() {
       void refreshClaims(sid);
     }
   }, [roster, copy, persistLocalPick, refreshClaims]);
+
+  /**
+   * Force release (picker escape hatch): gỡ mọi claim rồi làm mới danh sách. Pick của chính mình
+   * cũng bị gỡ — epoch vừa bump nên ghi luôn epoch mới vào localStorage để mount gate/watcher
+   * không kick thêm lần nữa; picker vẫn mở (người dùng đang ở đó) để chọn lại.
+   */
+  const handleForceRelease = useCallback(async () => {
+    const res = await releaseAllClaims();
+    if (res.ok) {
+      if (typeof res.epoch === "number") {
+        try {
+          window.localStorage.setItem(CLAIMS_EPOCH_STORAGE_KEY, String(res.epoch));
+        } catch {
+          /* ignore */
+        }
+      }
+      try {
+        window.localStorage.removeItem(ASTRONAUT_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+      setAstronautId(null);
+      setGreeting(copy.hud.greetingFallback);
+      const sid = sessionIdRef.current ?? getOrCreateSessionId();
+      sessionIdRef.current = sid;
+      await refreshClaims(sid);
+    }
+    return res;
+  }, [copy, refreshClaims]);
 
   const openDetail = useCallback(({ title, value, message, eyebrow = "SIMULATED DATA", footer = DEFAULT_FOOTER }: DetailDialogProps) => {
     previousFocus.current = document.activeElement;
@@ -552,6 +627,7 @@ export function SkyScreenGen() {
           claiming={claiming}
           error={claimError ? copy.astronaut.claimTaken : null}
           onSelect={handleAstronautSelect}
+          onForceRelease={handleForceRelease}
           onClose={astronautId ? () => { setPickerOpen(false); setClaimError(false); } : undefined}
         />
       ) : null}

@@ -20,6 +20,16 @@ export interface Copy {
     claimTaken: string;
     /** Confirm-button label while the claim request is in flight. */
     claiming: string;
+    /** Tertiary button that drops every pick (force release / epoch reset). */
+    forceRelease: string;
+    /** Inline confirm line before the release runs. */
+    forceReleaseConfirm: string;
+    /** Confirm action of the inline 2-step confirm. */
+    forceReleaseConfirmAction: string;
+    /** Cancel action of the inline 2-step confirm. */
+    forceReleaseCancel: string;
+    /** Inline error when the release request failed. */
+    forceReleaseFailed: string;
   };
   chat: {
     label: string;

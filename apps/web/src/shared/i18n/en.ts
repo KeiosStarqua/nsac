@@ -21,6 +21,11 @@ export const en: Copy = {
     takenCta: "Already chosen — pick another",
     claimTaken: "Someone just chose that crew member — pick another.",
     claiming: "Claiming…",
+    forceRelease: "Force release all astronauts",
+    forceReleaseConfirm: "All current picks are dropped — everyone starts over.",
+    forceReleaseConfirmAction: "Release all",
+    forceReleaseCancel: "Cancel",
+    forceReleaseFailed: "Could not release — try again.",
   },
   chat: {
     label: "Message to Sky · {name}",

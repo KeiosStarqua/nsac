@@ -2,6 +2,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { claimsDb as db } from "../claimsClient";
 import { astronautClaims } from "../schema/astronautClaims";
 import { astronauts } from "../schema/astronauts";
+import { settingsRepo } from "./settings";
 
 export type ClaimResult =
   | { status: "ok" }
@@ -134,10 +135,14 @@ export const claimsRepo = {
     return { refreshed: true };
   },
 
-  /** Xóa toàn bộ claims; trả về số dòng đã xóa. Chỉ dành cho demo/test (xem claimsRoutes). */
-  reset(): number {
+  /**
+   * Xóa toàn bộ claims và bump epoch reset; chỉ dành cho demo/test (xem claimsRoutes). Epoch là
+   * phần làm reset có hiệu lực thật: tab đang mở thấy epoch lệch sẽ tự bỏ pick của mình.
+   */
+  reset(): { cleared: number; epoch: number } {
     const rows = db.select({ astronautId: astronautClaims.astronautId }).from(astronautClaims).all();
     db.delete(astronautClaims).run();
-    return rows.length;
+    const epoch = settingsRepo.bumpClaimsResetEpoch();
+    return { cleared: rows.length, epoch };
   },
 };

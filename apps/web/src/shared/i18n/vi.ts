@@ -21,6 +21,11 @@ export const vi: Copy = {
     takenCta: "Đã có người chọn — hãy chọn người khác",
     claimTaken: "Ai đó vừa chọn thành viên này — hãy chọn người khác.",
     claiming: "Đang giữ chỗ…",
+    forceRelease: "Gỡ tất cả phi hành gia",
+    forceReleaseConfirm: "Mọi lượt chọn bị gỡ — mọi người chọn lại từ đầu.",
+    forceReleaseConfirmAction: "Gỡ tất cả",
+    forceReleaseCancel: "Hủy",
+    forceReleaseFailed: "Không gỡ được — thử lại.",
   },
   chat: {
     label: "Nhắn tới Sky · {name}",

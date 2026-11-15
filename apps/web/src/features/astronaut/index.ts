@@ -1,7 +1,8 @@
 export { AstronautPicker } from "./components/AstronautPicker";
 export { getAstronauts } from "./api/astronauts.functions";
-export { listClaims, claimAstronaut, heartbeatClaim } from "./api/claims.functions";
+export { listClaims, claimAstronaut, heartbeatClaim, releaseAllClaims } from "./api/claims.functions";
 export { useClaimHeartbeat } from "./useClaimHeartbeat";
+export { useClaimsWatcher, CLAIMS_EPOCH_STORAGE_KEY } from "./useClaimsWatcher";
 export {
   ASTRONAUTS,
   ASTRONAUT_STORAGE_KEY,

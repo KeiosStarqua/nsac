@@ -12,13 +12,14 @@ const claimInputSchema = z.object({
  * Claims list for the HUD picker. Always resolves: when the backend is unavailable the
  * `reachable: false` result lets the picker run exactly as before (local-only pick).
  * Input is lenient — a missing/invalid sessionId is treated as absent, never an error.
+ * `epoch` is the force-release counter (`null` for an old backend or when unreachable).
  */
 export const listClaims = createServerFn({ method: "GET" })
   .validator((data?: { sessionId?: unknown }) => {
     const parsed = sessionIdSchema.safeParse(data?.sessionId);
     return { sessionId: parsed.success ? parsed.data : undefined };
   })
-  .handler(async ({ data }): Promise<{ claims: ClaimEntry[]; reachable: boolean }> => {
+  .handler(async ({ data }): Promise<{ claims: ClaimEntry[]; reachable: boolean; epoch: number | null }> => {
     const { fetchBackendClaims } = await import("./claims.server");
     return fetchBackendClaims(data.sessionId);
   });
@@ -35,6 +36,36 @@ export const claimAstronaut = createServerFn({ method: "POST" })
     const { postBackendClaim } = await import("./claims.server");
     return postBackendClaim(parsed.data.sessionId, parsed.data.astronautId);
   });
+
+/**
+ * Force-release every claim in one shot (picker's "force release" button). Unauthenticated by
+ * design — the demo contract: a new anonymous user stuck on a full crew list must be able to free
+ * the seats. The backend bumps its reset epoch, so open tabs drop their own picks on the next poll
+ * (or on mount), which is what makes the release real for *everyone*, not just the DB rows.
+ * Never throws: any backend failure collapses to `{ reachable: false, ok: false }`.
+ */
+export const releaseAllClaims = createServerFn({ method: "POST" }).handler(
+  async (): Promise<{ ok: boolean; reachable: boolean; cleared?: number; epoch?: number }> => {
+    const { postBackendReset } = await import("./claims.server");
+    const res = await postBackendReset();
+    if (res.ok) {
+      // Shared memory (v1 broadcast): cả phi hành đoàn vừa được gỡ → claims.changed, best-effort.
+      // Payload phải khớp schema strict `claims.changed` (astronautId bắt buộc), nên dùng "*"
+      // nghĩa là "mọi crew", không phải một id cụ thể.
+      try {
+        const { publishEvent } = await import("../../agent/broadcast");
+        await publishEvent({
+          topic: "claims.changed",
+          source: "web-claims",
+          payload: { astronautId: "*", action: "reset" },
+        });
+      } catch {
+        // swallow — release không được fail vì broadcast
+      }
+    }
+    return res;
+  },
+);
 
 /**
  * Làm mới claim của session (heartbeat mỗi 30 s khi tab visible — xem `useClaimHeartbeat`).
