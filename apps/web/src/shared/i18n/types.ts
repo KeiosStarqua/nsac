@@ -79,6 +79,8 @@ export interface Copy {
     screenNext: string;
     /** Wellness screen — full-width button opening the shared health detail dialog. */
     viewDetails: string;
+    /** Sky screen — micro-caption above the dictation button. */
+    speakToSky: string;
   };
   /** `/` — the declarative OpenUI HUD (default; `?gen=0` opts out to the staged HUD). Every string the HUD shows lives here. */
   hud: {

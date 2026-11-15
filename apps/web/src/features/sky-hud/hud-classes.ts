@@ -12,8 +12,6 @@
 //     the ≤480px and short-viewport media variants, exactly as the old files did.
 //
 // Keyframes (chestGlow, micPulse) stay in `hud-keyframes.css`.
-import type { VoicePhase } from "./types";
-
 /** Console-wide focus ring (was `button:focus-visible,input:focus-visible` in hud-screen.css). */
 const FOCUS_RING = "focus-visible:outline-2! focus-visible:outline-offset-[5px]! focus-visible:outline-[#f5fcff]!";
 
@@ -286,35 +284,6 @@ export const TYPE_PILL_LABEL =
 export const TYPE_PILL_KBD =
   "rounded-md border border-[rgba(160,220,255,.35)] bg-[rgba(94,140,255,.16)] px-[8px] py-[3px] font-mono text-[12px] tracking-[.12em] text-[#cfe8ff] max-[720px]:px-[6px] max-[720px]:text-[10px] max-[720px]:tracking-[.06em]";
 
-/**
- * Microphone orb, shared by the console and the watch. `size` is baked in per call site so the
- * console's fixed 84px orb and the watch's 30vw orb never collide on width/height utilities.
- */
-const MIC_BASE = [
-  "grid cursor-pointer place-items-center rounded-full! border",
-  "bg-transparent",
-  "text-[#ebfaff]",
-  "bg-[radial-gradient(circle_at_50%_47%,rgba(42,175,251,.47),rgba(38,124,235,.17)_50%,rgba(14,51,125,.15)_74%,rgba(93,226,255,.16))]",
-  "shadow-[inset_0_0_16px_rgba(92,218,255,.47),0_0_10px_rgba(129,227,255,.8),0_0_34px_rgba(64,144,253,.53)]",
-  "[transition:transform_.2s,box-shadow_.3s]",
-  "hover:[transform:scale(1.06)]",
-  "hover:shadow-[inset_0_0_20px_rgba(88,224,255,.55),0_0_24px_rgba(99,230,255,.9),0_0_48px_rgba(52,128,253,.5)]",
-  "disabled:cursor-wait",
-  "[&_svg]:[filter:drop-shadow(0_0_6px_rgba(255,255,255,.6))]",
-  FOCUS_RING,
-].join(" ");
-
-export function micButtonClass(phase: VoicePhase, size: "console" | "watch"): string {
-  const rim = phase === "error" ? "border-[#f8b89d]" : "border-[rgba(153,248,255,.95)]";
-  // Was `.sky-app[data-phase="listening"] .mic-button`.
-  const pulse = phase === "listening" ? "[animation:micPulse_1.8s_ease-in-out_infinite] motion-reduce:animate-none!" : "";
-  const dims =
-    size === "console"
-      ? "size-[84px] [&_svg]:size-[39px] max-[720px]:size-[70px]"
-      : "h-[30vw] w-[30vw] min-h-[104px] min-w-[104px] [&_svg]:h-[45%] [&_svg]:w-[45%] [@media(max-height:560px)]:min-h-[72px] [@media(max-height:560px)]:min-w-[72px] [.watch-screen_&]:size-[30cqw] [.watch-screen_&]:min-h-0 [.watch-screen_&]:min-w-0 [.watch-screen_&]:[&_svg]:h-[45%] [.watch-screen_&]:[&_svg]:w-[45%]";
-  return [MIC_BASE, rim, dims, pulse].filter(Boolean).join(" ");
-}
-
 // ---- Header chrome: spacecraft chip + Console | Watch switcher --------------------------------------
 
 export const SPACECRAFT_LINK = [
@@ -379,7 +348,9 @@ export const WATCH_SCREEN = [
   // `.watch-screen …` descendant selectors); it carries no declarations of its own.
   "watch-screen absolute left-[22.6%] top-[20.2%] z-[1] h-[53.4%] w-[53.3%] overflow-hidden",
   "[border-radius:22%/20%] [container-type:size] [transform:translateZ(0)]",
-  "bg-[radial-gradient(130%_130%_at_50%_-10%,#0c2740_0%,#061321_58%,#040e1a_100%)]",
+  // watchOS 26 dark appearance: the display is true black (Grays/Black dark #000000) with content
+  // painted in white; the faint radial keeps the glass from reading as a hole in the mockup.
+  "bg-[radial-gradient(125%_125%_at_50%_0%,#050505_0%,#000_74%)]",
   "shadow-[inset_0_0_64px_rgba(0,0,0,.6)]",
 ].join(" ");
 
