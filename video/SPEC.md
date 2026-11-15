@@ -1,6 +1,6 @@
 # SPEC — SKY · 30-Second Product Launch Screenplay — v3
 
-VERSION: 3 (current; render output: `out/sky-launch-30s-v3.mp4`). Composed from the Keios brief
+VERSION: 3 (current; render outputs: `out/sky-launch-30s-v3.mp4` — flite VO; `out/sky-launch-30s-v3-silent.mp4` — captions-only derivative for silent autoplay, made with `-c:v copy -an`). Composed from the Keios brief
 "SKY — 30-Second Product Launch Screenplay · Product Demo · NASA Space Apps · 16:9 · 30 seconds"
 (received 2026-11-15). v1 (Isolation / Meet Sky cut) is preserved: composition `index-v1.html`,
 spec `SPEC-v1.md`, review `REVIEW-v1.md`.
