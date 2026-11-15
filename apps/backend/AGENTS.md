@@ -26,7 +26,7 @@ HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Driz
   (`provider`/`models` null khi chưa set, `model` = legacy raw, `updatedAt` = max của 2 key mới hoặc null).
   `PUT { provider?, model?, models? }` — mỗi field optional, `null` = xoá key tương ứng; `models` là thay thế
   **toàn bộ** map `{profileId: modelId}` (`{}`/null xoá key): keys `^[a-z0-9-]{1,64}$`, ≤16 entries, values MODEL_ID_REGEX;
-  provider enum strict `opencode-go|openrouter`. Mọi field ghi trong **một** transaction.
+  provider enum strict `opencode-go|openrouter|amazon-bedrock`. Mọi field ghi trong **một** transaction.
   DB keys: `agent.provider`, `agent.models` (JSON string) trong `app_settings`.
 - Handler dạng `handleXRequest(req): Promise<Response | null>`; trả `null` khi path/method không thuộc module để `server.ts` fall-through về 404. Thứ tự wire trong `server.ts`: claims → settings → tts → events → sensors → health → astronauts.
 - Lỗi luôn JSON `{ ok: false, error }` với 400/404/409/413. Đọc body có cap `Content-Length` + kiểm tra lại sau khi đọc (xem `eventsRoutes.ts`).

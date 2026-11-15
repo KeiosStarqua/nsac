@@ -14,7 +14,7 @@ import {
 } from "../api/elevenlabs.functions";
 import type { ResetClaimsResult, AgentModelsSetting } from "../api/admin.functions";
 import type { CatalogModel } from "../runtime/openrouter.server";
-import { goAsPickerModels, type PickerModel } from "../model/catalog";
+import { goAsPickerModels, bedrockAsPickerModels, type PickerModel } from "../model/catalog";
 import type { AgentProvider } from "../../agent/runtime/agent-model.server";
 
 type Phase = "checking" | "unconfigured" | "locked" | "admin";
@@ -101,10 +101,12 @@ export function AdminPage() {
   const [elevenConfirmClear, setElevenConfirmClear] = useState(false);
   const [elevenState, setElevenState] = useState<ElevenLabsState>(null);
 
-  // The Go snapshot is static and imported locally — no fetch, works offline.
+  // The Go and Bedrock snapshots are static and imported locally — no fetch, works offline.
   const goModels = useMemo(() => goAsPickerModels(), []);
-  const catalog = provider === "opencode-go" ? goModels : openrouterModels;
-  const catalogReady = provider === "opencode-go" || openrouterOk;
+  const bedrockModels = useMemo(() => bedrockAsPickerModels(), []);
+  const catalog =
+    provider === "opencode-go" ? goModels : provider === "amazon-bedrock" ? bedrockModels : openrouterModels;
+  const catalogReady = provider !== "openrouter" || openrouterOk;
 
   async function loadConfig() {
     setLoadingModels(true);
@@ -430,10 +432,16 @@ export function AdminPage() {
         >
           <option value="opencode-go">{copy.providerOpencodeGo}</option>
           <option value="openrouter">{copy.providerOpenrouter}</option>
+          <option value="amazon-bedrock">{copy.providerAmazonBedrock}</option>
         </select>
         <p className={`${muted} mt-1.5 text-[12px]`}>
-          {provider === "opencode-go" ? copy.providerOpencodeGoDesc : copy.providerOpenrouterDesc}
+          {provider === "opencode-go"
+            ? copy.providerOpencodeGoDesc
+            : provider === "amazon-bedrock"
+              ? copy.providerAmazonBedrockDesc
+              : copy.providerOpenrouterDesc}
         </p>
+        {provider === "amazon-bedrock" && <p className={`${muted} mt-1 text-[12px]`}>{copy.bedrockVerifiedNote}</p>}
         {provider === "openrouter" && <p className={`${muted} mt-1 text-[12px]`}>{copy.legacyNote}</p>}
 
         {!catalogReady && (
