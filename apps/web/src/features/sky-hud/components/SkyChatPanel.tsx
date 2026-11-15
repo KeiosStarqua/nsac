@@ -3,8 +3,9 @@
  * (`src/shared/ai-elements/`, MIT) with a custom AI SDK transport (`features/agent/runtime/chat-transport.ts`).
  *
  * `/watch` keeps the legacy `ChatPanel` (a compact text row inside the watch face); this panel is the
- * console conversation. It is a **floating card portalled to `document.body`** (bottom-right, HUD still
- * visible behind it) over its own dismissable backdrop — full-bleed below 480px. Behaviour it owns:
+ * console conversation. It is a **floating card portalled to `document.body`**, centred on screen over
+ * a transparent click-catcher (no dim, no blur — the stage stays fully visible behind it) — full-bleed
+ * below 480px. Behaviour it owns:
  *
  *  - `useChat` state only; history comes from the existing `loadChatHistory` server function (the SDK
  *    never fetches it) and a turn streams through the SSE route `/api/chat-stream` (transport-owned):
@@ -62,20 +63,20 @@ export type SkyChatPanelProps = {
   onUseVoice?: () => void;
 };
 
-// Floating card over the HUD: a dismissable backdrop below the card, card in the bottom-right corner
-// above the detail overlay (z-35) and the chrome chips. Full-bleed on phones (≤480px), where the old
-// full-screen shape is the only sensible one. Palette unchanged (Sky navy + cyan→purple rim).
-const CHAT_BACKDROP = "fixed inset-0 z-[40] bg-[rgba(2,12,28,.35)] backdrop-blur-[2px]";
+// Centered modal over the HUD: a transparent flex layer that catches outside clicks (dismiss) under
+// the card — no dim, no blur, so the stage stays fully visible behind the chat. The card is centred
+// both axes; full-bleed on phones (≤480px). Palette unchanged (Sky navy + cyan→purple rim).
+const CHAT_LAYER = "fixed inset-0 z-[40] flex items-center justify-center";
 
 const CHAT_CARD = [
-  "fixed right-4 bottom-4 z-[45] flex h-[min(600px,84dvh)] w-[min(560px,94vw)] flex-col overflow-hidden",
+  "relative flex h-[min(600px,84dvh)] w-[min(560px,94vw)] flex-col overflow-hidden",
   "rounded-[20px] border border-transparent",
   // Double background: navy fill in the padding box, the cyan→purple rim in the border box.
   "[background:linear-gradient(180deg,#0b1a34,#081427)_padding-box,linear-gradient(120deg,rgba(92,240,208,.5),rgba(179,114,255,.5))_border-box]",
   "shadow-[0_0_44px_rgba(94,240,214,.14),0_0_80px_rgba(178,112,255,.16)] text-foreground",
   // Tailwind v4 emits `translate` (not `transform`) for the 8px rise, so the transition lists it.
   "[transition:opacity_.18s_ease-out,translate_.18s_ease-out] motion-reduce:transition-none!",
-  "max-[480px]:inset-0! max-[480px]:h-dvh max-[480px]:w-full max-[480px]:rounded-none! max-[480px]:border-0",
+  "max-[480px]:h-dvh max-[480px]:w-full max-[480px]:rounded-none! max-[480px]:border-0",
   "max-[480px]:[transition:none] max-[480px]:[background:linear-gradient(180deg,#0b1a34,#081427)_padding-box]",
 ].join(" ");
 
@@ -155,14 +156,13 @@ export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVo
   if (!mounted) return null;
 
   return createPortal(
-    <>
-      <div
-        role="presentation"
-        className={CHAT_BACKDROP}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) onClose();
-        }}
-      />
+    <div
+      role="presentation"
+      className={CHAT_LAYER}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -179,7 +179,7 @@ export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVo
           onUseVoice={onUseVoice}
         />
       </div>
-    </>,
+    </div>,
     document.body,
   );
 }
