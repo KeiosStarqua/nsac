@@ -38,10 +38,15 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
     }
   }
 
-  function copyDiag() {
+  const copyDiag = () => {
     const text = snap.checks.map((c) => `${c.checkId}: ${c.state} — ${c.detail}`).join("\n");
     navigator.clipboard?.writeText(`Overall: ${snap.overall}\nChecked at: ${snap.checkedAt}\n\n${text}`);
-  }
+  };
+  const goKey = snap.openCodeGoKey;
+  const goKeyAt =
+    goKey.updatedAt != null ? `${new Date(goKey.updatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC` : "—";
+  const goKeyLine =
+    goKey.source === "env" ? copy.goKeyEnv : goKey.source === "file" ? copy.goKeyStored.replace("{at}", goKeyAt) : copy.goKeyMissing;
 
   return (
     <main className="mx-auto max-w-[900px] p-6 text-(--text)">
@@ -54,6 +59,7 @@ export function HealthPage({ initial }: { initial: Snapshot }) {
         <p className="text-(--text-muted)">{copy.subtitle}</p>
       </header>
 
+      <p className="mb-2 text-[13px] text-(--text-muted)">{goKeyLine}</p>
       <table className="w-full border-collapse">
         <thead>
           <tr><th>{copy.colCheck}</th><th>{copy.colStatus}</th><th>{copy.colDetail}</th><th>{copy.colHint}</th></tr>

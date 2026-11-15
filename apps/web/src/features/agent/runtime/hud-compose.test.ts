@@ -1,4 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { HUD_PRESET_EN } from "../../hud-gen/presets";
 import {
   composeHud,
@@ -10,6 +12,7 @@ import { resetAgentModelCacheForTests } from "./agent-model.server";
 const savedKey = process.env.SKY_OPENROUTER_API_KEY;
 const savedProvider = process.env.SKY_AGENT_PROVIDER;
 const savedBackend = process.env.BACKEND_URL;
+const savedKeyPath = process.env.NSAC_OPENCODE_KEY_PATH;
 
 function fakeFactory(reply: string | (() => Promise<string>)) {
   const calls: string[] = [];
@@ -28,9 +31,13 @@ beforeEach(() => {
   process.env.SKY_OPENROUTER_API_KEY = "sk-test-fake";
   process.env.SKY_AGENT_PROVIDER = "openrouter";
   process.env.BACKEND_URL = "http://127.0.0.1:1"; // không backend thật trong test
+  // Stored-key file must not leak into these tests: point at a path that does not exist.
+  process.env.NSAC_OPENCODE_KEY_PATH = join(tmpdir(), `nsac-test-no-such-opencode-key-${process.pid}.json`);
 });
 
 afterEach(() => {
+  if (savedKeyPath === undefined) delete process.env.NSAC_OPENCODE_KEY_PATH;
+  else process.env.NSAC_OPENCODE_KEY_PATH = savedKeyPath;
   if (savedKey === undefined) delete process.env.SKY_OPENROUTER_API_KEY;
   else process.env.SKY_OPENROUTER_API_KEY = savedKey;
   if (savedProvider === undefined) delete process.env.SKY_AGENT_PROVIDER;

@@ -365,6 +365,11 @@ export interface Copy {
     colModel: string;
     colKey: string;
     colProvider: string;
+    /** OpenCode Go key source line under the table. */
+    goKeyEnv: string;
+    /** `{at}` is an ISO-ish UTC timestamp of the stored file. */
+    goKeyStored: string;
+    goKeyMissing: string;
     fixTitle: string;
     fixBox: string;
     fixLocal: string;
@@ -444,5 +449,30 @@ export interface Copy {
     elevenlabsClearFailed: string;
     /** Note under the panel: write-only semantics. */
     elevenlabsNote: string;
+    /** OpenCode Go key panel — write-only; stored on the server, never shown again. */
+    goKeyTitle: string;
+    goKeyConfiguredEnv: string;
+    goKeyConfiguredFile: string;
+    goKeyNotConfigured: string;
+    /** Hint shown when the key comes from the environment (env wins over the stored file). */
+    goKeyEnvHint: string;
+    goKeyLabel: string;
+    goKeyPlaceholder: string;
+    /** Placeholder while a stored key exists — the key itself is never shown. */
+    goKeyPlaceholderStored: string;
+    goKeySave: string;
+    goKeySaving: string;
+    goKeySaved: string;
+    goKeySaveFailed: string;
+    goKeyInvalidKey: string;
+    /** Clear button label; the action needs the inline 2-step confirm. */
+    goKeyClear: string;
+    goKeyClearConfirm: string;
+    goKeyClearCancel: string;
+    goKeyClearing: string;
+    goKeyClearDone: string;
+    goKeyClearFailed: string;
+    /** Note under the panel: write-only semantics + when the stored key is used. */
+    goKeyNote: string;
   };
 }
