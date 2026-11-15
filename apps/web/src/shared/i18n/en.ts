@@ -226,6 +226,19 @@ export const en: Copy = {
     metricExerciseDuration: "Exercise duration",
     metricHeartRate: "Heart rate",
   },
+  live: {
+    stripAria: "Live vitals, simulated telemetry",
+    visibleLive: "LIVE — SIMULATED TELEMETRY",
+    historicalLabel: "HISTORICAL — SIMULATED SEED",
+    offlineLabel: "OFFLINE — showing fixture/seed",
+    lastUpdated: "Updated {time}",
+    metricHeartRate: "Heart rate",
+    metricSpo2: "SpO₂",
+    metricRespiratoryRate: "Respiratory rate",
+    metricCoreTemperature: "Core temperature",
+    metricBloodPressure: "Blood pressure",
+    metricActivity: "Activity",
+  },
   clinical: {
     title: "CLINICAL FINDINGS · SIMULATED",
     disclaimerLine:

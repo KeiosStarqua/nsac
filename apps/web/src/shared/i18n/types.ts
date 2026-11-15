@@ -271,6 +271,25 @@ export interface Copy {
     metricExerciseDuration: string;
     metricHeartRate: string;
   };
+  /**
+   * Live health strip (`/performance`) — the simulated habitat feed from
+   * `/api/health/live/:astronautId`, labelled LIVE / HISTORICAL / OFFLINE. Never a clinical reading.
+   */
+  live: {
+    /** Accessible name of the strip region. */
+    stripAria: string;
+    visibleLive: string;
+    historicalLabel: string;
+    offlineLabel: string;
+    /** `{time}` = `HH:MM UTC`. */
+    lastUpdated: string;
+    metricHeartRate: string;
+    metricSpo2: string;
+    metricRespiratoryRate: string;
+    metricCoreTemperature: string;
+    metricBloodPressure: string;
+    metricActivity: string;
+  };
   /** `/performance` — Clinical findings panel (simulated, AI assists review only). */
   clinical: {
     title: string;

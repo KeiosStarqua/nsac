@@ -86,6 +86,7 @@ import { ProfileCard } from "./components/ProfileCard";
 import { TrendsCard } from "./components/TrendsCard";
 import { VitalsCard } from "./components/VitalsCard";
 import { useHudBackground } from "../hud-bg";
+import { applyLiveVitals, useLiveHealth } from "../live-health";
 
 // Vendored react-bits sources are @ts-nocheck; their inferred prop types demand props the runtime
 // defaults, so the boundary casts them (same pattern as `features/hud-gen/catalog.tsx`).
@@ -152,6 +153,11 @@ export function SkyHudMock() {
   // The `/` backdrop is admin-configured (`/admin/background`): default particles, galaxy after
   // mount when saved. `?bg=` / `nsac.bg` are retired — admin always wins.
   const bg = useHudBackground();
+
+  // Live (simulated) habitat telemetry for the picked crew member. Before the first read — and on
+  // every failure — the fixture rows render untouched, so the mock stays byte-identical offline.
+  const liveHealth = useLiveHealth(astronautId);
+  const vitalSigns = useMemo(() => applyLiveVitals(HUD_MOCK.vitalSigns, liveHealth.data?.metrics), [liveHealth.data]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -621,7 +627,7 @@ export function SkyHudMock() {
             changeLabel={copy.astronaut.change}
             onChange={openPicker}
           />
-          <VitalsCard vitalSigns={HUD_MOCK.vitalSigns} copy={copy.hudMock} />
+          <VitalsCard vitalSigns={vitalSigns} copy={copy.hudMock} />
           <TrendsCard trends={HUD_MOCK.quickTrends} copy={copy.hudMock} />
         </div>
 

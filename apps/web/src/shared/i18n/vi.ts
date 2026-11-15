@@ -226,6 +226,19 @@ export const vi: Copy = {
     metricExerciseDuration: "Thời gian tập",
     metricHeartRate: "Nhịp tim",
   },
+  live: {
+    stripAria: "Chỉ số sống trực tiếp, dữ liệu mô phỏng",
+    visibleLive: "TRỰC TIẾP — DỮ LIỆU MÔ PHỎNG",
+    historicalLabel: "LỊCH SỬ — DỮ LIỆU MÔ PHỎNG",
+    offlineLabel: "NGOẠI TUYẾN — hiển thị dữ liệu mẫu",
+    lastUpdated: "Cập nhật {time}",
+    metricHeartRate: "Nhịp tim",
+    metricSpo2: "SpO₂",
+    metricRespiratoryRate: "Nhịp thở",
+    metricCoreTemperature: "Nhiệt độ lõi",
+    metricBloodPressure: "Huyết áp",
+    metricActivity: "Vận động",
+  },
   clinical: {
     title: "FINDINGS LÂM SÀNG · MÔ PHỎNG",
     disclaimerLine:
