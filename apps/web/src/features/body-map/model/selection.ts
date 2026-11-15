@@ -23,8 +23,9 @@ export interface StructureDetails {
 const UNKNOWN_COLOR = "#8fd8ff";
 
 // Catalog keys that have a simulated reading in the HUD. Keyed by structure key,
-// so the card never guesses from the label text.
-const VITALS_BY_KEY: Readonly<Record<string, VitalRow[]>> = {
+// so the card never guesses from the label text. Exported so the Body Tree
+// (`model/tree.ts`) can flag exactly the same keys as `simulated`.
+export const VITALS_BY_KEY: Readonly<Record<string, VitalRow[]>> = {
   heart: [{ label: "Heart rate", value: `${VITAL_VALUES.heartRate} bpm` }],
   lung_l: [
     { label: "Respiration", value: `${VITAL_VALUES.respiration} br/min` },
