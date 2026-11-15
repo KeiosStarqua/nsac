@@ -1,7 +1,9 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ATTRIBUTION } from "open-anatomy-3d";
+import { HoverTooltip } from "./components/HoverTooltip";
 import { LayerRail } from "./components/LayerRail";
 import { StructureCard } from "./components/StructureCard";
+import type { HoverPoint } from "./model/hover";
 import { DEFAULT_LAYERS, type LayerMap } from "./model/layers";
 import { usePausedWhenHidden, useReducedMotion } from "./model/preferences";
 
@@ -53,6 +55,7 @@ export function BodyMapOverlay({
 }: BodyMapOverlayProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerMap>(DEFAULT_LAYERS);
+  const [hover, setHover] = useState<HoverPoint | null>(null);
   const [supported, setSupported] = useState<boolean | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -61,6 +64,7 @@ export function BodyMapOverlay({
 
   const close = useCallback(() => {
     setSelected(null);
+    setHover(null);
     onClose();
   }, [onClose]);
 
@@ -82,36 +86,41 @@ export function BodyMapOverlay({
     };
   }, [open, close]);
 
-  if (!open) return null;
-
   // The scene subtree both variants share: the 3D canvas, its preparation state
-  // and the WebGL/GLB fallbacks. Nothing else lives in here.
-  const scene = (
-    <>
-      {supported === null ? (
-        <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
-          Preparing the hologram…
-        </p>
-      ) : (
-        <Suspense
-          fallback={
-            <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
-              Preparing the hologram…
-            </p>
-          }
-        >
-          <BodyScene
-            webglAvailable={supported}
-            selected={selected}
-            onSelect={setSelected}
-            layers={layers}
-            reducedMotion={reducedMotion}
-            paused={paused}
-          />
-        </Suspense>
-      )}
-    </>
+  // and the WebGL/GLB fallbacks. Nothing else lives in here. Memoised so a hover
+  // move re-renders the tooltip alone, not the model.
+  const scene = useMemo(
+    () => (
+      <>
+        {supported === null ? (
+          <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
+            Preparing the hologram…
+          </p>
+        ) : (
+          <Suspense
+            fallback={
+              <p className="absolute inset-0 m-0 grid place-items-center p-[24px] text-center font-(family-name:--mono) text-[11px] tracking-[0.18em] uppercase text-(--muted)">
+                Preparing the hologram…
+              </p>
+            }
+          >
+            <BodyScene
+              webglAvailable={supported}
+              selected={selected}
+              onSelect={setSelected}
+              onHover={setHover}
+              layers={layers}
+              reducedMotion={reducedMotion}
+              paused={paused}
+            />
+          </Suspense>
+        )}
+      </>
+    ),
+    [supported, selected, layers, reducedMotion, paused],
   );
+
+  if (!open) return null;
 
   if (variant === "page") {
     return (
@@ -130,6 +139,11 @@ export function BodyMapOverlay({
         <div className="absolute inset-0 overflow-hidden rounded-none border-0 [background:radial-gradient(80%_70%_at_50%_18%,color-mix(in_srgb,var(--surface)_48%,transparent),transparent_70%),#050c16] [box-shadow:inset_0_0_90px_rgba(0,0,0,0.45)]">
           {scene}
         </div>
+
+        {/* The cursor's structure, at the cursor. Above the canvas (and the rail,
+            z-10) but pointer-events-none, so neither orbit nor the toggles lose
+            a click. */}
+        <HoverTooltip hover={hover} />
 
         {/* "Body systems" rides over the canvas: right and centred on desktop, a
             bottom row under 900px (the rail itself wraps; see LayerRail). */}
@@ -215,6 +229,9 @@ export function BodyMapOverlay({
           . Simulated data, not for diagnosis.
         </p>
       </footer>
+
+      {/* Same tooltip as the page variant: it floats over the panel's canvas. */}
+      <HoverTooltip hover={hover} />
     </div>
   );
 }
