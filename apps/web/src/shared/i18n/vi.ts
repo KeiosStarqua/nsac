@@ -169,6 +169,11 @@ export const vi: Copy = {
     bodyHoloAria: "Ảnh ba chiều thành phần cơ thể mô phỏng",
     bodyHoloOpen: "Mở bản đồ sức khỏe cơ thể mô phỏng",
     detailClose: "Đóng chi tiết",
+    voiceConnecting: "Đang kết nối với Sky…",
+    voiceListening: "Đang nghe…",
+    voiceSpeaking: "Sky đang nói…",
+    voiceNotConfigured: "Chưa cấu hình giọng nói",
+    voiceFailed: "Giọng nói không khả dụng — hãy nhập",
   },
   performance: {
     metaTitle: "SKY / Hiệu suất thể chất",

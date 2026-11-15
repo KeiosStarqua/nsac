@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
 import { streamChatTurn } from "~/features/agent/runtime/astro-chat.server";
+import { chatStreamBodySchema } from "~/features/speech/api/speechProxy.server";
 
 // Server-Sent Events endpoint for the `/` chat (SkyChatPanel). One request per turn: the handler
 // streams `data: {"type":"delta","text":"…"}` frames as the PI session produces text deltas, then
@@ -12,10 +12,10 @@ import { streamChatTurn } from "~/features/agent/runtime/astro-chat.server";
 //
 // No key, no stack trace and no server path ever reaches this stream; the turn itself keeps every
 // guarantee of `sendChatTurn` (transcript written once on success, per-astronaut queue, timeout).
-const Body = z.object({
-  astronautId: z.string().min(1).max(64),
-  message: z.string().min(1).max(500),
-});
+// `mode: "voice"` is the Speech Engine's channel: the turn answers in spoken style (see
+// `streamChatTurn`). Absent `mode` → the text path, byte-identical to before this flag existed.
+// Exported from `features/speech/api/speechProxy.server.ts` so vitest can pin the shape.
+const Body = chatStreamBodySchema;
 
 const KEEPALIVE_MS = 15_000;
 const SAME_SITE = new Set(["same-origin", "same-site", "none"]);
@@ -81,6 +81,7 @@ export const Route = createFileRoute("/api/chat-stream")({
                     writeFrame({ type: "ui", program });
                   },
                   signal: turnAbort.signal,
+                  mode: parsed.data.mode,
                 });
                 if (result.status === "ok") {
                   // No delta ever arrived (pi.server recovered the text from the final message):
