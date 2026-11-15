@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminPage } from "~/features/admin";
+import { AdminLayout } from "~/features/admin";
 
 export const Route = createFileRoute("/admin")({
   // Hidden operator page: not linked from nav/HUD, robots noindex. `data-only` SSR: nothing to fetch
   // at load time (auth + catalog load client-side via server functions after mount), so a down
-  // backend cannot break rendering.
+  // backend cannot break rendering. Layout route — each tab lives at /admin/<tab> (see ./admin/*).
   ssr: "data-only",
   head: () => ({
     meta: [
@@ -12,5 +12,5 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
-  component: AdminPage,
+  component: AdminLayout,
 });
