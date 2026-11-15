@@ -6,4 +6,7 @@
   "plugins": [
     "/home/keios/repos/mein/nsac/.agents/bot/git/plugins/watch-branches",
   ],
+  "instructions": [
+    "/home/keios/repos/mein/nsac/.agents/bot/git/BRANCHES.md",
+  ],
 }
