@@ -14,8 +14,10 @@
 // Vertical contract (2026-11-15): from 1101px the root is pinned to `h-dvh` with `overflow-hidden`,
 // the grid is `flex-1 min-h-0` and each column is `min-h-0 overflow-y-auto`, so the document never
 // scrolls — a too-short viewport degrades to per-column internal scroll instead. Below 1101px the
-// page keeps the previous document flow. Spacing is compressed so 1280×800 and the taller targets
-// show every card without internal scrollbars.
+// page keeps the previous document flow. From 1101px the columns also distribute the free height:
+// the vitals/trends cards on the left and the readiness-detail card on the right carry `flex-1
+// min-h-0`, the centre column wraps the orb in a `flex-1 min-h-0` stage so free space hosts the orb,
+// and card rows/bars spread with `justify-evenly` rather than top-packing.
 
 export const MOCK_ROOT = [
   "relative isolate flex min-h-dvh w-full flex-col overflow-x-hidden min-[1101px]:h-dvh min-[1101px]:overflow-hidden",
@@ -27,6 +29,14 @@ export const MOCK_ROOT = [
 
 export const MOCK_VIGNETTE =
   "pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_80%_70%_at_50%_0%,transparent_45%,rgba(2,7,18,.35)_88%,rgba(1,5,15,.6)_100%)]";
+
+/** A card that absorbs its column's free height at ≥1101px (flex column so inner rows can spread). */
+export const FILL_CARD =
+  "flex flex-col min-[1101px]:min-h-0 min-[1101px]:flex-1";
+
+/** Centre-column stage that hosts the orb in the free vertical space (≥1101px). */
+export const ORB_STAGE =
+  "relative grid w-full flex-1 min-h-0 place-items-center";
 
 const FOCUS_RING = "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!";
 
@@ -151,7 +161,7 @@ export const CHANGE_BUTTON = [
 // ---- Voice column --------------------------------------------------------------------------------
 
 export const ORB_ZONE = [
-  "relative aspect-square w-[min(100%,clamp(210px,26dvh,330px))]",
+  "relative aspect-square w-[min(100%,clamp(220px,36dvh,420px))]",
   "[filter:drop-shadow(0_0_26px_rgba(68,172,255,.24))]",
   "[&_canvas]:relative [&_canvas]:z-[2] [&_canvas]:block [&_canvas]:h-full [&_canvas]:w-full",
   "min-[721px]:max-[1100px]:w-[min(100%,320px)]",
@@ -221,11 +231,12 @@ export function tabClass(active: boolean): string {
 // ---- Tab panel -----------------------------------------------------------------------------------
 
 export const PANEL_BODY =
-  "grid grid-cols-[minmax(132px,176px)_minmax(0,1fr)] items-center gap-3 max-[430px]:grid-cols-1";
+  "grid grid-cols-[minmax(132px,176px)_minmax(0,1fr)] items-center gap-3 min-[1101px]:min-h-0 min-[1101px]:flex-1 min-[1101px]:items-stretch max-[430px]:grid-cols-1";
 
 export const HOLO_FRAME = [
-  "relative aspect-[2/3] w-full max-h-[min(210px,24dvh)] overflow-hidden rounded-[14px]",
+  "relative aspect-[2/3] w-full max-[1100px]:max-h-[min(210px,24dvh)] overflow-hidden rounded-[14px]",
   "border border-[rgba(122,222,255,.14)] bg-[radial-gradient(ellipse_at_50%_38%,rgba(41,207,246,.14),rgba(9,27,48,.5)_70%,transparent_100%)]",
+  "min-[1101px]:h-[clamp(150px,26dvh,320px)] min-[1101px]:max-h-none min-[1101px]:max-w-full",
   "max-[430px]:mx-auto max-[430px]:max-h-[180px] max-[430px]:w-[140px]",
 ].join(" ");
 
@@ -239,7 +250,7 @@ export const HOLO_FRAME_BUTTON = [
   "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#5eead4]!",
 ].join(" ");
 
-export const ROW_LIST = "m-0! flex list-none flex-col gap-[9px] p-0!";
+export const ROW_LIST = "m-0! flex min-h-0 flex-1 list-none flex-col justify-evenly gap-[9px] p-0!";
 
 export const ROW = "flex flex-col gap-[5px]";
 

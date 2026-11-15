@@ -12,6 +12,7 @@ import {
   VITAL_ROW,
   VITAL_SPARK,
   VITAL_VALUE,
+  FILL_CARD,
 } from "../mock-classes";
 import { Sparkline } from "./Sparkline";
 
@@ -94,12 +95,12 @@ export function VitalsCard({ vitalSigns, copy }: VitalsCardProps) {
   ];
 
   return (
-    <section className={CARD} aria-label={copy.vitalsAria} data-testid="mock-vitals">
-      <div className={`${CARD_HEAD} mb-[6px]`}>
+    <section className={`${CARD} ${FILL_CARD}`} aria-label={copy.vitalsAria} data-testid="mock-vitals">
+      <div className={`${CARD_HEAD} mb-[6px] flex-none`}>
         <h2 className={CARD_TITLE}>{copy.vitalsTitle}</h2>
         <span className={TAG}>{copy.vitalsNow}</span>
       </div>
-      <div>
+      <div className="flex min-h-0 flex-1 flex-col justify-evenly">
         {rows.map((row) => (
           <div className={VITAL_ROW} key={row.key} data-vital={row.key}>
             <span className={VITAL_ICON} aria-hidden="true">

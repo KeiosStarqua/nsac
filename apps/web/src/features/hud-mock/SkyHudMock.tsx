@@ -67,6 +67,7 @@ import {
   MOCK_RIGHT,
   MOCK_ROOT,
   MOCK_VIGNETTE,
+  ORB_STAGE,
   ORB_ZONE,
   ORB_ZONE_THINKING,
   PROMPT,
@@ -625,7 +626,7 @@ export function SkyHudMock() {
         </div>
 
         <div className={MOCK_CENTER} data-column="center">
-          {orbNode}
+          <div className={ORB_STAGE}>{orbNode}</div>
 
           <div className={GREETING_STACK}>
             <h1 className={GREETING}>{greeting}</h1>
