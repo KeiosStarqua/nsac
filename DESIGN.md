@@ -227,16 +227,16 @@ A single cool family: navy mineral field, sea-glass and instrument cyan for inte
 
 ## Typography
 
-**Display Font:** the declared stack is `Inter, Manrope, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif` — neither Inter nor Manrope ships a font file, so the app's own chrome resolves to the platform UI font. The single exception is the vendored React Bits `VariableProximity` label (staged HUD `?gen=0` and the OpenUI catalog), which `@import`s Roboto Flex from Google Fonts; no other part of the UI pulls a webfont.
+**Display Font:** the declared stack is `Inter, Manrope, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif` — neither Inter nor Manrope ships a font file, so the app's own chrome resolves to the platform UI font. The single exception is the vendored React Bits `VariableProximity` label (the `?arch=openui` declarative HUD), which `@import`s Roboto Flex from Google Fonts; no other part of the UI pulls a webfont.
 **Body Font:** the same stack.
 **Label/Mono Font:** `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace` for timers, ids, kbd chips and severity codes.
 
 **Character:** One family, one weight discipline, two registers of size. Light weight at large sizes makes numerals feel instrument-like rather than promotional; small letter-spaced caps carry the metadata; monospace is reserved for things that are literally machine output.
 
 ### Hierarchy
-- **Display** (300, `clamp(19px, 2vw, 28px)`, 1.25): the greeting above the orb, one per screen. Sentence case, no tracking tricks. The staged HUD scales it to `clamp(25px, 2.7vw, 44px)` — same weight, bigger room.
+- **Display** (300, `clamp(19px, 2vw, 28px)`, 1.25): the greeting above the orb, one per screen. Sentence case, no tracking tricks. The declarative HUD scales it to `clamp(25px, 2.7vw, 44px)` — same weight, bigger room.
 - **Title** (300, 17px, 1.2): crew name, card titles in the profile block.
-- **Metric** (300, 30px, 1.0, `-0.02em`, tabular): the one number that answers the panel's question. The gauge and mini cards sit at 19–30px; the staged detail panel goes to 37px. Units ride along at 10–12px muted, never in the same size.
+- **Metric** (300, 30px, 1.0, `-0.02em`, tabular): the one number that answers the panel's question. The gauge and mini cards sit at 19–30px; the detail panel goes to 37px. Units ride along at 10–12px muted, never in the same size.
 - **Body** (300, 12px, 1.5): row values, insight sentence, panel rows. 11–13.5px across the HUD; 14px everywhere in the instrument register.
 - **Label** (500, 10px baseline, .14–.2em, uppercase): card titles (11px), tab labels, chip text, mission chip. Never a sentence — caps + tracking is metadata grammar only.
 - **Micro** (400, 9px, .16em, uppercase): eyebrows, demo markers, `SIMULATED`, the footer note. The floor: nothing reads below 8.5px.
@@ -259,7 +259,7 @@ The stage is a full-viewport radial gradient (`radial-gradient(ellipse 95% 90% a
 - **<721px** — one column, `minmax(0,1fr)`, page scroll; the orb caps at `min(72vw, 300px)`.
 - Nothing ever scrolls horizontally: every grid track is `minmax(0, …)` and the root is `overflow-x-hidden`.
 
-The **staged HUD** (`?gen=0`) is the exception: an absolute composition anchored in percentages on a 1672×941 stage (`left-[5.1%] top-[12.1%]`, orb at `left-[50.6%] top-[26.3%]`), scaled by transform at 1300 / 1000 / 720 / 420px rather than reflowed. Treat it as a fixed composition; new screens use the responsive grid.
+The **declarative HUD** (`?arch=openui`) is the exception: an absolute composition anchored in percentages on a 1672×941 stage (`left-[5.1%] top-[12.1%]`, orb at `left-[50.6%] top-[26.3%]`), scaled by transform at 1300 / 1000 / 720 / 420px rather than reflowed. Treat it as a fixed composition; new screens use the responsive grid.
 
 Page routes (`/performance`, `/research`) use a centred column (`max-w-[1440px]`, `px-4 sm:px-7 lg:px-10`, `pt-6 pb-9`) over a violet-teal page backdrop: `radial-gradient(120% 85% at 82% -12%, rgba(90,78,236,.20), transparent 56%), radial-gradient(95% 70% at -5% 0%, rgba(16,116,148,.22), transparent 62%), linear-gradient(180deg, #070b14, #060a12 62%, #04070e)`. Operator routes (`/admin`) centre at 1040px.
 
@@ -373,7 +373,7 @@ A 14px-radius frame, `aspect-ratio: 2/3`, 1px `rgba(122,222,255,.14)`, interior 
 - **Do** treat reduced motion as a first-class state: `motion-reduce:animate-none!` on every animation and `behavior:auto` on scroll.
 
 ### Don't:
-- **Do not** add a webfont, CDN stylesheet, or remote image for the app's own chrome — the type stack resolving to the platform face *is* the system. The vendored React Bits `VariableProximity` label (Roboto Flex via Google Fonts) is the one exception on the staged HUD, not a precedent.
+- **Do not** add a webfont, CDN stylesheet, or remote image for the app's own chrome — the type stack resolving to the platform face *is* the system. The vendored React Bits `VariableProximity` label (Roboto Flex via Google Fonts) is the one exception, on the declarative HUD — not a precedent.
 - **Do not** use red or amber to dramatise AI text, a delta, or a trend; coral is for reviewed critical states only, and a 30-day delta is neutral teal.
 - **Do not** paint a card with a violet or purple gradient; violet lives in rims, arcs and the thinking halo.
 - **Do not** use a purple–cyan gradient as a surface fill, a glowing rectangle around every card, a left sidebar, or a 4–8 equal-KPI grid — those are the anti-references this system exists to refuse.

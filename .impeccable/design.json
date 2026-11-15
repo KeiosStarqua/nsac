@@ -828,7 +828,7 @@
       "Do treat reduced motion as a first-class state: no animation and instant state changes when it is requested."
     ],
     "donts": [
-      "Do not add a webfont, CDN stylesheet, or remote image for the app's own chrome — the type stack resolving to the platform face is the system. The vendored React Bits VariableProximity label (Roboto Flex via Google Fonts) is the one exception on the staged HUD, not a precedent.",
+      "Do not add a webfont, CDN stylesheet, or remote image for the app's own chrome — the type stack resolving to the platform face is the system. The vendored React Bits VariableProximity label (Roboto Flex via Google Fonts) is the one exception, on the declarative HUD — not a precedent.",
       "Do not use red or amber to dramatise AI text, a delta, or a trend; coral is for reviewed critical states only, and a 30-day delta is neutral teal.",
       "Do not paint a card with a violet or purple gradient; violet lives in rims, arcs and the thinking halo.",
       "Do not use a purple–cyan gradient as a surface fill, a glowing rectangle around every card, a left sidebar, or a 4–8 equal-KPI grid — those are the anti-references this system exists to refuse.",

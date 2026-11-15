@@ -1,6 +1,6 @@
 import type { VoicePhase } from "./types";
 
-// Fixture-era English strings for the voice state machine, shared by the staged HUD and the watch layout.
+// Fixture-era English strings for the voice state machine, shared by the watch layout and the HUDs.
 export const PHASE_TEXT: Record<VoicePhase, string> = {
   idle: "Just talk to me...",
   requesting_permission: "Requesting microphone access…",

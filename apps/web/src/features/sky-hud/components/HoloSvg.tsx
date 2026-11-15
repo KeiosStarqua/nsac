@@ -7,10 +7,10 @@ export interface HoloSvgProps {
 }
 
 /**
- * The hand-drawn hologram figure the health card shipped with. It is no longer drawn inline in
- * `SkyScreen`: it is the first paint and the fallback of `HologramBody` (no WebGL, scene chunk
- * still loading, or a failed GLB), so the card never shows an empty box. Markup and classes are
- * unchanged from the inline copy.
+ * The hand-drawn hologram figure the health card shipped with. It is not drawn inline in the
+ * screens: it is the first paint and the fallback of `HologramBody` (no WebGL, scene chunk still
+ * loading, or a failed GLB), so the card never shows an empty box. Markup and classes are unchanged
+ * from the original inline copy.
  */
 export function HoloSvg({ className = HUMAN_HOLOGRAM, label = "Glowing holographic human silhouette" }: HoloSvgProps) {
   return (

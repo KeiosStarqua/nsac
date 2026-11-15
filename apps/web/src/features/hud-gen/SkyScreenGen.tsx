@@ -41,18 +41,18 @@ interface DetailDialogProps {
 }
 
 /**
- * The SKY HUD with the ENTIRE staged display tree declared as OpenUI Lang
+ * The declarative SKY HUD (`?arch=openui`) with its ENTIRE display tree declared as OpenUI Lang
  * (@openuidev/react-lang, pinned 1.1.0) against the purpose-built catalog in `catalog.tsx`.
  * Data comes from fixtures + astronaut claims + locale at render time; values reach the tree only
  * through Fact/MetricTile resolved from the HUD facts builder — never as literals in the program.
  *
  * The preset is the primary path. The `sky-hud-composer` agent (per-astronaut PI SDK session,
  * `var/sky-sessions/<id>.hud.jsonl`) may replace it after review passes; on any failure the preset
- * silently stays, so `?gen=0` keeps the staged HUD byte-identical.
+ * silently stays.
  *
- * Logic mirrors SkyScreen.tsx 1:1 (voice, rAF loop, picker + claims, bg, watch viewport, dialogs,
- * announcer). Below 480px the shared WatchHud renders instead of the staged tree — the glanceable
- * watch layout is deliberately not part of the declarative tree.
+ * Host logic (voice, rAF loop, picker + claims, bg, watch viewport, dialogs, announcer) is its own;
+ * below 480px the shared WatchHud renders instead of the tree — the glanceable watch layout is
+ * deliberately not part of the declarative tree.
  */
 export function SkyScreenGen() {
   const copy = useCopy();
@@ -595,7 +595,7 @@ export function SkyScreenGen() {
         </div>
       ) : null}
 
-      {/* Text chat — the same AI Elements overlay as the staged `/` console. */}
+      {/* Text chat — the same AI Elements overlay as the `/` mock console. */}
       {chatOpen ? (
         <SkyChatPanel
           astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null}

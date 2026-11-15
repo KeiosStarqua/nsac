@@ -53,7 +53,7 @@ Ba quy tắc xuyên suốt:
 | `agents/registry.ts` | `AGENT_REGISTRY`, `getAgent`, `listAgents`, `specialists` |
 | `agents/orchestrator.ts` | Profile `sky-orchestrator` + `routeRequest()` (regex handoff) |
 | `agents/generative-ui.ts` | Profile `sky-generative-ui` — sinh OpenUI Lang cho panel |
-| `agents/hud-composer.ts` | Profile `sky-hud-composer` — composer riêng cho HUD declarative của `/` (mặc định; `?gen=0` opt-out) |
+| `agents/hud-composer.ts` | Profile `sky-hud-composer` — composer riêng cho HUD declarative của `/` (`?arch=openui`; mock mặc định trên `/` không gọi composer) |
 | `agents/chat.ts` | Profile `sky-chat` — trả lời plain text, voice của Sky; tools: `[show_on_hud]` |
 | `soul/sky.md` + `soul/index.ts` | SOUL dùng chung cho mọi profile (`skySoul`) |
 | `agents/surfaces.ts` | `SURFACES` — allow-list component theo từng surface (hiện có `orbit-panel`) |

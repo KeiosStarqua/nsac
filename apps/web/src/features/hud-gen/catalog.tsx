@@ -15,7 +15,7 @@
 // `Section` is the only layout component: the HUD is absolutely positioned by the shared Tailwind
 // class strings in `features/sky-hud/hud-classes.ts`, and the section wrappers are what anchors it.
 // It partitions its children for the conversation area (orb and waveform slots) and renders each
-// region with exactly the utilities the staged SkyScreen uses, so both screens stay identical.
+// region with exactly the utilities of the reference HUD composition, so it stays identical.
 import { createLibrary, createParser, defineAction, defineComponent } from "@openuidev/react-lang";
 import { Link } from "@tanstack/react-router";
 import { Fragment } from "react";
@@ -55,7 +55,7 @@ import {
 /** Groups the four tiles without affecting layout (display: contents). */
 const METRIC_ROW = "contents";
 
-/** Mirrors the staged tiles' lilac sleep accent so an agent may reorder the tiles. */
+/** Mirrors the reference tiles' lilac sleep accent so an agent may reorder the tiles. */
 const VITAL_VIOLET =
   "[&_.vital-icon]:text-[#f0d1ff] [&_.vital-icon]:after:border-[#c19dfd] [&_.vital-icon]:after:drop-shadow-[0_0_5px_#af8dff]";
 
@@ -220,7 +220,7 @@ const HologramButton = defineComponent({
     return (
       <>
         <Link id="hologramButton" to="/body" className={HOLOGRAM_LINK} aria-label={ctx.copy.hud.hologramAria}>
-          {/* Same contract as the staged card: skin shell + skeleton in 3D when the browser can
+          {/* Same contract as the mock console card: skin shell + skeleton in 3D when the browser can
               draw it, the drawn figure on SSR/first paint and whenever WebGL or the GLB fails. */}
           <HologramBody reducedMotion={!ctx.fx} />
         </Link>

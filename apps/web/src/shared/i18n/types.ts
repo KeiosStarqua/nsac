@@ -88,7 +88,7 @@ export interface Copy {
     /** Sky screen — micro-caption above the dictation button. */
     speakToSky: string;
   };
-  /** `/` — the declarative OpenUI HUD (default; `?gen=0` opts out to the staged HUD). Every string the HUD shows lives here. */
+  /** `/` — the console HUD (`?arch=openui` declarative tree, `/watch` shared strings). Every string the HUD shows lives here. */
   hud: {
     tagline: string;
     brandAria: string;
@@ -129,7 +129,7 @@ export interface Copy {
   /**
    * `/` default — the "SKY · Astronaut Wellness" mock console (`features/hud-mock`). Every number it
    * shows is simulated (fixture `features/hud-mock/model/fixture.ts`); units stay English by design.
-   * `?gen=0` still renders the staged screen and `?arch=openui` the declarative hud-gen tree.
+   * `?arch=openui` renders the declarative hud-gen tree instead.
    */
   hudMock: {
     profileTitle: string;
