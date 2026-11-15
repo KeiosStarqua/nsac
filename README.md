@@ -26,19 +26,19 @@ Khác dashboard sức khỏe: người dùng là phi hành gia (không phải b�
 
 ```mermaid
 flowchart LR
-  D[Synthetic astronaut generator\n(OSDR OSD-569/575 ranges)] --> E[Deviation engine\npandas/statsmodels/ruptures\nper-person baseline]
-  W[DONKI space weather] --> E
-  E --> C[Cardio module]
-  E --> B[Bone/muscle + exercise coach]
-  C --> S[Synthesis agent\nLangGraph + local Qwen]
+  D["Synthetic astronaut generator<br/>(OSDR OSD-569/575 ranges)"] --> E["Deviation engine<br/>pandas/statsmodels/ruptures<br/>per-person baseline"]
+  W["DONKI space weather"] --> E
+  E --> C["Cardio module"]
+  E --> B["Bone/muscle + exercise coach"]
+  C --> S["Synthesis agent<br/>LangGraph + local Qwen"]
   B --> S
-  S <--> R[RAG: ISS Medical Checklist\nDocling + Qwen3-Embedding + Chroma]
-  S <--> M[MedPsy-4B medical expert tool]
-  S --> H{Astronaut confirms\nLangGraph interrupt}
-  H --> X[Readiness score + action]
-  H --> O[Ground report PDF\nJinja2 + WeasyPrint]
-  O --> Q[SQLite outbox\n20-min delay simulation]
-  X --> U[NiceGUI app]
+  S <--> R["RAG: ISS Medical Checklist<br/>Docling + Qwen3-Embedding + Chroma"]
+  S <--> M["MedPsy-4B medical expert tool"]
+  S --> H{"Astronaut confirms<br/>LangGraph interrupt"}
+  H --> X["Readiness score + action"]
+  H --> O["Ground report PDF<br/>Jinja2 + WeasyPrint"]
+  O --> Q["SQLite outbox<br/>20-min delay simulation"]
+  X --> U["NiceGUI app"]
 ```
 
 ## Demo (60 giây)
