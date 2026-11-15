@@ -1,5 +1,6 @@
 import { astronautsRepo } from "./db/repositories/astronauts";
 import { healthObservationsRepo } from "./db/repositories/healthObservations";
+import { healthLiveRepo } from "./db/repositories/healthLive";
 import {
   baselineFor,
   HEALTH_METRIC_SPECS,
@@ -9,17 +10,38 @@ import {
 import {
   astronautIdSchema,
   observationListQuerySchema,
+  type HealthLiveListEntry,
+  type HealthLiveResponse,
+  type HealthLiveStatus,
   type HealthMetricSummary,
   type HealthPerformanceResponse,
 } from "./healthSchemas";
 
-// REST cho health observation layer (năng lượng/cơ/giấc ngủ/nước). Dữ liệu synthetic, không
-// ngưỡng lâm sàng, không alert: backend chỉ trả số + method/quality/source để UI/agent diễn giải.
-// Lỗi trả JSON { ok:false, error } theo style eventsRoutes/sensors/routes.ts. Path lạ → null.
+// REST cho health observation layer (năng lượng/cơ/giấc ngủ/nước) + live projection v2.
+// Dữ liệu synthetic, không ngưỡng lâm sàng, không alert: backend chỉ trả số + method/quality/source
+// để UI/agent diễn giải. Lỗi trả JSON { ok:false, error } theo style eventsRoutes/sensors/routes.ts.
+// Path lạ → null.
 
 /** Số điểm mỗi series trong performance response (Cửa sổ 30 ngày cho delta30d). */
 const POINTS_PER_SERIES = 30;
 const PERFORMANCE_PATH = /^\/api\/health\/performance\/([^/]+)$/;
+const LIVE_PATH = /^\/api\/health\/live\/([^/]+)$/;
+/** Freshness của live projection: frame telemetry gần nhất trong ~10 giây wall. */
+const LIVE_FRESH_MS = 10_000;
+
+/**
+ * Simulator có đang chạy không — import động để healthRoutes KHÔNG kéo connection SENSORS
+ * (telemetry) vào lúc load module: route health phải dùng được khi simulator tắt/không có DB sim.
+ */
+async function simulatorRunning(): Promise<boolean> {
+  try {
+    const { simulationEngine } = await import("./sensors/engine");
+    return simulationEngine.isRunning();
+  } catch (e) {
+    console.error("[health] simulator status unavailable", e);
+    return false;
+  }
+}
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -37,6 +59,17 @@ export async function handleHealthRequest(req: Request): Promise<Response | null
     return listObservations(url);
   }
 
+  if (url.pathname === "/api/health/live") {
+    if (req.method !== "GET") return null;
+    return liveAll();
+  }
+
+  const liveMatch = url.pathname.match(LIVE_PATH);
+  if (liveMatch) {
+    if (req.method !== "GET") return null;
+    return liveOne(decodeURIComponent(liveMatch[1]));
+  }
+
   const match = url.pathname.match(PERFORMANCE_PATH);
   if (match) {
     if (req.method !== "GET") return null;
@@ -44,6 +77,69 @@ export async function handleHealthRequest(req: Request): Promise<Response | null
   }
 
   return null;
+}
+
+/**
+ * Live projection của một astronaut (SPEC §14 v2).
+ * - `sim`: health_current có row (kể cả stale); `live:true` chỉ khi simulator chạy VÀ ingest ≤10 s.
+ * - `seed`: health_current rỗng nhưng health_observations có row — dữ liệu lịch sử, KHÔNG phải live.
+ * - `none`: chưa có gì.
+ */
+async function liveStatusFor(astronautId: string): Promise<HealthLiveStatus> {
+  const rows = healthLiveRepo.currentByAstronaut(astronautId);
+  if (rows.length > 0) {
+    const updatedAtMs = rows.reduce((max, row) => Math.max(max, row.updatedAt), 0);
+    const fresh = Date.now() - updatedAtMs <= LIVE_FRESH_MS;
+    return {
+      live: fresh && (await simulatorRunning()),
+      updatedAt: new Date(updatedAtMs).toISOString(),
+      source: "sim",
+      metrics: Object.fromEntries(
+        rows.map((row) => [row.metric, { value: row.value, unit: row.unit, quality: row.quality as ObservationQuality }]),
+      ),
+    };
+  }
+
+  const seedRows = await healthObservationsRepo.latestByMetric(astronautId);
+  if (seedRows.length > 0) {
+    const latestTs = seedRows.reduce((max, row) => (row.ts > max ? row.ts : max), "");
+    return {
+      live: false,
+      updatedAt: latestTs || null,
+      source: "seed",
+      metrics: Object.fromEntries(
+        seedRows.map((row) => [row.metric, { value: row.value, unit: row.unit, quality: row.quality as ObservationQuality }]),
+      ),
+    };
+  }
+
+  return { live: false, updatedAt: null, source: "none", metrics: {} };
+}
+
+/** GET /api/health/live/:astronautId → `{ ok, live, updatedAt, source, metrics }`. */
+async function liveOne(rawAstronautId: string): Promise<Response> {
+  const parsed = astronautIdSchema.safeParse(rawAstronautId);
+  if (!parsed.success) {
+    return Response.json({ ok: false, error: "bad_astronaut" }, { status: 400 });
+  }
+  const astronaut = await astronautsRepo.get(parsed.data);
+  if (!astronaut) {
+    return Response.json({ ok: false, error: "unknown_astronaut" }, { status: 404 });
+  }
+  const status = await liveStatusFor(parsed.data);
+  const body: HealthLiveResponse = { ok: true, ...status };
+  return Response.json(body);
+}
+
+/** GET /api/health/live → array 6 crew (mỗi entry cùng shape + astronautId). */
+async function liveAll(): Promise<Response> {
+  const roster = await astronautsRepo.list();
+  const entries: HealthLiveListEntry[] = [];
+  for (const astronaut of roster) {
+    const status = await liveStatusFor(astronaut.id);
+    entries.push({ ok: true, astronautId: astronaut.id, ...status });
+  }
+  return Response.json(entries);
 }
 
 /**
@@ -99,6 +195,8 @@ async function performance(rawAstronautId: string): Promise<Response> {
     asOf: asOf || new Date().toISOString(),
     metrics,
     derived,
+    // Additive v2 — live projection (không đổi field cũ).
+    live: await liveStatusFor(astronautId),
   };
   return Response.json(body);
 }

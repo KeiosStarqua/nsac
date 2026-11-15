@@ -13,6 +13,8 @@ import { handleHealthRequest } from "./healthRoutes";
 import { handleSpeechRequest, startSpeechEngine } from "./speechEngine";
 import { handleSpeechAdminRequest } from "./speechAdmin";
 import { seedHealthObservations } from "./health/seed";
+import { startHealthProjector } from "./health/projector";
+import { bootSimulation } from "./sensors/runtime";
 
 const port = Number(process.env.PORT ?? 3200);
 
@@ -54,6 +56,15 @@ startSpeechEngine();
 
 // Clinical routine engine (HARNESSING §17): deterministic, không LLM; tick CLINICAL_TICK_SECONDS.
 startClinicalScheduler();
+
+// Health projector: nghe frame telemetry đã persist → health_current/rollups + rules → facts.
+// Đăng ký TRƯỚC bootSimulation để frame đầu tiên không bị lỡ. Không cần key/mạng.
+startHealthProjector();
+
+// Continuous simulator (SPEC §14 v2, PR1): autostart mission SIM-001 khi SKY_SIM_AUTOSTART=1,
+// restore durable session nếu có, checkpoint 60 tick + retention telemetry. Phải chạy SAU seed
+// (FK astronauts) và TRƯỚC listen để /api/health/live có dữ liệu ngay khi server mở port.
+bootSimulation();
 
 Bun.serve({
   port,

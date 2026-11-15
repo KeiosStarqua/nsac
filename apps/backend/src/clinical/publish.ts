@@ -1,11 +1,14 @@
-// Clinical publish — direct insert vào change_events (mirror insert block của postEvent).
+// Change-event publish — direct insert vào change_events (mirror insert block của postEvent).
 // KHÔNG HTTP-loopback vào chính mình. Payload nhỏ (< 1 KB); eventsBus.emit giữ parity
 // với logging hiện có ([events] <id> <topic>).
+//
+// Dùng chung cho clinical (`medical.*`) và health facts (`health.fact.updated`) — một bus duy nhất
+// mà agent đọc (HARNESSING §3.5), không có bus song song.
 import { eventsDb } from "../db/eventsClient";
 import { changeEvents } from "../db/schema/changeEvents";
 import { eventsBus, eventPayloadSchemas, type EventTopic } from "../eventsRoutes";
 
-export function publishClinicalEvent(
+export function publishChangeEvent(
   topic: EventTopic,
   astronautId: string | null,
   source: string,
@@ -39,3 +42,6 @@ export function publishClinicalEvent(
   });
   return inserted.id;
 }
+
+/** Alias back-compat cho clinical callers (cùng implementation). */
+export const publishClinicalEvent = publishChangeEvent;

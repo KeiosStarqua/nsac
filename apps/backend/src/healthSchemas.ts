@@ -47,4 +47,25 @@ export interface HealthPerformanceResponse {
   metrics: HealthMetricSummary[];
   /** energy_balance = latest(calories_intake) − latest(calories_burned); rỗng nếu thiếu vế. */
   derived: { energy_balance?: number };
+  /** Live projection (v2) — additive, không đổi các field trên. */
+  live?: HealthLiveStatus;
 }
+
+/** Một giá trị metric live: chỉ có metric CÓ nguồn telemetry (hrv_ms không bao giờ bị bịa). */
+export interface HealthLiveMetric {
+  value: number;
+  unit: string;
+  quality: ObservationQuality;
+}
+
+export interface HealthLiveStatus {
+  live: boolean;
+  /** Wall-clock ISO của lần ingest gần nhất (null khi chưa có dữ liệu sim). */
+  updatedAt: string | null;
+  source: "sim" | "seed" | "none";
+  metrics: Record<string, HealthLiveMetric>;
+}
+
+export type HealthLiveResponse = HealthLiveStatus & { ok: true };
+
+export type HealthLiveListEntry = HealthLiveResponse & { astronautId: string };
