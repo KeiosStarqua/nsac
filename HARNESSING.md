@@ -116,7 +116,7 @@ sendChatTurn(astronautId, message)                   [api/chat.functions.ts — 
 streamChatTurn(astronautId, message, { onDelta, signal, onUiProgram })   [/api/chat-stream, SSE]
   → cùng pipeline runChatTurn (queue, session, timeout, trim, ghi transcript một lần)
   → onDelta mỗi text_delta → `data: {"type":"delta","text":…}` — kết thúc `done` | `error{code}`
-  → turn có show_on_hud (§3.4) ⇒ `data: {"type":"ui","program":…}` ngay trước `done`
+  → turn có show_on_hud (§3.4) ⇒ `data: {"type":"ui","program":…,"chatDock":"right"}` ngay trước `done`
   → browser đóng kết nối ⇒ route `cancel()` abort turn (PI session dispose, không ghi transcript,
     publish ok=false) — `signal` còn được wire vào `session.prompt` nên generation dừng thật,
     không tiếp tục đốt token
@@ -126,6 +126,7 @@ Client `/`: `SkyChatPanel` dùng `@ai-sdk/react` `useChat` + `SkyChatTransport` 
 `/api/chat-stream`, parse bằng codec `runtime/sse.ts`) — delta token-by-token.
 Frame `ui` được transport bắt riêng, không trở thành chunk AI SDK; nó chạy `onUiProgram`
 → `SkyScreenGen` review lại program lần nữa → `setOverrideProgram` (chip "Back to Sky's view").
+`chatDock` trên frame (do harness đặt, không do client suy ra) quyết định card dock mép phải.
 Client `/watch`: `ChatPanel` cũ, gọi `sendChat` (blocking, không stream).
 
 `/api/chat-stream` guard tối thiểu: `sec-fetch-site` khác same-origin/same-site/none ⇒ 403;
@@ -159,12 +160,12 @@ SkyChatPanel (useChat) ──POST /api/chat-stream──► streamChatTurn()
   → user hỏi visualize ⇒ model gọi show_on_hud({brief})  ── tool chạy server-side
       ├─ runAgent("sky-generative-ui", brief, {surface:"SKY HUD", allowList: HUD_COMPONENT_NAMES, maxChars:MAX_PROGRAM_CHARS})
       ├─ extractProgram → reviewProgram(allowList HUD_COMPONENT_NAMES, parseHudProgram)
-      ├─ pass → artifacts.hudProgram = program đã review; tool trả "HUD updated." cho model
+      ├─ pass → artifacts.hudProgram = program đã review; artifacts.chatDock = "right"; tool trả "HUD updated." cho model
       └─ fail → tool trả isError ("Could not update the HUD: <reason>"); artifacts rỗng; HUD không đổi
   → model trả lời tiếp (≤3 câu) → turn ok
-  → hooks.onUiProgram?.(hudProgram) → route ghi `{"type":"ui","program":…}` rồi `{"type":"done"}`
-  → client: SkyChatTransport parse frame `ui` → onUiProgram(program) (không thành chunk AI SDK)
-  → SkyScreenGen: reviewProgram lần nữa → setOverrideProgram
+  → hooks.onUiProgram?.(hudProgram, hudDock) → route ghi `{"type":"ui","program":…,"chatDock":"right"}` rồi `{"type":"done"}`
+  → client: SkyChatTransport parse frame `ui` → onUiProgram(program, chatDock) (không thành chunk AI SDK)
+  → SkyScreenGen: reviewProgram lần nữa → setOverrideProgram + setChatDock(chatDock) — dock do harness quyết, không do client suy ra
       program = overrideProgram ?? agentProgram ?? hudPreset(locale)
       chip "Back to Sky's view" (bottom-left, z-30) / resetView / đổi astronaut / đổi locale → xoá override
 ```
@@ -172,9 +173,10 @@ SkyChatPanel (useChat) ──POST /api/chat-stream──► streamChatTurn()
 - Tool: `name: "show_on_hud"`, `executionMode: "sequential"`, parameters là **JSON Schema thuần**
   (pi-ai compile bằng `@earendil-works/pi-schema`, `coerce: true` — không cần typebox).
 - Một call mỗi turn do prompt enforce, không do code; parser + review chặn phần còn lại.
-- `artifacts` là state của một turn: `pi.server` xoá ở **đầu** mỗi `prompt()`; failure path của
-  `runChatTurn` không bao giờ gọi `onUiProgram`.
-- Frame `ui` chỉ mang program đã validate — không transcript, không persistence.
+- `artifacts` là state của một turn: `pi.server`/Mastra xóa ở **đầu** mỗi `prompt()` (`hudProgram`,
+  `chatDock`, `tools`); failure path của `runChatTurn` không bao giờ gọi `onUiProgram`.
+  `TurnArtifacts` mang `chatDock: "right"` — harness (không phải frontend) quyết định dock.
+- Frame `ui` chỉ mang program đã validate (+ `chatDock` khi show_on_hud pass) — không transcript, không persistence.
 
 ### 3.5 Broadcast v1 — shared memory (single box, 2026-11-14)
 

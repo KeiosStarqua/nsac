@@ -7,7 +7,7 @@ import { chatStreamBodySchema } from "~/features/speech/api/speechProxy.server";
 // streams `data: {"type":"delta","text":"…"}` frames as the PI session produces text deltas, then
 // exactly one terminal frame — `{"type":"done"}` or `{"type":"error","code":…}`. When the turn's
 // `show_on_hud` tool produced a reviewed program, one `{"type":"ui","program":…}` frame precedes the
-// `done`.
+// `done`; it may carry `chatDock: "right"` (the harness's dock decision — passed through unchanged).
 //
 // The stream body (frames, `: ok` open comment, 5 s keepalive, cancel → abort) lives in
 // `features/agent/runtime/turn-stream.ts` — that module carries the silence-budget reasoning: this

@@ -5,8 +5,9 @@
  * the TanStack Start server route `/api/chat-stream`, which streams the PI session's text deltas as
  * `data: {"type":"delta","text":"…"}` frames and ends with `data: {"type":"done"}` or
  * `data: {"type":"error","code":…}`. A turn whose `show_on_hud` tool passed catalog review also carries
- * one `data: {"type":"ui","program":"…"}` frame: it is handed to the constructor's `onUiProgram` (the
- * panel swaps the gen HUD's OpenUI tree) and never becomes an AI SDK chunk. The body is parsed
+ * one `data: {"type":"ui","program":"…","chatDock"?:"right"}` frame: it is handed to the constructor's
+ * `onUiProgram` (the panel swaps the gen HUD's OpenUI tree; `chatDock` carries the harness's dock
+ * decision) and never becomes an AI SDK chunk. The body is parsed
  * incrementally by `./sse.ts`, so frames may be split at any byte boundary and a delta reaches the UI
  * as it arrives.
  *
@@ -104,7 +105,7 @@ const PART_ID = "sky-reply";
 
 type Frame =
   | { type: "delta"; text: string }
-  | { type: "ui"; program: string }
+  | { type: "ui"; program: string; chatDock?: "right" }
   | { type: "done" }
   | { type: "error"; code: ChatErrorCode };
 
@@ -116,9 +117,10 @@ function parseFrame(data: string): Frame | null {
     return null;
   }
   if (raw === null || typeof raw !== "object") return null;
-  const frame = raw as { type?: unknown; text?: unknown; code?: unknown; program?: unknown };
+  const frame = raw as { type?: unknown; text?: unknown; code?: unknown; program?: unknown; chatDock?: unknown };
   if (frame.type === "delta" && typeof frame.text === "string") return { type: "delta", text: frame.text };
-  if (frame.type === "ui" && typeof frame.program === "string") return { type: "ui", program: frame.program };
+  if (frame.type === "ui" && typeof frame.program === "string")
+    return { type: "ui", program: frame.program, ...(frame.chatDock === "right" ? { chatDock: "right" as const } : {}) };
   if (frame.type === "done") return { type: "done" };
   if (frame.type === "error") return { type: "error", code: isErrorCode(frame.code) ? frame.code : "unavailable" };
   return null;
@@ -163,7 +165,7 @@ function openFrames(body: ReadableStream<Uint8Array>) {
  */
 async function openTurnStream(
   body: ReadableStream<Uint8Array>,
-  onUiProgram?: (program: string) => void,
+  onUiProgram?: (program: string, chatDock?: "right") => void,
 ): Promise<ReadableStream<UIMessageChunk>> {
   const frames = openFrames(body);
   let head: string | null = null;
@@ -180,7 +182,7 @@ async function openTurnStream(
     if (!frame) continue;
     if (frame.type === "ui") {
       // A HUD program is not chat content: hand it to the panel and keep looking for the first delta.
-      onUiProgram?.(frame.program);
+      onUiProgram?.(frame.program, frame.chatDock);
       continue;
     }
     if (frame.type === "delta") {
@@ -224,7 +226,7 @@ async function openTurnStream(
               if (frame.text.length > 0) emit({ type: "text-delta", id: PART_ID, delta: frame.text });
             } else if (frame.type === "ui") {
               // Program frames ride alongside the text; they never become AI SDK chunks.
-              onUiProgram?.(frame.program);
+              onUiProgram?.(frame.program, frame.chatDock);
             } else if (frame.type === "done") {
               emit({ type: "text-end", id: PART_ID });
               emit({ type: "finish" });
@@ -267,12 +269,12 @@ async function errorCodeFromResponse(response: Response): Promise<ChatErrorCode>
 export class SkyChatTransport implements ChatTransport<SkyUIMessage> {
   private readonly astronautId: string | null;
   private readonly fetchImpl: typeof fetch;
-  private readonly onUiProgram?: (program: string) => void;
+  private readonly onUiProgram?: (program: string, chatDock?: "right") => void;
 
   constructor(options: {
     astronautId: string | null;
     fetchImpl?: typeof fetch;
-    onUiProgram?: (program: string) => void;
+    onUiProgram?: (program: string, chatDock?: "right") => void;
   }) {
     this.astronautId = options.astronautId;
     this.fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);

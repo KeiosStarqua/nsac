@@ -7,10 +7,13 @@
  * click-catcher (no dim, no blur — the stage stays fully visible behind it): from 721px it sits on the
  * HUD centre-column axis and is anchored under the orb (`features/sky-hud/chat-geometry.ts`), so the
  * orb stays visible above it; below that it is centred, and full-bleed under 480px. When the host
- * passes `docked` (the gen HUD with Sky's `show_on_hud` override active), the card instead pins to the
- * **right edge** — a full-height strip under the header, unanchored from the orb geometry — so it never
- * covers the composed HUD's centre column; at every width below 721px the only change from the user's
- * point of view is that the card hugs the right edge (full-bleed on phones). Behaviour it owns:
+ * passes `docked`, the card instead pins to the **right edge** — a full-height strip under the header,
+ * unanchored from the orb geometry — so it never covers the composed HUD's centre column; at every
+ * width below 721px the only change from the user's point of view is that the card hugs the right edge
+ * (full-bleed on phones). The right-dock decision is made by the agent turn harness, not the client:
+ * `show_on_hud` passing review sets `artifacts.chatDock = "right"` server-side, the `ui` frame carries
+ * it, and the host reads it there — the host still owns the final render switch via this prop, but the
+ * value originates in the harness. Behaviour it owns:
  *
  *  - `useChat` state only; history comes from the existing `loadChatHistory` server function (the SDK
  *    never fetches it) and a turn streams through the SSE route `/api/chat-stream` (transport-owned):
@@ -63,14 +66,15 @@ export type SkyChatPanelProps = {
   astronaut: { id: string; name: string } | null;
   onClose: () => void;
   onReply: (text: string) => void;
-  /** A HUD program `show_on_hud` produced this turn (already reviewed server-side). */
-  onUiProgram?: (program: string) => void;
+  /** A HUD program `show_on_hud` produced this turn (already reviewed server-side); `chatDock` is the harness's dock decision. */
+  onUiProgram?: (program: string, chatDock?: "right") => void;
   /** "Use voice" pill: close the card and start the microphone (host does both). */
   onUseVoice?: () => void;
   /**
-   * Dock the card to the right edge instead of the HUD centre axis — set when Sky's `show_on_hud`
-   * override replaced the composed HUD tree (gen path only). The card becomes a full-height strip
-   * under the header (`top`/`bottom` anchors own the height, unanchored from the orb geometry).
+   * Dock the card to the right edge instead of the HUD centre axis — the host passes this when the
+   * harness's `chatDock: "right"` arrived on the `ui` frame (the gen HUD with Sky's `show_on_hud`
+   * override active). The card becomes a full-height strip under the header
+   * (`top`/`bottom` anchors own the height, unanchored from the orb geometry).
    * Default `false`: everything renders as before (the preset layout never passes this).
    */
   docked?: boolean;
@@ -343,7 +347,7 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram, onUseVoice }:
     () =>
       new SkyChatTransport({
         astronautId,
-        onUiProgram: (program) => onUiProgramRef.current?.(program),
+        onUiProgram: (program, chatDock) => onUiProgramRef.current?.(program, chatDock),
       }),
     [astronautId],
   );

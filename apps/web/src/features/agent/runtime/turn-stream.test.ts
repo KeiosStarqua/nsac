@@ -88,6 +88,19 @@ describe("createTurnStream", () => {
     expect(out.isDone()).toBe(true);
   });
 
+  it("carries chatDock on the ui frame when the harness set one", async () => {
+    const stream = createTurnStream({
+      run: ({ onUiProgram }: TurnStreamHooks) => {
+        onUiProgram("Console { }", "right");
+        return Promise.resolve({ status: "ok", reply: "done" });
+      },
+    });
+    const out = pump(stream);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(out.texts()).toContain('data: {"type":"ui","program":"Console { }","chatDock":"right"}\n\n');
+  });
+
   it("emits the HUD program frame before the terminal frame", async () => {
     const stream = createTurnStream({
       run: ({ onUiProgram }: TurnStreamHooks) => {

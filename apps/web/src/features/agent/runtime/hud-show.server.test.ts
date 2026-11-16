@@ -49,35 +49,38 @@ describe("show_on_hud tool", () => {
   });
 
   it("stores the reviewed program in the turn artifacts and reports success to the model", async () => {
-    const artifacts: { hudProgram?: string } = {};
+    const artifacts: { hudProgram?: string; chatDock?: "right" } = {};
     const tool = createShowHudTool(artifacts, { compose: async () => VALID });
 
     const result = await run(tool, brief("Show resting heart rate and sleep"));
 
     expect(result.isError).toBe(false);
     expect(artifacts.hudProgram).toBe(VALID);
+    expect(artifacts.chatDock).toBe("right");
     expect(result.details).toEqual({ program: VALID });
     expect(JSON.stringify(result.content)).toContain("HUD updated");
   });
 
   it("strips fences from the delegate's reply before review", async () => {
-    const artifacts: { hudProgram?: string } = {};
+    const artifacts: { hudProgram?: string; chatDock?: "right" } = {};
     const tool = createShowHudTool(artifacts, { compose: async () => "```openui\n" + VALID + "\n```" });
 
     const result = await run(tool, brief("Show the vitals"));
 
     expect(result.isError).toBe(false);
     expect(artifacts.hudProgram).toBe(VALID);
+    expect(artifacts.chatDock).toBe("right");
   });
 
   it("rejects a program the catalog refuses and leaves the HUD untouched", async () => {
-    const artifacts: { hudProgram?: string } = {};
+    const artifacts: { hudProgram?: string; chatDock?: "right" } = {};
     const tool = createShowHudTool(artifacts, { compose: async () => WRONG_ROOT });
 
     const result = await run(tool, brief("Show the vitals"));
 
     expect(result.isError).toBe(true);
     expect(artifacts.hudProgram).toBeUndefined();
+    expect(artifacts.chatDock).toBeUndefined();
     expect(JSON.stringify(result.content)).toContain("rejected by catalog review");
     // Sanity: the fixture really is invalid under the same gate the tool uses.
     expect(reviewProgram(WRONG_ROOT, { allowList: HUD_COMPONENT_NAMES }, parseHudProgram).ok).toBe(false);

@@ -98,7 +98,13 @@ export type ToolOutcome = { name: string; ok: boolean; ms?: number };
  * `signal` is the turn's own abort signal, so a tool that delegates to another agent (show_on_hud →
  * sky-generative-ui) stops with the turn instead of outliving it.
  */
-export type TurnArtifacts = { hudProgram?: string; tools?: ToolOutcome[]; signal?: AbortSignal };
+export type TurnArtifacts = {
+  hudProgram?: string;
+  /** Set by the show_on_hud harness on success — the card docks right while Sky's HUD override is on screen. */
+  chatDock?: "right";
+  tools?: ToolOutcome[];
+  signal?: AbortSignal;
+};
 
 export async function createSession(
   profile: AgentProfile,
@@ -177,6 +183,7 @@ export async function createSession(
       // Turn artifacts belong to the turn that produces them: clearing at the start keeps a stale
       // program from a previous turn out of this turn's reply.
       if (overrides?.artifacts) delete overrides.artifacts.hudProgram;
+      if (overrides?.artifacts) delete overrides.artifacts.chatDock;
       if (overrides?.artifacts) delete overrides.artifacts.tools;
       // The turn's abort signal, readable by tools that spawn their own agent (show_on_hud).
       if (overrides?.artifacts) overrides.artifacts.signal = opts.signal;

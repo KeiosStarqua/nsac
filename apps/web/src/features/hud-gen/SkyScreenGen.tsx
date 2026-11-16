@@ -90,6 +90,9 @@ export function SkyScreenGen() {
   // Chat override: the program `show_on_hud` delivered on this screen. Replaces the WHOLE tree
   // (`overrideProgram ?? agentProgram ?? preset`); the chip clears it.
   const [overrideProgram, setOverrideProgram] = useState<string | null>(null);
+  // The dock value the harness set on the `ui` frame (`artifacts.chatDock`): "right" only while the
+  // override is on screen. Applied here — the client never infers it from the override itself.
+  const [chatDock, setChatDock] = useState<"axis" | "right">("axis");
   const [composeHintDismissed, setComposeHintDismissed] = useState(false);
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
@@ -430,6 +433,7 @@ export function SkyScreenGen() {
     let alive = true;
     setAgentProgram(null);
     setOverrideProgram(null);
+    setChatDock("axis");
     setComposeHintDismissed(false);
     void composeHud({ data: { astronautId, locale } })
       .then((res) => {
@@ -458,24 +462,28 @@ export function SkyScreenGen() {
     setDetail(null);
     setChatOpen(false);
     setOverrideProgram(null);
+    setChatDock("axis");
     setGreeting(greetingFor(findAstronaut(astronautId, roster)));
     setPrompt(copy.hud.promptFallback);
   }, [astronautId, roster, greetingFor, copy]);
 
   // Chat → HUD: `show_on_hud` delivered a program the server already reviewed; review again on the
-  // client (cheap, and the gate must hold wherever a program lands) and swap the whole tree.
-  const handleChatProgram = useCallback((program: string) => {
+  // client (cheap, and the gate must hold wherever a program lands) and swap the whole tree. The dock
+  // comes from the harness (`chatDock` on the same frame), never inferred from the override here.
+  const handleChatProgram = useCallback((program: string, chatDock?: "right") => {
     const review = reviewProgram(program, { allowList: HUD_COMPONENT_NAMES, maxChars: MAX_PROGRAM_CHARS }, parseHudProgram);
     if (!review.ok) {
       console.info("[sky] chat HUD program rejected", review.reasons);
       return;
     }
     setOverrideProgram(review.program);
+    setChatDock(chatDock === "right" ? "right" : "axis");
     setAnnouncer(copy.hud.chatOverrideBack);
   }, [copy]);
 
   const clearChatOverride = useCallback(() => {
     setOverrideProgram(null);
+    setChatDock("axis");
   }, []);
 
   // Same crew fallback as the roster: the crew member always has a profile, even before a claim.
@@ -589,7 +597,7 @@ export function SkyScreenGen() {
       {chatOpen ? (
         <SkyChatPanel
           astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null}
-          docked={overrideProgram != null}
+          docked={chatDock === "right"}
           onClose={() => setChatOpen(false)}
           onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }}
           onUiProgram={handleChatProgram}

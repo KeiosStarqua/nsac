@@ -2,7 +2,8 @@
  * The SSE body of `/api/chat-stream`, factored out of the route so it can be tested without a server.
  *
  * Contract (unchanged): `data: {"type":"delta","text":"…"}` per text delta, at most one
- * `data: {"type":"ui","program":"…"}` (the reviewed HUD program) before the end, then exactly one
+ * `data: {"type":"ui","program":"…","chatDock":"right"}` (the reviewed HUD program, plus the harness's
+ * dock decision when `show_on_hud` passed) before the end, then exactly one
  * terminal frame — `data: {"type":"done"}` or `data: {"type":"error","code":…}`.
  *
  * Silence contract (the reason this module exists):
@@ -27,7 +28,7 @@ export type TurnStreamResult = { status: TurnStreamStatus; reply?: string };
 
 export type TurnStreamHooks = {
   onDelta: (text: string) => void;
-  onUiProgram: (program: string) => void;
+  onUiProgram: (program: string, chatDock?: "right") => void;
   signal: AbortSignal;
 };
 
@@ -81,8 +82,8 @@ export function createTurnStream(options: {
               if (text.length === 0) return;
               if (writeFrame({ type: "delta", text })) sentDelta = true;
             },
-            onUiProgram: (program) => {
-              writeFrame({ type: "ui", program });
+            onUiProgram: (program, chatDock) => {
+              writeFrame({ type: "ui", program, ...(chatDock ? { chatDock } : {}) });
             },
             signal: turnAbort.signal,
           });

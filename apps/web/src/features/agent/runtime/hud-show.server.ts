@@ -115,7 +115,8 @@ export async function composeHudProgramForBrief(
 
 /**
  * The one purpose-built tool of `sky-chat`. On success the validated program lands in
- * `artifacts.hudProgram`; `astro-chat.server.ts` hands it to the SSE route as one `ui` frame after the
+ * `artifacts.hudProgram` (and `artifacts.chatDock = "right"` — the card docks right while the
+ * override is on screen); `astro-chat.server.ts` hands both to the SSE route as one `ui` frame after the
  * reply, and the gen HUD swaps its OpenUI tree. On any failure it returns an error result and the
  * HUD is untouched.
  */
@@ -135,6 +136,7 @@ export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions
       const outcome = await composeHudProgramForBrief(params?.brief, { ...opts, signal: artifacts.signal });
       if (!outcome.ok) return err(outcome.message);
       artifacts.hudProgram = outcome.program;
+      artifacts.chatDock = "right";
       return {
         content: [{ type: "text", text: "HUD updated." }],
         details: { program: outcome.program },
