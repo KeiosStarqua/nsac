@@ -1,4 +1,4 @@
-// Deterministic sparkline geometry for the `/` mock console.
+// Deterministic sparkline geometry for the `/` console.
 //
 // Pure and seeded: the same numbers render on the server and the client, so no hydration mismatch
 // and no random walk. No React, no DOM — vitest covers it directly.

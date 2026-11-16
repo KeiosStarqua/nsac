@@ -36,11 +36,6 @@ const putAgentCoreBodySchema = z.object({
   core: z.enum(["pi", "mastra"]),
 });
 
-// Giao diện của `/`: `mock` (default) | `gen` — admin chọn trên `/admin/ui`.
-const putHudUiBodySchema = z.object({
-  ui: z.enum(["mock", "gen"]),
-});
-
 // Key của map `agent.models`: id profile dạng kebab (vd. sky-chat), ≤64 ký tự.
 const PROFILE_KEY_REGEX = /^[a-z0-9-]{1,64}$/;
 const MAX_MODEL_ENTRIES = 16;
@@ -116,8 +111,7 @@ function validateAgentConfigBody(body: unknown):
  * Xử lý các route settings: `/api/settings/agent-model` (legacy global),
  * `/api/settings/agent-models` (provider + per-profile models),
  * `/api/settings/elevenlabs-key` (GET/PUT/DELETE, key write-only),
- * `/api/settings/hud-background` (GET/PUT, backdrop `/`),
- * `/api/settings/hud-ui` (GET/PUT, console variant của `/`) và
+ * `/api/settings/hud-background` (GET/PUT, backdrop `/`) và
  * `/api/settings/agent-core` (GET/PUT, pi | mastra). Trả về
  * `null` khi pathname/method không thuộc settings để server.ts tiếp tục
  * fall-through về 404 như hiện có.
@@ -176,8 +170,6 @@ export async function handleSettingsRequest(req: Request): Promise<Response | nu
   if (url.pathname === "/api/settings/elevenlabs-key") return handleElevenLabsKey(req);
 
   if (url.pathname === "/api/settings/hud-background") return handleHudBackground(req);
-
-  if (url.pathname === "/api/settings/hud-ui") return handleHudUi(req);
 
   if (url.pathname === "/api/settings/agent-core") return handleAgentCore(req);
 
@@ -239,37 +231,6 @@ async function handleHudBackground(req: Request): Promise<Response | null> {
     }
     const saved = settingsRepo.setHudBackground(parsed.data.background);
     return Response.json({ ok: true, background: saved.background, updatedAt: saved.updatedAt });
-  }
-
-  return null;
-}
-
-/**
- * Giao diện của `/` — admin setting, đọc không cần auth (loopback-only như mọi GET settings khác;
- * web server fn là consumer duy nhất). Chưa set / giá trị rác ⇒ default `mock`, `updatedAt: null`.
- */
-async function handleHudUi(req: Request): Promise<Response | null> {
-  if (req.method === "GET") {
-    const stored = settingsRepo.getHudUi();
-    return Response.json({
-      ui: stored?.ui ?? "mock",
-      updatedAt: stored?.updatedAt ?? null,
-    });
-  }
-
-  if (req.method === "PUT") {
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
-      return Response.json({ ok: false, error: "bad_hud_ui" }, { status: 400 });
-    }
-    const parsed = putHudUiBodySchema.safeParse(body);
-    if (!parsed.success) {
-      return Response.json({ ok: false, error: "bad_hud_ui" }, { status: 400 });
-    }
-    const saved = settingsRepo.setHudUi(parsed.data.ui);
-    return Response.json({ ok: true, ui: saved.ui, updatedAt: saved.updatedAt });
   }
 
   return null;

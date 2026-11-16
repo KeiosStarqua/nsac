@@ -2,10 +2,9 @@
 
 Version: 1.0 · Design reference: user-supplied SKY concept image (1672 × 941 pixels)
 
-> **Status (2026-11-16): historical reference.** The pixel-matched staged screen this document
-> specifies (`features/sky-hud/SkyScreen.tsx`, reachable as `/?gen=0`) was removed. `/` now renders
-> the "SKY · Astronaut Wellness" mock console (`features/hud-mock/`) and the declarative OpenUI HUD
-> lives behind the unlinked `/?arch=openui` (`features/hud-gen/`); `/watch` is unchanged. This
+> **Status (2026-11-16; updated 2026-11-17): historical reference.** The pixel-matched staged screen
+> this document specifies (`features/sky-hud/SkyScreen.tsx`, reachable as `/?gen=0`) was removed.
+> `/` is now the Hub Gen console (`features/hud-gen/`, the only console); `/watch` is unchanged. This
 > document is kept as the visual reference the current screens were measured against — its
 > composition, tokens and component inventory still describe that reference frame, not the routes.
 
@@ -212,7 +211,7 @@ Keep a `prefers-reduced-motion` fallback and an entirely readable DOM-only fallb
 
 **Visual:** Compact luminous microphone control centered above fluid sheet, at approximately `(835,661)` with ~82px outer diameter. **Implemented 2026-11-15 as the vendored React Bits `VoicePill`** (`apps/web/src/shared/react-bits/VoicePill/`): an 84px navy circle with a cyan mic glyph that swells leftward into a capsule of simulated equalizer bars, a `m:ss` timer and a stop square while listening; slide left past the cancel distance to cancel. The bars are simulated (`reactive="simulated"`) — they are decoration, the authoritative capture analyser stays in `useSkyVoice`, and the textual phase hint (UI09) remains below the control. This is the **primary, explicitly identifiable action**.
 
-**Listening state (2026-11-15):** the pill is the **idle** control only. While `phase === 'listening' | 'requesting_permission'` both HUDs (`features/hud-gen/catalog.tsx` on `?arch=openui`, `features/hud-mock/SkyHudMock.tsx` on `/`) replace it with the shared `ListeningBar` (`features/sky-hud/components/ListeningBar.tsx`, `min(560px,92vw) × 116px`, cyan→purple gradient rim): a 46-bar waveform drawn from the **real** analyser (`useSkyVoice().readSpectrum`), a `mm:ss` timer anchored at mount, a divider and a 54px gradient stop square that ends the same session the pill's stop ended. The bar is a container, not a control — only the stop button carries the accessible name (`hud.stopListening`).
+**Listening state (2026-11-15):** the pill is the **idle** control only. While `phase === 'listening' | 'requesting_permission'` the console (`features/hud-gen/catalog.tsx` → `features/hud-gen/components/VoiceCluster.tsx`) replaces it with the shared `ListeningBar` (`features/sky-hud/components/ListeningBar.tsx`, `min(560px,92vw) × 116px`, cyan→purple gradient rim): a 46-bar waveform drawn from the **real** analyser (`useSkyVoice().readSpectrum`), a `mm:ss` timer anchored at mount, a divider and a 54px gradient stop square that ends the same session the pill's stop ended. The bar is a container, not a control — only the stop button carries the accessible name (`hud.stopListening`).
 
 **Behavior:**
 - First press: request microphone permission through the platform and begin user-controlled listening only on grant.

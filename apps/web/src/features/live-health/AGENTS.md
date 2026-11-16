@@ -11,7 +11,7 @@ Client for the live (simulated) health feed — the frozen backend contract
 ```
 
 It owns four things: the payload type + lenient parse, the 5 s poll hook, the `/performance`
-LIVE vitals strip, and the pure overlay that binds the `/` mock console's vital rows to the feed.
+LIVE vitals strip, and the pure overlay that binds the `/` console's vital rows to the feed.
 Every reading is synthetic habitat telemetry for the fictional crew — `live: true` means "the
 simulation is running and the reading is fresh", never a real clinical measurement.
 
@@ -24,7 +24,7 @@ simulation is running and the reading is fresh", never a real clinical measureme
   `/api/health/live/:astronautId`) is the only caller of the transport. The backend route itself
   belongs to `apps/backend`.
 - Consumers: `features/performance/components/PerformancePage.tsx` (strip) and
-  `features/hud-mock/SkyHudMock.tsx` (vital rows). Nothing else imports it.
+  `features/hud-gen/SkyScreenGen.tsx` (vital rows). Nothing else imports it.
 
 ## Local Contracts
 
@@ -43,13 +43,13 @@ simulation is running and the reading is fresh", never a real clinical measureme
   and `x-live-degraded: unavailable|timeout` — not a 5xx — so a backend outage does not paint a
   failed request in the browser console every 5 s. Unknown body keys never leave the server; the
   route keeps the house `sec-fetch-site` guard and the 1500 ms loopback timeout.
-- **Mock console binding** (`applyLiveVitals`) replaces values only, keeps the fixture's units and
+- **Console binding** (`applyLiveVitals`) replaces values only, keeps the fixture's units and
   deterministic sparklines, and returns the fixture object untouched when nothing applies — the
   `/` fallback markup must stay byte-identical (screenshots depend on it).
 - **Labelling**: `live.*` copy (en/vi parity test) keeps the words LIVE / HISTORICAL / OFFLINE
   plus "simulated". Metrics values are `aria-live="polite"`; the pulsing dot is `aria-hidden` and
   pulses only while `live && !stale`, under `motion-safe:` so reduced motion stops it.
-- No new dependencies, no medical thresholds, no `?gen=0` / `?arch=openui` behaviour change.
+- No new dependencies, no medical thresholds, no console-switch behaviour change.
 
 ## Work Guidance
 
@@ -64,7 +64,7 @@ simulation is running and the reading is fresh", never a real clinical measureme
 ## Verification
 
 - `cd apps/web && npx vitest run src/features/live-health` covers parse, state fold, strip modes,
-  the mock overlay, the fetch fallback and the loopback transport.
+  the console overlay, the fetch fallback and the loopback transport.
 - Full gates from the repo root: `bunx turbo run build --force` (generates `routeTree.gen.ts`),
   `bun run typecheck`, `cd apps/web && npx vitest run`.
 - Live smoke (backend up): `curl -s http://127.0.0.1:<web>/api/health/live/ayla-reyes` returns the

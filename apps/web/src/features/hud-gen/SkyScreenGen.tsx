@@ -25,20 +25,19 @@ import { MAX_PROGRAM_CHARS, reviewProgram } from "./model/review";
 import { HUD_COMPONENT_NAMES } from "./model/names";
 import { composeHud } from "~/features/agent/api/hud-compose.functions";
 import { useHudBackground } from "../hud-bg";
-import { HudBackdrop, DetailOverlay } from "../hud-mock";
+import { DetailOverlay, type DetailDialogProps } from "./components/DetailOverlay";
+import { HudBackdrop } from "./components/HudBackdrop";
 import { applyLiveVitals, liveStripMode, useLiveHealth } from "../live-health";
-import { HUD_MOCK } from "../hud-mock/model/fixture";
-import type { DetailDialogProps } from "../hud-mock";
-import { MOCK_ROOT, MOCK_VIGNETTE } from "../hud-mock/mock-classes";
+import { HUD_MOCK } from "./data/fixture";
+import { MOCK_ROOT, MOCK_VIGNETTE } from "./mock-classes";
 
 /**
- * The declarative SKY HUD (`?arch=openui`) with its ENTIRE display tree declared as OpenUI Lang
+ * The Hub Gen console (`/`) with its ENTIRE display tree declared as OpenUI Lang
  * (@openuidev/react-lang, pinned 1.1.0) against the catalog in `catalog.tsx`.
  *
- * The catalog renders the mock console's own modules (`features/hud-mock/components/*`) and classes,
- * so this screen and `/` (`SkyHudMock`) are one design: same header, grid, cards, copy and fixture.
- * Only the gen chrome (the "Back to Sky's view" chip) differs; the voice path is the same
- * ElevenLabs Speech Engine (`useVoiceChat`) as the mock console on `/`.
+ * The catalog renders the console's own modules (`features/hud-gen/components/*`) and classes, so
+ * the preset, a composed program and the chrome are one design: same header, grid, cards, copy and
+ * fixture. The voice path is the ElevenLabs Speech Engine (`useVoiceChat`).
  *
  * The preset is the primary path. The `sky-hud-composer` agent (per-astronaut PI SDK session,
  * `var/sky-sessions/<id>.hud.jsonl`) may replace it after review passes; on any failure the preset
@@ -108,7 +107,7 @@ export function SkyScreenGen() {
     setNotice: setVoiceNotice,
   } = useVoiceChat(astronautId);
   // Live (simulated) habitat telemetry for the followed crew member, bound into the declarative
-  // tree the same way the mock console binds it. Fixture until the first read settles.
+  // tree at render time. Fixture until the first read settles.
   const liveHealth = useLiveHealth(astronautId);
   const liveVitalSigns = useMemo(() => applyLiveVitals(HUD_MOCK.vitalSigns, liveHealth.data?.metrics), [liveHealth.data]);
   const liveMode = liveHealth.settled ? liveStripMode(liveHealth.data) : null;
@@ -479,7 +478,7 @@ export function SkyScreenGen() {
     setOverrideProgram(null);
   }, []);
 
-  // Same crew fallback the mock uses: the crew member always has a profile, even before a claim.
+  // Same crew fallback as the roster: the crew member always has a profile, even before a claim.
   const shown = selectedAstronaut ?? findAstronaut(ASTRONAUTS[0]!.id, roster) ?? ASTRONAUTS[0]!;
 
   const facts = useMemo(buildHudFacts, []);
@@ -581,12 +580,12 @@ export function SkyScreenGen() {
         </HudScopeProvider>
       )}
 
-      {/* Detail overlay — the mock's own dialog. */}
+      {/* Detail overlay — the console's own dialog. */}
       {detail ? (
         <DetailOverlay detail={detail} closeLabel={copy.hudMock.detailClose} onClose={closeDetail} dialogRef={detailRef} />
       ) : null}
 
-      {/* Text chat — the same AI Elements overlay as the `/` mock console. */}
+      {/* Text chat — the AI Elements overlay, portalled over the console. */}
       {chatOpen ? (
         <SkyChatPanel
           astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null}

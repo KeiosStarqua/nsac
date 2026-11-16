@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { Copy } from "~/shared/i18n";
 import { format } from "~/shared/i18n";
-import { signedKcal, type HudMockFixture } from "../model/fixture";
+import { signedKcal, type HudMockFixture } from "../data/fixture";
 import {
   buildPanels,
   groupThousands,
@@ -28,7 +28,7 @@ import {
   type PanelRow,
   type RowId,
   type TabId,
-} from "../model/panels";
+} from "../data/panels";
 import {
   CARD,
   CARD_HEAD,

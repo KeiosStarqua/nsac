@@ -1,14 +1,14 @@
 // The HUD catalog: the declarative vocabulary SkyScreenGen's display tree is written in.
 //
-// The catalog is a thin shell over the mock console's own presentational modules — it does NOT
-// re-implement the layout. Every region component below renders the same module `/` renders
-// (`features/hud-mock/components/*`) and every style string comes from `features/hud-mock/mock-classes.ts`,
-// so the two screens cannot drift. `features/hud-gen/model/preset-parity.test.ts` guards the order.
+// The catalog is a thin shell over the console's presentational modules — it does NOT re-implement
+// the layout. Every region component below renders a module under `features/hud-gen/components/*`
+// and every style string comes from `features/hud-gen/mock-classes.ts`, so a composed program and
+// the preset share one design.
 //
 // Rules that hold everywhere in this file, same as the rest of Sky:
 //   - components read ALL data from HudScopeContext (copy, fixture, phase, nodes); no string or digit
-//     reaches a program. The fixture (`HUD_MOCK`) and `copy.hudMock` are the same sources `/` reads;
-//   - `Fact` is the only way a bare value can be shown outside a mock card, and it resolves through
+//     reaches a program. The fixture (`HUD_MOCK`) and `copy.hudMock` are the console's own sources;
+//   - `Fact` is the only way a bare value can be shown outside a card, and it resolves through
 //     the fixture-backed facts builder, never from program text;
 //   - buttons fire host-provided actions by calling `useHudScope().onAction` directly (see
 //     HUD_ACTION_NAMES); the host validates the payload and maps each action to a behavior; actions
@@ -18,8 +18,8 @@
 //     `schema.actions` (it returns before calling the renderer's `onAction`), so routing through the
 //     scope is the only path that reaches the host.
 //
-// `Surface` is the root. Regions map 1:1 onto the mock: Header → grid (LeftColumn | CenterColumn |
-// RightColumn) → Footer, and each column hosts the same cards the mock composes there.
+// `Surface` is the root. Regions map 1:1 onto the console layout: Header → grid (LeftColumn |
+// CenterColumn | RightColumn) → Footer, and each column hosts the cards the console composes there.
 import { createLibrary, createParser, defineAction, defineComponent } from "@openuidev/react-lang";
 import { useNavigate } from "@tanstack/react-router";
 import { Fragment } from "react";
@@ -27,27 +27,25 @@ import { z } from "zod/v4";
 import { hasDigit, type ParseProgram } from "./model/review";
 import { HUD_FACT_IDS } from "./model/names";
 import { useHudScope } from "./scope";
-import { HUD_MOCK } from "~/features/hud-mock/model/fixture";
-import { buildInsightText } from "~/features/hud-mock/model/insight";
-import { roleLabel } from "~/features/hud-mock/model/roles";
+import { HUD_MOCK } from "~/features/hud-gen/data/fixture";
+import { buildInsightText } from "~/features/hud-gen/data/insight";
+import { roleLabel } from "~/features/hud-gen/data/roles";
+import { GreetingStack as MockGreetingStack } from "~/features/hud-gen/components/GreetingStack";
+import { InsightBand as MockInsightBand } from "~/features/hud-gen/components/InsightBand";
+import { CenterColumn, LeftColumn, RightColumn } from "~/features/hud-gen/components/MockColumns";
+import { MockHeader } from "~/features/hud-gen/components/MockHeader";
+import { OrbStage as MockOrbStage } from "~/features/hud-gen/components/OrbStage";
+import { ProfileCard as MockProfileCard } from "~/features/hud-gen/components/ProfileCard";
 import {
-  CenterColumn,
-  GreetingStack as MockGreetingStack,
-  InsightBand as MockInsightBand,
-  LeftColumn,
   MiniCards as MockMiniCards,
-  MockHeader,
-  OrbStage as MockOrbStage,
-  ProfileCard as MockProfileCard,
   ReadinessCard as MockReadinessCard,
   ReadinessDetail as MockReadinessDetail,
-  RightColumn,
-  TrendsCard as MockTrendsCard,
-  VitalsCard as MockVitalsCard,
-  VoiceCluster as MockVoiceCluster,
-  VoiceWave as MockVoiceWave,
-} from "~/features/hud-mock";
-import { MOCK_GRID } from "~/features/hud-mock/mock-classes";
+} from "~/features/hud-gen/components/ReadinessPanel";
+import { TrendsCard as MockTrendsCard } from "~/features/hud-gen/components/TrendsCard";
+import { VitalsCard as MockVitalsCard } from "~/features/hud-gen/components/VitalsCard";
+import { VoiceCluster as MockVoiceCluster } from "~/features/hud-gen/components/VoiceCluster";
+import { VoiceWave as MockVoiceWave } from "~/features/hud-gen/components/VoiceWave";
+import { MOCK_GRID } from "~/features/hud-gen/mock-classes";
 import { HoloCredit, HologramBody } from "~/features/sky-hud/components";
 
 // ---- hud-gen-only classes ------------------------------------------------------------------------
@@ -56,7 +54,7 @@ import { HoloCredit, HologramBody } from "~/features/sky-hud/components";
 const HUD_GEN_FACT =
   "inline-flex items-baseline gap-[6px] text-[14px] font-light text-[#edf8ff] [&_small]:text-[11px] [&_small]:text-[#a8bbce]";
 
-/** One-line hint shown only when the agent composed the active layout (gen chrome, not the mock). */
+/** One-line hint shown only when the agent composed the active layout (gen chrome, not the preset). */
 const HUD_GEN_COMPOSE_HINT = [
   "absolute bottom-[28px] left-1/2 z-[11] inline-flex max-w-[90vw] cursor-pointer items-center gap-[8px]",
   "[transform:translateX(-50%)] rounded-full! border border-[rgba(115,219,255,.28)] bg-[rgba(8,34,66,.72)]",
@@ -118,7 +116,7 @@ export const dismissComposeHint = defineAction({
   params: z.object({}),
 });
 
-// ---- Region components (thin wrappers over the mock's own modules) --------------------------------
+// ---- Region components (thin wrappers over the console's own modules) -----------------------------
 
 const Header = defineComponent({
   name: "Header",
@@ -187,7 +185,7 @@ const TrendsCardRegion = defineComponent({
 
 const OrbStageRegion = defineComponent({
   name: "OrbStage",
-  description: "The voice orb stage. Renders the host's orb node with the mock's stage and glow classes.",
+  description: "The voice orb stage. Renders the host's orb node with the console's stage and glow classes.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
@@ -305,7 +303,7 @@ const MiniCardsRegion = defineComponent({
 const Fact = defineComponent({
   name: "Fact",
   description:
-    "A bare sourced value resolved from the HUD facts builder. The only way a number reaches a composed HUD besides the mock cards.",
+    "A bare sourced value resolved from the HUD facts builder. The only way a number reaches a composed HUD besides the cards.",
   props: z.object({ id: z.enum(HUD_FACT_IDS).describe("Fact id") }),
   component: ({ props }) => {
     const ctx = useHudScope();
@@ -365,7 +363,7 @@ function toChildArray(children: unknown): ChildNode[] {
   return [];
 }
 
-/** Layout-only wrappers: they render the mock's own column divs and inject their children. */
+/** Layout-only wrappers: they render the console's own column divs and inject their children. */
 function columnComponent(name: string, description: string, Column: typeof LeftColumn) {
   return defineComponent({
     name,

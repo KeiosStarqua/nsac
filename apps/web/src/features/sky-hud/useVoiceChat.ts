@@ -1,5 +1,5 @@
-// ElevenLabs Speech Engine voice chat for the `/` console (both hub variants — the Hub Mock
-// and the `?arch=openui` Hub Gen), built on `@elevenlabs/client`. `/watch` still uses `useSkyVoice`.
+// ElevenLabs Speech Engine voice chat for the `/` console (Hub Gen), built on
+// `@elevenlabs/client`. `/watch` still uses `useSkyVoice`.
 //
 // Lifecycle: tap the mic → if an astronaut is picked, POST `/api/speech-register` (web proxy → backend `/api/speech/register`; the backend
 // binds the next `init { conversation_id }` to that pick), then POST `/api/speech-token` for a

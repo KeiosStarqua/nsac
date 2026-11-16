@@ -2,8 +2,8 @@
 // profile, `model/review.ts` and the catalog tests all read the same list. No React in here.
 
 /**
- * Every component the `features/hud-gen` catalog registers. Regions mirror the mock console
- * (`features/hud-mock/SkyHudMock.tsx`), and the region order below is the order the mock renders:
+ * Every component the `features/hud-gen` catalog registers. Regions mirror the console layout
+ * (`catalog.tsx`), and the region order below is the order the preset renders:
  * Header → left column (profile, vitals, trends) → centre column (orb, greeting, wave, voice,
  * insight) → right column (readiness, tabs, mini cards) → Footer. `Surface` is the root.
  */

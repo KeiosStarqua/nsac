@@ -2,7 +2,7 @@
  * Chat-open orb + chat-card geometry — one source for the two sides that must line up.
  *
  * The chat card is portalled to `document.body`, so it cannot inherit the console's layout: these
- * values are the contract between the orb zone (`features/hud-mock/mock-classes.ts`,
+ * values are the contract between the orb zone (`features/hud-gen/mock-classes.ts`,
  * `ORB_ZONE_CHAT`) and the card (`components/SkyChatPanel.tsx`).
  *
  * The orb (vendored Crystalized Ball, `SkyOrb` passes `size={0.72}`) draws a ball of

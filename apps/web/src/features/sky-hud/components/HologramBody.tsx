@@ -68,7 +68,7 @@ export interface HologramBodyProps {
 }
 
 /**
- * Minimal 3D body for the HUD health card, on both consoles (`/` mock, `?arch=openui`): the
+ * Minimal 3D body for the HUD health card on the `/` console: the
  * Open Anatomy skin shell and skeleton only, framed whole-body on a transparent canvas, slowly
  * turning. It reuses the body map's material spec (`features/body-map/model/materials.ts`) and
  * camera framing, drops every interaction (no orbit, no picking, no hotspots, no rail) and leaves

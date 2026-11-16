@@ -13,11 +13,11 @@ import {
 import { DeviceSwitcher } from "~/features/sky-hud/components/DeviceSwitcher";
 import { LanguageSwitcher } from "~/features/sky-hud/components/LanguageSwitcher";
 import { MOCK_HEADER, MOCK_HEADER_ACTIONS, MOCK_MISSION } from "../mock-classes";
-import { MISSION_DAY } from "../model/fixture";
+import { MISSION_DAY } from "../data/fixture";
 
 export interface MockHeaderProps {
   readonly copy: Copy;
-  /** The `?arch=openui` opt-back hides the locale chip on the mock's SSR paint (gen shows it). */
+  /** Hide the locale chip (default: show it). */
   readonly showLanguageSwitcher?: boolean;
   /** Brand mark activation: reset dialogs/chat and restore the opening line. */
   readonly onBrand: () => void;
@@ -27,7 +27,7 @@ export interface MockHeaderProps {
 
 /**
  * The console header: brand mark, `ISS · Day N` mission chip, the Console | Watch and SPACECRAFT
- * chips, plus the locale switcher. One component for `/` and `?arch=openui` so the chrome matches.
+ * chips, plus the locale switcher. The single console header — `/` renders it through the catalog.
  * `data-hud-header` is the measurement anchor for the floating chat card (`chat-geometry.ts`) — the
  * card is portalled to `document.body` and anchors under the centre column, which starts at the
  * header's bottom edge.

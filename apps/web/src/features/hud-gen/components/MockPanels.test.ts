@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { en } from "~/shared/i18n/en";
-import { HUD_MOCK, formatSleep } from "../model/fixture";
-import { buildInsightText } from "../model/insight";
+import { HUD_MOCK, formatSleep } from "../data/fixture";
+import { buildInsightText } from "../data/insight";
 import { InsightBand } from "./InsightBand";
 import { MiniCards, ReadinessCard, ReadinessDetail } from "./ReadinessPanel";
 import { ProfileCard } from "./ProfileCard";
@@ -45,7 +45,7 @@ function render(): string {
   );
 }
 
-describe("hud-mock console — render smoke", () => {
+describe("console render smoke", () => {
   test("renders every region without throwing", () => {
     const html = render();
     for (const marker of [

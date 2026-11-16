@@ -1,4 +1,4 @@
-import { sparklinePath } from "../model/sparklines";
+import { sparklinePath } from "../data/sparklines";
 
 export interface SparklineProps {
   readonly points: readonly number[];

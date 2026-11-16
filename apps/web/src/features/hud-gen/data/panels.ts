@@ -1,4 +1,4 @@
-// Readiness tab panels for the `/` mock console: four tabs, four displayed rows each, all resolved
+// Readiness tab panels for the `/` console: four tabs, four displayed rows each, all resolved
 // from the shared fixture. Pure — the component injects the localized row labels, vitest covers the
 // rest.
 //
@@ -64,7 +64,7 @@ export interface PanelRow {
   readonly id: RowId;
   /** Localized row label. */
   readonly label: string;
-  /** Number + English unit, exactly as the reference mock writes it. */
+  /** Number + English unit, exactly as the fixture writes it. */
   readonly valueText: string;
   /** 0–100 fill of the row's thin bar. */
   readonly barPct: number;

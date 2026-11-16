@@ -1,4 +1,4 @@
-// Role labels for the mock console. The roster (fixture or backend `bio`) carries an English role
+// Role labels for the console. The roster (fixture or backend `bio`) carries an English role
 // string; the UI renders it in the active locale and falls back to the raw string for a role the
 // copy table does not know (backend rows can add new ones).
 import type { Copy } from "~/shared/i18n";

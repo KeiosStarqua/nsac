@@ -29,7 +29,7 @@ HONESTY: The app is a demo with SIMULATED fixture telemetry — every screen say
          Nothing on screen claims autonomous medical capability. Crew (Ayla R., Commander, Sol 170)
          is fictional; the ground node is a generic Flight Surgeon (no real-person name).
 SHOTS:   f 0–90    INTRO     black; SKY wordmark materializes with cyan glow 0.2–1.5s;
-                 current UI plate (hud-mock-loop-10s.mp4, captured from `/`) fades in at
+                 current UI plate (hud-mock-loop-10s.mp4, captured from `/`; the asset keeps its historical filename — v3/v1 HTML reference it and it is binary media, not app code) fades in at
                  scale 1.0 (no crop); tagline "SKY — ASTRONAUT HEALTH INTELLIGENCE"; VO 0.1s.
          f 90–300   MONITOR   plate static at scale 1.0 (crop would cut edge panels); tracker
                    "01 / CONTINUOUS MONITORING" 3.3s; teal pings on HR value (4.0s) and

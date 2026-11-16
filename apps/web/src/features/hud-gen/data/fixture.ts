@@ -1,8 +1,8 @@
-// Fixture for the `/` mock console — "SKY · Astronaut Wellness".
+// Fixture for the `/` console (Hub Gen) — "SKY · Astronaut Wellness".
 //
 // EVERY number here is synthetic and belongs to the fictional crew of the demo. No analog cohort
 // value from `/research` is ever assigned to an astronaut here, no clinical threshold is encoded,
-// and the units stay English on purpose (the reference mock labels them that way in both locales).
+// and the units stay English on purpose (the console labels them that way in both locales).
 //
 // ONE source of truth for the whole screen: the left column, the readiness tabs, the three mini
 // cards and the bottom insight band all read this object, so 48 activity minutes, 7h 42m of sleep

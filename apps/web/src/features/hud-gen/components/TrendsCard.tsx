@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Copy } from "~/shared/i18n";
 import { format } from "~/shared/i18n";
-import { formatSleep, type HudMockFixture } from "../model/fixture";
+import { formatSleep, type HudMockFixture } from "../data/fixture";
 import {
   ACTIVITY_BAR,
   ACTIVITY_BARS,

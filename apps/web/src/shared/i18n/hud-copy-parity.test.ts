@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { en } from "./en";
 import { vi } from "./vi";
 
-// `hudMock.*` is the copy of the `/` mock console. The `Copy` type already forces both locales to
+// `hudMock.*` is the copy of the `/` console. The `Copy` type already forces both locales to
 // carry the same keys; these assertions cover what the type cannot: no empty leaf, the same
 // `{placeholders}` on both sides, and real translation on the strings a reader actually sees.
 

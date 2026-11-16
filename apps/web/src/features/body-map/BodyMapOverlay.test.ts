@@ -5,7 +5,7 @@ import { BodyMapOverlay } from "./BodyMapOverlay";
 import { EscapeChip } from "./components/EscapeChip";
 
 // The suite renders with react-dom/server like the other component tests in
-// the repo (hud-mock, performance): no DOM in the node environment. The chip
+// the repo (hud-gen, performance): no DOM in the node environment. The chip
 // is hook-free on purpose, so its button can be activated directly to pin
 // the "click calls onClose" contract; the SSR markup proves the page variant
 // is what renders it.

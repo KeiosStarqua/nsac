@@ -6,9 +6,9 @@ export interface MockColumnProps {
 }
 
 /**
- * The console's three grid columns. One definition each, shared by the mock console and the
- * declarative `?arch=openui` tree, so the responsive contract (400 / flex / 560, right column under
- * the centre between 721 and 1100, single column below 721) cannot drift between them.
+ * The console's three grid columns. One definition each, used by the declarative tree's layout
+ * regions, so the responsive contract (400 / flex / 560, right column under the centre between 721
+ * and 1100, single column below 721) cannot drift between regions.
  */
 export function LeftColumn({ children }: MockColumnProps) {
   return (

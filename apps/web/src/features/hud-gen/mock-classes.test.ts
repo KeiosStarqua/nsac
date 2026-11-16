@@ -15,12 +15,12 @@ import {
 } from "./mock-classes";
 import { CHAT_CARD_ANCHOR, CHAT_CARD_AXIS, CHAT_CARD_HEIGHT, CHAT_CARD_TOP, ORB_BALL_SIZE, ORB_ZONE_CHAT_SIZE, ORB_ZONE_CHAT_WIDTH } from "../sky-hud/chat-geometry";
 
-// Chat-open layout contract of the `/` mock console: the voice zone hides, the orb parks at the top
+// Chat-open layout contract of the `/` console: the voice zone hides, the orb parks at the top
 // of the centre column (leaving the chat card underneath it), and the insight band slides out.
 // Everything is transform/opacity/width only — no box changes on the stage — so the grid and greeting
 // keep their positions.
 
-describe("hud-mock chat-open classes", () => {
+describe("console chat-open classes", () => {
   test("voice cluster hides without leaving the layout", () => {
     expect(VOICE_CLUSTER_HIDDEN).toContain("opacity-0");
     expect(VOICE_CLUSTER_HIDDEN).toContain("pointer-events-none");

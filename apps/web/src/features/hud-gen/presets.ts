@@ -3,14 +3,14 @@
 // no text at all — and therefore no digits either. They exist as two entry points so a locale can
 // diverge later (layout tweaks, extra regions) without touching the renderer or the host.
 //
-// The layout is the mock console's, region for region and in the same order:
+// The layout is the console's, region for region and in the same order:
 //   Header → LeftColumn (ProfileCard, VitalsCard, TrendsCard)
 //          → CenterColumn (OrbStage, GreetingStack, VoiceWave, VoiceCluster, InsightBand)
 //          → RightColumn (ReadinessCard, ReadinessTabs, MiniCards) → Footer
-// Every region component renders a `features/hud-mock` module, so the tree and `/` cannot drift.
+// Every region component renders a `features/hud-gen/components` module, so the tree and `/` cannot
+// drift.
 //
-// Both presets must parse cleanly against the HUD catalog — `catalog.test.ts` checks that, and
-// `model/preset-parity.test.ts` checks this order against the mock.
+// Both presets must parse cleanly against the HUD catalog — `catalog.test.ts` checks that.
 // Syntax: OpenUI Lang, positional props matching the zod key order in `catalog.tsx`.
 const PRESET_BODY = `root = Surface([header, left, center, right, footer])
 header = Header()

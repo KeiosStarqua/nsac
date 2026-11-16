@@ -108,7 +108,7 @@
 - Licence: MIT
 - Link: https://github.com/elevenlabs/packages (packages/client)
 - Versions: `@elevenlabs/client` 1.36.1 (direct dep, pinned `^1.36.1` in `package.json`); transitive: `@elevenlabs/types` 0.29.0 (MIT), `livekit-client` 2.24.1 (Apache-2.0)
-- Used by: the Speech Engine voice chat on `/` — `Conversation.startSession({ agentId })` from `features/hud-mock/useVoiceChat.ts` (lazy dynamic import, so livekit-client stays out of the entry chunk); the SDK owns the mic capture, speaker output and frequency bins feeding `ListeningBar`. The API key never reaches the browser.
+- Used by: the Speech Engine voice chat on `/` — `Conversation.startSession({ agentId })` from `features/sky-hud/useVoiceChat.ts` (lazy dynamic import, so livekit-client stays out of the entry chunk); the SDK owns the mic capture, speaker output and frequency bins feeding `ListeningBar`. The API key never reaches the browser.
 - Date: 2026-11-15
 
 ## Assets
