@@ -76,6 +76,21 @@ export interface HudBackgroundSetting {
   updatedAt: number;
 }
 
+/**
+ * Giao diện của console `/` — admin-only setting, web đọc qua loopback GET
+ * `/api/settings/hud-ui`. `mock` (default) = `SkyHudMock` ba cột; `gen` = cây OpenUI
+ * khai báo của `features/hud-gen`. `?arch=openui` vẫn là dev override theo từng lần tải.
+ */
+export const HUD_UI_KEY = "hud.ui";
+export const HUD_UIS = ["mock", "gen"] as const;
+export type HudUi = (typeof HUD_UIS)[number];
+
+export interface HudUiSetting {
+  ui: HudUi;
+  /** Unix ms. */
+  updatedAt: number;
+}
+
 export interface AgentConfigSnapshot {
   provider: AgentProvider | null;
   model: string | null;
@@ -275,6 +290,30 @@ export const settingsRepo = {
       })
       .run();
     return { background, updatedAt: now };
+  },
+
+  /**
+   * Giao diện hiệu lực của `/`, hoặc null khi chưa set / giá trị rác (hands-on DB edit, row cũ).
+   * `null` nghĩa là caller dùng default `mock` — route GET tự map.
+   */
+  getHudUi(): HudUiSetting | null {
+    const row = settingsDb().select().from(appSettings).where(eq(appSettings.key, HUD_UI_KEY)).all()[0];
+    if (!row) return null;
+    const value = row.value.trim();
+    if (!(HUD_UIS as readonly string[]).includes(value)) return null;
+    return { ui: value as HudUi, updatedAt: row.updatedAt };
+  },
+
+  setHudUi(ui: HudUi): HudUiSetting {
+    const now = Date.now();
+    settingsDb().insert(appSettings)
+      .values({ key: HUD_UI_KEY, value: ui, updatedAt: now })
+      .onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: ui, updatedAt: now },
+      })
+      .run();
+    return { ui, updatedAt: now };
   },
 
   /**

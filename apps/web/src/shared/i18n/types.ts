@@ -608,14 +608,15 @@ export interface Copy {
       retry: string;
       genericError: string;
     };
-    /** Tab labels for the five /admin sections. */
+    /** Tab labels for the six /admin sections. */
     tabModels: string;
     /** API Keys — OpenCode Go + AWS Bedrock + ElevenLabs in one tab. */
     tabKeys: string;
     tabSpeech: string;
     tabClaims: string;
     tabBackground: string;
-    /** aria-label of the tablist above the five sections. */
+    tabUi: string;
+    /** aria-label of the tablist above the six sections. */
     tabsLabel: string;
     /** Background tab (`/admin/background`) — the `/` backdrop picker. */
     backgroundTitle: string;
@@ -634,5 +635,15 @@ export interface Copy {
     backgroundInvalid: string;
     backgroundLoadFailed: string;
     backgroundNote: string;
+    /** UI tab (`/admin/ui`) — which console `/` serves. */
+    uiTitle: string;
+    uiDescription: string;
+    uiNotConfigured: string;
+    uiInvalid: string;
+    uiNote: string;
+    hubMock: string;
+    hubMockDesc: string;
+    hubGen: string;
+    hubGenDesc: string;
   };
 }
