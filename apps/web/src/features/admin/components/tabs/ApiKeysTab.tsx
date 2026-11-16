@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Cloud, KeyRound, Volume2, type LucideIcon } from "lucide-react";
+import { Activity, Cloud, KeyRound, Volume2, type LucideIcon } from "lucide-react";
 import { useCopy } from "~/shared/i18n";
 import {
   getOpenCodeKeyInfoFn,
@@ -16,6 +16,11 @@ import {
   setElevenLabsKeyFn,
   clearElevenLabsKeyFn,
 } from "../../api/elevenlabs.functions";
+import {
+  getLangfuseStatusFn,
+  saveLangfuseKeyFn,
+  clearLangfuseKeyFileFn,
+} from "../../api/langfuse-key.functions";
 import { useAdminGate } from "../admin-gate";
 import {
   buttonClasses,
@@ -40,6 +45,25 @@ import {
 const GO_KEY_REGEX = /^[!-~]{8,512}$/;
 const BEDROCK_TOKEN_REGEX = /^[!-~]{8,4096}$/;
 const ELEVENLABS_KEY_REGEX = /^[A-Za-z0-9_-]{10,512}$/;
+// Mirrors the Langfuse store: pk-/sk- prefix + URL-safe characters, and an https endpoint
+// (`http` only for a loopback dev instance), no credentials in the URL.
+const LANGFUSE_PUBLIC_KEY_REGEX = /^pk-[A-Za-z0-9_-]{4,228}$/;
+const LANGFUSE_SECRET_KEY_REGEX = /^sk-[A-Za-z0-9_-]{4,228}$/;
+const LANGFUSE_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+function langfuseUrlValid(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0 || trimmed.length > 200) return false;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return false;
+  }
+  if (url.username !== "" || url.password !== "") return false;
+  if (url.protocol === "https:") return true;
+  return url.protocol === "http:" && LANGFUSE_LOCAL_HOSTS.has(url.hostname);
+}
 
 type FileKeySource = "env" | "file" | "none";
 type KeyFeedback = { kind: "ok" | "error"; message: string } | null;
@@ -181,6 +205,18 @@ export function ApiKeysTab() {
   const [elevenConfirmClear, setElevenConfirmClear] = useState(false);
   const [elevenFeedback, setElevenFeedback] = useState<KeyFeedback>(null);
 
+  // ---- Langfuse (Mastra tracing) ---------------------------------------------
+  const [langfuseStatus, setLangfuseStatus] = useState<
+    { source: FileKeySource; updatedAt: number | null; baseUrl: string | null } | undefined
+  >(undefined);
+  const [langfuseUrl, setLangfuseUrl] = useState("");
+  const [langfusePublicKey, setLangfusePublicKey] = useState("");
+  const [langfuseSecretKey, setLangfuseSecretKey] = useState("");
+  const [langfuseBusy, setLangfuseBusy] = useState(false);
+  const [langfuseClearBusy, setLangfuseClearBusy] = useState(false);
+  const [langfuseConfirmClear, setLangfuseConfirmClear] = useState(false);
+  const [langfuseFeedback, setLangfuseFeedback] = useState<KeyFeedback>(null);
+
   useEffect(() => {
     let cancelled = false;
     getOpenCodeKeyInfoFn()
@@ -207,6 +243,19 @@ export function ApiKeysTab() {
       })
       .catch(() => {
         if (!cancelled) setElevenStatus({ configured: false, updatedAt: null });
+      });
+    getLangfuseStatusFn()
+      .then((r) => {
+        if (!cancelled) {
+          setLangfuseStatus(
+            r.status === "ok"
+              ? { source: r.source, updatedAt: r.updatedAt, baseUrl: r.baseUrl }
+              : { source: "none", updatedAt: null, baseUrl: null },
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLangfuseStatus({ source: "none", updatedAt: null, baseUrl: null });
       });
     return () => {
       cancelled = true;
@@ -368,6 +417,84 @@ export function ApiKeysTab() {
     }
   }
 
+  async function refreshLangfuseStatus() {
+    try {
+      const r = await getLangfuseStatusFn();
+      setLangfuseStatus(
+        r.status === "ok"
+          ? { source: r.source, updatedAt: r.updatedAt, baseUrl: r.baseUrl }
+          : { source: "none", updatedAt: null, baseUrl: null },
+      );
+    } catch {
+      setLangfuseStatus({ source: "none", updatedAt: null, baseUrl: null });
+    }
+  }
+
+  const langfuseComplete =
+    LANGFUSE_PUBLIC_KEY_REGEX.test(langfusePublicKey.trim()) &&
+    LANGFUSE_SECRET_KEY_REGEX.test(langfuseSecretKey.trim()) &&
+    langfuseUrlValid(langfuseUrl);
+
+  async function saveLangfuseKeys() {
+    const publicKey = langfusePublicKey.trim();
+    const secretKey = langfuseSecretKey.trim();
+    const baseUrl = langfuseUrl.trim();
+    if (
+      !LANGFUSE_PUBLIC_KEY_REGEX.test(publicKey) ||
+      !LANGFUSE_SECRET_KEY_REGEX.test(secretKey) ||
+      !langfuseUrlValid(baseUrl) ||
+      langfuseBusy
+    ) {
+      return;
+    }
+    setLangfuseBusy(true);
+    setLangfuseFeedback(null);
+    try {
+      const r = await saveLangfuseKeyFn({ data: { publicKey, secretKey, baseUrl } });
+      if (r.status === "ok") {
+        setLangfuseUrl("");
+        setLangfusePublicKey("");
+        setLangfuseSecretKey("");
+        await refreshLangfuseStatus();
+        setLangfuseFeedback({ kind: "ok", message: copy.langfuseSaved });
+      } else if (r.status === "invalid_public_key") {
+        setLangfuseFeedback({ kind: "error", message: copy.langfuseInvalidPublicKey });
+      } else if (r.status === "invalid_secret_key") {
+        setLangfuseFeedback({ kind: "error", message: copy.langfuseInvalidSecretKey });
+      } else if (r.status === "invalid_base_url") {
+        setLangfuseFeedback({ kind: "error", message: copy.langfuseInvalidUrl });
+      } else if (r.status === "unauthorized") {
+        lock();
+      } else {
+        setLangfuseFeedback({ kind: "error", message: copy.langfuseSaveFailed });
+      }
+    } catch {
+      setLangfuseFeedback({ kind: "error", message: copy.langfuseSaveFailed });
+    } finally {
+      setLangfuseBusy(false);
+    }
+  }
+
+  async function clearLangfuseKeys() {
+    if (langfuseClearBusy) return;
+    setLangfuseClearBusy(true);
+    setLangfuseFeedback(null);
+    try {
+      const r = await clearLangfuseKeyFileFn();
+      if (r.status === "ok") {
+        await refreshLangfuseStatus();
+        setLangfuseFeedback({ kind: "ok", message: copy.langfuseClearDone });
+      } else {
+        lock();
+      }
+    } catch {
+      setLangfuseFeedback({ kind: "error", message: copy.langfuseClearFailed });
+    } finally {
+      setLangfuseClearBusy(false);
+      setLangfuseConfirmClear(false);
+    }
+  }
+
   const goStatusLabel =
     goStatus == null
       ? copy.checking
@@ -384,6 +511,14 @@ export function ApiKeysTab() {
         : bedrockStatus.source === "file"
           ? copy.bedrockConfiguredFile
           : copy.bedrockNotConfigured;
+  const langfuseStatusLabel =
+    langfuseStatus == null
+      ? copy.checking
+      : langfuseStatus.source === "env"
+        ? copy.langfuseConfiguredEnv
+        : langfuseStatus.source === "file"
+          ? copy.langfuseConfiguredFile
+          : copy.langfuseNotConfigured;
 
   return (
     <div className="flex flex-col gap-4">
@@ -531,6 +666,98 @@ export function ApiKeysTab() {
             feedback={elevenFeedback}
           />
         </form>
+      </KeySection>
+
+      {/* Langfuse — Mastra tracing; the whole triple is written atomically */}
+      <KeySection
+        icon={Activity}
+        title={copy.langfuseTitle}
+        status={{
+          ok: langfuseStatus != null && langfuseStatus.source !== "none",
+          label: langfuseStatusLabel,
+        }}
+        hint={langfuseStatus?.source === "env" ? copy.langfuseEnvHint : null}
+        note={copy.langfuseNote}
+      >
+        <form
+          className="mt-3"
+          onSubmit={(e: FormEvent) => {
+            e.preventDefault();
+            void saveLangfuseKeys();
+          }}
+        >
+          <div>
+            <label htmlFor="sky-langfuse-base" className={labelClasses}>
+              {copy.langfuseUrlLabel}
+            </label>
+            <input
+              id="sky-langfuse-base"
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              spellCheck={false}
+              className={inputClasses}
+              placeholder={copy.langfuseUrlPlaceholder}
+              value={langfuseUrl}
+              onChange={(e) => setLangfuseUrl(e.target.value)}
+            />
+          </div>
+          <div className="mt-3">
+            <label htmlFor="sky-langfuse-public-key" className={labelClasses}>
+              {copy.langfusePublicKeyLabel}
+            </label>
+            <input
+              id="sky-langfuse-public-key"
+              type="text"
+              autoComplete="off"
+              spellCheck={false}
+              className={inputClasses}
+              placeholder={
+                langfuseStatus?.source === "file" ? copy.langfusePlaceholderStored : copy.langfusePublicKeyPlaceholder
+              }
+              value={langfusePublicKey}
+              onChange={(e) => setLangfusePublicKey(e.target.value)}
+            />
+          </div>
+          <div className="mt-3">
+            <label htmlFor="sky-langfuse-secret-key" className={labelClasses}>
+              {copy.langfuseSecretKeyLabel}
+            </label>
+            <input
+              {...passwordField("sky-langfuse-secret-key")}
+              placeholder={
+                langfuseStatus?.source === "file" ? copy.langfusePlaceholderStored : copy.langfuseSecretKeyPlaceholder
+              }
+              value={langfuseSecretKey}
+              onChange={(e) => setLangfuseSecretKey(e.target.value)}
+            />
+          </div>
+          <KeyActions
+            busy={langfuseBusy}
+            clearBusy={langfuseClearBusy}
+            confirmClear={langfuseConfirmClear}
+            canSave={langfuseComplete}
+            onSave={() => void saveLangfuseKeys()}
+            onClearRequest={() => setLangfuseConfirmClear(true)}
+            onClearConfirm={() => void clearLangfuseKeys()}
+            onClearCancel={() => setLangfuseConfirmClear(false)}
+            saveLabel={copy.langfuseSave}
+            savingLabel={copy.langfuseSaving}
+            clearLabel={copy.langfuseClear}
+            clearConfirmLabel={copy.langfuseClearConfirm}
+            clearCancelLabel={copy.langfuseClearCancel}
+            clearingLabel={copy.langfuseClearing}
+            feedback={langfuseFeedback}
+          />
+        </form>
+        {langfuseStatus?.source === "file" && langfuseStatus.baseUrl && (
+          <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-[12px] leading-5">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <dt className={muted}>{copy.langfuseEndpointLabel}</dt>
+              <dd className={`${mono} truncate`}>{langfuseStatus.baseUrl}</dd>
+            </div>
+          </dl>
+        )}
       </KeySection>
     </div>
   );

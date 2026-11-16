@@ -1,5 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { Mastra } from "@mastra/core/mastra";
+import { readLangfuseConfig } from "../runtime/langfuse-key.server";
 
 /**
  * Langfuse tracing for the Mastra core (HARNESSING §18.5).
@@ -11,14 +12,21 @@ import { Mastra } from "@mastra/core/mastra";
  * (`realtime: false`): it buffers spans and flushes on its own interval, so a turn never waits
  * on the tracing backend.
  *
- * Everything here is **gated on the environment**: `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`
- * and `LANGFUSE_BASE_URL` must all be non-empty. `LANGFUSE_BASE_URL` is REQUIRED on purpose —
- * no default, so this deployment can never silently ship astronaut turns to
- * `cloud.langfuse.com`. When the gate is closed (or anything below fails) this module returns
- * `null` and the turn runs exactly as before: tracing is best effort, never a dependency.
+ * Everything here is **gated on configuration**: `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and
+ * `LANGFUSE_BASE_URL` must all be present, either from the box environment or from the write-only
+ * file the hidden `/admin/keys` panel stores (`var/sky-langfuse.json`, mode 0600 — see
+ * `runtime/langfuse-key.server.ts`). Env wins as a whole triple; the stored file is the fallback.
+ * `LANGFUSE_BASE_URL` is REQUIRED on purpose — no default, so this deployment can never silently
+ * ship astronaut turns to `cloud.langfuse.com`. When the gate is closed (or anything below fails)
+ * this module returns `null` and the turn runs exactly as before: tracing is best effort, never a
+ * dependency.
+ *
+ * Keys still never live in this repo: they come from the host env file or the gitignored store. The
+ * enabled root is cached per process, so turning tracing ON via the panel applies to the next turn,
+ * while swapping keys on an already-enabled process needs a restart.
  *
  * Two sinks now (they are independent): the backend SQLite `agent_traces` rows (§16, always on
- * when the backend is reachable) and Langfuse (§18.5, env-gated, Mastra core only).
+ * when the backend is reachable) and Langfuse (§18.5, config-gated, Mastra core only).
  *
  * Nothing is constructed at import time — the root `Mastra`, the `Observability` instance and
  * the exporter are built lazily on the first traced session and cached for the process, because
@@ -42,28 +50,27 @@ function envValue(name: string): string | undefined {
 }
 
 /**
- * Resolve the tracing configuration from the environment, or `null` when the gate is closed.
- * `baseUrl` has no default: a missing base is "tracing off", never the cloud endpoint.
+ * Resolve the tracing configuration from env (wins) or the `/admin/keys`-stored file, or `null`
+ * when the gate is closed. `baseUrl` has no default: a missing base is "tracing off", never the
+ * cloud endpoint. `environment` / `release` are env-only optional tags.
  */
 export function mastraObservabilityEnv(): MastraObservabilityEnv | null {
-  const publicKey = envValue("LANGFUSE_PUBLIC_KEY");
-  const secretKey = envValue("LANGFUSE_SECRET_KEY");
-  const baseUrl = envValue("LANGFUSE_BASE_URL");
-  if (!publicKey || !secretKey || !baseUrl) return null;
+  const config = readLangfuseConfig();
+  if (!config) return null;
   return {
-    publicKey,
-    secretKey,
-    baseUrl,
-    environment: envValue("LANGFUSE_ENVIRONMENT") ?? envValue("NODE_ENV") ?? "development",
+    publicKey: config.publicKey,
+    secretKey: config.secretKey,
+    baseUrl: config.baseUrl,
+    environment: config.environment ?? envValue("NODE_ENV") ?? "development",
     release:
-      envValue("LANGFUSE_RELEASE") ??
+      config.release ??
       envValue("npm_package_version") ??
       envValue("NSAC_GIT_SHA") ??
       envValue("GIT_SHA"),
   };
 }
 
-/** True iff all three required variables are set to non-empty, trimmed strings. */
+/** True iff all three required values resolve from env or the stored file. */
 export function mastraObservabilityEnabled(): boolean {
   return mastraObservabilityEnv() !== null;
 }
