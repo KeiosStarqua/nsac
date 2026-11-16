@@ -22,14 +22,14 @@
  * generated. The plain CSS values next to them exist so tests and comments can spell the geometry.
  */
 
-/** Chat-open ball diameter. */
-export const ORB_BALL_SIZE = "clamp(160px,30dvh,240px)";
+/** Chat-open ball diameter. Small on purpose: while the chat card is up, the ball is a presence cue, not the focal object (The One Bright Object Rule). */
+export const ORB_BALL_SIZE = "clamp(120px,20dvh,180px)";
 
 /** Square zone edge that draws a ball of `ORB_BALL_SIZE` (the ball renders at `size={0.72}`). */
 export const ORB_ZONE_CHAT_SIZE = `calc(${ORB_BALL_SIZE}/0.72)`;
 
 /** Zone width class for the chat-open orb (literal — never build Tailwind classes from strings). */
-export const ORB_ZONE_CHAT_WIDTH = "min-[721px]:w-[min(100%,calc(clamp(160px,30dvh,240px)/0.72))]";
+export const ORB_ZONE_CHAT_WIDTH = "min-[721px]:w-[min(100%,calc(clamp(120px,20dvh,180px)/0.72))]";
 
 /** Gap between the ball's bottom edge and the card's top edge (the card covers the halo below it). */
 export const CHAT_CARD_GAP = "8px";
@@ -45,8 +45,8 @@ export const CHAT_CARD_HEIGHT = `min(600px,calc(100dvh-${CHAT_CARD_TOP}-16px))`;
  * test suite locks the two spellings together). Below 721px the card keeps its centred placement.
  */
 export const CHAT_CARD_ANCHOR = [
-  "min-[721px]:mt-[calc(var(--hud-header-bottom,96px)+12px+(calc(clamp(160px,30dvh,240px)/0.72)+clamp(160px,30dvh,240px))/2+8px)]",
-  "min-[721px]:h-[min(600px,calc(100dvh-calc(var(--hud-header-bottom,96px)+12px+(calc(clamp(160px,30dvh,240px)/0.72)+clamp(160px,30dvh,240px))/2+8px)-16px))]",
+  "min-[721px]:mt-[calc(var(--hud-header-bottom,96px)+12px+(calc(clamp(120px,20dvh,180px)/0.72)+clamp(120px,20dvh,180px))/2+8px)]",
+  "min-[721px]:h-[min(600px,calc(100dvh-calc(var(--hud-header-bottom,96px)+12px+(calc(clamp(120px,20dvh,180px)/0.72)+clamp(120px,20dvh,180px))/2+8px)-16px))]",
 ].join(" ");
 
 /**
