@@ -43,6 +43,11 @@ describe("prompt", () => {
     expect(p).toMatch(/never name.*(HUD|tool|catalog)/i);
     expect(p).toContain("plain");
   });
+  it("chat prefers show_on_hud for health-data questions", () => {
+    const p = chat.systemPrompt({ request: "hi" });
+    expect(p).toContain("show_on_hud");
+    expect(p).toMatch(/prefer/i);
+  });
   it("chat matches the astronaut's language", () => {
     const p = chat.systemPrompt({ request: "hi" });
     expect(p).toMatch(/Vietnamese in/i);

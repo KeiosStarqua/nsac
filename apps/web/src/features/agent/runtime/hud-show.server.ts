@@ -10,8 +10,7 @@ import { runAgent } from "./run.server";
 import type { TurnArtifacts } from "./pi.server";
 
 const DESCRIPTION = [
-  "Update what the astronaut sees on screen with a health visualization.",
-  "Call ONLY when the user asks to see/show/visualize metrics, trends or what appears on the display.",
+  "Prefer this for any question about the astronaut's health data — the display is the answer, not prose.",
   "brief is one short sentence saying what to show (e.g. 'Show resting heart rate and sleep for this week').",
   "Call at most once per turn. Never call for pure conversation.",
 ].join(" ");
@@ -127,7 +126,7 @@ export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions
     description: DESCRIPTION,
     promptSnippet: "show_on_hud(brief) — put the health visualization the user asked for on screen",
     promptGuidelines: [
-      "Call show_on_hud at most once per turn and only on explicit user request to visualize health data",
+      "Prefer show_on_hud for any health-data question, not only explicit visualization requests",
       "brief: one sentence, no digits the display cannot render",
     ],
     parameters: PARAMETERS as unknown as ToolDefinition["parameters"],
