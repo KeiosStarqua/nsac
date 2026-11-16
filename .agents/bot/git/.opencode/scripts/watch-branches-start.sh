@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start (if needed) exactly one background watcher for BRANCHES.md.
+# Start (if needed) exactly one background watcher (BRANCHES.md + working tree).
 set -u
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 REPO_ROOT="$ROOT"
