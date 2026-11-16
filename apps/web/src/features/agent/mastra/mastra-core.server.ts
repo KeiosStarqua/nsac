@@ -2,6 +2,7 @@ import "@tanstack/react-start/server-only";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { Agent } from "@mastra/core/agent";
+import type { WorkingMemory } from "@mastra/core/memory";
 import { createTool } from "@mastra/core/tools";
 import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
@@ -31,8 +32,15 @@ import { SHOW_HUD_DESCRIPTION, composeHudProgramForBrief } from "../runtime/hud-
  * - Chat memory: a Mastra `Memory` on `@mastra/libsql` at `var/sky-mastra.db`
  *   (`NSAC_SKY_MASTRA_DB` override), thread + resource `astronaut:<id>` (fallback `global`) —
  *   parity with the pi core's per-astronaut session files, but stored as rows, not JSONL.
- *   One-shot runners (`orchestrator`, `generative-ui`, `hud-composer`, `medical-officer`) get no
- *   memory at all, mirroring pi's `SessionManager.inMemory()` default.
+ * - Chat **working memory** (2026-11-17): `sky-chat` alone gets a resource-scoped Markdown
+ *   working profile (`WORKING_MEMORY_TEMPLATE`) in the same LibSQL store, so what the astronaut
+ *   stated about themselves survives beyond the replayed message window. Resource scope means
+ *   the profile belongs to the crew member, not to one thread. No vector/embedding, no semantic
+ *   recall, no observational memory: one Markdown row, no embeddings (Keios's choice).
+ *   One-shot runners (`orchestrator`, `generative-ui`, `medical-officer`) get no memory at all,
+ *   mirroring pi's `SessionManager.inMemory()` default; the HUD composer keeps its own plain
+ *   thread memory (`hud:<id>`) WITHOUT a working profile — same object shape as before.
+ *   Pi core is untouched: no working profile, no history import between cores.
  * - Tools: only `sky-chat` registers `show_on_hud`, built natively with `createTool` and delegating
  *   to the same `composeHudProgramForBrief` gate the pi tool uses. No other tool is ever added, and
  *   `overrides.customTools` (pi `ToolDefinition`s) is deliberately ignored — the Mastra twin is the
@@ -85,6 +93,39 @@ export function mastraThreadId(ctx?: AgentContext): string {
   return id ? `astronaut:${id}` : "global";
 }
 
+/**
+ * Working profile template for `sky-chat` — Markdown, filled and revised by the model, stored per
+ * resource (crew member) in the same LibSQL store. Every line is a placeholder on purpose: the
+ * profile starts empty and stays empty until the astronaut says something durable. Nothing here is
+ * a medical record and nothing here authorizes an action.
+ */
+export const WORKING_MEMORY_TEMPLATE = `# Working profile — fictional crew member on SKY
+Keep only durable facts you are confident about. Update sparingly, in the astronaut's language.
+
+- Name / role (from the crew fixture in instructions — confirm if they differ): 
+- How they want to be spoken to (language, directness, formality): 
+- Baseline the astronaut has reported themselves (sleep, HR, HRV, BP, SpO2, activity) — quote what THEY said, never a number you computed; mark "(unverified)" unless they confirmed it: 
+- Open items / pending confirmations (nothing is actioned without their explicit confirmation): 
+- Explicit confirmations they gave this episode ("Confirmed: …") — never write one without their words containing it: 
+- Follow-ups to check next session: `;
+
+/**
+ * Discipline block appended to the chat instructions (after base + promptSuffix). Keeps the model
+ * from turning the profile into invented data or into an authorization to act.
+ */
+export const WORKING_MEMORY_INSTRUCTIONS =
+  "You keep a small persistent profile of this astronaut (working memory). Update it ONLY for durable, astronaut-stated facts — preferences, confirmed baselines, open items, explicit confirmations, follow-ups. Never invent values; never write medical conclusions; never record an action or confirmation the astronaut did not say; keep entries short; when unsure, delete or leave stale prose out. The profile is context, never a medical record and never authorization to act.";
+
+/**
+ * Resource scope: the profile follows the astronaut across threads. No `lastMessages`, no
+ * `semanticRecall`, no `vector` — working memory is the only Memory feature this core enables.
+ */
+export const CHAT_WORKING_MEMORY: WorkingMemory = {
+  enabled: true,
+  scope: "resource",
+  template: WORKING_MEMORY_TEMPLATE,
+};
+
 type MastraStream = AsyncIterable<any> & { text?: Promise<string> };
 
 type MastraAgentLike = {
@@ -108,8 +149,13 @@ function buildAgent(config: MastraAgentConfig): MastraAgentLike {
   return new Agent(config as ConstructorParameters<typeof Agent>[0]) as unknown as MastraAgentLike;
 }
 
-/** One Mastra Memory per chat session (lazily built; never at import time). */
-function createChatMemory(): Memory {
+/**
+ * One Mastra Memory per session (lazily built; never at import time). `withWorkingMemory` is true
+ * for `sky-chat` only: the chat session carries the resource-scoped working profile, every other
+ * stateful session (the HUD composer) keeps the plain thread memory it had before, and no Memory
+ * object is ever shared between sessions.
+ */
+function createSessionMemory(withWorkingMemory: boolean): Memory {
   const url = mastraDbUrl();
   if (url.startsWith("file:")) {
     try {
@@ -118,7 +164,10 @@ function createChatMemory(): Memory {
       // Best effort: LibSQL reports a usable error if the directory really is missing.
     }
   }
-  return new Memory({ storage: new LibSQLStore({ id: "sky-memory", url }) });
+  return new Memory({
+    storage: new LibSQLStore({ id: "sky-memory", url }),
+    ...(withWorkingMemory ? { options: { workingMemory: CHAT_WORKING_MEMORY } } : {}),
+  });
 }
 
 /** The `show_on_hud` twin: same gate, same artifacts object, Mastra's tool wire format. */
@@ -164,18 +213,26 @@ export async function createMastraSession(
     request: (ctx?.request as string) ?? "",
     ...(ctx ?? {}),
   } as AgentContext);
-  const instructions = overrides?.promptSuffix ? `${baseInstructions}\n${overrides.promptSuffix}` : baseInstructions;
+  const isChat = profile.id === "sky-chat";
+  // Order is part of the contract: base prompt, then the caller's suffix (SHARED CONTEXT etc.),
+  // then — chat only — the working-memory discipline block. The pi core never gets the last part.
+  const instructions = [
+    baseInstructions,
+    overrides?.promptSuffix ? overrides.promptSuffix : null,
+    isChat ? WORKING_MEMORY_INSTRUCTIONS : null,
+  ]
+    .filter((part): part is string => typeof part === "string" && part.length > 0)
+    .join("\n");
 
   const artifacts = overrides?.artifacts;
-  const isChat = profile.id === "sky-chat";
   // Pi passes its custom tools through `overrides.customTools`; the Mastra core owns its own twin
   // and ignores those definitions on purpose (see the module comment).
   const tools = isChat ? { show_on_hud: createMastraShowHudTool(artifacts ?? {}) } : undefined;
   // Stateful session profiles keep their thread (chat + the per-astronaut HUD composer, which the pi
   // core gives its own `<id>.hud.jsonl`). One-shot runners get no memory, matching pi's inMemory
-  // default for `runAgent` sessions.
+  // default for `runAgent` sessions. Only chat adds the working profile on top of the thread.
   const stateful = isChat || profile.id === "sky-hud-composer";
-  const memory = stateful ? createChatMemory() : undefined;
+  const memory = stateful ? createSessionMemory(isChat) : undefined;
   const threadId = memory
     ? overrides?.threadId?.trim() || (isChat ? mastraThreadId(ctx) : `hud:${mastraThreadId(ctx)}`)
     : undefined;

@@ -207,8 +207,25 @@ describe("mastra core end-to-end (local OpenAI-compatible endpoint)", () => {
     expect(JSON.stringify(recorded[0]?.body?.messages)).toContain("my dose is five");
   });
 
-  it("separates threads per astronaut id", { timeout: 30000 }, async () => {
-    const a = await createMastraSession(getAgent("sky-chat"), chatCtx, { artifacts: {} });
+  it("ships the working profile and its update tool on the chat request", { timeout: 30000 }, async () => {
+    const session = await createMastraSession(getAgent("sky-chat"), chatCtx, { artifacts: {} });
+    await session.prompt("How am I doing?", {});
+    session.dispose();
+
+    const body = recorded[0]?.body;
+    const toolNames = (Array.isArray(body?.tools) ? body.tools : []).map((t: any) => t?.function?.name);
+    expect(toolNames).toContain("show_on_hud");
+    // Working memory is tool-call managed: the real runtime registers its update tool.
+    expect(toolNames).toContain("updateWorkingMemory");
+
+    const system = (body?.messages ?? []).find((m: any) => m.role === "system");
+    const systemText = typeof system?.content === "string" ? system.content : JSON.stringify(system?.content ?? "");
+    // The Markdown profile is in the system message, and the discipline block is in the prompt.
+    expect(systemText).toContain("# Working profile");
+    expect(systemText).toContain("never authorization to act");
+  });
+
+  it("separates threads per astronaut id", { timeout: 30000 }, async () => {    const a = await createMastraSession(getAgent("sky-chat"), chatCtx, { artifacts: {} });
     await a.prompt("Remember: my dose is five.", {});
     a.dispose();
 
