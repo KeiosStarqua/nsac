@@ -1,5 +1,6 @@
 import { skySoul } from "../soul";
 import { REACT_BITS_NAMES } from "../catalog/library";
+import { OPENUI_SYNTAX } from "./openui-syntax";
 import type { AgentProfile, AgentContext } from "./types";
 
 export const generativeUi: AgentProfile = {
@@ -20,6 +21,7 @@ export const generativeUi: AgentProfile = {
       "Output only the program. No fences. No commentary. No digits in any text.",
       "Only components from the supplied allow-list. Stay under maxChars.",
       `Allow-list: ${allow}`,
+      OPENUI_SYNTAX,
       `maxChars: ${max}`,
       `Surface: ${ctx.surface ?? ""}`,
       `Request: ${ctx.request}`,
