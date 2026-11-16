@@ -1,6 +1,6 @@
 // ElevenLabs Speech Engine voice chat for the `/` console, built on `@elevenlabs/client`.
 //
-// Lifecycle: tap the mic → if an astronaut is picked, POST `/api/speech/register` (the backend
+// Lifecycle: tap the mic → if an astronaut is picked, POST `/api/speech-register` (web proxy → backend `/api/speech/register`; the backend
 // binds the next `init { conversation_id }` to that pick), then GET `/api/speech-config` for the
 // engine id, then `Conversation.startSession({ agentId: engineId })`. ElevenLabs connects BACK to
 // the backend's speech websocket; the browser only ever sees ElevenLabs. Tap again → `endSession`.
@@ -22,7 +22,7 @@ export type VoiceChatNotice = "notConfigured" | "failed";
 
 async function postRegister(astronautId: string): Promise<boolean> {
   try {
-    const res = await fetch("/api/speech/register", {
+    const res = await fetch("/api/speech-register", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ astronautId }),
