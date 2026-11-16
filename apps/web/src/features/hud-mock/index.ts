@@ -1,3 +1,9 @@
+/**
+ * @deprecated (Keios, 2026-11-16) Hub Mock is deprecated — we only use Hub Gen with OpenUI.
+ * Do not extend. This module's presentational components are still the shared vocabulary of
+ * `features/hud-gen/catalog.tsx`; they will move into `hud-gen/` and this folder will be
+ * deleted (see AGENTS.md "Hub Mock DEPRECATED").
+ */
 export { SkyHudMock } from "./SkyHudMock";
 export { buildInsightText } from "./model/insight";
 export { roleLabel } from "./model/roles";
