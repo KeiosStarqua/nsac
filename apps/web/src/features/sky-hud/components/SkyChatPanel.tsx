@@ -6,7 +6,11 @@
  * console conversation. It is a **floating card portalled to `document.body`** over a transparent
  * click-catcher (no dim, no blur — the stage stays fully visible behind it): from 721px it sits on the
  * HUD centre-column axis and is anchored under the orb (`features/sky-hud/chat-geometry.ts`), so the
- * orb stays visible above it; below that it is centred, and full-bleed under 480px. Behaviour it owns:
+ * orb stays visible above it; below that it is centred, and full-bleed under 480px. When the host
+ * passes `docked` (the gen HUD with Sky's `show_on_hud` override active), the card instead pins to the
+ * **right edge** — a full-height strip under the header, unanchored from the orb geometry — so it never
+ * covers the composed HUD's centre column; at every width below 721px the only change from the user's
+ * point of view is that the card hugs the right edge (full-bleed on phones). Behaviour it owns:
  *
  *  - `useChat` state only; history comes from the existing `loadChatHistory` server function (the SDK
  *    never fetches it) and a turn streams through the SSE route `/api/chat-stream` (transport-owned):
@@ -63,39 +67,71 @@ export type SkyChatPanelProps = {
   onUiProgram?: (program: string) => void;
   /** "Use voice" pill: close the card and start the microphone (host does both). */
   onUseVoice?: () => void;
+  /**
+   * Dock the card to the right edge instead of the HUD centre axis — set when Sky's `show_on_hud`
+   * override replaced the composed HUD tree (gen path only). The card becomes a full-height strip
+   * under the header (`top`/`bottom` anchors own the height, unanchored from the orb geometry).
+   * Default `false`: everything renders as before (the mock console never passes this).
+   */
+  docked?: boolean;
 };
 
 // Centered modal over the HUD: a transparent flex layer that catches outside clicks (dismiss) under
 // the card — no dim, no blur, so the stage stays fully visible behind the chat. From 721px the card is
 // anchored under the orb (`chat-geometry.ts`) instead of centred vertically, so the orb stays visible;
 // below that it is centred, and full-bleed on phones (≤480px). Palette unchanged (Sky navy + rim).
-const CHAT_LAYER = "fixed inset-0 z-[40] flex items-center justify-center min-[721px]:items-start";
+// Docked (`docked` prop): the layer is a plain full-viewport click catcher — no flex centring — and
+// the card places itself at the right edge. z-[40] keeps it below the astronaut picker (z-60) in both.
+export const CHAT_LAYER = "fixed inset-0 z-[40] flex items-center justify-center min-[721px]:items-start";
+export const CHAT_LAYER_DOCK = "fixed inset-0 z-[40]";
 
-const CHAT_CARD = [
-  "relative flex h-[min(600px,84dvh)] w-[min(560px,94vw)] flex-col overflow-hidden",
-  // Horizontal: the HUD's centre-column axis, not the viewport centre (`CHAT_CARD_AXIS` explains the
-  // per-breakpoint offsets — −80px ≥1101px, +208px on the two-column layout, clamped inside the viewport).
-  CHAT_CARD_AXIS,
-  // Vertical ≥721px: the header bottom + the orb's ball, measured by `--hud-header-bottom` (the header
-  // wraps, so its height is not a constant) — the card starts 8px under the ball and never overflows.
-  CHAT_CARD_ANCHOR,
+// Shared chrome — everything except positioning and size, spread into both variants so the two
+// paths cannot drift. `relative`/`fixed` and the size/anchor classes live in the variants. The
+// ≤480px full-bleed rules (no radius/border, single background, no transition) are verbatim from
+// the original centre path and are reused by the docked card.
+export const CHAT_CARD_CHROME = [
+  "flex flex-col overflow-hidden",
   "rounded-[20px] border border-transparent",
   // Double background: navy fill in the padding box, the cyan→purple rim in the border box.
   "[background:linear-gradient(180deg,#0b1a34,#081427)_padding-box,linear-gradient(120deg,rgba(92,240,208,.5),rgba(179,114,255,.5))_border-box]",
   "shadow-[0_0_44px_rgba(94,240,214,.14),0_0_80px_rgba(178,112,255,.16)] text-foreground",
   // Tailwind v4 emits `translate` (not `transform`) for the 8px rise, so the transition lists it.
   "[transition:opacity_.18s_ease-out,translate_.18s_ease-out] motion-reduce:transition-none!",
-  "max-[480px]:h-dvh max-[480px]:w-full max-[480px]:rounded-none! max-[480px]:border-0",
+  "max-[480px]:rounded-none! max-[480px]:border-0",
   "max-[480px]:[transition:none] max-[480px]:[background:linear-gradient(180deg,#0b1a34,#081427)_padding-box]",
 ].join(" ");
 
+export const CHAT_CARD = [
+  CHAT_CARD_CHROME,
+  "relative h-[min(600px,84dvh)] w-[min(560px,94vw)]",
+  // Horizontal: the HUD's centre-column axis, not the viewport centre (`CHAT_CARD_AXIS` explains the
+  // per-breakpoint offsets — −80px ≥1101px, +208px on the two-column layout, clamped inside the viewport).
+  CHAT_CARD_AXIS,
+  // Vertical ≥721px: the header bottom + the orb's ball, measured by `--hud-header-bottom` (the header
+  // wraps, so its height is not a constant) — the card starts 8px under the ball and never overflows.
+  CHAT_CARD_ANCHOR,
+  "max-[480px]:h-dvh max-[480px]:w-full",
+].join(" ");
+
+// Docked (override active): right-edge strip, full height under the measured header, slightly
+// narrower, unanchored from the orb geometry. From 481px a 16px margin keeps the rim + shadow;
+// ≤480px it stays edge-to-edge full-bleed (same `max-[480px]:w-full` reuse as the centre path).
+export const CHAT_CARD_DOCK = [
+  CHAT_CARD_CHROME,
+  "fixed top-[calc(var(--hud-header-bottom,96px)+12px)] right-0 bottom-0",
+  "w-[min(430px,100vw)] max-[480px]:w-full min-[481px]:right-4 min-[481px]:bottom-4",
+].join(" ");
+
 /**
- * The two rAFs between mount and this state are the fade + 8px rise; skipped for reduced motion.
- * Only `y` lives in these two states — the axis shift (`CHAT_CARD_AXIS`) sits in `CHAT_CARD`, so the
- * entrance animates the rise alone (Tailwind v4 composes both through the `translate` longhand + its vars).
+ * The two rAFs between mount and this state are the fade + 8px rise (docked: fade + 12px slide-in
+ * from the right); skipped for reduced motion. Only `y` (centre) / `x` (docked) lives in these
+ * states — the axis shift (`CHAT_CARD_AXIS`) sits in `CHAT_CARD`, so the entrance animates the
+ * rise alone (Tailwind v4 composes both through the `translate` longhand + its vars).
  */
-const CHAT_CARD_OPEN = "translate-y-0 opacity-100";
-const CHAT_CARD_ENTER = "translate-y-2 opacity-0 motion-reduce:translate-y-0 motion-reduce:opacity-100";
+export const CHAT_CARD_OPEN = "translate-y-0 opacity-100";
+export const CHAT_CARD_ENTER = "translate-y-2 opacity-0 motion-reduce:translate-y-0 motion-reduce:opacity-100";
+export const CHAT_CARD_OPEN_DOCK = "translate-x-0 opacity-100";
+export const CHAT_CARD_ENTER_DOCK = "translate-x-3 opacity-0 motion-reduce:translate-x-0 motion-reduce:opacity-100";
 
 const CHAT_CLOSE = [
   "grid size-9 shrink-0 place-items-center rounded-full border border-[rgba(140,200,255,.18)] bg-transparent p-0",
@@ -134,7 +170,7 @@ const CHAT_SEND = [
   "max-[480px]:size-[48px]",
 ].join(" ");
 
-export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVoice }: SkyChatPanelProps) {
+export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVoice, docked = false }: SkyChatPanelProps) {
   const c = useCopy().chat;
   const label = astronaut ? format(c.label, { name: firstName(astronaut.name) }) : c.title;
 
@@ -188,10 +224,15 @@ export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVo
 
   if (!mounted) return null;
 
+  const layerClass = docked ? CHAT_LAYER_DOCK : CHAT_LAYER;
+  const cardClass = docked ? CHAT_CARD_DOCK : CHAT_CARD;
+  const openClass = docked ? CHAT_CARD_OPEN_DOCK : CHAT_CARD_OPEN;
+  const enterClass = docked ? CHAT_CARD_ENTER_DOCK : CHAT_CARD_ENTER;
+
   return createPortal(
     <div
       role="presentation"
-      className={CHAT_LAYER}
+      className={layerClass}
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -200,7 +241,7 @@ export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVo
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        className={`${CHAT_CARD} ${entered ? CHAT_CARD_OPEN : CHAT_CARD_ENTER}`}
+        className={`${cardClass} ${entered ? openClass : enterClass}`}
         style={{ "--hud-header-bottom": `${headerBottom}px` } as CSSProperties}
       >
         {/* Keyed by crew member: `useChat` reads its transport once, so a new astronaut needs a new chat. */}
