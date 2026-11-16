@@ -693,3 +693,100 @@ HRP site trả lỗi khi fetch tự động 2026-11-16; Circulation URL 403 bot-
 - ⬜ P3 — Metabolic/Neuro/Respiratory specialists
 - ⬜ P4 — clinical validation (ngoài scope demo)
 - **Event-driven cardio** (subscribe bus thay vì watermark poll) — deferred theo §5.
+
+## 18. Dual core: Pi SDK (default) ↔ Mastra (opt-in beta, 2026-11-16)
+
+> **Mastra là beta tự chọn. Mặc định vẫn là Pi SDK.** Mọi mục §1–§17 vẫn mô tả core Pi SDK đang
+> chạy production. Section này chỉ THÊM: core thứ hai chạy sau cùng một seam, một switch admin, và
+> những gì **không** được migrate.
+
+### 18.1 Switch
+
+- Backend `app_settings` key `agent.core` (`pi` | `mastra`), route `GET|PUT /api/settings/agent-core`,
+  UI `/admin/core` (radio cards + Apply + status line). Chưa set, giá trị rác, backend lỗi/timeout ⇒
+  `pi` — không có đường nào tự chuyển core.
+- Web resolve ở `features/agent/runtime/agent-core.server.ts` (`currentAgentCore()` /
+  `currentAgentCoreInfo()`), cache 15 s khi thành công / 500 ms khi lỗi (pattern của
+  `agent-model.server.ts`). Hệ quả: một turn trong ≤15 s sau khi bấm Apply vẫn có thể chạy core cũ;
+  `/admin/core` ghi đúng như vậy.
+- Switch **orthogonal** với provider/model: `agent-model.server.ts` không fork, cả hai core dùng
+  chung `currentAgentProvider()` / `currentAgentModel(profile)`.
+- `/health` thêm check `agent.core` (giá trị + nguồn `backend|default`, `warn` khi `mastra`).
+
+### 18.2 Seam — cùng một contract, hai runtime
+
+| Seam | Pi SDK (`runtime/pi.server.ts`) | Mastra (`mastra/mastra-core.server.ts`) |
+|---|---|---|
+| `createSession(profile, ctx, overrides)` | `SessionFacade` (pi agent session) | `createMastraSession(...)` → `SessionFacade` |
+| `prompt(text, { onDelta, signal })` | delta của SDK → `onDelta`, abort → `session.abort()` | `agent.stream()` → chunk `text-delta` → `onDelta`; `abortSignal` → abort chunk → throw `aborted` |
+| lỗi | `missing_key` / `empty_reply` / message provider | y hệt (cùng sentinel, cùng status mapping) |
+| one-shot (`runAgent`) | `createSession` + race timeout | `runMastraAgent` qua cùng `runSession()` trong `run.server.ts` |
+| session cache (chat) | key `${provider}:${model}` | key **`${core}:${provider}:${model}`** → đổi core là evict |
+| HUD composer | `<id>.hud.jsonl` riêng | thread memory `hud:<id>` |
+| tools | `overrides.customTools` (chỉ `show_on_hud`) | `createTool` twin của `show_on_hud`, chỉ cho `sky-chat` |
+| artifacts | `TurnArtifacts { hudProgram, tools }` | cùng object, cùng chỗ clear đầu turn; tool outcome lấy từ chunk `tool-result`/`tool-error` |
+| history | `var/sky-sessions/<id>.jsonl` | `var/sky-mastra.db` (LibSQL), thread + resource `astronaut:<id>` |
+
+Chọn core **một chỗ**: `runtime/agent-session.server.ts` (`sessionFactoryForCore(core)`), dùng bởi
+`astro-chat.server.ts`, `hud-compose.server.ts` và `run.server.ts`. Sau khi facade được trả về, pipeline
+turn (queue per-astronaut, LRU 6, IDLE_TTL 20 min, SHARED CONTEXT suffix, SSE frames, trace, claims)
+là **một code path** — không có nhánh riêng cho Mastra.
+
+### 18.3 Model mapping (`mastra/mastra-model.server.ts`)
+
+Không có key nào Mastra tự đọc từ env: key được truyền tường minh mỗi session, lấy từ đúng chỗ pi core
+lấy (`readOpenCodeKey` / `readOpenRouterKey` / `readBedrockKey` — env trước, file write-only sau).
+
+- `opencode-go` → endpoint form `{ id: "opencode-go/<model>", url, apiKey }`, base mặc định
+  `https://opencode.ai/inference/go/openai/v1` (`SKY_OPENCODE_BASE_URL` override, luôn là base `/v1`,
+  không phải `/chat/completions`).
+- `openrouter` → `{ id: "openrouter/<vendor>/<model>", url: "https://openrouter.ai/api/v1", apiKey }`
+  — đúng base pi-ai dùng (`OPENROUTER_BASE_URL` trong `@earendil-works/pi-ai`); id là dạng gateway
+  ba phần vì model id của OpenRouter đã chứa namespace vendor.
+- `amazon-bedrock` → **không** có trong model router của Mastra (verified 1.83.0) ⇒ dùng AI SDK
+  provider `@ai-sdk/amazon-bedrock`: `createAmazonBedrock({ region: "ap-southeast-1", apiKey })` rồi
+  `bedrock(modelId)`. `apiKey` chính là bearer token `AWS_BEARER_TOKEN_BEDROCK` (verified trong
+  `dist/index.d.ts` của package 5.0.142: "When `apiKey` is provided, it takes precedence over AWS
+  SigV4 authentication"). Region pin `ap-southeast-1`, `AWS_REGION` bị bỏ qua — cùng luật pi core.
+- `maxOutputTokens: 2048` (bằng `SKY_MAX_TOKENS` của pi core), truyền per-call qua `modelSettings`;
+  số bước: chat 3 (tool-call + text + 1 dự phòng), one-shot 2 (không tool nên chỉ cần 1 bước + 1
+  bước nối).
+- **Telemetry**: Mastra có usage telemetry (PostHog) opt-out; module set
+  `MASTRA_TELEMETRY_DISABLED=1` trước khi build Agent — deployment này không gửi gì.
+
+### 18.4 KHÔNG migrate (giữ nguyên hành vi pi)
+
+- JSONL history (`var/sky-sessions/*`) không được chuyển sang LibSQL; mỗi core giữ history ở nơi nó
+  đang giữ. Đổi core không mang theo lịch sử hội thoại.
+- Pi "god-mode" features (skills, extensions, prompt templates, themes, context files, compaction) vẫn
+  tắt và **không** được port; Mastra core không bật thêm capability nào ngoài tools + memory.
+- `overrides.sessionManager` bị bỏ qua trên Mastra core (history là memory thread) — document tại
+  `createMastraSession`.
+- `overrides.customTools` (pi `ToolDefinition`) cũng bị bỏ qua: Mastra core tự dựng twin
+  `show_on_hud` (cùng `composeHudProgramForBrief` gate: `extractProgram` + `reviewProgram`), và không
+  thêm tool nào khác. Trace row không phân biệt core (chỉ provider/model) — xem §16.
+- Không Mastra Studio/Editor/MCP/workflows/evals/scorers/fallback model chain/gateway.
+
+### 18.5 Env & file
+
+| Biến / file | Ý nghĩa |
+|---|---|
+| backend `app_settings.agent.core` | `pi` (default) \| `mastra`; đọc qua `GET /api/settings/agent-core` |
+| `NSAC_SKY_MASTRA_DB` | Override DB Mastra: path thường, `file:` URL, hoặc `libsql://` URL. Mặc định `var/sky-mastra.db` |
+| `var/sky-mastra.db` | Thread/message memory của Mastra core (LibSQL; WAL tạo `.db-wal`/`.db-shm`) |
+| `MASTRA_TELEMETRY_DISABLED` | Module tự set `1` (không gửi telemetry) |
+
+### 18.6 Test & vận hành
+
+- Unit: `mastra-model.server.test.ts` (mapping 3 provider, fake keys), `mastra-core.test.ts` (fake
+  Agent ở seam `setMastraAgentFactoryForTests`: delta, artifacts, abort, empty/error sentinel,
+  memory chỉ cho session stateful), `agent-core.test.ts` (default pi khi rỗng/rác/lỗi backend),
+  `astro-chat.mastra.test.ts` (pipeline chat trên core mastra: delta, timeout, missing_key, evict khi
+  flip), `run.mastra.test.ts` (one-shot trên mastra + pi không đổi).
+- End-to-end **không spend**: `mastra-core.e2e.test.ts` dựng một endpoint OpenAI-compatible bằng
+  `node:http` trong process và chạy Mastra runtime thật — router nhận endpoint form, `max_tokens`
+  tới wire, tool loop chạy, LibSQL memory nhớ qua turn, abort kết thúc stream.
+- Self-check biên giới: `rg 'from ".*pi-(coding-agent|ai)"' apps/web/src` chỉ được ra file pi core
+  (`pi.server.ts`; `hud-show.server.ts` chỉ `import type`). Mọi import Mastra nằm trong
+  `features/agent/mastra/**` (+ 2 file điều phối `agent-core.server.ts`,
+  `agent-session.server.ts`).

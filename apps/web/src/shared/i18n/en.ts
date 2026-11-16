@@ -527,6 +527,7 @@ export const en: Copy = {
     tabSpeech: "Speech Engine",
     tabClaims: "Reset claims",
     tabBackground: "Background",
+    tabCore: "Agent Core",
     tabsLabel: "Admin sections",
     backgroundTitle: "Home backdrop",
     backgroundDescription: "The React Bits background rendered behind the / console.",
@@ -544,5 +545,25 @@ export const en: Copy = {
     backgroundInvalid: "Unknown background.",
     backgroundLoadFailed: "Backend unreachable — showing the default.",
     backgroundNote: "Stored on the backend. Admin always wins: the retired ?bg= URL/localStorage switch is ignored.",
+    coreTitle: "Agent core",
+    coreDescription:
+      "Which runtime executes Sky's agent turns. Pi SDK stays the default; Mastra is an opt-in beta that runs the same seams through a different engine.",
+    coreCurrent: "Current core",
+    coreNotConfigured: "not configured — default Pi SDK",
+    coreUpdated: "set {time}",
+    corePi: "Pi SDK",
+    corePiDesc:
+      "Current runtime — stable, per-astronaut sessions (JSONL), the show_on_hud tool, SSE token-by-token.",
+    coreMastra: "Mastra (beta)",
+    coreMastraDesc:
+      "New core on @mastra/core — model router (opencode-go/openrouter) plus Bedrock through the AI SDK, LibSQL memory. A step-by-step replacement core, not the default yet.",
+    coreApply: "Apply",
+    coreApplying: "Applying…",
+    coreSaved: "Saved — takes effect within 15 seconds (next core check)",
+    coreSaveFailed: "Could not save — backend unreachable.",
+    coreInvalid: "Unknown core.",
+    coreLoadFailed: "Backend unreachable — showing the default (Pi SDK).",
+    coreNote:
+      "Stored on the backend (agent.core). Switching evicts the cached chat session, so the next turn uses the new core; history stays where each core keeps it.",
   },
 };

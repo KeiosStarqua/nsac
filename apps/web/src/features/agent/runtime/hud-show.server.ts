@@ -16,6 +16,10 @@ const DESCRIPTION = [
   "Call at most once per turn. Never call for pure conversation.",
 ].join(" ");
 
+/** The `brief` contract shared by both cores' tool definitions (one description, two wire formats). */
+export const SHOW_HUD_DESCRIPTION = DESCRIPTION;
+export const SHOW_HUD_BRIEF_MAX_CHARS = 500;
+
 // Plain JSON Schema, on purpose: pi-ai's `validateToolArguments` compiles tool parameters with
 // `@earendil-works/pi-schema` (`coerce: true`) and accepts any JSON Schema, so no typebox dependency
 // (and no `bun.lock` change, which would invalidate the nix FOD hash) is needed.
@@ -46,17 +50,23 @@ export type ShowHudOptions = {
 };
 
 /**
- * The one purpose-built tool of `sky-chat`. On success the validated program lands in
- * `artifacts.hudProgram`; `astro-chat.server.ts` hands it to the SSE route as one `ui` frame after the
- * reply, and the gen HUD swaps its OpenUI tree. On any failure it returns an error result and the
- * HUD is untouched.
+ * Core-agnostic body of `show_on_hud`: validate the brief, delegate composition, run the catalog
+ * review, hand back either the reviewed program or the model-facing failure text. Both the pi tool
+ * (below) and the Mastra tool (`features/agent/mastra/mastra-core.server.ts`) call exactly this, so
+ * the validation gate can never drift between the two cores.
  */
-export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions = {}): ToolDefinition {
+export async function composeHudProgramForBrief(
+  rawBrief: unknown,
+  opts: ShowHudOptions = {},
+): Promise<{ ok: true; program: string } | { ok: false; message: string }> {
+  const raw = typeof rawBrief === "string" ? rawBrief.slice(0, SHOW_HUD_BRIEF_MAX_CHARS) : "";
+  const brief = raw.trim();
+  if (!brief) return { ok: false, message: "brief is required: one short sentence describing what to visualize." };
   const compose =
     opts.compose ??
-    (async (brief: string): Promise<string> => {
-      const res = await runAgent("sky-generative-ui", brief, {
-        request: brief,
+    (async (text: string): Promise<string> => {
+      const res = await runAgent("sky-generative-ui", text, {
+        request: text,
         surface: "SKY HUD",
         allowList: HUD_COMPONENT_NAMES,
         maxChars: MAX_PROGRAM_CHARS,
@@ -64,7 +74,36 @@ export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions
       if (res.status !== "ok") throw new Error(res.status);
       return res.text;
     });
+  try {
+    const rawProgram = await compose(brief);
+    const program = extractProgram(rawProgram);
+    const review = reviewProgram(
+      program,
+      { allowList: HUD_COMPONENT_NAMES, maxChars: MAX_PROGRAM_CHARS },
+      parseHudProgram,
+    );
+    if (!review.ok) {
+      console.warn("show_on_hud: catalog review rejected", review.reasons.join("; "));
+      return {
+        ok: false,
+        message: `HUD update rejected by catalog review (${review.reasons[0] ?? "unknown"}). Reply without changing the display.`,
+      };
+    }
+    return { ok: true, program: review.program };
+  } catch (cause) {
+    const msg = (cause as Error)?.message?.slice(0, 120) ?? "compose_failed";
+    console.warn("show_on_hud: delegate failed", msg);
+    return { ok: false, message: `Could not update the HUD (${msg}). Reply without changing the display.` };
+  }
+}
 
+/**
+ * The one purpose-built tool of `sky-chat`. On success the validated program lands in
+ * `artifacts.hudProgram`; `astro-chat.server.ts` hands it to the SSE route as one `ui` frame after the
+ * reply, and the gen HUD swaps its OpenUI tree. On any failure it returns an error result and the
+ * HUD is untouched.
+ */
+export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions = {}): ToolDefinition {
   return {
     name: "show_on_hud",
     label: "Show on HUD",
@@ -77,30 +116,14 @@ export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions
     parameters: PARAMETERS as unknown as ToolDefinition["parameters"],
     executionMode: "sequential",
     async execute(_toolCallId: string, params: any): Promise<ToolResult> {
-      const raw = typeof params?.brief === "string" ? params.brief.slice(0, 500) : "";
-      const brief = raw.trim();
-      if (!brief) return err("brief is required: one short sentence describing what to visualize.");
-      try {
-        const rawProgram = await compose(brief);
-        const program = extractProgram(rawProgram);
-        const review = reviewProgram(
-          program,
-          { allowList: HUD_COMPONENT_NAMES, maxChars: MAX_PROGRAM_CHARS },
-          parseHudProgram,
-        );
-        if (!review.ok) {
-          console.warn("show_on_hud: catalog review rejected", review.reasons.join("; "));
-          return err(
-            `HUD update rejected by catalog review (${review.reasons[0] ?? "unknown"}). Reply without changing the display.`,
-          );
-        }
-        artifacts.hudProgram = review.program;
-        return { content: [{ type: "text", text: "HUD updated." }], details: { program: review.program }, isError: false };
-      } catch (cause) {
-        const msg = (cause as Error)?.message?.slice(0, 120) ?? "compose_failed";
-        console.warn("show_on_hud: delegate failed", msg);
-        return err(`Could not update the HUD (${msg}). Reply without changing the display.`);
-      }
+      const outcome = await composeHudProgramForBrief(params?.brief, opts);
+      if (!outcome.ok) return err(outcome.message);
+      artifacts.hudProgram = outcome.program;
+      return {
+        content: [{ type: "text", text: "HUD updated." }],
+        details: { program: outcome.program },
+        isError: false,
+      };
     },
   };
 }

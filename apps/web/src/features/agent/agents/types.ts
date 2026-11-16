@@ -18,6 +18,12 @@ export type AgentContext = {
   readonly allowList?: readonly string[];
   readonly maxChars?: number;
   readonly astronaut?: { readonly name: string; readonly role: string; readonly callsign: string };
+  /**
+   * Sanitized roster id of the astronaut the turn belongs to. Additive: the pi core ignores it
+   * (its system prompt reads `astronaut`), the Mastra core uses it as the memory thread id
+   * (`astronaut:<id>`, fallback `global`).
+   */
+  readonly astronautId?: string;
 };
 
 export type AgentProfile = {

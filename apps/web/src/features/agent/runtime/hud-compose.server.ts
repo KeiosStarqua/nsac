@@ -10,6 +10,8 @@ import { sessionsDir, openOrCreateSessionManager } from "./astro-chat.server";
 import { sharedEventsBlock, publishEvent } from "../broadcast";
 import { hudSessionId } from "../../hud-gen/model/hud-session";
 import { currentAgentModel, currentAgentProvider } from "./agent-model.server";
+import { currentAgentCore } from "./agent-core.server";
+import { sessionFactoryForCore } from "./agent-session.server";
 import { recordTurnTrace } from "./agent-trace.server";
 import { extractProgram, reviewProgram } from "../../hud-gen/model/review";
 import { HUD_COMPONENT_NAMES } from "../../hud-gen/model/names";
@@ -64,10 +66,11 @@ async function getSession(
   sessionId: string,
   astronaut: { name: string; role: string; callsign: string },
 ): Promise<{ session: SessionFacade; provider: string; model: string }> {
-  // Cùng contract với chat: provider+model đổi → huỷ session cũ, tạo lại (model gắn lúc tạo).
+  // Cùng contract với chat: core+provider+model đổi → huỷ session cũ, tạo lại (gắn lúc tạo).
+  const core = await currentAgentCore();
   const provider = await currentAgentProvider();
   const model = await currentAgentModel("sky-hud-composer");
-  const modelKey = `${provider}:${model}`;
+  const modelKey = `${core}:${provider}:${model}`;
   const existing = sessionCache.get(sessionId);
   if (existing && (existing.modelKey !== modelKey || Date.now() - existing.lastUsed >= IDLE_TTL)) {
     existing.session.dispose();
@@ -80,10 +83,15 @@ async function getSession(
   }
   evictOldestSession();
   const profile = getAgent("sky-hud-composer");
-  const sessFactory = factory ?? (await import("./pi.server")).createSession;
+  const sessFactory = factory ?? (await sessionFactoryForCore(core));
   const dir = sessionsDir();
-  const sessionManager = factory ? undefined : await openOrCreateSessionManager(sessionId, dir);
-  const sess = await (sessFactory as any)(profile, { request: "", surface: "SKY HUD", astronaut }, sessionManager ? { sessionManager } : undefined);
+  const sessionManager = factory || core === "mastra" ? undefined : await openOrCreateSessionManager(sessionId, dir);
+  // Mastra core keeps the composer's history in its own `hud:<id>` thread; the pi core uses the
+  // `<id>.hud.jsonl` session manager above.
+  const sess = await (sessFactory as any)(profile, { request: "", surface: "SKY HUD", astronaut }, {
+    ...(sessionManager ? { sessionManager } : {}),
+    threadId: `hud:${sessionId}`,
+  });
   sessionCache.set(sessionId, { session: sess, lastUsed: Date.now(), modelKey });
   return { session: sess, provider, model };
 }

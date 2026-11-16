@@ -9,14 +9,32 @@ import {
 } from "./admin-tabs";
 
 describe("ADMIN_TABS", () => {
-  it("has the five tabs in display order", () => {
+  it("has the six tabs in display order", () => {
     expect(ADMIN_TABS.map((tab) => tab.id)).toEqual([
       "models",
       "keys",
       "speech",
       "claims",
       "background",
+      "core",
     ]);
+  });
+
+  it("puts the agent-core switch last, after background", () => {
+    const ids = ADMIN_TABS.map((tab) => tab.id);
+    expect(ids.at(-1)).toBe("core");
+    expect(ids.indexOf("core")).toBeGreaterThan(ids.indexOf("background"));
+  });
+
+  it("labels every tab in both locales", async () => {
+    const { en } = await import("../../../shared/i18n/en");
+    const { vi } = await import("../../../shared/i18n/vi");
+    for (const tab of ADMIN_TABS) {
+      expect(en.admin[tab.labelKey]).toBeTruthy();
+      expect(vi.admin[tab.labelKey]).toBeTruthy();
+    }
+    expect(en.admin.tabCore).toBe("Agent Core");
+    expect(vi.admin.tabCore).toBe("Lõi agent");
   });
 
   it("routes every tab to its /admin/<id> route", () => {
@@ -39,6 +57,12 @@ describe("adminTabFromPathname", () => {
     expect(adminTabFromPathname("/admin/speech")).toBe("speech");
     expect(adminTabFromPathname("/admin/claims")).toBe("claims");
     expect(adminTabFromPathname("/admin/background")).toBe("background");
+    expect(adminTabFromPathname("/admin/core")).toBe("core");
+  });
+
+  it("deep-links a nested path under a tab", () => {
+    expect(adminTabFromPathname("/admin/core/")).toBe("core");
+    expect(adminTabFromPathname("/admin/speech/engine")).toBe("speech");
   });
 
   it("folds the legacy key routes into keys", () => {
@@ -58,6 +82,7 @@ describe("adminTabFromPathname", () => {
 describe("adminTabRoute", () => {
   it("resolves known ids and rejects anything else", () => {
     expect(adminTabRoute("keys")).toBe("/admin/keys");
+    expect(adminTabRoute("core")).toBe("/admin/core");
     expect(adminTabRoute(null)).toBeNull();
     expect(adminTabRoute("bogus")).toBeNull();
     expect(adminTabRoute("opencode")).toBeNull();

@@ -5,6 +5,8 @@ import { readAgentKey } from "./pi.server";
 import type { TurnArtifacts } from "./pi.server";
 import { createShowHudTool } from "./hud-show.server";
 import { currentAgentModel, currentAgentProvider, modelChanged } from "./agent-model.server";
+import { currentAgentCore } from "./agent-core.server";
+import { sessionFactoryForCore } from "./agent-session.server";
 import { getAgent } from "../agents/registry";
 import { findAstronaut } from "../../astronaut/model/astronauts";
 import type { SessionFactory } from "./run.server";
@@ -68,41 +70,51 @@ function evictOldest() {
 async function getSession(
   id: string,
   astronaut: { name: string; role: string; callsign: string },
-): Promise<{ session: SessionFacade; artifacts: TurnArtifacts; provider: string; model: string }> {
-  // Provider gắn với session lúc tạo; admin đổi provider/model → huỷ session cũ và tạo lại.
-  // Lịch sử hội thoại vẫn nằm trong SessionManager files (var/sky-sessions).
+): Promise<{ session: SessionFacade; artifacts: TurnArtifacts; provider: string; model: string; core: string }> {
+  // Provider/core gắn với session lúc tạo; admin đổi provider/model/core → huỷ session cũ và tạo lại.
+  // Lịch sử hội thoại của core pi vẫn nằm trong SessionManager files (var/sky-sessions); core Mastra
+  // giữ history trong memory thread của nó (var/sky-mastra.db).
+  const core = await currentAgentCore();
   const provider = await currentAgentProvider();
   const model = await currentAgentModel("sky-chat");
-  const modelKey = `${provider}:${model}`;
+  const modelKey = `${core}:${provider}:${model}`;
   const existing = cache.get(id);
   if (existing && modelChanged(existing.modelKey, modelKey)) {
     existing.session.dispose();
     cache.delete(id);
   } else if (existing && Date.now() - existing.lastUsed < IDLE_TTL) {
     existing.lastUsed = Date.now();
-    // modelKey vẫn là ${provider}:${model} vừa đọc — trace dùng đúng model của session,
+    // modelKey vẫn là ${core}:${provider}:${model} vừa đọc — trace dùng đúng core/model của session,
     // không đọc lại sau turn (admin có thể vừa đổi).
-    return { session: existing.session, artifacts: existing.artifacts, provider, model };
+    return { session: existing.session, artifacts: existing.artifacts, provider, model, core };
   } else if (existing) {
     existing.session.dispose();
     cache.delete(id);
   }
   evictOldest();
   const profile = getAgent("sky-chat");
-  const sessFactory = factory ?? (await import("./pi.server")).createSession;
+  const sessFactory = factory ?? (await sessionFactoryForCore(core as "pi" | "mastra"));
   const dir = sessionsDir();
   mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const sessionManager = factory ? undefined : await openOrCreateSessionManager(id, dir);
+  // The pi core needs its JSONL session manager; the Mastra core ignores this override (its history
+  // lives in memory threads) — passing it keeps one call site for both cores.
+  const sessionManager = factory || core === "mastra" ? undefined : await openOrCreateSessionManager(id, dir);
+  // (a test-injected factory and the Mastra core both ignore `sessionManager`)
   // One tool, created once with this session: it writes the validated HUD program into `artifacts`,
-  // which the turn pipeline reads after the reply settles (and pi clears at each turn start).
+  // which the turn pipeline reads after the reply settles (and the core clears at each turn start).
+  // The Mastra session builds its own `show_on_hud` twin and ignores `customTools` on purpose.
   const artifacts: TurnArtifacts = {};
-  const sess = await (sessFactory as any)(profile, { request: "", astronaut }, {
-    sessionManager,
-    artifacts,
-    customTools: [createShowHudTool(artifacts)],
-  });
+  const sess = await (sessFactory as any)(
+    profile,
+    { request: "", astronaut, astronautId: id },
+    {
+      sessionManager,
+      artifacts,
+      customTools: [createShowHudTool(artifacts)],
+    },
+  );
   cache.set(id, { session: sess, lastUsed: Date.now(), modelKey, artifacts });
-  return { session: sess, artifacts, provider, model };
+  return { session: sess, artifacts, provider, model, core };
 }
 
 function enqueue(id: string, fn: () => Promise<any>): Promise<any> {

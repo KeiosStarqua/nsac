@@ -31,6 +31,11 @@ const putHudBackgroundBodySchema = z.object({
   background: z.enum(["particles", "galaxy"]),
 });
 
+// Core chạy agent: `pi` (mặc định) | `mastra` (beta). Cùng pattern literal enum như hud-background.
+const putAgentCoreBodySchema = z.object({
+  core: z.enum(["pi", "mastra"]),
+});
+
 // Key của map `agent.models`: id profile dạng kebab (vd. sky-chat), ≤64 ký tự.
 const PROFILE_KEY_REGEX = /^[a-z0-9-]{1,64}$/;
 const MAX_MODEL_ENTRIES = 16;
@@ -105,8 +110,9 @@ function validateAgentConfigBody(body: unknown):
 /**
  * Xử lý các route settings: `/api/settings/agent-model` (legacy global),
  * `/api/settings/agent-models` (provider + per-profile models),
- * `/api/settings/elevenlabs-key` (GET/PUT/DELETE, key write-only) và
- * `/api/settings/hud-background` (GET/PUT, backdrop `/`). Trả về
+ * `/api/settings/elevenlabs-key` (GET/PUT/DELETE, key write-only),
+ * `/api/settings/hud-background` (GET/PUT, backdrop `/`) và
+ * `/api/settings/agent-core` (GET/PUT, pi | mastra). Trả về
  * `null` khi pathname/method không thuộc settings để server.ts tiếp tục
  * fall-through về 404 như hiện có.
  */
@@ -164,6 +170,37 @@ export async function handleSettingsRequest(req: Request): Promise<Response | nu
   if (url.pathname === "/api/settings/elevenlabs-key") return handleElevenLabsKey(req);
 
   if (url.pathname === "/api/settings/hud-background") return handleHudBackground(req);
+
+  if (url.pathname === "/api/settings/agent-core") return handleAgentCore(req);
+
+  return null;
+}
+
+/**
+ * Core chạy agent (dual-core, HARNESSING §18) — admin setting, đọc không cần auth (loopback-only
+ * như mọi GET settings khác; web server fn là consumer duy nhất). Chưa set / giá trị rác ⇒
+ * `{ core: "pi", updatedAt: null }` — pi luôn là mặc định, chuyển core không bao giờ tự xảy ra.
+ */
+async function handleAgentCore(req: Request): Promise<Response | null> {
+  if (req.method === "GET") {
+    const stored = settingsRepo.getAgentCore();
+    return Response.json({ core: stored?.core ?? "pi", updatedAt: stored?.updatedAt ?? null });
+  }
+
+  if (req.method === "PUT") {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return Response.json({ ok: false, error: "bad_core" }, { status: 400 });
+    }
+    const parsed = putAgentCoreBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ ok: false, error: "bad_core" }, { status: 400 });
+    }
+    const saved = settingsRepo.setAgentCore(parsed.data.core);
+    return Response.json({ ok: true, core: saved.core, updatedAt: saved.updatedAt });
+  }
 
   return null;
 }

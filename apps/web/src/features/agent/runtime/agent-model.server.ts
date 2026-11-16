@@ -37,7 +37,8 @@ function isValidModelId(value: unknown): value is string {
   return typeof value === "string" && MODEL_ID_REGEX.test(value.trim());
 }
 
-function backendBase(): string {
+/** Backend origin for loopback settings reads (`BACKEND_URL` override, no trailing slash). */
+export function backendBase(): string {
   return (process.env.BACKEND_URL?.trim() || "http://127.0.0.1:3200").replace(/\/+$/, "");
 }
 

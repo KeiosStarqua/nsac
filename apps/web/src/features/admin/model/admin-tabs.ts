@@ -1,31 +1,33 @@
-// Maps the five /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
+// Maps the /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
 // so vitest can cover the contract. Icons are referenced as values (not JSX) to stay in a .ts
 // file; the layout renders them with `aria-hidden` and `size-5`.
-import { Bot, KeyRound, Mic, RotateCcw, Sparkles, type LucideIcon } from "lucide-react";
+import { Bot, Cpu, KeyRound, Mic, RotateCcw, Sparkles, type LucideIcon } from "lucide-react";
 
-export type AdminTabId = "models" | "keys" | "speech" | "claims" | "background";
+export type AdminTabId = "models" | "keys" | "speech" | "claims" | "background" | "core";
 export type AdminTabRoute =
   | "/admin/models"
   | "/admin/keys"
   | "/admin/speech"
   | "/admin/claims"
-  | "/admin/background";
+  | "/admin/background"
+  | "/admin/core";
 
 export type AdminTab = {
   id: AdminTabId;
   to: AdminTabRoute;
   /** Key into `useCopy().admin` for the tab label. */
-  labelKey: "tabModels" | "tabKeys" | "tabSpeech" | "tabClaims" | "tabBackground";
+  labelKey: "tabModels" | "tabKeys" | "tabSpeech" | "tabClaims" | "tabBackground" | "tabCore";
   icon: LucideIcon;
 };
 
-/** The five admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
+/** The admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
 export const ADMIN_TABS: ReadonlyArray<AdminTab> = [
   { id: "models", to: "/admin/models", labelKey: "tabModels", icon: Bot },
   { id: "keys", to: "/admin/keys", labelKey: "tabKeys", icon: KeyRound },
   { id: "speech", to: "/admin/speech", labelKey: "tabSpeech", icon: Mic },
   { id: "claims", to: "/admin/claims", labelKey: "tabClaims", icon: RotateCcw },
   { id: "background", to: "/admin/background", labelKey: "tabBackground", icon: Sparkles },
+  { id: "core", to: "/admin/core", labelKey: "tabCore", icon: Cpu },
 ];
 
 export const ADMIN_DEFAULT_TAB: AdminTabId = "models";
@@ -38,6 +40,7 @@ export const TAB_ROUTE: Record<AdminTabId, AdminTabRoute> = {
   speech: "/admin/speech",
   claims: "/admin/claims",
   background: "/admin/background",
+  core: "/admin/core",
 };
 
 function isAdminTabId(id: string): id is AdminTabId {
