@@ -248,6 +248,8 @@ export type ChatTurnResult = {
   messages?: TranscriptMessage[];
   /** The HUD program `show_on_hud` produced on this turn, once review passed. */
   uiProgram?: string;
+  /** The dock value `show_on_hud` set on the same artifact — present iff `uiProgram` is. */
+  uiDock?: "right";
 };
 
 /**
@@ -255,12 +257,13 @@ export type ChatTurnResult = {
  * blocking `sendChatTurn` passes none); `signal` aborts the turn from the caller's side — the SSE
  * route cancels it when the browser disconnects, so the PI session is disposed instead of running
  * on unwatched. `onUiProgram` fires once on the success path, before the turn resolves, carrying the
- * validated HUD program from `show_on_hud`; failure paths never call it.
+ * validated HUD program from `show_on_hud` plus the harness's dock decision (`chatDock`, `"right"`
+ * when the tool passed review); failure paths never call it.
  */
 export type ChatTurnHooks = {
   onDelta?: (delta: string) => void;
   signal?: AbortSignal;
-  onUiProgram?: (program: string) => void;
+  onUiProgram?: (program: string, chatDock?: "right") => void;
   /** `"voice"` (Speech Engine): append one spoken-style answer line to the prompt suffix. */
   mode?: "voice";
 };
@@ -362,10 +365,11 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
       // The tool call already happened during `prompt()`; hand the validated program to the caller
       // (the SSE route writes it as one `ui` frame before `done`).
       const hudProgram = live.artifacts.hudProgram;
-      if (hudProgram) hooks.onUiProgram?.(hudProgram);
+      const hudDock = live.artifacts.chatDock;
+      if (hudProgram) hooks.onUiProgram?.(hudProgram, hudDock);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", true);
       return finish(
-        { status: "ok" as ChatStatus, reply: trimmed, messages: readTranscript(id), uiProgram: hudProgram },
+        { status: "ok" as ChatStatus, reply: trimmed, messages: readTranscript(id), uiProgram: hudProgram, uiDock: hudDock },
         { ok: true, replyText: trimmed },
       );
     } catch (e) {

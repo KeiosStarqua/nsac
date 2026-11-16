@@ -196,6 +196,7 @@ describe("mastra core end-to-end (local OpenAI-compatible endpoint)", () => {
 
     expect(reply).toBe("The display is updated.");
     expect(artifacts.hudProgram).toBe(VALID_PROGRAM);
+    expect(artifacts.chatDock).toBe("right");
     expect(artifacts.tools).toEqual([{ name: "show_on_hud", ok: true }]);
     // Two model steps: the tool call, then the answer after the tool result.
     expect(recorded.length).toBe(2);

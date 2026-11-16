@@ -51,6 +51,57 @@ describe("streamChatTurn", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
+  it("hands the harness dock decision to onUiProgram when the artifacts carry chatDock", async () => {
+    const ui: Array<[string, string | undefined]> = [];
+    setChatSessionFactory((async (
+      _profile: unknown,
+      _ctx: unknown,
+      overrides: { artifacts?: { hudProgram?: string; chatDock?: "right" } },
+    ) => ({
+      prompt: async () => {
+        // As the show_on_hud tool would: validated program + dock land on the turn artifacts.
+        if (overrides?.artifacts) {
+          overrides.artifacts.hudProgram = "root = Surface([footer])";
+          overrides.artifacts.chatDock = "right";
+        }
+        return "Stable.";
+      },
+      dispose: () => {},
+    })) as any);
+
+    const result = await streamChatTurn("ayla-reyes", "Show my heart rate", {
+      onUiProgram: (program, dock) => ui.push([program, dock]),
+    });
+
+    expect(result.status).toBe("ok");
+    expect(ui).toEqual([["root = Surface([footer])", "right"]]);
+    expect(result.uiProgram).toBe("root = Surface([footer])");
+    expect(result.uiDock).toBe("right");
+  });
+
+  it("omits the dock when the artifacts carry a program but no chatDock", async () => {
+    const ui: Array<[string, string | undefined]> = [];
+    setChatSessionFactory((async (
+      _profile: unknown,
+      _ctx: unknown,
+      overrides: { artifacts?: { hudProgram?: string } },
+    ) => ({
+      prompt: async () => {
+        if (overrides?.artifacts) overrides.artifacts.hudProgram = "root = Surface([footer])";
+        return "Stable.";
+      },
+      dispose: () => {},
+    })) as any);
+
+    const result = await streamChatTurn("ayla-reyes", "Show my heart rate", {
+      onUiProgram: (program, dock) => ui.push([program, dock]),
+    });
+
+    expect(result.status).toBe("ok");
+    expect(ui).toEqual([["root = Surface([footer])", undefined]]);
+    expect(result.uiDock).toBeUndefined();
+  });
+
   it("forwards every delta in order and returns the whole reply", async () => {
     const deltas: string[] = [];
     setChatSessionFactory((async () => ({

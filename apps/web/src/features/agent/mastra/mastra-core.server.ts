@@ -187,12 +187,13 @@ function createMastraShowHudTool(artifacts: TurnArtifacts) {
       const outcome = await composeHudProgramForBrief(brief, { signal: artifacts.signal });
       if (!outcome.ok) throw new Error(outcome.message);
       artifacts.hudProgram = outcome.program;
+      artifacts.chatDock = "right";
       return "HUD updated.";
     },
   });
 }
 
-type ArtifactsCarrier = { hudProgram?: string; tools?: ToolOutcome[] };
+type ArtifactsCarrier = { hudProgram?: string; chatDock?: "right"; tools?: ToolOutcome[] };
 
 function recordToolOutcome(artifacts: ArtifactsCarrier | undefined, name: unknown, ok: boolean, ms?: number) {
   if (!artifacts) return;
@@ -276,6 +277,7 @@ export async function createMastraSession(
       if (disposed) throw new Error("session_disposed");
       // Turn artifacts belong to the turn that produces them (same rule as the pi core).
       if (artifacts) delete artifacts.hudProgram;
+      if (artifacts) delete artifacts.chatDock;
       if (artifacts) delete artifacts.tools;
 
       const turnController = new AbortController();

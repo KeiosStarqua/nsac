@@ -193,6 +193,68 @@ describe("sky chat transport (SSE)", () => {
     await expect(t.reconnectToStream()).resolves.toBeNull();
   });
 
+  it("hands chatDock:\"right\" on a ui frame to onUiProgram alongside the program", async () => {
+    const seen: Array<[string, string | undefined]> = [];
+    const fetchImpl = (async () =>
+      sseResponse([
+        frame({ type: "ui", program: "root = Surface([footer])", chatDock: "right" }),
+        frame({ type: "delta", text: "Stable. " }),
+        frame({ type: "done" }),
+      ])) as unknown as typeof fetch;
+
+    const t = new SkyChatTransport({ astronautId: "ayla-reyes", fetchImpl, onUiProgram: (p, dock) => seen.push([p, dock]) });
+    await readAll(await t.sendMessages({ messages: [user("u1", "Show my heart rate")] }));
+
+    expect(seen).toEqual([["root = Surface([footer])", "right"]]);
+  });
+
+  it("hands chatDock:\"right\" through the mid-stream path too", async () => {
+    const seen: Array<[string, string | undefined]> = [];
+    const fetchImpl = (async () =>
+      sseResponse([
+        frame({ type: "delta", text: "Stable. " }),
+        frame({ type: "ui", program: "root = Surface([footer])", chatDock: "right" }),
+        frame({ type: "delta", text: "Keep the dose." }),
+        frame({ type: "done" }),
+      ])) as unknown as typeof fetch;
+
+    const t = new SkyChatTransport({ astronautId: "ayla-reyes", fetchImpl, onUiProgram: (p, dock) => seen.push([p, dock]) });
+    await readAll(await t.sendMessages({ messages: [user("u1", "hi")] }));
+
+    expect(seen).toEqual([["root = Surface([footer])", "right"]]);
+  });
+
+  it("reads chatDock only when it is \"right\" — garbage docks are dropped, the frame still lands", async () => {
+    const seen: Array<[string, string | undefined]> = [];
+    const fetchImpl = (async () =>
+      sseResponse([
+        frame({ type: "ui", program: "root = Surface([footer])", chatDock: "left" }),
+        frame({ type: "delta", text: "Stable. " }),
+        frame({ type: "done" }),
+      ])) as unknown as typeof fetch;
+
+    const t = new SkyChatTransport({ astronautId: "ayla-reyes", fetchImpl, onUiProgram: (p, dock) => seen.push([p, dock]) });
+    const out = await readAll(await t.sendMessages({ messages: [user("u1", "Show my heart rate")] }));
+
+    expect(seen).toEqual([["root = Surface([footer])", undefined]]);
+    expect(out.map((chunk) => chunk.type)).toEqual(["text-start", "text-delta", "text-end", "finish"]);
+  });
+
+  it("passes undefined chatDock when the ui frame carries none", async () => {
+    const seen: Array<[string, string | undefined]> = [];
+    const fetchImpl = (async () =>
+      sseResponse([
+        frame({ type: "ui", program: "root = Surface([footer])" }),
+        frame({ type: "delta", text: "Stable. " }),
+        frame({ type: "done" }),
+      ])) as unknown as typeof fetch;
+
+    const t = new SkyChatTransport({ astronautId: "ayla-reyes", fetchImpl, onUiProgram: (p, dock) => seen.push([p, dock]) });
+    await readAll(await t.sendMessages({ messages: [user("u1", "Show my heart rate")] }));
+
+    expect(seen).toEqual([["root = Surface([footer])", undefined]]);
+  });
+
   it("hands a ui frame that arrives before the first delta to onUiProgram and still streams the text", async () => {
     const programs: string[] = [];
     const seen: { url: string }[] = [];
