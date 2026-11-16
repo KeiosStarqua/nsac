@@ -65,17 +65,21 @@ export function agentStateForVoicePhase(phase: VoicePhase): AgentState {
 }
 
 /**
- * Speech Engine voice-chat path (`useVoiceChat` on `/`): the notice types are structurally
+ * Speech Engine voice-chat path (`useVoiceChat` on both `/` consoles): the notice types are structurally
  * matched so this module never imports the hook (sky-hud stays dependency-free). A quiet notice
  * (mic denied, engine missing) outranks everything — the ball must warn, not hum on.
  */
 export function agentStateForVoiceChat(
   status: "idle" | "connecting" | "live",
-  mode: "listening" | "speaking",
+  mode: "listening" | "thinking" | "speaking",
   notice: "notConfigured" | "failed" | null,
 ): AgentState {
   if (notice) return "error";
   if (status === "connecting") return "connecting";
-  if (status === "live") return mode === "speaking" ? "speaking" : "listening";
+  if (status === "live") {
+    if (mode === "speaking") return "speaking";
+    if (mode === "thinking") return "thinking";
+    return "listening";
+  }
   return "idle";
 }

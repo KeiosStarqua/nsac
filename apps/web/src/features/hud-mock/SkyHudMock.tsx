@@ -26,7 +26,7 @@ import { SkyOrb } from "../sky-hud/SkyOrb";
 import { agentStateForVoiceChat } from "../sky-hud/agent-state";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
 import { PHASE_TEXT } from "../sky-hud/voiceCopy";
-import { useVoiceChat } from "./useVoiceChat";
+import { useVoiceChat } from "../sky-hud/useVoiceChat";
 import { HologramBody, HoloCredit } from "../sky-hud/components";
 import { SkyChatPanel } from "../sky-hud/components/SkyChatPanel";
 import { HUD_MOCK } from "./model/fixture";
@@ -147,7 +147,9 @@ export function SkyHudMock() {
       : voiceStatus === "live"
         ? voiceMode === "speaking"
           ? copy.hudMock.voiceSpeaking
-          : copy.hudMock.voiceListening
+          : voiceMode === "thinking"
+            ? copy.hudMock.voiceThinking
+            : copy.hudMock.voiceListening
         : voiceNotice === "notConfigured"
           ? copy.hudMock.voiceNotConfigured
           : voiceNotice === "failed"
@@ -162,7 +164,9 @@ export function SkyHudMock() {
         : voiceStatus === "live"
           ? voiceMode === "speaking"
             ? copy.hudMock.voiceSpeaking
-            : copy.hudMock.voiceListening
+            : voiceMode === "thinking"
+              ? copy.hudMock.voiceThinking
+              : copy.hudMock.voiceListening
           : "",
     );
   }, [voiceStatus, voiceMode, copy]);

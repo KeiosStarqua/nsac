@@ -214,6 +214,8 @@ export interface Copy {
     voiceConnecting: string;
     voiceListening: string;
     voiceSpeaking: string;
+    /** Live session, user turn finished, Sky is composing its spoken answer. */
+    voiceThinking: string;
     /** Backend has no `ELEVENLABS_SPEECH_ENGINE_ID` — shown instead of starting the conversation. */
     voiceNotConfigured: string;
     /** Register/config/start failed — the conversation never began (or dropped). */

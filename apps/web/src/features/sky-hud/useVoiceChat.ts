@@ -1,4 +1,5 @@
-// ElevenLabs Speech Engine voice chat for the `/` console, built on `@elevenlabs/client`.
+// ElevenLabs Speech Engine voice chat for the `/` console (both hub variants — the Hub Mock
+// and the `?arch=openui` Hub Gen), built on `@elevenlabs/client`. `/watch` still uses `useSkyVoice`.
 //
 // Lifecycle: tap the mic → if an astronaut is picked, POST `/api/speech-register` (web proxy → backend `/api/speech/register`; the backend
 // binds the next `init { conversation_id }` to that pick), then POST `/api/speech-token` for a
@@ -10,15 +11,12 @@
 // The SDK owns the mic capture and the speaker output, and exposes the live frequency data:
 // `getInputByteFrequencyData()` feeds the ListeningBar — no second MediaStream is opened. The
 // output path plays TTS through the SDK's WebRTC/WS audio out; `/api/tts` is not involved.
-//
-// The `?arch=openui` declarative HUD never reaches this hook: it keeps its own `useSkyVoice`
-// path untouched.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VoiceConversation } from "@elevenlabs/client";
-import type { VoicePhase } from "../sky-hud/types";
+import type { VoicePhase } from "./types";
 
 export type VoiceChatStatus = "idle" | "connecting" | "live";
-export type VoiceChatMode = "listening" | "speaking";
+export type VoiceChatMode = "listening" | "thinking" | "speaking";
 /** Quiet failure states; the component maps them onto localized hint copy. */
 export type VoiceChatNotice = "notConfigured" | "failed";
 
@@ -109,7 +107,14 @@ export function useVoiceChat(astronautId: string | null) {
       const { Conversation } = await import("@elevenlabs/client");
       const started = await Conversation.startSession({
         conversationToken,
+        onMessage: (msg) => {
+          // The user finished speaking and the backend WS is answering the turn. The first
+          // thing the SDK reports afterwards is onModeChange("speaking") when audio starts,
+          // so the gap between this callback and the audible reply is the "thinking" state.
+          if (msg.source === "user" && sessionRef.current) setMode("thinking");
+        },
         onModeChange: ({ mode: next }) => setMode(next),
+        onInterruption: () => setMode("listening"),
         onDisconnect: () => {
           // Engine closed the socket (or the user ended elsewhere) — reset without re-entering endSession.
           generationRef.current += 1;
@@ -188,9 +193,21 @@ export function useVoiceChat(astronautId: string | null) {
     }
   }, []);
 
-  /** VoicePhase mapping for the passive waveform mirror (`VoiceWaveform` derives motion from it). */
+  /**
+   * VoicePhase mapping for the passive waveform mirror (`VoiceWaveform` derives motion from it):
+   * live+thinking → "thinking" · live+speaking → "speaking" · live+listening → "listening" ·
+   * connecting → "transcribing" · idle → "idle".
+   */
   const wavePhase: VoicePhase =
-    status === "live" ? (mode === "speaking" ? "speaking" : "listening") : status === "connecting" ? "transcribing" : "idle";
+    status === "live"
+      ? mode === "speaking"
+        ? "speaking"
+        : mode === "thinking"
+          ? "thinking"
+          : "listening"
+      : status === "connecting"
+        ? "transcribing"
+        : "idle";
 
   /**
    * Per-frame energy for `VoiceWaveform`: the SDK's own input/output volume (0–1 mean of the

@@ -172,6 +172,7 @@ export const vi: Copy = {
     voiceConnecting: "Đang kết nối với Sky…",
     voiceListening: "Đang nghe…",
     voiceSpeaking: "Sky đang nói…",
+    voiceThinking: "Sky đang suy nghĩ…",
     voiceNotConfigured: "Chưa cấu hình giọng nói",
     voiceFailed: "Giọng nói không khả dụng — hãy nhập",
   },
