@@ -1,9 +1,11 @@
 // ElevenLabs Speech Engine voice chat for the `/` console, built on `@elevenlabs/client`.
 //
 // Lifecycle: tap the mic → if an astronaut is picked, POST `/api/speech-register` (web proxy → backend `/api/speech/register`; the backend
-// binds the next `init { conversation_id }` to that pick), then GET `/api/speech-config` for the
-// engine id, then `Conversation.startSession({ agentId: engineId })`. ElevenLabs connects BACK to
-// the backend's speech websocket; the browser only ever sees ElevenLabs. Tap again → `endSession`.
+// binds the next `init { conversation_id }` to that pick), then POST `/api/speech-token` for a
+// conversation token minted server-side (the engine runs with `auth.enable_auth: true`, so a bare
+// agent id is not enough and the browser never holds the API key), then
+// `Conversation.startSession({ conversationToken })`. ElevenLabs connects BACK to the backend's
+// speech websocket; the browser only ever sees ElevenLabs. Tap again → `endSession`.
 //
 // The SDK owns the mic capture and the speaker output, and exposes the live frequency data:
 // `getInputByteFrequencyData()` feeds the ListeningBar — no second MediaStream is opened. The
@@ -33,14 +35,17 @@ async function postRegister(astronautId: string): Promise<boolean> {
   }
 }
 
-/** Returns the engine id, `"no_engine"` when the backend says it is unset, or null on failure. */
-async function fetchEngineId(): Promise<string | "no_engine" | null> {
+/** Mints a conversation token, `"no_engine"` when voice is not configured, or null on failure. */
+async function fetchConversationToken(): Promise<string | "no_engine" | null> {
   try {
-    const res = await fetch("/api/speech-config");
-    if (res.status === 404) return "no_engine";
+    const res = await fetch("/api/speech-token", { method: "POST" });
+    if (res.status === 404) {
+      const data = (await res.json().catch(() => null)) as { error?: unknown } | null;
+      return data?.error === "no_engine" ? "no_engine" : null;
+    }
     if (!res.ok) return null;
-    const data = (await res.json()) as { engineId?: unknown };
-    return typeof data.engineId === "string" && data.engineId.length > 0 ? data.engineId : null;
+    const data = (await res.json()) as { token?: unknown };
+    return typeof data.token === "string" && data.token.length > 0 ? data.token : null;
   } catch {
     return null;
   }
@@ -87,14 +92,14 @@ export function useVoiceChat(astronautId: string | null) {
       setStatus("idle");
       return;
     }
-    const engineId = await fetchEngineId();
+    const conversationToken = await fetchConversationToken();
     if (generation !== generationRef.current) return;
-    if (engineId === "no_engine") {
+    if (conversationToken === "no_engine") {
       setNotice("notConfigured");
       setStatus("idle");
       return;
     }
-    if (!engineId) {
+    if (!conversationToken) {
       setNotice("failed");
       setStatus("idle");
       return;
@@ -103,7 +108,7 @@ export function useVoiceChat(astronautId: string | null) {
       // Dynamic import: the SDK (and its livekit-client dependency) stays out of the entry chunk.
       const { Conversation } = await import("@elevenlabs/client");
       const started = await Conversation.startSession({
-        agentId: engineId,
+        conversationToken,
         onModeChange: ({ mode: next }) => setMode(next),
         onDisconnect: () => {
           // Engine closed the socket (or the user ended elsewhere) — reset without re-entering endSession.
@@ -135,7 +140,7 @@ export function useVoiceChat(astronautId: string | null) {
       sessionRef.current = session;
       setStatus("live");
     } catch (err) {
-      // Mic denied, agent id rejected, CSP, offline — all land here as a quiet failure.
+      // Mic denied, token rejected, CSP, offline — all land here as a quiet failure.
       console.error(`[voice] start failed: ${String((err as Error)?.message ?? err).slice(0, 200)}`);
       if (generation !== generationRef.current) return;
       setNotice("failed");

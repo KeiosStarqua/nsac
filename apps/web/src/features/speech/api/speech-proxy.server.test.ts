@@ -3,6 +3,7 @@ import {
   chatStreamBodySchema,
   handleSpeechConfig,
   handleSpeechRegister,
+  handleSpeechToken,
   isCrossSite,
 } from "./speechProxy.server";
 
@@ -24,6 +25,12 @@ const registerReq = (body: unknown, rawBody?: string, site?: string): Request =>
 
 const configReq = (site?: string): Request =>
   new Request("http://test/api/speech-config", {
+    headers: site ? { "sec-fetch-site": site } : {},
+  });
+
+const tokenReq = (site?: string): Request =>
+  new Request("http://test/api/speech-token", {
+    method: "POST",
     headers: site ? { "sec-fetch-site": site } : {},
   });
 
@@ -114,6 +121,53 @@ describe("handleSpeechConfig", () => {
     expect((await handleSpeechConfig(configReq(), failing as unknown as typeof fetch)).status).toBe(502);
     const down = vi.fn(async () => Promise.reject(new Error("down")));
     expect((await handleSpeechConfig(configReq(), down as unknown as typeof fetch)).status).toBe(502);
+  });
+});
+
+describe("handleSpeechToken", () => {
+  it("403s a cross-site call and never calls the backend", async () => {
+    const fetchImpl = vi.fn();
+    const res = await handleSpeechToken(tokenReq("cross-site"), fetchImpl as unknown as typeof fetch);
+    expect(res.status).toBe(403);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("POSTs to the backend token route and passes the token through", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ token: "conv_token_abc" }));
+    const res = await handleSpeechToken(tokenReq(), fetchImpl as unknown as typeof fetch);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ token: "conv_token_abc" });
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url.endsWith("/api/speech/token")).toBe(true);
+    expect(init.method).toBe("POST");
+    expect((init.headers as Record<string, string>).accept).toBe("application/json");
+    expect(init.body).toBeUndefined();
+  });
+
+  it("passes the 404 no_engine signal through untouched", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ ok: false, error: "no_engine" }, 404));
+    const res = await handleSpeechToken(tokenReq(), fetchImpl as unknown as typeof fetch);
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ ok: false, error: "no_engine" });
+  });
+
+  it("502s on backend failures, malformed payloads and unreachable hosts", async () => {
+    const cases = [
+      jsonResponse({ ok: false, error: "no_key" }, 503),
+      jsonResponse({ ok: false, error: "upstream" }, 502),
+      jsonResponse({ ok: true }),
+      jsonResponse({ token: "" }),
+      jsonResponse({ token: 7 }),
+      jsonResponse({ error: "no_engine" }, 500),
+    ];
+    for (const response of cases) {
+      const fetchImpl = vi.fn(async () => response);
+      const res = await handleSpeechToken(tokenReq(), fetchImpl as unknown as typeof fetch);
+      expect(res.status).toBe(502);
+      expect(await res.json()).toEqual({ ok: false, error: "speech_backend" });
+    }
+    const down = vi.fn(async () => Promise.reject(new Error("down")));
+    expect((await handleSpeechToken(tokenReq(), down as unknown as typeof fetch)).status).toBe(502);
   });
 });
 

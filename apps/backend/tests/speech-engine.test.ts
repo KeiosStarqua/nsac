@@ -45,6 +45,7 @@ beforeAll(async () => {
 afterEach(() => {
   speech.resetSpeechStateForTests();
   delete process.env.ELEVENLABS_SPEECH_ENGINE_ID;
+  delete process.env.ELEVENLABS_API_KEY;
 });
 
 afterAll(() => {
@@ -314,5 +315,100 @@ describe("HTTP routes", () => {
 
   test("unrelated paths fall through with null", async () => {
     expect(await speech.handleSpeechRequest(new Request("http://test/api/speech/other"))).toBeNull();
+  });
+});
+
+describe("POST /api/speech/token", () => {
+  const postToken = (fetchImpl?: typeof fetch) =>
+    speech.handleSpeechRequest(new Request("http://test/api/speech/token", { method: "POST" }), fetchImpl);
+
+  const jsonRes = (body: unknown, status = 200): Response =>
+    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+
+  test("mints the token upstream with the engine id and the key header, then passes { token } through", async () => {
+    process.env.ELEVENLABS_SPEECH_ENGINE_ID = "seng_token_1";
+    process.env.ELEVENLABS_API_KEY = TEST_API_KEY;
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const fetchImpl = (async (input: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(input), init });
+      return jsonRes({ token: "conv_token_abc" });
+    }) as unknown as typeof fetch;
+
+    const res = await postToken(fetchImpl);
+    expect(res?.status).toBe(200);
+    expect(await res?.json()).toEqual({ token: "conv_token_abc" });
+    expect(calls[0]?.url).toBe("https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=seng_token_1");
+    const headers = calls[0]?.init?.headers as Record<string, string>;
+    expect(headers["xi-api-key"]).toBe(TEST_API_KEY);
+  });
+
+  test("404 no_engine when no engine id is configured", async () => {
+    delete process.env.ELEVENLABS_SPEECH_ENGINE_ID;
+    const settings = await import("../src/db/repositories/settings");
+    settings.settingsRepo.clearSpeechEngineId();
+    process.env.ELEVENLABS_API_KEY = TEST_API_KEY;
+    const fetchImpl = (async () => jsonRes({ token: "never" })) as unknown as typeof fetch;
+    const res = await postToken(fetchImpl);
+    expect(res?.status).toBe(404);
+    expect(await res?.json()).toEqual({ ok: false, error: "no_engine" });
+  });
+
+  test("503 no_key when neither env nor the /admin key is set", async () => {
+    process.env.ELEVENLABS_SPEECH_ENGINE_ID = "seng_token_2";
+    delete process.env.ELEVENLABS_API_KEY;
+    const settings = await import("../src/db/repositories/settings");
+    settings.settingsRepo.clearElevenLabsKey();
+    let called = false;
+    const fetchImpl = (async () => {
+      called = true;
+      return jsonRes({ token: "never" });
+    }) as unknown as typeof fetch;
+    const res = await postToken(fetchImpl);
+    expect(res?.status).toBe(503);
+    expect(await res?.json()).toEqual({ ok: false, error: "no_key" });
+    expect(called).toBe(false);
+  });
+
+  test("upstream error → 502 upstream without echoing upstream's body", async () => {
+    process.env.ELEVENLABS_SPEECH_ENGINE_ID = "seng_token_3";
+    process.env.ELEVENLABS_API_KEY = TEST_API_KEY;
+    for (const status of [401, 500]) {
+      const fetchImpl = (async () =>
+        jsonRes({ detail: { message: "account_quota_exhausted", account_id: "acct_secret" } }, status)) as unknown as typeof fetch;
+      const res = await postToken(fetchImpl);
+      expect(res?.status).toBe(502);
+      const text = await res!.text();
+      expect(JSON.parse(text)).toEqual({ ok: false, error: "upstream" });
+      expect(text).not.toContain("acct_secret");
+      expect(text).not.toContain("account_quota_exhausted");
+      expect(text).not.toContain(TEST_API_KEY);
+    }
+  });
+
+  test("unreachable upstream → 502 upstream", async () => {
+    process.env.ELEVENLABS_SPEECH_ENGINE_ID = "seng_token_4";
+    process.env.ELEVENLABS_API_KEY = TEST_API_KEY;
+    const fetchImpl = (async () => Promise.reject(new Error("down"))) as unknown as typeof fetch;
+    const res = await postToken(fetchImpl);
+    expect(res?.status).toBe(502);
+    expect(await res?.json()).toEqual({ ok: false, error: "upstream" });
+  });
+
+  test("a 200 without a usable token → 502 upstream", async () => {
+    process.env.ELEVENLABS_SPEECH_ENGINE_ID = "seng_token_5";
+    process.env.ELEVENLABS_API_KEY = TEST_API_KEY;
+    for (const body of [{}, { token: "" }, { token: 7 }, null]) {
+      const fetchImpl = (async () => jsonRes(body)) as unknown as typeof fetch;
+      const res = await postToken(fetchImpl);
+      expect(res?.status).toBe(502);
+      expect(await res?.json()).toEqual({ ok: false, error: "upstream" });
+    }
+  });
+
+  test("non-POST /api/speech/token falls through with null", async () => {
+    expect(await speech.handleSpeechRequest(new Request("http://test/api/speech/token"))).toBeNull();
+    expect(await speech.handleSpeechRequest(new Request("http://test/api/speech/token", { method: "PUT" }))).toBeNull();
+    // Unrelated paths keep falling through too.
+    expect(await speech.handleSpeechRequest(new Request("http://test/api/speech/other", { method: "POST" }))).toBeNull();
   });
 });
