@@ -518,6 +518,7 @@ export function SkyScreenGen() {
       {chatOpen ? (
         <SkyChatPanel
           astronaut={selectedAstronaut ? { id: selectedAstronaut.id, name: selectedAstronaut.name } : null}
+          docked={overrideProgram != null}
           onClose={() => setChatOpen(false)}
           onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }}
           onUiProgram={handleChatProgram}
