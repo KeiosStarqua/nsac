@@ -557,7 +557,7 @@
       },
       "micro": {
         "displayName": "Eyebrow / Stamp",
-        "purpose": "Eyebrows, SIMULATED, demo markers, footer note. The 9px floor."
+        "purpose": "Eyebrows, SIMULATED, demo markers. The 9px floor."
       },
       "mono": {
         "displayName": "Machine",

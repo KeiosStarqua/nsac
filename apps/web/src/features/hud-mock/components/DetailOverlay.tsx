@@ -3,7 +3,6 @@ import {
   DETAIL_ACTION,
   DETAIL_CLOSE,
   DETAIL_EYEBROW,
-  DETAIL_FOOTER,
   DETAIL_GLASS,
   DETAIL_MESSAGE,
   DETAIL_OVERLAY,
@@ -15,7 +14,6 @@ export interface DetailDialogProps {
   readonly value?: string;
   readonly message: string;
   readonly eyebrow: string;
-  readonly footer: string;
   readonly action?: { readonly label: string; readonly onClick: () => void };
 }
 
@@ -57,7 +55,6 @@ export function DetailOverlay({ detail, closeLabel, onClose, dialogRef }: Detail
             {detail.action.label}
           </button>
         ) : null}
-        <p className={DETAIL_FOOTER}>{detail.footer}</p>
       </section>
     </div>
   );

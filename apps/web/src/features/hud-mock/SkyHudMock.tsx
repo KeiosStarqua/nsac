@@ -41,7 +41,6 @@ import { TrendsCard } from "./components/TrendsCard";
 import { VitalsCard } from "./components/VitalsCard";
 import { HudBackdrop } from "./components/HudBackdrop";
 import { MockHeader } from "./components/MockHeader";
-import { MockFooter } from "./components/MockFooter";
 import { GreetingStack } from "./components/GreetingStack";
 import { OrbStage } from "./components/OrbStage";
 import { VoiceWave } from "./components/VoiceWave";
@@ -50,9 +49,6 @@ import { DetailOverlay } from "./components/DetailOverlay";
 import type { DetailDialogProps } from "./components/DetailOverlay";
 import { useHudBackground } from "../hud-bg";
 import { applyLiveVitals, useLiveHealth } from "../live-health";
-
-const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
-
 
 /**
  * `/` — "SKY · Astronaut Wellness", the mock console.
@@ -374,9 +370,9 @@ export function SkyHudMock() {
   }, [copy, refreshClaims]);
 
   const openDetail = useCallback(
-    ({ title, value, message, eyebrow = "SIMULATED DATA", footer = DEFAULT_FOOTER }: DetailDialogProps) => {
+    ({ title, value, message, eyebrow = "SIMULATED DATA" }: DetailDialogProps) => {
       previousFocus.current = document.activeElement;
-      setDetail({ title, value, message, eyebrow, footer });
+      setDetail({ title, value, message, eyebrow });
       setAnnouncer(title);
     },
     [],
@@ -430,7 +426,6 @@ export function SkyHudMock() {
         onMission={() =>
           openDetail({
             ...DETAILS.mission,
-            footer: DEFAULT_FOOTER,
             action: {
               label: copy.astronaut.change,
               onClick: () => {
@@ -507,8 +502,6 @@ export function SkyHudMock() {
           <MiniCards cards={HUD_MOCK.cards} copy={copy.hudMock} />
         </RightColumn>
       </div>
-
-      <MockFooter note={copy.chat.footer} />
 
       {detail ? (
         <DetailOverlay

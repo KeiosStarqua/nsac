@@ -392,11 +392,3 @@ export const INSIGHT_KICKER = "mt-[2px] block text-[9px] uppercase tracking-[.16
 
 export const INSIGHT_CHEVRON = "ml-auto size-[18px] flex-none text-[#8ef0d9]";
 
-// ---- Footer --------------------------------------------------------------------------------------
-
-export const FOOTER = [
-  "pointer-events-none absolute inset-x-0 bottom-0 z-[3] flex items-center",
-  "px-4 py-2 min-[1101px]:px-6",
-].join(" ");
-
-export const FOOTER_NOTE = "m-0! text-[10px] tracking-[.04em] text-[rgba(168,187,206,.62)]";
