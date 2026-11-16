@@ -57,13 +57,13 @@
 - Used by: the `/` chat overlay — `useChat` + a custom `ChatTransport` (`src/features/agent/runtime/chat-transport.ts`) that calls the existing `sendChat` server function. No provider client and no HTTP streaming transport are used.
 - Date: 2026-11-15
 
-## Mastra (`@mastra/core`, `@mastra/memory`, `@mastra/libsql`)
+## Mastra (`@mastra/core`, `@mastra/memory`, `@mastra/libsql`, `@mastra/observability`, `@mastra/langfuse`)
 
-- Licence: Apache-2.0 (all three — verified in each package's `package.json`, 2026-11-16)
+- Licence: Apache-2.0 (all of them — verified in each package's `package.json`, `@mastra/langfuse` + `@mastra/observability` on 2026-11-17)
 - Link: https://github.com/mastra-ai/mastra
-- Versions: `@mastra/core` 1.83.0, `@mastra/memory` 1.41.1, `@mastra/libsql` 1.30.0 (pinned); transitive headline dep `openai` 7.19.0 (Apache-2.0, model-router client)
-- Used by: the **optional Mastra agent core** (`src/features/agent/mastra/`, `/admin/core` switch). Server-only; loaded in a lazy server chunk and only when `agent.core = "mastra"`. Default remains the Pi SDK. Memory persists chat history in `var/sky-mastra.db` (LibSQL via `@libsql/client` — MIT — whose native binding ships inside the Nitro `.output/server/node_modules`).
-- Date: 2026-11-16
+- Versions: `@mastra/core` 1.83.0, `@mastra/memory` 1.41.1, `@mastra/libsql` 1.30.0, `@mastra/observability` 1.24.0, `@mastra/langfuse` 1.6.6 (pinned); transitive headline dep `openai` 7.19.0 (Apache-2.0, model-router client); Langfuse tracing pulls `@langfuse/otel` 5.14.0 + `@langfuse/client` 5.14.0 (MIT), `@mastra/otel-exporter` 1.5.2, `@opentelemetry/api` 1.10.0 and `@opentelemetry/sdk-trace-base` 2.12.0 (all Apache-2.0)
+- Used by: the **optional Mastra agent core** (`src/features/agent/mastra/`, `/admin/core` switch). Server-only; loaded in a lazy server chunk and only when `agent.core = "mastra"`. Default remains the Pi SDK. Memory persists chat history in `var/sky-mastra.db` (LibSQL via `@libsql/client` — MIT — whose native binding ships inside the Nitro `.output/server/node_modules`). `@mastra/observability` + `@mastra/langfuse` are **dynamically imported only** when `LANGFUSE_*` is configured (`mastra/mastra-observability.server.ts`) — tracing is disabled by default and never a runtime dependency of a turn.
+- Date: 2026-11-16 (Langfuse tracing 2026-11-17)
 
 ## `@ai-sdk/amazon-bedrock`
 
