@@ -608,16 +608,17 @@ export interface Copy {
       retry: string;
       genericError: string;
     };
-    /** Tab labels for the /admin sections. */
+    /** Tab labels for the seven /admin sections. */
     tabModels: string;
     /** API Keys — OpenCode Go + AWS Bedrock + ElevenLabs in one tab. */
     tabKeys: string;
     tabSpeech: string;
     tabClaims: string;
     tabBackground: string;
+    tabUi: string;
     /** Agent Core — the pi | mastra switch (dual-core, HARNESSING §18). */
     tabCore: string;
-    /** aria-label of the tablist above the sections. */
+    /** aria-label of the tablist above the seven sections. */
     tabsLabel: string;
     /** Background tab (`/admin/background`) — the `/` backdrop picker. */
     backgroundTitle: string;
@@ -636,6 +637,16 @@ export interface Copy {
     backgroundInvalid: string;
     backgroundLoadFailed: string;
     backgroundNote: string;
+    /** UI tab (`/admin/ui`) — which console `/` serves. */
+    uiTitle: string;
+    uiDescription: string;
+    uiNotConfigured: string;
+    uiInvalid: string;
+    uiNote: string;
+    hubMock: string;
+    hubMockDesc: string;
+    hubGen: string;
+    hubGenDesc: string;
     /** Agent Core tab (`/admin/core`) — the pi | mastra runtime switch. */
     coreTitle: string;
     coreDescription: string;

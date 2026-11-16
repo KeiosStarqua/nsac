@@ -168,7 +168,66 @@ async function traceChatTurn(args: {
   });
 }
 
-export type ChatStatus = "ok" | "missing_key" | "unavailable" | "timeout";
+export type ChatStatus = "ok" | "missing_key" | "unavailable" | "timeout" | "aborted";
+
+/**
+ * One structured line per chat turn that reaches a model session (`[sky-turn] {json}`) —
+ * diagnostics only: no message content, no key, no PII. `abortFrom` records WHICH source aborted the
+ * turn: `profile-timeout` (the 45 s wall), `external` (the caller's signal — for `/api/chat-stream`
+ * that is the stream's `cancel()`, i.e. the reader went away), or null when the turn ended on its
+ * own. The first frame of the external abort's stack tells the next investigation who cancelled it.
+ */
+type TurnTrace = {
+  traceId: string;
+  astronautId: string;
+  agentId: string;
+  provider: string;
+  model: string;
+  startedAt: number;
+  abortFrom: string | null;
+  hooksSignalAborted: () => boolean;
+};
+
+let turnSeq = 0;
+
+function newTurnTrace(astronautId: string, provider: string, model: string, hooks: ChatTurnHooks): TurnTrace {
+  turnSeq = (turnSeq + 1) % 1_000_000;
+  return {
+    traceId: `${Date.now().toString(36)}-${turnSeq.toString(36)}`,
+    astronautId,
+    agentId: "sky-chat",
+    provider,
+    model,
+    startedAt: Date.now(),
+    abortFrom: null,
+    hooksSignalAborted: () => hooks.signal?.aborted === true,
+  };
+}
+
+/** The abort caller, as one compact stack frame (`external` abort path only). */
+function abortOrigin(): string {
+  const frames = new Error().stack?.split("\n").slice(1, 4) ?? [];
+  const caller = frames
+    .map((line) => line.trim().replace(/^at\s+/, ""))
+    .find((line) => !line.includes("astro-chat.server"));
+  return `external@${(caller ?? "unknown").slice(0, 120)}`;
+}
+
+function logTurn(turn: TurnTrace, outcome: string, extra: { tools?: number } = {}) {
+  const line = {
+    traceId: turn.traceId,
+    astronautId: turn.astronautId,
+    agentId: turn.agentId,
+    provider: turn.provider,
+    model: turn.model,
+    tools: extra.tools ?? 0,
+    elapsedMs: Date.now() - turn.startedAt,
+    outcome,
+    hooksSignalAborted: turn.hooksSignalAborted(),
+    abortFrom: turn.abortFrom,
+  };
+  console.info(`[sky-turn] ${JSON.stringify(line)}`);
+}
 
 function readTranscript(id: string): TranscriptMessage[] {
   const p = join(sessionsDir(), `${id}.json`);
@@ -240,6 +299,7 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
       return { status: "unavailable" as ChatStatus };
     }
     const { session, provider, model } = live;
+    const turn = newTurnTrace(id, provider, model, hooks);
     // Mọi exit path của turn đi qua finish() → đúng một chỗ ghi trace. Tool outcomes là event thật
     // của SDK (pi.server); fallback honest: show_on_hud có mặt ⇔ artifacts.hudProgram được set.
     const finish = async (
@@ -248,6 +308,7 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
     ): Promise<ChatTurnResult> => {
       const tools =
         live.artifacts.tools ?? (live.artifacts.hudProgram ? [{ name: "show_on_hud", ok: true }] : undefined);
+      logTurn(turn, extra.ok ? "ok" : (extra.errorCode ?? "error"), { tools: tools?.length });
       await traceChatTurn({ id, userText: message, startedAt, provider, model, tools, ...extra });
       return result;
     };
@@ -267,10 +328,19 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
         : message) + voiceSuffix;
     const ac = new AbortController();
     const profile = getAgent("sky-chat");
-    const onExternalAbort = () => ac.abort();
-    if (hooks.signal?.aborted) ac.abort();
-    else hooks.signal?.addEventListener("abort", onExternalAbort, { once: true });
-    const timer = setTimeout(() => ac.abort(), profile.timeoutMs);
+    // Which of the two abort sources ended the turn (or none) — reported by logTurn().
+    const onExternalAbort = () => {
+      turn.abortFrom = abortOrigin();
+      ac.abort();
+    };
+    if (hooks.signal?.aborted) {
+      turn.abortFrom = "external-already-aborted";
+      ac.abort();
+    } else hooks.signal?.addEventListener("abort", onExternalAbort, { once: true });
+    const timer = setTimeout(() => {
+      turn.abortFrom = "profile-timeout";
+      ac.abort();
+    }, profile.timeoutMs);
     try {
       const reply = await Promise.race([
         session.prompt(promptText, { onDelta: hooks.onDelta, signal: ac.signal }),
@@ -302,6 +372,12 @@ async function runChatTurn(astronautIdRaw: string, messageRaw: string, hooks: Ch
       const cached = cache.get(id); cached?.session.dispose(); cache.delete(id);
       await publishTurnCompleted(id, "sky-chat", "web-astro-chat", false);
       if ((e as { message?: string })?.message === "timeout" || ac.signal.aborted) {
+        // Two aborts, two meanings: the caller went away (the SSE route's `cancel()` → `hooks.signal`)
+        // is a clean cancel — nothing failed and there is nobody left to answer; only the profile's
+        // own wall-clock budget is a `timeout`, which the UI renders as the amber banner.
+        if (turn.abortFrom?.startsWith("external")) {
+          return finish({ status: "aborted" as ChatStatus }, { ok: false, errorCode: "aborted" });
+        }
         return finish({ status: "timeout" as ChatStatus }, { ok: false, errorCode: "timeout" });
       }
       return finish({ status: "unavailable" as ChatStatus }, { ok: false, errorCode: "turn_error" });

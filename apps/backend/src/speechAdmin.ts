@@ -218,7 +218,7 @@ async function handleCreate(req: Request, fetchImpl: typeof fetch): Promise<Resp
     res = await upstreamFetch(fetchImpl, "/v1/speech-engine", {
       method: "POST",
       headers: { "xi-api-key": key, "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ name, speech_engine: { ws_url: wsUrl } }),
+      body: JSON.stringify({ name, speech_engine: { ws_url: wsUrl }, auth: { enable_auth: true } }),
     });
   } catch (err) {
     return unreachableResponse(err);

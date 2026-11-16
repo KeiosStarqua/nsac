@@ -1,9 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { orchestrator } from "./orchestrator";
 import { generativeUi } from "./generative-ui";
+import { hudComposer } from "./hud-composer";
+import { OPENUI_SYNTAX } from "./openui-syntax";
 import { chat } from "./chat";
 import { medicalOfficer } from "./medical-officer";
 import { skySoul } from "../soul";
+import { parseHudProgram } from "../../hud-gen/catalog";
+import { reviewProgram } from "../../hud-gen/model/review";
+import { HUD_COMPONENT_NAMES } from "../../hud-gen/model/names";
 
 describe("prompt", () => {
   it("orchestrator contains soul and role", () => {
@@ -15,6 +20,23 @@ describe("prompt", () => {
     const p = generativeUi.systemPrompt({ request: "hi", allowList: ["Console"], maxChars: 100 });
     expect(p).toContain("No fences");
     expect(p).toContain("Console");
+  });
+  it("both HUD profiles teach the OpenUI Lang syntax, not just the word for it", () => {
+    for (const p of [
+      hudComposer.systemPrompt({ request: "hi" }),
+      generativeUi.systemPrompt({ request: "hi" }),
+    ]) {
+      expect(p).toContain("root = Surface(");
+      expect(p).toContain("name = Component(");
+    }
+  });
+  it("the syntax block's example is a program the HUD catalog accepts", () => {
+    const example = OPENUI_SYNTAX.split("\n")
+      .filter((line) => /^[a-z]+ = [A-Z]\w*\(/.test(line))
+      .join("\n");
+    expect(example).toContain("root = Surface(");
+    const review = reviewProgram(example, { allowList: HUD_COMPONENT_NAMES }, parseHudProgram);
+    expect(review.ok).toBe(true);
   });
   it("chat forbids software jargon in replies", () => {
     const p = chat.systemPrompt({ request: "hi" });

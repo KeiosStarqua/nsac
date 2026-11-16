@@ -47,6 +47,11 @@ function err(text: string): ToolResult {
 export type ShowHudOptions = {
   /** Test seam: produce the raw program for a brief instead of delegating to `sky-generative-ui`. */
   compose?: (brief: string) => Promise<string>;
+  /**
+   * The turn's own abort budget. A cancelled turn (the astronaut closed the chat / reloaded) stops
+   * the delegated composition with it instead of running on to its own 30 s budget unwatched.
+   */
+  signal?: AbortSignal;
 };
 
 /**
@@ -65,12 +70,19 @@ export async function composeHudProgramForBrief(
   const compose =
     opts.compose ??
     (async (text: string): Promise<string> => {
-      const res = await runAgent("sky-generative-ui", text, {
-        request: text,
-        surface: "SKY HUD",
-        allowList: HUD_COMPONENT_NAMES,
-        maxChars: MAX_PROGRAM_CHARS,
-      });
+      const res = await runAgent(
+        "sky-generative-ui",
+        text,
+        {
+          request: text,
+          surface: "SKY HUD",
+          allowList: HUD_COMPONENT_NAMES,
+          maxChars: MAX_PROGRAM_CHARS,
+        },
+        // Cancelled turn (the astronaut closed the chat / reloaded): the delegated generation stops
+        // with it instead of running on to its own 30 s budget unwatched.
+        { signal: opts.signal },
+      );
       if (res.status !== "ok") throw new Error(res.status);
       return res.text;
     });
@@ -83,7 +95,12 @@ export async function composeHudProgramForBrief(
       parseHudProgram,
     );
     if (!review.ok) {
-      console.warn("show_on_hud: catalog review rejected", review.reasons.join("; "));
+      // Programs carry no digits and no free prose values (Fact ids only), so the head is safe to log.
+      console.warn(
+        "show_on_hud: catalog review rejected",
+        review.reasons.join("; "),
+        program.slice(0, 400),
+      );
       return {
         ok: false,
         message: `HUD update rejected by catalog review (${review.reasons[0] ?? "unknown"}). Reply without changing the display.`,
@@ -116,7 +133,7 @@ export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions
     parameters: PARAMETERS as unknown as ToolDefinition["parameters"],
     executionMode: "sequential",
     async execute(_toolCallId: string, params: any): Promise<ToolResult> {
-      const outcome = await composeHudProgramForBrief(params?.brief, opts);
+      const outcome = await composeHudProgramForBrief(params?.brief, { ...opts, signal: artifacts.signal });
       if (!outcome.ok) return err(outcome.message);
       artifacts.hudProgram = outcome.program;
       return {

@@ -116,7 +116,7 @@ describe("astro-chat on the mastra core", () => {
     expect(existsSync(join(dir, "ayla-reyes.jsonl"))).toBe(false);
   });
 
-  it("maps an aborted mastra turn to the timeout sentinel and keeps the transcript clean", async () => {
+  it("maps a cancelled mastra turn to the aborted sentinel and keeps the transcript clean", async () => {
     stubBackend("mastra");
     setMastraAgentFactoryForTests(() => ({
       stream: async (_text, opts) => ({
@@ -134,7 +134,9 @@ describe("astro-chat on the mastra core", () => {
     setTimeout(() => aborter.abort(), 10);
     const result = await pending;
 
-    expect(result.status).toBe("timeout");
+    // Same two-abort contract as the pi core (astro-chat.server.ts): the caller going away is a
+    // clean cancel (`aborted`, no banner); only the profile's own wall-clock is `timeout`.
+    expect(result.status).toBe("aborted");
     expect(transcript().messages.filter((m) => m.role === "assistant")).toHaveLength(0);
   });
 

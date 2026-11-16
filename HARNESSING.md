@@ -67,7 +67,7 @@ Ba quy tắc xuyên suốt:
 | `runtime/openui.server.ts` | `validateProgram()` — cổng validate OpenUI Lang |
 | `runtime/sse.ts` | Codec SSE incremental (client-safe, không IO) |
 | `runtime/chat-transport.ts` | `SkyChatTransport` — AI SDK `ChatTransport` phía client (POST `/api/chat-stream`) |
-| `routes/api/chat-stream.ts` | SSE endpoint: `sec-fetch-site` guard, keepalive `: ping` 15 s, terminal frame `done`/`error` |
+| `routes/api/chat-stream.ts` | SSE endpoint: `sec-fetch-site` guard, body qua `runtime/turn-stream.ts` (`: ok` mở ngay + keepalive `: ping` 5 s, cancel → abort turn), terminal frame `done`/`error` |
 | `broadcast/index.ts` | Public surface của broadcast (server-only re-exports) |
 | `broadcast/model/events.ts` | Topics + zod payload schemas (wire-mirror của backend); `buildFactsBlock()` (inject: `hazard.detected`/`health.fact.updated`/`claims.changed`; ≤10 dòng, ≤1200 ký tự, oldest-first) |
 | `broadcast/runtime/backend.ts` | HTTP loopback tới backend: `publishEvent`, `fetchEventsSince` (`GET /api/events?cursor=&astronautId=&topics=&limit=`), `getCursor`/`setCursor` (`GET/POST /api/cursors/:consumerId`); `setBackendFetch` là test seam; 1500 ms timeout |
@@ -129,7 +129,9 @@ Frame `ui` được transport bắt riêng, không trở thành chunk AI SDK; n�
 Client `/watch`: `ChatPanel` cũ, gọi `sendChat` (blocking, không stream).
 
 `/api/chat-stream` guard tối thiểu: `sec-fetch-site` khác same-origin/same-site/none ⇒ 403;
-body sai zod ⇒ 400; keepalive `: ping` mỗi 15 s; không có key/stack/path nào lọt ra ngoài.
+body sai zod ⇒ 400; `: ok` mở stream ngay + keepalive `: ping` mỗi 5 s (Bun đóng response stream
+im lặng ~10 s; 15 s cũ làm turn chậm bị abort thành `timeout` — xem `runtime/turn-stream.ts`);
+không có key/stack/path nào lọt ra ngoài.
 
 ### 3.3 Ask Sky / generative UI (one-shot)
 

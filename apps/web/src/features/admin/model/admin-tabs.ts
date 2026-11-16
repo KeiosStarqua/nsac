@@ -1,32 +1,57 @@
-// Maps the /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
+// Maps the seven /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
 // so vitest can cover the contract. Icons are referenced as values (not JSX) to stay in a .ts
 // file; the layout renders them with `aria-hidden` and `size-5`.
-import { Bot, Cpu, KeyRound, Mic, RotateCcw, Sparkles, type LucideIcon } from "lucide-react";
+import {
+  Bot,
+  Cpu,
+  KeyRound,
+  Mic,
+  PanelsTopLeft,
+  RotateCcw,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 
-export type AdminTabId = "models" | "keys" | "speech" | "claims" | "background" | "core";
+export type AdminTabId =
+  | "models"
+  | "keys"
+  | "speech"
+  | "claims"
+  | "background"
+  | "ui"
+  | "core";
 export type AdminTabRoute =
   | "/admin/models"
   | "/admin/keys"
   | "/admin/speech"
   | "/admin/claims"
   | "/admin/background"
+  | "/admin/ui"
   | "/admin/core";
 
 export type AdminTab = {
   id: AdminTabId;
   to: AdminTabRoute;
   /** Key into `useCopy().admin` for the tab label. */
-  labelKey: "tabModels" | "tabKeys" | "tabSpeech" | "tabClaims" | "tabBackground" | "tabCore";
+  labelKey:
+    | "tabModels"
+    | "tabKeys"
+    | "tabSpeech"
+    | "tabClaims"
+    | "tabBackground"
+    | "tabUi"
+    | "tabCore";
   icon: LucideIcon;
 };
 
-/** The admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
+/** The seven admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
 export const ADMIN_TABS: ReadonlyArray<AdminTab> = [
   { id: "models", to: "/admin/models", labelKey: "tabModels", icon: Bot },
   { id: "keys", to: "/admin/keys", labelKey: "tabKeys", icon: KeyRound },
   { id: "speech", to: "/admin/speech", labelKey: "tabSpeech", icon: Mic },
   { id: "claims", to: "/admin/claims", labelKey: "tabClaims", icon: RotateCcw },
   { id: "background", to: "/admin/background", labelKey: "tabBackground", icon: Sparkles },
+  { id: "ui", to: "/admin/ui", labelKey: "tabUi", icon: PanelsTopLeft },
   { id: "core", to: "/admin/core", labelKey: "tabCore", icon: Cpu },
 ];
 
@@ -40,6 +65,7 @@ export const TAB_ROUTE: Record<AdminTabId, AdminTabRoute> = {
   speech: "/admin/speech",
   claims: "/admin/claims",
   background: "/admin/background",
+  ui: "/admin/ui",
   core: "/admin/core",
 };
 

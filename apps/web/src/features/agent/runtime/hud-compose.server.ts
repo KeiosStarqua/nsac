@@ -242,7 +242,9 @@ export async function composeHud(astronautIdRaw: string, localeRaw: string): Pro
       const program = extractProgram(raw);
       const review = reviewProgram(program, { allowList: HUD_COMPONENT_NAMES }, parseHudProgram);
       if (!review.ok) {
-        console.info("[sky] hud-compose: program rejected", review.reasons);
+        // The extracted program is digit-free by contract (Fact ids only), so it carries no personal
+        // data — logging the head turns the next "why did it fail" into a five-second read.
+        console.info("[sky] hud-compose: program rejected", review.reasons, program.slice(0, 400));
         // Not cached: a retry must hit the model again.
         await publishTurnCompleted(id, false);
         return finish({ status: "rejected", reasons: review.reasons } as const, { ok: false, errorCode: "rejected" });

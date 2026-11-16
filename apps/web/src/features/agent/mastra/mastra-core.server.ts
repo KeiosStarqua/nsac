@@ -134,7 +134,8 @@ function createMastraShowHudTool(artifacts: TurnArtifacts) {
     execute: async ({ brief }) => {
       // Imported lazily so the HUD catalog/review graph only loads when the tool actually runs.
       const { composeHudProgramForBrief } = await import("../runtime/hud-show.server");
-      const outcome = await composeHudProgramForBrief(brief);
+      // Same turn budget as the pi tool: a cancelled turn stops the delegated composition.
+      const outcome = await composeHudProgramForBrief(brief, { signal: artifacts.signal });
       if (!outcome.ok) throw new Error(outcome.message);
       artifacts.hudProgram = outcome.program;
       return "HUD updated.";

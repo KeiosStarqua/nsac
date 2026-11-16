@@ -20,7 +20,8 @@
 //
 // Wiring: `startSpeechEngine()` is called once from `server.ts` (same process); the admin surface
 // (`speechAdmin.ts`) can stop/start/restart it and reads `speechEngineStatus()`. The HTTP surface
-// (`/api/speech/register`, `/api/speech/config`) delegates through `handleSpeechRequest`.
+// (`/api/speech/register`, `/api/speech/config`, `/api/speech/token`) delegates through
+// `handleSpeechRequest`.
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -537,6 +538,27 @@ export function resolveEngineId(): EffectiveEngineId | null {
 }
 
 // ---------------------------------------------------------------------------
+// ElevenLabs API key — env `ELEVENLABS_API_KEY` wins; the /admin key in app_settings is the
+// fallback. The value is only ever used for an outbound header: never logged, never returned.
+// ---------------------------------------------------------------------------
+
+export type SpeechApiKeySource = "env" | "settings";
+
+export interface SpeechApiKey {
+  key: string;
+  source: SpeechApiKeySource;
+}
+
+/** Resolves the ElevenLabs key server-side. Returns null when neither source is set. */
+export function resolveSpeechApiKey(): SpeechApiKey | null {
+  const envKey = process.env.ELEVENLABS_API_KEY?.trim();
+  if (envKey) return { key: envKey, source: "env" };
+  const fromSettings = settingsRepo.getElevenLabsKey();
+  if (fromSettings) return { key: fromSettings.key, source: "settings" };
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Startup — one process with the HTTP server (called from server.ts). Never throws.
 // ---------------------------------------------------------------------------
 
@@ -561,18 +583,9 @@ export function startSpeechEngine(): boolean {
     console.error("[speech] no engine id (env ELEVENLABS_SPEECH_ENGINE_ID unset and no speech_engine.id in app_settings) — speech engine websocket not started");
     return false;
   }
-  const envKey = process.env.ELEVENLABS_API_KEY?.trim();
-  let source: "env" | "settings" | null = null;
-  let apiKey = envKey ?? "";
-  if (apiKey) {
-    source = "env";
-  } else {
-    const fromSettings = settingsRepo.getElevenLabsKey();
-    if (fromSettings) {
-      apiKey = fromSettings.key;
-      source = "settings";
-    }
-  }
+  const resolvedKey = resolveSpeechApiKey();
+  const apiKey = resolvedKey?.key ?? "";
+  const source = resolvedKey?.source ?? null;
   if (!apiKey || !source) {
     lastSpeechError = "no ElevenLabs API key (set ELEVENLABS_API_KEY or save one in /admin)";
     console.error("[speech] no ElevenLabs API key (set ELEVENLABS_API_KEY or save one in /admin) — speech engine websocket not started");
@@ -714,11 +727,70 @@ function handleConfig(): Response {
   return Response.json({ engineId: resolved.engineId });
 }
 
+// ---------------------------------------------------------------------------
+// POST /api/speech/token — mint a conversation token server-side.
+// The engine is created with `auth.enable_auth: true`, so ElevenLabs connects upstream to our
+// websocket WITH the JWT and the browser can no longer mint a token with just the agent id
+// (`GET /v1/convai/conversation/token` without a key answers 401). This route holds the key.
+// The token is a short-lived conversation credential: it is returned to the caller and never
+// logged, and upstream error bodies are never echoed (they can carry account detail).
+// ---------------------------------------------------------------------------
+
+const ELEVENLABS_API_BASE = (process.env.ELEVENLABS_API_BASE?.trim().replace(/\/+$/, "") || "https://api.elevenlabs.io");
+const TOKEN_UPSTREAM_TIMEOUT_MS = 5_000;
+
+async function handleToken(fetchImpl: typeof fetch): Promise<Response> {
+  const resolved = resolveEngineId();
+  if (!resolved) {
+    return Response.json({ ok: false, error: "no_engine" }, { status: 404 });
+  }
+  const apiKey = resolveSpeechApiKey();
+  if (!apiKey) {
+    return Response.json({ ok: false, error: "no_key" }, { status: 503 });
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TOKEN_UPSTREAM_TIMEOUT_MS);
+  try {
+    const res = await fetchImpl(
+      `${ELEVENLABS_API_BASE}/v1/convai/conversation/token?agent_id=${encodeURIComponent(resolved.engineId)}`,
+      {
+        method: "GET",
+        headers: { "xi-api-key": apiKey.key, accept: "application/json" },
+        signal: controller.signal,
+      },
+    );
+    if (!res.ok) {
+      // Status only — never the upstream body (account detail), never the key, never a token.
+      console.error(`[speech] token upstream status ${res.status}`);
+      return Response.json({ ok: false, error: "upstream" }, { status: 502 });
+    }
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      data = undefined;
+    }
+    const token = (data as { token?: unknown } | null)?.token;
+    if (typeof token !== "string" || token.trim().length === 0) {
+      console.error("[speech] token upstream status 200 without a usable token");
+      return Response.json({ ok: false, error: "upstream" }, { status: 502 });
+    }
+    return Response.json({ token });
+  } catch {
+    console.error("[speech] token upstream request failed");
+    return Response.json({ ok: false, error: "upstream" }, { status: 502 });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
- * Xử lý `/api/speech/register` và `/api/speech/config`. Trả về `null` khi path/method không thuộc
- * module để server.ts fall-through về 404. Lỗi luôn JSON `{ ok: false, error }`.
+ * Xử lý `/api/speech/register`, `/api/speech/config` và `/api/speech/token`. Trả về `null` khi
+ * path/method không thuộc module để server.ts fall-through về 404. Lỗi luôn JSON `{ ok: false, error }`.
+ * `fetchImpl` là test seam (mặc định global fetch).
  */
-export async function handleSpeechRequest(req: Request): Promise<Response | null> {
+export async function handleSpeechRequest(req: Request, fetchImpl: typeof fetch = fetch): Promise<Response | null> {
   const url = new URL(req.url);
   if (url.pathname === "/api/speech/register") {
     if (req.method !== "POST") return null;
@@ -727,6 +799,10 @@ export async function handleSpeechRequest(req: Request): Promise<Response | null
   if (url.pathname === "/api/speech/config") {
     if (req.method !== "GET") return null;
     return handleConfig();
+  }
+  if (url.pathname === "/api/speech/token") {
+    if (req.method !== "POST") return null;
+    return handleToken(fetchImpl);
   }
   return null;
 }

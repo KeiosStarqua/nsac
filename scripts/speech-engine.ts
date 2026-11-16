@@ -11,6 +11,9 @@
  *   ensure [--name N] [--ws-url U]    Idempotent: tìm theo name (mặc định "sky-nsac-speech-engine"),
  *                                     có rồi in ra, chưa có thì tạo với wsUrl
  *                                     (mặc định wss://nasa.taquangkhoi.com/speech/ws) rồi verify lại.
+ *                                     Engine mới luôn bật `auth.enable_auth: true` — ElevenLabs
+ *                                     gửi JWT tới backend, browser mint conversation token qua
+ *                                     `/api/speech/token` (không dùng agent id trần).
  *   update <id> [--name N] [--ws-url U]
  *   delete <id>                       Xoá engine (hành động huỷ diệt, không hỏi lại)
  *
@@ -116,7 +119,7 @@ if (cmd === "list") {
     console.log(`exists: ${existingId}\tname=${name}`);
     process.exit(0);
   }
-  const created = await call("POST", "", { name, speech_engine: { ws_url: wsUrl } });
+  const created = await call("POST", "", { name, speech_engine: { ws_url: wsUrl }, auth: { enable_auth: true } });
   print(created.status, created.json);
   const id = engineIdOf(created.json);
   if (!id) {

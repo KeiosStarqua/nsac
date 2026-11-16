@@ -166,7 +166,7 @@ describe("streamChatTurn", () => {
     expect(transcript().messages.filter((message) => message.role === "assistant")).toHaveLength(0);
   });
 
-  it("aborts the turn when the caller's signal fires and reports timeout", async () => {
+  it("aborts the turn when the caller's signal fires and reports a clean cancel", async () => {
     let disposed = false;
     let seenSignal: AbortSignal | undefined;
     setChatSessionFactory((async () => ({
@@ -188,7 +188,8 @@ describe("streamChatTurn", () => {
     const result = await pending;
 
     expect(seenSignal).toBeDefined();
-    expect(result.status).toBe("timeout");
+    // The caller hung up (SSE reader gone) — that is a cancel, not the profile's timeout wall.
+    expect(result.status).toBe("aborted");
     expect(disposed).toBe(true);
     expect(transcript().messages.filter((message) => message.role === "assistant")).toHaveLength(0);
   });

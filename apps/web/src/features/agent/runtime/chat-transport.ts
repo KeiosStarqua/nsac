@@ -24,10 +24,10 @@
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import { createSseParser } from "./sse";
 
-export type ChatTurnStatus = "ok" | "missing_key" | "unavailable" | "timeout";
+export type ChatTurnStatus = "ok" | "missing_key" | "unavailable" | "timeout" | "aborted";
 export type ChatErrorCode = Exclude<ChatTurnStatus, "ok">;
 
-const ERROR_CODES: readonly ChatErrorCode[] = ["missing_key", "unavailable", "timeout"];
+const ERROR_CODES: readonly ChatErrorCode[] = ["missing_key", "unavailable", "timeout", "aborted"];
 
 /** One stored transcript line, as `loadChatHistory` returns it. */
 export type ChatHistoryMessage = { role: "user" | "assistant"; text: string; at?: string };

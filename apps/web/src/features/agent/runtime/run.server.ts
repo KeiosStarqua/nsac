@@ -31,6 +31,7 @@ async function runSession(
   input: string,
   ctx: AgentContext,
   sessFactory: SessionFactory,
+  opts: { signal?: AbortSignal },
 ): Promise<RunResult> {
   let session: { prompt: (text: string, opts: { onDelta?: (d: string) => void; signal?: AbortSignal }) => Promise<string>; dispose: () => void };
   try {
@@ -40,6 +41,12 @@ async function runSession(
     return { status: "unavailable", text: "" };
   }
   const ac = new AbortController();
+  // `opts.signal` is the caller's own budget: a nested turn (e.g. `show_on_hud` delegating to
+  // `sky-generative-ui`) must stop when the turn that asked for it is cancelled, instead of burning
+  // tokens for up to its own timeout on a reply nobody will read.
+  const onExternalAbort = () => ac.abort();
+  if (opts.signal?.aborted) ac.abort();
+  else opts.signal?.addEventListener("abort", onExternalAbort, { once: true });
   const timer = setTimeout(() => ac.abort(), profile.timeoutMs);
   try {
     const text = await Promise.race([
@@ -54,6 +61,8 @@ async function runSession(
     session.dispose();
     if ((e as { message?: string })?.message === "timeout" || ac.signal.aborted) return { status: "timeout", text: "" };
     return { status: "unavailable", text: "" };
+  } finally {
+    opts.signal?.removeEventListener("abort", onExternalAbort);
   }
 }
 
@@ -62,9 +71,14 @@ async function runSession(
  * from the backend setting (`agent.core`, default `pi`); a `setSessionFactory` injection from a test
  * short-circuits the core lookup entirely, exactly like before the dual-core change.
  */
-export async function runAgent(profileId: AgentId, input: string, ctx: AgentContext = { request: input }): Promise<RunResult> {
+export async function runAgent(
+  profileId: AgentId,
+  input: string,
+  ctx: AgentContext = { request: input },
+  opts: { signal?: AbortSignal } = {},
+): Promise<RunResult> {
   const profile = getAgent(profileId);
   const merged: AgentContext = { ...ctx, request: ctx.request ?? input };
   const sessFactory = factory ?? ((await sessionFactoryForCore(await currentAgentCore())) as unknown as SessionFactory);
-  return runSession(profile, input, merged, sessFactory);
+  return runSession(profile, input, merged, sessFactory, opts);
 }
