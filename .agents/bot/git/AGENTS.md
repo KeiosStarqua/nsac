@@ -7,11 +7,27 @@ Hợp nhất mọi nhánh code/doc của các bot/agent vào `origin/main` — m
 ## Nhiệm vụ — vòng watch → merge (Keios, 2026-11-15)
 
 - Agent/CEO làm xong code → tự ghi nhánh của mình vào `BRANCHES.md` với `Status: ready` (+ gates + report). Đó là cách duy nhất báo việc cho git-bot.
-- Git-bot **chỉ** làm một việc: canh `BRANCHES.md`; mỗi lần nội dung đổi (background watcher báo) → đọc lại file từ đầu → lấy nhánh `ready` đầu tiên → merge vào `origin/main` theo "Quy trình merge" (worktree detached từ `origin/main` mới nhất → gates → commit merge `--no-ff` → push → deploy/tag nếu `Request` yêu cầu) → ghi `merged <sha>` vào entry + commit cập nhật registry → dọn worktree + `git branch -d` → re-arm watcher.
+- Git-bot nghe hai tín hiệu từ **một** watcher `.opencode/plugins/watch-branches.sh` (xem "Background watch"):
+  - `CHANGED: BRANCHES…` → canh `BRANCHES.md`; mỗi lần nội dung đổi (background watcher báo) → đọc lại file từ đầu → lấy nhánh `ready` đầu tiên → merge vào `origin/main` theo "Quy trình merge" (worktree detached từ `origin/main` mới nhất → gates → commit merge `--no-ff` → push → deploy/tag nếu `Request` yêu cầu) → ghi `merged <sha>` vào entry + commit cập nhật registry → dọn worktree + `git branch -d` → re-arm watcher.
+  - `CHANGED: TREE…` → working tree (chưa commit) đổi → xem "Commit trực tiếp trên `main`" bên dưới: **xem xét và có thể commit** các thay đổi rời trên `main` (không chờ nhánh), hoặc để nguyên nếu là WIP đang dở của phiên khác. Không merge nhánh, không deploy.
+  - `CHANGED: BRANCHES+TREE…` → làm cả hai, **BRANCHES trước** (một nhánh mỗi lượt), rồi TREE.
 - Không có nhánh `ready` (chỉ `active`/`merged`/`rejected`) → **không merge gì**, báo cáo ngắn và re-arm watcher.
 - Commit trong một lượt merge gồm: (1) merge commit `--no-ff` của nhánh, (2) commit cập nhật `BRANCHES.md` (`merged <sha>`) — cùng push lên `origin/main`; tag do `scripts/deploy.sh` sinh khi có deploy.
 - `BRANCHES.md` là **local-only (git-ignored)**: registry phối hợp trên máy này, không commit/push; các agent khác ghi trực tiếp vào file này. Watcher bắt mọi thay đổi qua lệnh `/watch-branches` (`.agents/bot/git/.opencode/commands/watch-branches.md`).
-- Ngoài watcher `BRANCHES.md` không có nguồn việc nào khác cho bot này.
+- Tín hiệu TREE **không** phải là merge queue thứ hai: nó chỉ cho phép commit trực tiếp trên `main`, không được dùng để merge/rebase nhánh của ai, và không tự deploy.
+
+## Commit trực tiếp trên `main` — tín hiệu TREE (Keios, 2026-11-17)
+
+Khi watcher báo `CHANGED: TREE…` (hoặc `BRANCHES+TREE`), bot **xem xét** rồi mới quyết định — không commit mù:
+
+1. `git fetch origin`; `git status --porcelain=v1 -uall`; `git diff --stat`. Nếu tree sạch → re-arm, không làm gì.
+2. Phân loại từng nhóm thay đổi:
+   - **Tự chứa, hoàn chỉnh** (một coherent change: docs/config/script/code nhỏ, nội dung khớp với commit trước — ví dụ agent vừa sửa xong doc nội bộ và quên commit) → commit trên `main` với message một dòng tiếng Anh (`docs(...)`/`feat(...)`/`fix(...)`) → `git push origin main` ngay (luật root: push sau mỗi commit).
+   - **WIP đang dở** (file được sửa nhiều lần trong phiên khác, sửa một mảnh của feature đang làm, nội dung mâu thuẫn giữa các file) → **KHÔNG commit**, báo ngắn gọn và để nguyên cho phiên sở hữu. Khi mơ hồ → để nguyên, hỏi Keios.
+3. Không bao giờ commit: secrets/key (`.env`, `var/`, `*.pem`, `sk-*`), `BRANCHES.md` và `.watch-state` (local-only), `node_modules/`, output build (`.output/`, `.turbo/`), thay đổi con trỏ submodule `data/` (phải đi theo repo nsac-data, không bump mù), hoặc bất kỳ file nào đang được phiên khác chỉnh **ngay trong lúc** bạn kiểm (kiểm `git diff` hai lần cách nhau vài giây; nội dung đổi giữa hai lần → dừng, để nguyên).
+4. Sau khi commit TREE: tree lại sạch → re-arm watcher như thường lệ. Chú ý: commit làm `git diff HEAD` rỗng/đổi HEAD nên watcher có thể báo `CHANGED: TREE` một lần nữa ngay sau commit — đó là no-op dự kiến (re-arm sẽ re-seed), không lặp commit.
+5. TREE commit **không deploy**: deploy/tag vẫn chỉ đi qua "Quy trình merge" (nhánh `ready` trong `BRANCHES.md`) hoặc lệnh rõ ràng của Keios. Docs-only TREE commit không cần deploy.
+6. Nếu main có cả nhánh `ready` và file rời: merge nhánh theo quy trình, rồi mới xét file rời ở cuối — mỗi lượt chỉ một nhánh.
 
 ## Local Contracts
 
@@ -59,21 +75,28 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
 - **Không bao giờ xoá worktree `deploy-*`** (`/home/keios/nsac.worktrees/deploy-<sha>`) — chúng thuộc `scripts/deploy.sh`, có thể đang là nguồn rsync của một deploy đang chạy. Trước khi xoá bất kỳ worktree/branch nào: `pgrep -af 'deploy\.sh|nix build'` phải trống (bài học 2026-11-15: xoá nhầm worktree deploy đang chạy, phải dựng lại cùng sha ngay).
 - Nếu xoá thất bại (branch chưa merge đúng, worktree còn lock): ghi `Notes` lý do, báo Keios, không ép `-D`, không bỏ qua im lặng.
 
-## Background watch — luôn có một shell chờ thay đổi `BRANCHES.md` (Keios, 2026-11-15)
+## Background watch — luôn có một shell chờ thay đổi `BRANCHES.md` HOẶC working tree (Keios, 2026-11-15, mở rộng 2026-11-17)
 
-- **Bất biến: luôn có đúng MỘT background shell đang chờ thay đổi của `BRANCHES.md`.** Đầu mỗi lượt, trước khi làm việc khác, kiểm tra `pgrep -af watch-branches.sh`; chưa có → mở ngay. Không bao giờ để bot ở trạng thái "không ai canh".
+- **Bất biến: luôn có đúng MỘT background shell đang chạy `watch-branches.sh`.** Đầu mỗi lượt, trước khi làm việc khác, kiểm tra `pgrep -af watch-branches.sh`; chưa có → mở ngay. Không bao giờ để bot ở trạng thái "không ai canh".
 - Mở bằng tool `shell` với `background: true`, chạy từ repo root:
 
   ```bash
   .agents/bot/git/.opencode/plugins/watch-branches.sh 7200
   ```
 
+- Watcher theo dõi **hai tín hiệu** trong một tiến trình:
+  - `BRANCHES` — sha256 của `BRANCHES.md` (như trước).
+  - `TREE` — sha256 của `git status --porcelain=v1 -uall` + `git diff HEAD` + stat(size,mtime) của các file untracked (bắt mọi thay đổi chưa commit: sửa file tracked, thêm/xoá file untracked, sửa nội dung, kể cả chmod/touch).
 - Harness báo khi watcher kết thúc — đó là tín hiệu làm việc, không phải lỗi:
-  - exit `0` = nội dung `BRANCHES.md` đã đổi → đọc lại **từ đầu**, chạy đúng một lượt merge nếu có nhánh `ready` (theo "Quy trình merge"), chỉ báo cáo nếu không có, rồi **mở watcher mới ngay**.
-  - exit `2` = 7200s không đổi → mở watcher mới, không coi là fail, không merge gì thêm.
-- Watcher so **sha256** nội dung với `.watch-state` (local, git-ignored): `touch`/đổi mtime mà nội dung y nguyên thì không đánh thức bot; nội dung đổi hoặc file bị xoá/tạo lại đều tính là thay đổi.
+  - exit `0` → có thay đổi; dòng `CHANGED:` cho biết tín hiệu nào nổ:
+    - `BRANCHES` (hoặc `BRANCHES+TREE`) → đọc lại registry **từ đầu**; có nhánh `ready` → chạy đúng một lượt merge (theo "Quy trình merge"); không có → báo cáo ngắn; sau đó (với `BRANCHES+TREE`) xét tiếp phần TREE; rồi **mở watcher mới ngay**.
+    - `TREE` (hoặc `BRANCHES+TREE`) → `git status` + `git diff --stat`; nếu có thay đổi rời → xét theo "Commit trực tiếp trên `main`"; xong → **mở watcher mới ngay**.
+  - exit `2` = 7200s không đổi → mở watcher mới, không coi là fail, không làm gì thêm.
+- Watcher lưu cặp hash vào `.watch-state` (local, git-ignored, format hai dòng `branches=<sha>` / `tree=<sha>`; file cũ một dòng được tự re-seed).
+- `.watch-state` được viết lại mỗi lần watcher chốt trạng thái (arm hoặc wake) → sau mỗi commit/deploy main, tree hash đổi → watcher có thể wake một lần no-op; re-arm lúc này chỉ cần xoá `.watch-state` rồi mở lại (hoặc để nó tự seed).
+- Blind spots đã biết: thay đổi bên trong submodule `data/` (chỉ hiện thành một dòng status), file bị `.gitignore`, và đổi tên file giữ nguyên nội dung path. Chấp nhận được — các cú false-wake chỉ tốn một lần kiểm tra.
 - Cấm `sleep`/poll thủ công trong chat để chờ file — chỉ dựa vào background watcher (cùng tinh thần luật `hc wait` ở root AGENTS.md).
-- Muốn ép đọc lại: xoá `.watch-state` rồi arming lại theo nội dung hiện tại.
+- Muốn ép đọc lại: xoá `.watch-state` rồi arm lại bình thường (watcher tự seed hash hiện tại).
 
 ## Plugin wake-up — `.agents/bot/git/plugins/watch-branches/` (Keios, 2026-11-15)
 
