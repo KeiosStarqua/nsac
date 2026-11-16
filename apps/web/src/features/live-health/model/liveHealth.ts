@@ -176,7 +176,7 @@ export function formatLiveUpdatedAt(updatedAt: string | null, locale: string): s
 }
 
 // ---------------------------------------------------------------------------------------------
-// `/` mock console binding: a live value replaces the fixture value, in place, with the fixture
+// `/` console binding: a live value replaces the fixture value, in place, with the fixture
 // unit and sparkline. The fixture object is returned untouched when nothing applies, so the
 // fallback markup (and every screenshot taken without a live backend) stays byte-identical.
 // ---------------------------------------------------------------------------------------------

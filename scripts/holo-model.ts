@@ -1,5 +1,5 @@
 /**
- * Sinh asset hologram tối giản cho thẻ health card của HUD (mock `/` + `?arch=openui`): chỉ giữ system `skin` + `skeleton`
+ * Sinh asset hologram tối giản cho thẻ health card của HUD (`/` — Hub Gen): chỉ giữ system `skin` + `skeleton`
  * của model Open Anatomy 3D nam, nén lại bằng meshopt.
  *
  * Chạy từ REPO ROOT bằng bun:  `bun scripts/holo-model.ts`

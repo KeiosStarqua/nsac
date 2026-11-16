@@ -2,8 +2,7 @@
 // clipped inside the glass face of the AI-generated mockup, on every viewport.
 //
 // Extracted from the retired staged console (`SkyScreen`, removed 2026-11-16) so the watch keeps
-// its own screen: the console default lives in `features/hud-mock`, the declarative OpenUI tree in
-// `features/hud-gen`. Behaviour is unchanged — the same backdrop, DOM, copy, claims/picker flow,
+// its own screen: `/` is the declarative OpenUI console in `features/hud-gen`, `/watch` is this one. Behaviour is unchanged — the same backdrop, DOM, copy, claims/picker flow,
 // legacy in-face `ChatPanel` and voice state machine the route shipped with.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMounted } from "../../../shared/hooks/useMounted";

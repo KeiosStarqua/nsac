@@ -20,7 +20,7 @@ export interface VoiceClusterProps {
   readonly hint: string;
   /** Accessible name of the idle mic pill. */
   readonly micLabel: string;
-  /** The session is live: the wide `ListeningBar` replaces the pill (the mock uses this too). */
+  /** The session is live: the wide `ListeningBar` replaces the pill. */
   readonly live: boolean;
   readonly chatOpen: boolean;
   readonly reducedMotion: boolean;
@@ -35,9 +35,8 @@ export interface VoiceClusterProps {
 
 /**
  * The centre column's voice control: `VoicePill` while idle, the wide `ListeningBar` while a session
- * is live, the hint line under it and the "Type instead" pill. One component for both `/` consoles
- * (the mock console and `?arch=openui` Hub Gen) — both speak through the ElevenLabs Speech Engine
- * (`useVoiceChat`); `/watch` keeps `useSkyVoice`.
+ * is live, the hint line under it and the "Type instead" pill. The Hub Gen console speaks through
+ * the ElevenLabs Speech Engine (`useVoiceChat`); `/watch` keeps `useSkyVoice`.
  */
 export function VoiceCluster({
   phase,

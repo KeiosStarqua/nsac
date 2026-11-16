@@ -146,7 +146,7 @@ describe("liveStripMode / buildLiveStripCards", () => {
   });
 });
 
-describe("applyLiveVitals (mock console binding)", () => {
+describe("applyLiveVitals (console binding)", () => {
   const VITALS = {
     heartRate: { value: 62, unit: "bpm", series: [1, 2] },
     bloodPressure: { systolic: 118, diastolic: 76, unit: "mmHg", series: [1] },

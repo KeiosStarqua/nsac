@@ -1,4 +1,4 @@
-// Maps the seven /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
+// Maps the six /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
 // so vitest can cover the contract. Icons are referenced as values (not JSX) to stay in a .ts
 // file; the layout renders them with `aria-hidden` and `size-5`.
 import {
@@ -6,7 +6,6 @@ import {
   Cpu,
   KeyRound,
   Mic,
-  PanelsTopLeft,
   RotateCcw,
   Sparkles,
   type LucideIcon,
@@ -18,7 +17,6 @@ export type AdminTabId =
   | "speech"
   | "claims"
   | "background"
-  | "ui"
   | "core";
 export type AdminTabRoute =
   | "/admin/models"
@@ -26,7 +24,6 @@ export type AdminTabRoute =
   | "/admin/speech"
   | "/admin/claims"
   | "/admin/background"
-  | "/admin/ui"
   | "/admin/core";
 
 export type AdminTab = {
@@ -39,19 +36,17 @@ export type AdminTab = {
     | "tabSpeech"
     | "tabClaims"
     | "tabBackground"
-    | "tabUi"
     | "tabCore";
   icon: LucideIcon;
 };
 
-/** The seven admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
+/** The six admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
 export const ADMIN_TABS: ReadonlyArray<AdminTab> = [
   { id: "models", to: "/admin/models", labelKey: "tabModels", icon: Bot },
   { id: "keys", to: "/admin/keys", labelKey: "tabKeys", icon: KeyRound },
   { id: "speech", to: "/admin/speech", labelKey: "tabSpeech", icon: Mic },
   { id: "claims", to: "/admin/claims", labelKey: "tabClaims", icon: RotateCcw },
   { id: "background", to: "/admin/background", labelKey: "tabBackground", icon: Sparkles },
-  { id: "ui", to: "/admin/ui", labelKey: "tabUi", icon: PanelsTopLeft },
   { id: "core", to: "/admin/core", labelKey: "tabCore", icon: Cpu },
 ];
 
@@ -65,7 +60,6 @@ export const TAB_ROUTE: Record<AdminTabId, AdminTabRoute> = {
   speech: "/admin/speech",
   claims: "/admin/claims",
   background: "/admin/background",
-  ui: "/admin/ui",
   core: "/admin/core",
 };
 

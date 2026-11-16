@@ -2,7 +2,7 @@ import { Droplet, HeartPulse, Thermometer, Wind, Activity, AudioWaveform } from 
 import type { ReactNode } from "react";
 import type { Copy } from "~/shared/i18n";
 import type { LiveStripMode } from "../../live-health";
-import { formatBloodPressure, type HudMockFixture } from "../model/fixture";
+import { formatBloodPressure, type HudMockFixture } from "../data/fixture";
 import {
   CARD,
   CARD_HEAD,
@@ -45,7 +45,7 @@ interface Row {
 /**
  * "Vital Signs" card — six fixture rows (heart rate, HRV, blood pressure, respiratory rate, SpO₂,
  * body temperature), each with a 24-point inline sparkline. Values are simulated; the units stay
- * English exactly as the reference mock writes them. When the host passes a settled `liveMode`,
+ * English exactly as the fixture writes them. When the host passes a settled `liveMode`,
  * the header chip reports the live feed's state instead of the static `Now` tag.
  */
 export function VitalsCard({ vitalSigns, copy, liveMode = null, liveLabel = null }: VitalsCardProps) {

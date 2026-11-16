@@ -14,7 +14,7 @@ function renderVitals(vitalSigns: typeof HUD_MOCK.vitalSigns): string {
   return renderToStaticMarkup(createElement(VitalsCard, { vitalSigns, copy: en.hudMock }));
 }
 
-describe("mock HUD live binding", () => {
+describe("console HUD live binding", () => {
   it("keeps the fixture object (and its markup) when there is no live payload", () => {
     expect(applyLiveVitals(HUD_MOCK.vitalSigns, null)).toBe(HUD_MOCK.vitalSigns);
     expect(applyLiveVitals(HUD_MOCK.vitalSigns, {})).toBe(HUD_MOCK.vitalSigns);

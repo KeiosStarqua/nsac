@@ -71,7 +71,7 @@ export type SkyChatPanelProps = {
    * Dock the card to the right edge instead of the HUD centre axis — set when Sky's `show_on_hud`
    * override replaced the composed HUD tree (gen path only). The card becomes a full-height strip
    * under the header (`top`/`bottom` anchors own the height, unanchored from the orb geometry).
-   * Default `false`: everything renders as before (the mock console never passes this).
+   * Default `false`: everything renders as before (the preset layout never passes this).
    */
   docked?: boolean;
 };

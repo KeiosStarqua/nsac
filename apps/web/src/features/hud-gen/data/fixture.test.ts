@@ -10,10 +10,10 @@ import { buildSeries } from "./sparklines";
 import { en } from "~/shared/i18n/en";
 import { vi } from "~/shared/i18n/vi";
 
-// The mock console's data contract: one fixture, every panel. These assertions are the guard that
+// The console's data contract: one fixture, every panel. These assertions are the guard that
 // the left column, the readiness tabs, the mini cards and the insight band can never disagree.
 
-describe("hud-mock fixture — reference values", () => {
+describe("console fixture — reference values", () => {
   test("vital signs match the ordered mock values", () => {
     expect(HUD_MOCK.vitalSigns.heartRate.value).toBe(62);
     expect(HUD_MOCK.vitalSigns.heartRate.unit).toBe("bpm");
@@ -39,7 +39,7 @@ describe("hud-mock fixture — reference values", () => {
   });
 });
 
-describe("hud-mock fixture — cross-panel consistency", () => {
+describe("console fixture — cross-panel consistency", () => {
   test("activity minutes are the same number in the trends card, the energy tab and the mini card", () => {
     expect(HUD_MOCK.quickTrends.activityMinutes).toBe(48);
     expect(HUD_MOCK.energy.activityMinutes).toBe(HUD_MOCK.quickTrends.activityMinutes);
@@ -83,7 +83,7 @@ describe("hud-mock fixture — cross-panel consistency", () => {
   });
 });
 
-describe("hud-mock insight band", () => {
+describe("console insight band", () => {
   test("quotes the same sleep duration and efficiency as the recovery tab", () => {
     const english = buildInsightText(en.hudMock.insightText);
     expect(english).toContain("7h 42m");
@@ -104,7 +104,7 @@ describe("hud-mock insight band", () => {
   });
 });
 
-describe("hud-mock formatting", () => {
+describe("console formatting", () => {
   test("sleep formatting pads minutes", () => {
     expect(formatSleep(0)).toBe("0h 00m");
     expect(formatSleep(462)).toBe("7h 42m");

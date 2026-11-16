@@ -23,7 +23,7 @@ Unlike a generic health dashboard, Sky is used by the astronaut, not the ground;
 - NASA Space Apps 2026 challenge: Create Health Monitoring Software for Astronauts on Space Missions. Submission deadline 15/11/2026 23:59 local.
 - Demo scenario: ~mission day 170, 2–3 weeks before Mars landing, after a solar storm and 2 weeks of missed exercise → readiness 62 (yellow) → exercise dose proposed → Confirm → ground report queued → fast-forward → readiness 81 (green). Near landing: switches to safety advice (compression garment, supported standing), not just exercise.
 - Deployed at https://nasa.taquangkhoi.com (EC2 OpfaOS, Caddy → `nsac-web.service`, 127.0.0.1:3100).
-- Web app routes: `/` (HUD mock console), `/watch`, `/performance`, `/health`, `/body`, `/spacecraft`, `/data`, `/research`, `/admin` (hidden).
+- Web app routes: `/` (Hub Gen console), `/watch`, `/performance`, `/health`, `/body`, `/spacecraft`, `/data`, `/research`, `/admin` (hidden).
 - Stack (existing codebase): TanStack Start + React 19 + Bun + Turborepo, Tailwind v4, three.js, PI SDK agent harness (`sky-orchestrator`), SQLite via Bun backend (`apps/backend`).
 
 ## Capabilities and Constraints

@@ -1,7 +1,7 @@
 // Tailwind v4 class strings for the SKY HUD stage (1672×941) and its watch frame — the HUD's old
-// hand-written stylesheets, expressed as utilities. The hud-gen catalog (`?arch=openui`), the
-// hud-mock console and the `/watch` screen render the same projections, so the strings live in one
-// place to keep them identical.
+// hand-written stylesheets, expressed as utilities. The hub-gen console (`features/hud-gen`) and
+// the `/watch` screen render the same projections, so the strings live in one place to keep them
+// identical.
 //
 // Two cascade facts shape every string here:
 //   * `styles/global.css` resets are UNLAYERED, so they outrank `@layer utilities` whatever the
@@ -362,7 +362,7 @@ export const WATCH_FRAME = "pointer-events-none absolute inset-0 z-[2] h-full w-
 export const WATCH_CAPTION =
   "m-0 max-w-full text-center text-[10px] leading-[1.6] tracking-[.3em] indent-[.3em] uppercase text-[#7d99ad] max-[480px]:text-[8px] max-[480px]:leading-[1.5] max-[480px]:tracking-[.16em] max-[480px]:indent-[.16em] [text-wrap:balance]";
 
-// ---- Detail dialog (shared by the hud-mock console, the declarative screen and the watch face) ------
+// ---- Detail dialog (shared by the console, the declarative tree and the watch face) ----------------
 
 export const DETAIL_OVERLAY = [
   "absolute inset-0 z-[35] flex items-center justify-center bg-[rgba(2,12,28,.4)] backdrop-blur-[7px]",

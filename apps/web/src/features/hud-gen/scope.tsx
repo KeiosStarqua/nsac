@@ -7,7 +7,7 @@ import type { Copy } from "~/shared/i18n";
 import type { HudFacts } from "./model/facts";
 import type { VoicePhase } from "~/features/sky-hud/types";
 import type { LiveStripMode } from "~/features/live-health";
-import type { HudMockFixture } from "~/features/hud-mock/model/fixture";
+import type { HudMockFixture } from "~/features/hud-gen/data/fixture";
 
 /** A host action fired by a catalog button, e.g. `{ type: "ToggleChat", params: {} }`. */
 export interface HudAction {

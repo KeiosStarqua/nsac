@@ -4,7 +4,7 @@ import { listClaims } from "./api/claims.functions";
 /** Nhịp poll epoch reset: đủ nhanh để tab đang mở thấy force release, đủ thưa để không spam backend. */
 const WATCH_INTERVAL_MS = 45_000;
 
-/** localStorage giữ epoch reset lần cuối client đồng ý (xem SkyHudMock/SkyScreenGen/WatchScreen mount gate). */
+/** localStorage giữ epoch reset lần cuối client đồng ý (xem SkyScreenGen/WatchScreen mount gate). */
 export const CLAIMS_EPOCH_STORAGE_KEY = "nsac.claims_epoch";
 
 /**
