@@ -1,0 +1,28 @@
+# NSAC Sky ML inference (nix .#inference → FastAPI, loopback-only).
+#
+# Cài lần đầu trên box (deploy.sh tự làm khi unit còn thiếu):
+#   sudo cp ops/nsac-inference.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now nsac-inference.service
+#
+# ExecStart đi qua ~/nsac/result-inference (symlink nix tạo khi deploy) — gcroot
+# /nix/var/nix/gcroots/nsac-inference pin TRỰC TIẾP store path, xem scripts/nix-gc.sh.
+# SKY_DATA_ROOT do wrapper bin/sky-inference đặt sẵn (store path của flake input nsac-data),
+# nên unit không phụ thuộc checkout nào trên box và không cần secret.
+
+[Unit]
+Description=NSAC Sky ML inference (nix .#inference, FastAPI) on 127.0.0.1:8100
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+Environment=SKY_INFERENCE_PORT=8100
+Environment=SKY_INFERENCE_HOST=127.0.0.1
+ExecStart=/home/ec2-user/nsac/result-inference/bin/sky-inference
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

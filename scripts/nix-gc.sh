@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # nix-gc.sh — dọn store path mồ côi của các bản deploy nsac cũ trên box OpfaOS.
 #
-# An toàn nhờ 3 gcroots: /nix/var/nix/gcroots/nsac-{web,backend} phải là symlink
-# tới store path đang chạy (systemd ExecStart đi qua ~/nsac/result[-backend]), và
+# An toàn nhờ 4 gcroots: /nix/var/nix/gcroots/nsac-{web,backend,inference} phải là symlink
+# tới store path đang chạy (systemd ExecStart đi qua ~/nsac/result*), và
 # /nix/var/nix/gcroots/nsac-web-node-modules phải trỏ tới FOD node_modules.
 # FOD đó là BUILD-TIME input: không output runtime nào tham chiếu nó, nên thiếu gcroot
 # là GC xoá sạch → deploy sau phải `bun install` lại → hash lệch outputHash → nix build fail.
@@ -38,6 +38,9 @@ check_gcroot() {
 
 check_gcroot nsac-web  -nsac-web-
 check_gcroot nsac-backend -nsac-backend-
+# Service ML: #out của .#inference (wrapper + venv) và giữ luôn reference tới FOD wheelhouse
+# qua share/inference-wheels ⇒ một root bảo vệ cả hai.
+check_gcroot nsac-inference -nsac-inference-
 # FOD node_modules: build-time input, không runtime reference → phải có gcroot riêng.
 # Thiếu root này = chưa deploy bằng deploy.sh mới; từ chối GC, đừng xoá FOD.
 check_gcroot nsac-web-node-modules -nsac-web-node-modules-
@@ -48,16 +51,20 @@ check_unit_execstart() {
   local svc="$1" root_name="$2" glob="$3"
   command -v systemctl >/dev/null && systemctl list-units --full -all --no-legend "$svc" 2>/dev/null | grep -q "${svc%.service}" || return 0
   local exec_path resolved root
-  exec_path=$(systemctl show -p ExecStart --value "$svc" | grep -oE "/nix/store/[^ ]*${glob}[^ \"]*" | head -1 || true)
+  # systemd báo path ĐÚNG NHƯ ĐÃ CẤU HÌNH (vd. /home/ec2-user/nsac/result/bin/nsac-web), KHÔNG phải
+  # store path — nên phải tự `readlink -f` qua out-link ~/nsac/result* rồi mới so với gcroot.
+  exec_path=$(systemctl show -p ExecStart --value "$svc" | grep -oE 'path=[^ ;]*' | head -1 | cut -d= -f2- || true)
   [ -n "$exec_path" ] || return 0
-  resolved=$(readlink -f "$exec_path")
+  resolved=$(readlink -f "$exec_path" 2>/dev/null) || resolved=""
+  [[ "$resolved" == /nix/store/*"$glob"* ]] || fail "$svc ExecStart '$exec_path' resolves to '$resolved' — không phải store path $glob (không rõ bản nào đang sống)"
   root=$(readlink -f "$GCROOT_DIR/$root_name")
-  # ExecStart trỏ tới ~/nsac/result[-backend]/bin/* → resolve ra store path; prefix phải khớp gcroot
+  # ExecStart trỏ tới ~/nsac/result[-backend|-inference]/bin/* → resolve ra store path; prefix phải khớp gcroot
   [[ "$resolved" == "$root"/* ]] || fail "$svc ExecStart resolves to $resolved, outside gcroot $root"
   echo "nix-gc: $svc ExecStart under gcroot (ok)"
 }
 check_unit_execstart nsac-web.service nsac-web 'nsac-web'
 check_unit_execstart nsac-backend.service nsac-backend 'nsac-backend'
+check_unit_execstart nsac-inference.service nsac-inference 'nsac-inference'
 
 echo "nix-gc: dead paths (before):"
 "$NIX_STORE" --gc --print-dead | wc -l
