@@ -100,8 +100,10 @@ export type ToolOutcome = { name: string; ok: boolean; ms?: number };
 /**
  * Per-turn side effects a tool may produce. `prompt()` clears them when the turn starts, so a turn
  * can only report what its own tool calls did; the chat pipeline reads them once the reply settles.
+ * `signal` is the turn's own abort signal, so a tool that delegates to another agent (show_on_hud →
+ * sky-generative-ui) stops with the turn instead of outliving it.
  */
-export type TurnArtifacts = { hudProgram?: string; tools?: ToolOutcome[] };
+export type TurnArtifacts = { hudProgram?: string; tools?: ToolOutcome[]; signal?: AbortSignal };
 
 export async function createSession(
   profile: AgentProfile,
@@ -181,6 +183,8 @@ export async function createSession(
       // program from a previous turn out of this turn's reply.
       if (overrides?.artifacts) delete overrides.artifacts.hudProgram;
       if (overrides?.artifacts) delete overrides.artifacts.tools;
+      // The turn's abort signal, readable by tools that spawn their own agent (show_on_hud).
+      if (overrides?.artifacts) overrides.artifacts.signal = opts.signal;
       let total = "";
       let turnError: string | null = null;
       const unsub = session.subscribe((event: any) => {
@@ -224,6 +228,7 @@ export async function createSession(
       } finally {
         unsub();
         opts.signal?.removeEventListener("abort", onAbort);
+        if (overrides?.artifacts) delete overrides.artifacts.signal;
       }
       // The SDK resolves prompt() normally even when the turn fails (e.g. provider 402);
       // an empty accumulated reply is never a successful answer. Deltas can be lost while

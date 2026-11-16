@@ -372,8 +372,16 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram, onUseVoice }:
   };
 
   const errorCode = error ? chatErrorCode(error) : null;
+  // A cancel (the card closed / the crew member changed mid-turn) is not an error to show: the turn
+  // was simply unwatched, and the partial text stays as it was.
   const errorText =
-    errorCode === "missing_key" ? c.missingKey : errorCode === "timeout" ? c.timeout : errorCode ? c.unavailable : null;
+    !errorCode || errorCode === "aborted"
+      ? null
+      : errorCode === "missing_key"
+        ? c.missingKey
+        : errorCode === "timeout"
+          ? c.timeout
+          : c.unavailable;
   const inputLabel = astronaut ? format(c.label, { name: firstName(astronaut.name) }) : c.selectFirst;
 
   return (
