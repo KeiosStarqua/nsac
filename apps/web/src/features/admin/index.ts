@@ -5,3 +5,4 @@ export { SpeechEngineTab } from "./components/tabs/SpeechEngineTab";
 export { ClaimsTab } from "./components/tabs/ClaimsTab";
 export { BackgroundTab } from "./components/tabs/BackgroundTab";
 export { CoreTab } from "./components/tabs/CoreTab";
+export { SchedulesTab } from "./components/tabs/SchedulesTab";

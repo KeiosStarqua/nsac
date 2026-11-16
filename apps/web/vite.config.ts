@@ -12,7 +12,10 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
     tanstackStart(),
-    nitro({ preset: process.env.NITRO_PRESET ?? "bun" }),
+    // serverDir enables automatic scanning of `src/server/plugins/` at boot (Nitro v3 default
+    // is `serverDir: false`, i.e. no plugin scanning). The only plugin today is
+    // `sky-schedules.ts` (boot wiring for the Mastra Schedules runtime, HARNESSING §19).
+    nitro({ preset: process.env.NITRO_PRESET ?? "bun", serverDir: "src/server" }),
     // Tailwind CSS v4 via its dedicated Vite plugin (https://tailwindcss.com/docs/installation/using-vite)
     tailwindcss(),
     // React's Vite plugin must come after Start's.

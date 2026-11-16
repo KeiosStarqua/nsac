@@ -9,7 +9,7 @@ import {
 } from "./admin-tabs";
 
 describe("ADMIN_TABS", () => {
-  it("has the six tabs in display order", () => {
+  it("has the seven tabs in display order", () => {
     expect(ADMIN_TABS.map((tab) => tab.id)).toEqual([
       "models",
       "keys",
@@ -17,13 +17,14 @@ describe("ADMIN_TABS", () => {
       "claims",
       "background",
       "core",
+      "schedules",
     ]);
   });
 
-  it("puts the agent-core switch last, after background", () => {
+  it("puts schedules last, after core", () => {
     const ids = ADMIN_TABS.map((tab) => tab.id);
-    expect(ids.at(-1)).toBe("core");
-    expect(ids.indexOf("core")).toBeGreaterThan(ids.indexOf("background"));
+    expect(ids.at(-1)).toBe("schedules");
+    expect(ids.indexOf("schedules")).toBeGreaterThan(ids.indexOf("core"));
   });
 
   it("labels every tab in both locales", async () => {
@@ -35,6 +36,8 @@ describe("ADMIN_TABS", () => {
     }
     expect(en.admin.tabCore).toBe("Agent Core");
     expect(vi.admin.tabCore).toBe("Lõi agent");
+    expect(en.admin.tabSchedules).toBe("Schedules");
+    expect(vi.admin.tabSchedules).toBe("Lịch chạy");
   });
 
   it("routes every tab to its /admin/<id> route", () => {
@@ -42,6 +45,7 @@ describe("ADMIN_TABS", () => {
       expect(tab.to).toBe(`/admin/${tab.id}`);
       expect(TAB_ROUTE[tab.id]).toBe(tab.to);
     }
+    expect(TAB_ROUTE.schedules).toBe("/admin/schedules");
   });
 
   it("defaults to the models tab", () => {
@@ -58,6 +62,7 @@ describe("adminTabFromPathname", () => {
     expect(adminTabFromPathname("/admin/claims")).toBe("claims");
     expect(adminTabFromPathname("/admin/background")).toBe("background");
     expect(adminTabFromPathname("/admin/core")).toBe("core");
+    expect(adminTabFromPathname("/admin/schedules")).toBe("schedules");
   });
 
   it("deep-links a nested path under a tab", () => {

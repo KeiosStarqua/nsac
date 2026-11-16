@@ -1,8 +1,9 @@
-// Maps the six /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
+// Maps the seven /admin operator tabs to their routes. Pure data + helpers — no IO, no React —
 // so vitest can cover the contract. Icons are referenced as values (not JSX) to stay in a .ts
 // file; the layout renders them with `aria-hidden` and `size-5`.
 import {
   Bot,
+  CalendarClock,
   Cpu,
   KeyRound,
   Mic,
@@ -17,14 +18,16 @@ export type AdminTabId =
   | "speech"
   | "claims"
   | "background"
-  | "core";
+  | "core"
+  | "schedules";
 export type AdminTabRoute =
   | "/admin/models"
   | "/admin/keys"
   | "/admin/speech"
   | "/admin/claims"
   | "/admin/background"
-  | "/admin/core";
+  | "/admin/core"
+  | "/admin/schedules";
 
 export type AdminTab = {
   id: AdminTabId;
@@ -36,11 +39,12 @@ export type AdminTab = {
     | "tabSpeech"
     | "tabClaims"
     | "tabBackground"
-    | "tabCore";
+    | "tabCore"
+    | "tabSchedules";
   icon: LucideIcon;
 };
 
-/** The six admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
+/** The seven admin tabs, in display order (the beui MorphingTabs reorder is client-only and unsaved). */
 export const ADMIN_TABS: ReadonlyArray<AdminTab> = [
   { id: "models", to: "/admin/models", labelKey: "tabModels", icon: Bot },
   { id: "keys", to: "/admin/keys", labelKey: "tabKeys", icon: KeyRound },
@@ -48,6 +52,7 @@ export const ADMIN_TABS: ReadonlyArray<AdminTab> = [
   { id: "claims", to: "/admin/claims", labelKey: "tabClaims", icon: RotateCcw },
   { id: "background", to: "/admin/background", labelKey: "tabBackground", icon: Sparkles },
   { id: "core", to: "/admin/core", labelKey: "tabCore", icon: Cpu },
+  { id: "schedules", to: "/admin/schedules", labelKey: "tabSchedules", icon: CalendarClock },
 ];
 
 export const ADMIN_DEFAULT_TAB: AdminTabId = "models";
@@ -61,6 +66,7 @@ export const TAB_ROUTE: Record<AdminTabId, AdminTabRoute> = {
   claims: "/admin/claims",
   background: "/admin/background",
   core: "/admin/core",
+  schedules: "/admin/schedules",
 };
 
 function isAdminTabId(id: string): id is AdminTabId {

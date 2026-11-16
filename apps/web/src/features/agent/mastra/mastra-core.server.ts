@@ -15,6 +15,7 @@ import {
   mastraModelSpecFromEnv,
   resolveMastraModel,
 } from "./mastra-model.server";
+import { getAgent } from "../agents/registry";
 import { getMastraRoot, noteMastraObservabilityFailure } from "./mastra-observability.server";
 // One description, one gate — shared with the pi core. The HUD graph is already in the server graph
 // (astro-chat imports the pi twin statically), so no lazy import here.
@@ -199,6 +200,50 @@ function recordToolOutcome(artifacts: ArtifactsCarrier | undefined, name: unknow
   const label = typeof name === "string" ? name.slice(0, 64) : "unknown";
   const arr = (artifacts.tools ??= []);
   if (arr.length < 20) arr.push({ name: label, ok, ...(ms !== undefined ? { ms } : {}) });
+}
+
+/**
+ * The generic `sky-chat` agent, registered ONCE on the process-wide root so scheduled fires
+ * resolve the profile even before any chat turn ever ran (HARNESSING §19). Same build path and
+ * same `isChat` semantics as a chat session — LibSQL-backed memory with the working profile —
+ * but NO astronaut identity in the instructions and NO caller suffix: identity travels in the
+ * prepared prompt at fire time, never in the registration. Per-turn sessions re-add a fresh
+ * session agent under the same key (remove-then-add), so this registration is only the baseline.
+ *
+ * Called from inside the root builder (never at module import); resolves provider/model the
+ * same way `createMastraSession` does. `null` (not a throw) when the provider has no usable key —
+ * the root simply carries no sky-chat then and scheduled fires fail honestly with
+ * `agent-missing` instead of a broken half-registered agent.
+ */
+export async function buildEagerSkyChatAgent(): Promise<Agent | null> {
+  try {
+    const provider = await currentAgentProvider();
+    const model = await currentAgentModel("sky-chat");
+    const resolved = mastraModelSpecFromEnv(provider, model);
+    if (!resolved.ok) return null;
+    const modelObject = await resolveMastraModel(resolved.spec);
+    const profile = getAgent("sky-chat");
+    const baseInstructions = profile.systemPrompt({ request: "" } as AgentContext);
+    // Order mirrors createMastraSession: base first, then the working-memory discipline block
+    // (chat only). No promptSuffix — there is no per-fire context at registration time.
+    const instructions = [baseInstructions, WORKING_MEMORY_INSTRUCTIONS].join("\n");
+    const memory = createSessionMemory(true);
+    return buildAgent({
+      id: profile.id,
+      name: profile.name,
+      instructions,
+      model: modelObject,
+      maxRetries: 0,
+      tools: { show_on_hud: createMastraShowHudTool({}) },
+      memory,
+    }) as unknown as Agent;
+  } catch (error) {
+    console.warn(
+      "[sky-schedules] eager sky-chat build failed:",
+      error instanceof Error ? error.message.slice(0, 200) : "error",
+    );
+    return null;
+  }
 }
 
 export async function createMastraSession(
