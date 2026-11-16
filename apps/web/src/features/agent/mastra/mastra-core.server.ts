@@ -14,6 +14,9 @@ import {
   mastraModelSpecFromEnv,
   resolveMastraModel,
 } from "./mastra-model.server";
+// One description, one gate — shared with the pi core. The HUD graph is already in the server graph
+// (astro-chat imports the pi twin statically), so no lazy import here.
+import { SHOW_HUD_DESCRIPTION, composeHudProgramForBrief } from "../runtime/hud-show.server";
 
 /**
  * Mastra runtime behind the same seams as `runtime/pi.server.ts` (dual-core, HARNESSING §18).
@@ -122,18 +125,11 @@ function createChatMemory(): Memory {
 function createMastraShowHudTool(artifacts: TurnArtifacts) {
   return createTool({
     id: "show_on_hud",
-    description: [
-      "Update what the astronaut sees on screen with a health visualization.",
-      "Call ONLY when the user asks to see/show/visualize metrics, trends or what appears on the display.",
-      "brief is one short sentence saying what to show (e.g. 'Show resting heart rate and sleep for this week').",
-      "Call at most once per turn. Never call for pure conversation.",
-    ].join(" "),
+    description: SHOW_HUD_DESCRIPTION,
     inputSchema: z.object({
       brief: z.string().min(1).max(500).describe("One short sentence describing what to visualize."),
     }),
     execute: async ({ brief }) => {
-      // Imported lazily so the HUD catalog/review graph only loads when the tool actually runs.
-      const { composeHudProgramForBrief } = await import("../runtime/hud-show.server");
       // Same turn budget as the pi tool: a cancelled turn stops the delegated composition.
       const outcome = await composeHudProgramForBrief(brief, { signal: artifacts.signal });
       if (!outcome.ok) throw new Error(outcome.message);
