@@ -6,6 +6,8 @@ import type { ReactNode, RefObject } from "react";
 import type { Copy } from "~/shared/i18n";
 import type { HudFacts } from "./model/facts";
 import type { VoicePhase } from "~/features/sky-hud/types";
+import type { LiveStripMode } from "~/features/live-health";
+import type { HudMockFixture } from "~/features/hud-mock/model/fixture";
 
 /** A host action fired by a catalog button, e.g. `{ type: "ToggleChat", params: {} }`. */
 export interface HudAction {
@@ -45,6 +47,16 @@ export interface HudScopeValue {
   readonly composeHintDismissed: boolean;
   /** The orb node (SkyOrb) — rendered by OrbStage in declarative order. */
   readonly orbNode: ReactNode;
+  /**
+   * The settled live (simulated) habitat feed for the followed crew member — values merged onto
+   * the fixture plus the LIVE / HISTORICAL / OFFLINE chip label. `null` before the first read;
+   * the catalog then renders the fixture with the static `Now` tag.
+   */
+  readonly live: {
+    readonly vitals: HudMockFixture["vitalSigns"];
+    readonly mode: LiveStripMode;
+    readonly label: string;
+  } | null;
   /** Brand button: reset the view (close dialogs/chat, restore greeting and prompt). */
   readonly resetView: () => void;
   /**
