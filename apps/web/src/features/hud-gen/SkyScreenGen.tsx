@@ -26,6 +26,8 @@ import { HUD_COMPONENT_NAMES } from "./model/names";
 import { composeHud } from "~/features/agent/api/hud-compose.functions";
 import { useHudBackground } from "../hud-bg";
 import { HudBackdrop, DetailOverlay } from "../hud-mock";
+import { applyLiveVitals, liveStripMode, useLiveHealth } from "../live-health";
+import { HUD_MOCK } from "../hud-mock/model/fixture";
 import type { DetailDialogProps } from "../hud-mock";
 import { MOCK_ROOT, MOCK_VIGNETTE } from "../hud-mock/mock-classes";
 
@@ -105,6 +107,21 @@ export function SkyScreenGen() {
     stop: stopVoiceChat,
     setNotice: setVoiceNotice,
   } = useVoiceChat(astronautId);
+  // Live (simulated) habitat telemetry for the followed crew member, bound into the declarative
+  // tree the same way the mock console binds it. Fixture until the first read settles.
+  const liveHealth = useLiveHealth(astronautId);
+  const liveVitalSigns = useMemo(() => applyLiveVitals(HUD_MOCK.vitalSigns, liveHealth.data?.metrics), [liveHealth.data]);
+  const liveMode = liveHealth.settled ? liveStripMode(liveHealth.data) : null;
+  const liveLabel =
+    liveMode === "live"
+      ? copy.live.visibleLive
+      : liveMode === "historical"
+        ? copy.live.historicalLabel
+        : liveMode === "offline"
+          ? copy.live.offlineLabel
+          : null;
+  const live = liveMode && liveLabel ? { vitals: liveVitalSigns, mode: liveMode, label: liveLabel } : null;
+
   const orbState = agentStateForVoiceChat(voiceStatus, voiceMode, voiceNotice);
 
   // Quiet hints (not configured / failed) clear themselves back to the idle line.
@@ -526,10 +543,11 @@ export function SkyScreenGen() {
       composeHint: copy.hud.composeHint,
       composeHintDismissed,
       orbNode,
+      live,
       resetView,
       onAction: handleAction,
     }),
-    [copy, facts, shown, fx, wavePhase, hint, energyRef, readSpectrum, greeting, prompt, chatOpen, agentProgram, composeHintDismissed, orbNode, resetView, handleAction],
+    [copy, facts, shown, fx, wavePhase, hint, energyRef, readSpectrum, greeting, prompt, chatOpen, agentProgram, composeHintDismissed, orbNode, live, resetView, handleAction],
   );
 
   const program = overrideProgram ?? agentProgram ?? hudPreset(locale);

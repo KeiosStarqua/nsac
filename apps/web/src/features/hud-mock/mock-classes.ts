@@ -119,6 +119,18 @@ export const TAG_ACCENT =
 
 export const MUTED = "text-[#8ba9be]";
 
+/** Live-telemetry dot inside the vitals chip — colour carries the mode (live/historical/offline). */
+export const LIVE_DOT = "size-[6px] flex-none rounded-full";
+
+export const LIVE_DOT_LIVE = `${LIVE_DOT} bg-[#5eead4] shadow-[0_0_8px_#5eead4] motion-safe:animate-pulse`;
+
+export const LIVE_DOT_HISTORICAL = `${LIVE_DOT} bg-[#8fb8d4]`;
+
+export const LIVE_DOT_OFFLINE = `${LIVE_DOT} bg-[#5b6b7d]`;
+
+/** The vitals-chip variant that carries a mode dot (inline-flex + gap over TAG). */
+export const TAG_LIVE = `inline-flex items-center gap-[6px] ${TAG}`;
+
 // ---- Vitals + trends -----------------------------------------------------------------------------
 
 export const VITAL_ROW = [
@@ -274,6 +286,12 @@ export const GAUGE_SLASH = "ml-[1px] text-[11px] font-light text-[#8fb8d4]";
 
 export const READINESS_STATUS =
   "text-[15px] font-light leading-none text-[#60efc0] [text-shadow:0_0_18px_rgba(72,244,198,.25)]";
+
+/** Micro-label sitting left of the secondary 96/100 value (makes the number self-describing). */
+export const READINESS_SUPPORT =
+  "flex items-baseline gap-[6px] text-[10px] uppercase tracking-[.14em] text-[#7f9db4] [&_strong]:text-[11px] [&_strong]:font-light [&_strong]:normal-case [&_strong]:tracking-normal [&_strong]:tabular-nums [&_strong]:text-[#8fb8d4]";
+
+export const READINESS_DELTA = "text-[10px] tabular-nums text-[#8ef0d9]";
 
 export const EYEBROW = "text-[9px] uppercase tracking-[.2em] text-[#7f9db4]";
 

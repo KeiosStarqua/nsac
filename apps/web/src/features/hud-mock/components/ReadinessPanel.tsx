@@ -47,7 +47,9 @@ import {
   MINI_UNIT,
   MINI_VALUE,
   PANEL_BODY,
+  READINESS_DELTA,
   READINESS_STATUS,
+  READINESS_SUPPORT,
   ROW,
   ROW_BAR_FILL,
   ROW_BAR_TRACK,
@@ -156,10 +158,17 @@ export function ReadinessCard({ readiness, copy }: ReadinessCardProps) {
             </span>
             <span className={READINESS_STATUS}>{copy.readinessStable}</span>
             <span
-              className="text-[11px] tabular-nums text-[#8fb8d4]"
+              className={READINESS_SUPPORT}
               title={format(copy.readinessSupportAria, { value: String(readiness.support) })}
             >
-              {readiness.support} /100
+              {copy.readinessRecoveryIdx}
+              <strong>
+                {readiness.support} <small className="text-[10px] text-[#7f9db4]">/100</small>
+              </strong>
+            </span>
+            <span className={READINESS_DELTA}>
+              {readiness.deltaWeek >= 0 ? "▲ +" : "▼ "}
+              {readiness.deltaWeek} {copy.readinessDeltaWeek}
             </span>
           </div>
           <div className="flex min-w-0 max-w-[46%] flex-col items-end gap-[4px] text-right">

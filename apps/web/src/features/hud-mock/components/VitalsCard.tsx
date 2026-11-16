@@ -1,12 +1,17 @@
-import { Droplet, HeartPulse, Thermometer, Wind, Activity } from "lucide-react";
+import { Droplet, HeartPulse, Thermometer, Wind, Activity, AudioWaveform } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Copy } from "~/shared/i18n";
+import type { LiveStripMode } from "../../live-health";
 import { formatBloodPressure, type HudMockFixture } from "../model/fixture";
 import {
   CARD,
   CARD_HEAD,
   CARD_TITLE,
   TAG,
+  TAG_LIVE,
+  LIVE_DOT_LIVE,
+  LIVE_DOT_HISTORICAL,
+  LIVE_DOT_OFFLINE,
   VITAL_ICON,
   VITAL_LABEL,
   VITAL_ROW,
@@ -19,6 +24,14 @@ import { Sparkline } from "./Sparkline";
 export interface VitalsCardProps {
   readonly vitalSigns: HudMockFixture["vitalSigns"];
   readonly copy: Copy["hudMock"];
+  /**
+   * When the host has settled a read of the live (simulated) telemetry feed, the `Now` tag is
+   * replaced by the honest LIVE / HISTORICAL / OFFLINE chip (same labels as `/performance`).
+   * Omit (or pass `null`) while settling — the plain `Now` tag renders, as before.
+   */
+  readonly liveMode?: LiveStripMode | null;
+  /** Localized chip label matching `liveMode` (e.g. `copy.live.visibleLive`). */
+  readonly liveLabel?: string | null;
 }
 
 interface Row {
@@ -30,11 +43,23 @@ interface Row {
 }
 
 /**
- * "Vital Signs" card — five fixture rows (heart rate, blood pressure, respiratory rate, SpO₂,
+ * "Vital Signs" card — six fixture rows (heart rate, HRV, blood pressure, respiratory rate, SpO₂,
  * body temperature), each with a 24-point inline sparkline. Values are simulated; the units stay
- * English exactly as the reference mock writes them.
+ * English exactly as the reference mock writes them. When the host passes a settled `liveMode`,
+ * the header chip reports the live feed's state instead of the static `Now` tag.
  */
-export function VitalsCard({ vitalSigns, copy }: VitalsCardProps) {
+export function VitalsCard({ vitalSigns, copy, liveMode = null, liveLabel = null }: VitalsCardProps) {
+  const liveChip = liveMode && liveLabel ? (
+    <span className={TAG_LIVE} data-testid="vitals-live-chip" data-state={liveMode}>
+      <span
+        aria-hidden="true"
+        className={
+          liveMode === "live" ? LIVE_DOT_LIVE : liveMode === "historical" ? LIVE_DOT_HISTORICAL : LIVE_DOT_OFFLINE
+        }
+      />
+      <span className="whitespace-nowrap">{liveLabel}</span>
+    </span>
+  ) : null;
   const rows: Row[] = [
     {
       key: "heartRate",
@@ -46,6 +71,17 @@ export function VitalsCard({ vitalSigns, copy }: VitalsCardProps) {
         </>
       ),
       series: vitalSigns.heartRate.series,
+    },
+    {
+      key: "heartRateVariability",
+      icon: <AudioWaveform aria-hidden="true" />,
+      label: copy.vitalHrv,
+      value: (
+        <>
+          {vitalSigns.heartRateVariability.value} <small>{vitalSigns.heartRateVariability.unit}</small>
+        </>
+      ),
+      series: vitalSigns.heartRateVariability.series,
     },
     {
       key: "bloodPressure",
@@ -98,7 +134,7 @@ export function VitalsCard({ vitalSigns, copy }: VitalsCardProps) {
     <section className={`${CARD} ${FILL_CARD}`} aria-label={copy.vitalsAria} data-testid="mock-vitals">
       <div className={`${CARD_HEAD} mb-[6px] flex-none`}>
         <h2 className={CARD_TITLE}>{copy.vitalsTitle}</h2>
-        <span className={TAG}>{copy.vitalsNow}</span>
+        {liveChip ?? <span className={TAG}>{copy.vitalsNow}</span>}
       </div>
       <div className="flex min-h-0 flex-1 flex-col justify-evenly">
         {rows.map((row) => (

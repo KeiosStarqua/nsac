@@ -70,9 +70,10 @@ describe("hud-mock console — render smoke", () => {
     expect(html).toContain(copy.avatarAlt.replace("{name}", "Ayla Reyes"));
   });
 
-  test("five vital rows with the fixture values and five inline sparklines", () => {
+  test("six vital rows with the fixture values and six inline sparklines", () => {
     const html = render();
-    expect((html.match(/data-vital="/g) ?? []).length).toBe(5);
+    expect((html.match(/data-vital="/g) ?? []).length).toBe(6);
+    expect(html).toContain("49");
     expect(html).toContain("62");
     expect(html).toContain("118/76");
     expect(html).toContain("16");
@@ -98,7 +99,7 @@ describe("hud-mock console — render smoke", () => {
     const html = render();
     expect(html).toContain("86");
     expect(html).toContain("/100");
-    expect(html).toContain("96 /100");
+    expect(html).toContain(copy.readinessRecoveryIdx);
     expect(html).toContain(copy.readinessStable);
     expect(html).toContain(copy.readinessGuidance);
     expect(html).toContain("Overall readiness 86 out of 100, simulated");

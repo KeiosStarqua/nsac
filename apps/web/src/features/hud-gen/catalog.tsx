@@ -158,11 +158,20 @@ const ProfileCardRegion = defineComponent({
 
 const VitalsCardRegion = defineComponent({
   name: "VitalsCard",
-  description: "Vital Signs card: the fixture's five rows with their inline sparklines.",
+  description:
+    "Vital Signs card: six rows (heart rate, HRV, blood pressure, respiration, SpO₂, temperature) with inline sparklines; the settled live feed overrides the fixture values and swaps the Now tag for the LIVE/HISTORICAL/OFFLINE chip.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    return <MockVitalsCard vitalSigns={HUD_MOCK.vitalSigns} copy={ctx.copy.hudMock} />;
+    const live = ctx.live;
+    return (
+      <MockVitalsCard
+        vitalSigns={live?.vitals ?? HUD_MOCK.vitalSigns}
+        copy={ctx.copy.hudMock}
+        liveMode={live?.mode ?? null}
+        liveLabel={live?.label ?? null}
+      />
+    );
   },
 });
 
