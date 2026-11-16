@@ -77,6 +77,22 @@ export interface HudBackgroundSetting {
 }
 
 /**
+/**
+ * Core chạy agent (dual-core, HARNESSING §18): `pi` (PI SDK — mặc định, hành vi hiện tại) hoặc
+ * `mastra` (beta, `@mastra/core`). Admin-only setting, web đọc qua loopback
+ * `GET /api/settings/agent-core`; chưa set / rác ⇒ `pi`. Orthogonal với provider/model.
+ */
+export const AGENT_CORE_KEY = "agent.core";
+export const AGENT_CORES = ["pi", "mastra"] as const;
+export type AgentCore = (typeof AGENT_CORES)[number];
+
+export interface AgentCoreSetting {
+  core: AgentCore;
+  /** Unix ms. */
+  updatedAt: number;
+}
+
+/**
  * Giao diện của console `/` — admin-only setting, web đọc qua loopback GET
  * `/api/settings/hud-ui`. `mock` (default) = `SkyHudMock` ba cột; `gen` = cây OpenUI
  * khai báo của `features/hud-gen`. `?arch=openui` vẫn là dev override theo từng lần tải.
@@ -266,6 +282,30 @@ export const settingsRepo = {
     if (!existed) return false;
     settingsDb().delete(appSettings).where(eq(appSettings.key, SPEECH_ENGINE_ID_KEY)).run();
     return true;
+  },
+
+  /**
+   * Core hiệu lực của Sky agent, hoặc null khi chưa set / giá trị rác (hands-on DB edit).
+   * `null` nghĩa là caller dùng default `pi` — route GET tự map.
+   */
+  getAgentCore(): AgentCoreSetting | null {
+    const row = settingsDb().select().from(appSettings).where(eq(appSettings.key, AGENT_CORE_KEY)).all()[0];
+    if (!row) return null;
+    const value = row.value.trim();
+    if (!(AGENT_CORES as readonly string[]).includes(value)) return null;
+    return { core: value as AgentCore, updatedAt: row.updatedAt };
+  },
+
+  setAgentCore(core: AgentCore): AgentCoreSetting {
+    const now = Date.now();
+    settingsDb().insert(appSettings)
+      .values({ key: AGENT_CORE_KEY, value: core, updatedAt: now })
+      .onConflictDoUpdate({
+        target: appSettings.key,
+        set: { value: core, updatedAt: now },
+      })
+      .run();
+    return { core, updatedAt: now };
   },
 
   /**

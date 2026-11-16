@@ -529,6 +529,7 @@ export const vi: Copy = {
     tabClaims: "Gỡ claims",
     tabBackground: "Nền",
     tabUi: "UI",
+    tabCore: "Lõi agent",
     tabsLabel: "Mục admin",
     backgroundTitle: "Nền trang chính",
     backgroundDescription: "Nền React Bits hiển thị phía sau bảng điều khiển /.",
@@ -555,5 +556,25 @@ export const vi: Copy = {
     hubMockDesc: "Bảng điều khiển ba cột SKY · Astronaut Wellness (mặc định)",
     hubGen: "Hub Gen",
     hubGenDesc: "Bảng điều khiển OpenUI khai báo — Sky dựng panel vào HUD",
+    coreTitle: "Lõi agent",
+    coreDescription:
+      "Runtime thực thi các lượt agent của Sky. Pi SDK vẫn là mặc định; Mastra là core beta tự chọn, chạy cùng các seam qua một engine khác.",
+    coreCurrent: "Lõi hiện tại",
+    coreNotConfigured: "chưa cấu hình — mặc định Pi SDK",
+    coreUpdated: "đặt {time}",
+    corePi: "Pi SDK",
+    corePiDesc:
+      "Runtime hiện tại — ổn định, phiên per-astronaut (JSONL), tool show_on_hud, SSE token-by-token.",
+    coreMastra: "Mastra (beta)",
+    coreMastraDesc:
+      "Core mới dựa trên @mastra/core — model router (opencode-go/openrouter) + Bedrock qua AI SDK, memory LibSQL. Hiện là core thay thế từng bước, chưa thay mặc định.",
+    coreApply: "Áp dụng",
+    coreApplying: "Đang áp dụng…",
+    coreSaved: "Đã lưu — có hiệu lực trong 15 giây (lần kiểm tra lõi kế tiếp)",
+    coreSaveFailed: "Không lưu được — backend không phản hồi.",
+    coreInvalid: "Lõi không hợp lệ.",
+    coreLoadFailed: "Backend không phản hồi — đang hiển thị mặc định (Pi SDK).",
+    coreNote:
+      "Lưu trên backend (agent.core). Đổi lõi sẽ huỷ session chat trong cache, nên lượt sau dùng lõi mới; lịch sử vẫn nằm ở nơi từng lõi lưu.",
   },
 };

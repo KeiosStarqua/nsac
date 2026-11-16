@@ -1,6 +1,8 @@
 import "@tanstack/react-start/server-only";
 import type { AgentProfile, AgentContext, AgentId } from "../agents/types";
 import { getAgent } from "../agents/registry";
+import { currentAgentCore } from "./agent-core.server";
+import { sessionFactoryForCore } from "./agent-session.server";
 
 export type RunStatus = "ok" | "missing_key" | "unavailable" | "timeout";
 export type RunResult =
@@ -19,18 +21,21 @@ export function setSessionFactory(f: SessionFactory | null) {
   factory = f;
 }
 
-export async function runAgent(
-  profileId: AgentId,
+/**
+ * The one status mapping for a one-shot turn: create the session, race it against the profile's
+ * wall-clock budget, dispose in every exit path. Both cores share this — only the factory differs —
+ * so `missing_key` / `unavailable` / `timeout` mean exactly the same thing on either core.
+ */
+async function runSession(
+  profile: AgentProfile,
   input: string,
-  ctx: AgentContext = { request: input },
-  opts: { signal?: AbortSignal } = {},
+  ctx: AgentContext,
+  sessFactory: SessionFactory,
+  opts: { signal?: AbortSignal },
 ): Promise<RunResult> {
-  const profile = getAgent(profileId);
-  const merged: AgentContext = { ...ctx, request: ctx.request ?? input };
-  const sessFactory = factory ?? (await import("./pi.server")).createSession;
   let session: { prompt: (text: string, opts: { onDelta?: (d: string) => void; signal?: AbortSignal }) => Promise<string>; dispose: () => void };
   try {
-    session = await sessFactory(profile, merged);
+    session = await sessFactory(profile, ctx);
   } catch (e) {
     if ((e as { message?: string })?.message === "missing_key") return { status: "missing_key", text: "" };
     return { status: "unavailable", text: "" };
@@ -59,4 +64,21 @@ export async function runAgent(
   } finally {
     opts.signal?.removeEventListener("abort", onExternalAbort);
   }
+}
+
+/**
+ * One-shot agent run (`askSky`, HUD compose, generative-ui, medical officer). The core is resolved
+ * from the backend setting (`agent.core`, default `pi`); a `setSessionFactory` injection from a test
+ * short-circuits the core lookup entirely, exactly like before the dual-core change.
+ */
+export async function runAgent(
+  profileId: AgentId,
+  input: string,
+  ctx: AgentContext = { request: input },
+  opts: { signal?: AbortSignal } = {},
+): Promise<RunResult> {
+  const profile = getAgent(profileId);
+  const merged: AgentContext = { ...ctx, request: ctx.request ?? input };
+  const sessFactory = factory ?? ((await sessionFactoryForCore(await currentAgentCore())) as unknown as SessionFactory);
+  return runSession(profile, input, merged, sessFactory, opts);
 }

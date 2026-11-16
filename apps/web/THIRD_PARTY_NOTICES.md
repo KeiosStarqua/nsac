@@ -57,6 +57,22 @@
 - Used by: the `/` chat overlay — `useChat` + a custom `ChatTransport` (`src/features/agent/runtime/chat-transport.ts`) that calls the existing `sendChat` server function. No provider client and no HTTP streaming transport are used.
 - Date: 2026-11-15
 
+## Mastra (`@mastra/core`, `@mastra/memory`, `@mastra/libsql`)
+
+- Licence: Apache-2.0 (all three — verified in each package's `package.json`, 2026-11-16)
+- Link: https://github.com/mastra-ai/mastra
+- Versions: `@mastra/core` 1.83.0, `@mastra/memory` 1.41.1, `@mastra/libsql` 1.30.0 (pinned); transitive headline dep `openai` 7.19.0 (Apache-2.0, model-router client)
+- Used by: the **optional Mastra agent core** (`src/features/agent/mastra/`, `/admin/core` switch). Server-only; loaded in a lazy server chunk and only when `agent.core = "mastra"`. Default remains the Pi SDK. Memory persists chat history in `var/sky-mastra.db` (LibSQL via `@libsql/client` — MIT — whose native binding ships inside the Nitro `.output/server/node_modules`).
+- Date: 2026-11-16
+
+## `@ai-sdk/amazon-bedrock`
+
+- Licence: Apache-2.0
+- Link: https://github.com/vercel/ai
+- Version: 5.0.142 (pinned); transitive Apache-2.0: `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/provider`, `@ai-sdk/provider-utils`, `aws4fetch`
+- Used by: the Mastra core's Amazon Bedrock branch (`amazon-bedrock` provider is not in Mastra's model router, so the AI SDK provider module is used; `apiKey` carries the `AWS_BEARER_TOKEN_BEDROCK` bearer token, region pinned `ap-southeast-1`)
+- Date: 2026-11-16
+
 ## shadcn/ui AI Elements (vendored)
 
 - Licence: MIT

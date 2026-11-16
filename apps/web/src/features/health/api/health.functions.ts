@@ -12,6 +12,7 @@ import {
   currentAgentProvider,
   currentAgentProviderInfo,
 } from "../../agent/runtime/agent-model.server";
+import { currentAgentCoreInfo } from "../../agent/runtime/agent-core.server";
 import { readOpenCodeKey, readOpenRouterKey, readBedrockKey } from "../../agent/runtime/pi.server";
 import { openCodeKeySource, openCodeKeyFileInfo } from "../../agent/runtime/opencode-key.server";
 import { bedrockKeySource, bedrockKeyFileInfo } from "../../agent/runtime/bedrock-key.server";
@@ -49,6 +50,20 @@ export const getSnapshot = createServerFn({ method: "GET" }).handler(async (): P
       "ok",
       `${provider} (source: ${source})`,
       source === "default" ? "Default when nothing is set — set agent.provider on the backend or SKY_AGENT_PROVIDER" : undefined,
+    ),
+  );
+
+  // Effective agent core (dual-core, HARNESSING §18) — pi is the default; mastra is opt-in beta.
+  const coreInfo = await currentAgentCoreInfo();
+  checks.push(
+    makeCheck(
+      "agent.core",
+      "Agent core",
+      coreInfo.core === "pi" ? "ok" : "warn",
+      `${coreInfo.core} (source: ${coreInfo.source})`,
+      coreInfo.core === "pi"
+        ? undefined
+        : "Beta core — switch back to Pi SDK on /admin/core if a chat turn misbehaves",
     ),
   );
 

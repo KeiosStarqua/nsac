@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { registerLazyBedrockProvider } from "@earendil-works/pi-ai/lazy-bedrock-provider";
 import { readOpenCodeKey } from "./opencode-key.server";
 import { readBedrockKey } from "./bedrock-key.server";
+import { readOpenRouterKey } from "./openrouter-key.server";
 
 // Nitro inlines pi-ai; its Bedrock implementation is reached through a variable
 // specifier the bundler cannot follow. Registering a literal dynamic import here
@@ -14,13 +15,7 @@ import { readBedrockKey } from "./bedrock-key.server";
 registerLazyBedrockProvider();
 
 // Re-exported with the signature intact — every existing import site keeps working.
-export { readOpenCodeKey, readBedrockKey };
-
-export function readOpenRouterKey(): string | null {
-  const raw = process.env.SKY_OPENROUTER_API_KEY;
-  if (typeof raw !== "string" || raw.trim() === "") return null;
-  return raw.trim();
-}
+export { readOpenCodeKey, readBedrockKey, readOpenRouterKey };
 
 export function readProviderKey(provider: "opencode-go" | "openrouter" | "amazon-bedrock"): string | null {
   if (provider === "opencode-go") return readOpenCodeKey();
