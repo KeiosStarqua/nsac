@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LoaderCircle, TriangleAlert } from "lucide-react";
+import { Check, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { format, useCopy } from "../../../shared/i18n";
 import {
   ASTRONAUTS,
@@ -15,16 +15,16 @@ import AstronautAvatar from "./AstronautAvatar";
 // overrides as `[.watch-screen_&]` variants (specificity 0,2,0), so they still win over the ≤480px
 // full-screen sheet exactly like the CSS module did.
 const BACKDROP = [
-  "fixed inset-0 z-[60] grid place-items-center bg-[#070b14] p-[24px]",
+  "fixed inset-0 z-[60] grid place-items-center bg-[rgba(7,11,20,.72)] backdrop-blur-[3px] p-[24px]",
   "[.watch-screen_&]:bg-[rgba(4,13,24,.72)] [.watch-screen_&]:p-0 [.watch-screen_&]:backdrop-blur-[3px]",
-  "max-[720px]:p-[12px] max-[480px]:p-0",
+  "max-[720px]:p-[12px] max-[480px]:bg-[#070b14] max-[480px]:p-0 max-[480px]:backdrop-blur-none",
 ].join(" ");
 
 const PANEL = [
-  "relative max-h-[calc(100vh_-_48px)] w-[min(1240px,96vw)] overflow-y-auto rounded-[16px]! border",
+  "relative max-h-[calc(100dvh_-_48px)] w-[min(1240px,96vw)] overflow-y-auto rounded-[16px]! border",
   "border-[#1e293b] bg-[rgba(15,22,38,.92)] p-[28px_28px_22px] text-[#e7edf7] backdrop-blur-[16px]",
   "shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)]",
-  "focus:outline-none focus-visible:[outline:2px_solid_#5eead4]! focus-visible:outline-offset-[4px]!",
+  "focus:outline-none focus-visible:[outline:2px_solid_#f5fcff]! focus-visible:outline-offset-[4px]!",
   "[.watch-screen_&]:flex [.watch-screen_&]:h-full [.watch-screen_&]:max-h-none [.watch-screen_&]:w-full [.watch-screen_&]:flex-col [.watch-screen_&]:overflow-y-auto",
   "[.watch-screen_&]:rounded-none! [.watch-screen_&]:border-0 [.watch-screen_&]:bg-[rgba(9,15,27,.96)] [.watch-screen_&]:p-[10px_10px_8px]",
   "max-[720px]:p-[22px_16px_18px]",
@@ -35,10 +35,10 @@ const PANEL = [
 
 const CLOSE = [
   "absolute right-[16px] top-[14px] grid size-[32px] cursor-pointer place-items-center rounded-full! border",
-  "border-[#1e293b] bg-[rgba(7,11,20,.7)] text-[20px]! leading-none! text-[#98a6bd]",
+  "border-[#1e293b] bg-[rgba(7,11,20,.7)] text-[#98a6bd]",
   "hover:border-[#5eead4] hover:text-[#5eead4]",
   "focus-visible:outline-2! focus-visible:outline-offset-[5px]! focus-visible:outline-[#f5fcff]!",
-  "[.watch-screen_&]:right-[6px] [.watch-screen_&]:top-[6px] [.watch-screen_&]:size-[30px] [.watch-screen_&]:text-[14px]!",
+  "[.watch-screen_&]:right-[6px] [.watch-screen_&]:top-[6px] [.watch-screen_&]:size-[30px]",
   "max-[480px]:right-[10px] max-[480px]:top-[calc(env(safe-area-inset-top,0px)_+_8px)] max-[480px]:size-[44px]",
 ].join(" ");
 
@@ -46,13 +46,13 @@ const HEADER = "mb-[22px] text-center [.watch-screen_&]:mb-[6px] max-[480px]:mb-
 
 const PILL = [
   "inline-flex items-center gap-[6px] rounded-[4px] border border-[#1e293b] bg-[rgba(7,11,20,.6)] px-[10px] py-[2px]",
-  "[font-family:monospace] text-[11px] tracking-[.18em] text-[#5eead4]",
+  "font-mono text-[11px] tracking-[.18em] text-[#5eead4]",
   "before:h-[6px] before:w-[6px] before:rounded-full before:bg-[#5eead4] before:content-['']",
   "[.watch-screen_&]:px-[7px] [.watch-screen_&]:py-[1px] [.watch-screen_&]:text-[7px]",
 ].join(" ");
 
 const TITLE = [
-  "mt-[8px]! mb-[4px]! text-[22px] font-semibold",
+  "mt-[8px]! mb-[4px]! text-[22px] font-light",
   "[.watch-screen_&]:mt-[4px]! [.watch-screen_&]:mb-[2px]! [.watch-screen_&]:text-[15px]",
   "max-[480px]:text-[19px]",
 ].join(" ");
@@ -77,7 +77,7 @@ const CARD = [
   "max-[480px]:grid max-[480px]:w-full max-[480px]:max-w-none max-[480px]:flex-none max-[480px]:min-h-[56px] max-[480px]:items-center max-[480px]:p-[8px_12px] max-[480px]:[column-gap:12px] max-[480px]:[scroll-snap-align:none] max-[480px]:[grid-template-columns:auto_minmax(0,1fr)_auto] max-[480px]:[grid-template-areas:'avatar_name_badge'_'avatar_role_badge']",
 ].join(" ");
 
-const CARD_DIM = "opacity-[.62] hover:border-[#5f6c82] hover:opacity-100 hover:[transform:translateY(-2px)]";
+const CARD_DIM = "opacity-[.62] hover:border-[#98a6bd] hover:opacity-100 hover:[transform:translateY(-2px)]";
 const CARD_SELECTED = [
   "border-[#5eead4] opacity-100 shadow-[inset_0_0_20px_0_rgba(94,234,212,.06),0_0_32px_-8px_rgba(94,234,212,.35)]",
   "hover:border-[#5eead4] hover:opacity-100 hover:[transform:translateY(-2px)]",
@@ -88,11 +88,11 @@ const CARD_SELECTED_AND_TAKEN = "border-[#5eead4]";
 
 const CALLSIGN_ROW = "flex items-center justify-between max-[480px]:hidden [.watch-screen_&]:hidden";
 
-const CALLSIGN = "rounded-[4px] border px-[8px] py-[2px] [font-family:monospace] text-[11px]";
+const CALLSIGN = "rounded-[4px] border px-[8px] py-[2px] font-mono text-[11px]";
 const CALLSIGN_ACCENT = "border-[rgba(94,234,212,.4)] bg-[rgba(94,234,212,.1)] text-[#5eead4]";
-const CALLSIGN_MUTED = "border-[#1e293b] bg-transparent text-[#5f6c82]";
+const CALLSIGN_MUTED = "border-[#1e293b] bg-transparent text-[#98a6bd]";
 
-const KEY = "min-w-[18px] rounded-[3px] border border-[#28404b] px-[5px] py-[1px] text-center [font-family:monospace] text-[10px] text-[#98a6bd]";
+const KEY = "min-w-[18px] rounded-[3px] border border-[#28404b] px-[5px] py-[1px] text-center font-mono text-[10px] text-[#98a6bd]";
 
 const AVATAR = [
   "relative mx-auto my-[6px] grid size-[64px] place-items-center rounded-full border bg-[rgba(7,11,20,.8)]",
@@ -105,7 +105,8 @@ const AVATAR_SELECTED = "border-[#5eead4] shadow-[0_0_28px_-4px_rgba(94,234,212,
 const INITIAL = "text-[19px] font-semibold tracking-[.08em] [.watch-screen_&]:text-[11px] max-[480px]:text-[15px]";
 
 const CHECK =
-  "absolute -right-[6px] -top-[6px] grid size-[22px] place-items-center rounded-full border border-[#5eead4] bg-[rgba(94,234,212,.15)] text-[13px] text-[#5eead4] [.watch-screen_&]:-right-[5px] [.watch-screen_&]:-top-[5px] [.watch-screen_&]:size-[16px] [.watch-screen_&]:text-[10px] max-[480px]:size-[20px] max-[480px]:text-[12px]";
+  "absolute -right-[6px] -top-[6px] grid size-[22px] place-items-center rounded-full border border-[#5eead4] bg-[rgba(94,234,212,.15)] text-[#5eead4] [.watch-screen_&]:-right-[5px] [.watch-screen_&]:-top-[5px] [.watch-screen_&]:size-[16px] max-[480px]:size-[20px]";
+const CHECK_ICON = "size-[13px] [.watch-screen_&]:size-[9px] max-[480px]:size-[11px]";
 
 const NAME = [
   "text-center text-[15px] font-semibold",
@@ -121,23 +122,23 @@ const ROLE = [
 
 const STATUS = [
   "mt-auto flex items-center justify-center gap-[6px] border-t border-[#1e293b] pt-[10px] text-center",
-  "[font-family:monospace] text-[10px] text-[#5f6c82]",
+  "font-mono text-[10px] text-[#98a6bd]",
   "before:h-[6px] before:w-[6px] before:flex-none before:rounded-full before:content-['']",
   "max-[480px]:hidden [.watch-screen_&]:hidden",
 ].join(" ");
 const STATUS_DOT_IDLE = "before:bg-[#5eead4]";
-const STATUS_DOT_DIM = "before:bg-[#5f6c82]";
+const STATUS_DOT_DIM = "before:bg-[#7f9db4]";
 
 const TAKEN_BADGE = [
   "mt-auto flex items-center justify-center gap-[6px] border-t border-[#1e293b] pt-[10px] text-center",
-  "[font-family:monospace] text-[10px] tracking-[.12em] text-[#fca5a5]",
+  "font-mono text-[10px] tracking-[.12em] text-[#fca5a5]",
   "before:h-[6px] before:w-[6px] before:flex-none before:rounded-full before:bg-[#fca5a5] before:content-['']",
   "[.watch-screen_&]:m-0 [.watch-screen_&]:max-w-[92px] [.watch-screen_&]:overflow-hidden [.watch-screen_&]:text-ellipsis [.watch-screen_&]:whitespace-nowrap [.watch-screen_&]:rounded-full [.watch-screen_&]:border [.watch-screen_&]:border-[rgba(252,165,165,.45)] [.watch-screen_&]:p-[3px_6px] [.watch-screen_&]:text-[7px] [.watch-screen_&]:tracking-[.08em] [.watch-screen_&]:[grid-area:badge] [.watch-screen_&]:before:size-[4px]",
   "max-[480px]:m-0 max-[480px]:max-w-[128px] max-[480px]:overflow-hidden max-[480px]:text-ellipsis max-[480px]:whitespace-nowrap max-[480px]:rounded-full max-[480px]:border max-[480px]:border-[rgba(252,165,165,.45)] max-[480px]:p-[4px_8px] max-[480px]:text-[8px] max-[480px]:tracking-[.1em] max-[480px]:[grid-area:badge] max-[480px]:before:size-[5px]",
 ].join(" ");
 
 const CONFIRM = [
-  "mx-auto mb-[8px] block w-full max-w-[360px] cursor-pointer rounded-[4px]! border-0 p-[12px]",
+  "mx-auto mb-[8px] block w-full max-w-[360px] cursor-pointer rounded-[10px]! border-0 p-[12px]",
   "bg-[#5eead4] text-[14px]! font-semibold! text-[#041018] shadow-[0_0_24px_0_rgba(94,234,212,.35)]",
   "hover:bg-[#7ff0dd]",
   "disabled:cursor-not-allowed disabled:bg-[#334155] disabled:text-[#94a3b8] disabled:opacity-[.45] disabled:shadow-none disabled:hover:bg-[#334155]",
@@ -154,14 +155,14 @@ const ERROR = [
 ].join(" ");
 
 const HINT =
-  "mb-[8px]! text-center [font-family:monospace] text-[11px] text-[#5f6c82] [.watch-screen_&]:mb-[4px]! [.watch-screen_&]:text-[8px] max-[480px]:mb-[6px]! max-[480px]:text-[10px]";
+  "mb-[8px]! text-center font-mono text-[11px] text-[#98a6bd] [.watch-screen_&]:mb-[4px]! [.watch-screen_&]:text-[8px] max-[480px]:mb-[6px]! max-[480px]:text-[10px]";
 
-const FOOTER = "text-center text-[12px] text-[rgba(95,108,130,.85)] [.watch-screen_&]:text-[8px] max-[480px]:text-[10px]";
+const FOOTER = "text-center text-[12px] text-[rgba(152,166,189,.9)] [.watch-screen_&]:text-[8px] max-[480px]:text-[10px]";
 
 // Force release: tertiary text button (never the primary CONFIRM look), its 2-step inline confirm
 // row and the failure line. Muted by default, warms to a warning tint on hover/focus.
 const FORCE_RELEASE = [
-  "mx-auto mb-[10px] flex cursor-pointer items-center justify-center gap-[6px] rounded-[4px]! border-0 bg-transparent p-[4px_6px]",
+  "mx-auto mb-[10px] flex cursor-pointer items-center justify-center gap-[6px] rounded-[10px]! border-0 bg-transparent p-[4px_6px]",
   "text-[11px] uppercase tracking-[.12em] text-[#98a6bd] hover:text-[#ffd9d0]",
   "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#e7edf7]!",
   "[.watch-screen_&]:mb-[6px] [.watch-screen_&]:text-[8px] max-[480px]:mb-[8px] max-[480px]:text-[10px]",
@@ -179,7 +180,7 @@ const FORCE_CONFIRM_TEXT = "m-0 text-[12px] text-[#fca5a5] [.watch-screen_&]:tex
 const FORCE_CONFIRM_ACTIONS = "mt-[8px] flex items-center justify-center gap-[8px] [.watch-screen_&]:mt-[5px]";
 
 const FORCE_CONFIRM_ACTION = [
-  "cursor-pointer rounded-[4px]! border border-[rgba(252,165,165,.55)] bg-[rgba(252,165,165,.12)]",
+  "cursor-pointer rounded-[10px]! border border-[rgba(252,165,165,.55)] bg-[rgba(252,165,165,.12)]",
   "p-[6px_12px] text-[11px]! font-semibold! text-[#fecaca] hover:border-[#fca5a5] hover:bg-[rgba(252,165,165,.2)]",
   "disabled:cursor-not-allowed disabled:opacity-[.5]",
   "focus-visible:outline-2! focus-visible:outline-offset-[2px]! focus-visible:outline-[#e7edf7]!",
@@ -187,7 +188,7 @@ const FORCE_CONFIRM_ACTION = [
 ].join(" ");
 
 const FORCE_CANCEL = [
-  "cursor-pointer rounded-[4px]! border border-[#1e293b] bg-transparent p-[6px_12px]",
+  "cursor-pointer rounded-[10px]! border border-[#1e293b] bg-transparent p-[6px_12px]",
   "text-[11px]! text-[#98a6bd] hover:border-[#5eead4] hover:text-[#5eead4]",
   "disabled:cursor-not-allowed disabled:opacity-[.5]",
   "focus-visible:outline-2! focus-visible:outline-offset-[2px]! focus-visible:outline-[#e7edf7]!",
@@ -397,7 +398,7 @@ export function AstronautPicker({ open, roster, initialId, takenIds, mineId, cla
             data-picker-close
             onClick={onClose}
           >
-            ×
+            <X aria-hidden="true" strokeWidth={2} className="size-[16px] [.watch-screen_&]:size-[14px] max-[480px]:size-[20px]" />
           </button>
         ) : null}
 
@@ -443,7 +444,7 @@ export function AstronautPicker({ open, roster, initialId, takenIds, mineId, cla
                     className="size-full"
                     initialsClassName={`${INITIAL} ${isSelected ? "text-[#5eead4]" : "text-[#98a6bd]"}`}
                   />
-                  {isSelected ? <span className={CHECK} aria-hidden="true">✓</span> : null}
+                  {isSelected ? <span className={CHECK} aria-hidden="true"><Check strokeWidth={3.25} className={CHECK_ICON} /></span> : null}
                 </span>
                 <span className={NAME}>{a.name}</span>
                 <span className={`${ROLE} ${isSelected ? "text-[#5eead4]" : "text-[#98a6bd]"}`}>{a.role}</span>
