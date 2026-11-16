@@ -728,6 +728,7 @@ HRP site trả lỗi khi fetch tự động 2026-11-16; Circulation URL 403 bot-
 | tools | `overrides.customTools` (chỉ `show_on_hud`) | `createTool` twin của `show_on_hud`, chỉ cho `sky-chat` |
 | artifacts | `TurnArtifacts { hudProgram, tools }` | cùng object, cùng chỗ clear đầu turn; tool outcome lấy từ chunk `tool-result`/`tool-error` |
 | history | `var/sky-sessions/<id>.jsonl` | `var/sky-mastra.db` (LibSQL), thread + resource `astronaut:<id>` |
+| working memory | không có (history JSONL là tất cả) | `sky-chat` only: **working profile** Markdown, scope `resource`, cùng LibSQL store (xem §18.4a) |
 
 Chọn core **một chỗ**: `runtime/agent-session.server.ts` (`sessionFactoryForCore(core)`), dùng bởi
 `astro-chat.server.ts`, `hud-compose.server.ts` và `run.server.ts`. Sau khi facade được trả về, pipeline
@@ -769,6 +770,25 @@ lấy (`readOpenCodeKey` / `readOpenRouterKey` / `readBedrockKey` — env trư�
   thêm tool nào khác. Trace row không phân biệt core (chỉ provider/model) — xem §16.
 - Không Mastra Studio/Editor/MCP/workflows/evals/scorers/fallback model chain/gateway.
 
+### 18.4a Working memory — `sky-chat` only (2026-11-17)
+
+`sky-chat` có **working profile** thật: `Memory` của session chat được dựng với
+`options.workingMemory = { enabled: true, scope: "resource", template }` (template Markdown
+`# Working profile — fictional crew member on SKY`, các mục Name/role · How they want to be spoken
+to · Baseline the astronaut reported (quote THEM, `(unverified)` khi chưa xác nhận) · Open items ·
+Explicit confirmations · Follow-ups), lưu cùng `var/sky-mastra.db` (`NSAC_SKY_MASTRA_DB`) — resource
+= thread = `astronaut:<id>`, nên profile thuộc về crew member chứ không thuộc một thread; không
+`vector`, không `semanticRecall`, không `observationalMemory`, không `lastMessages` override (đúng
+lựa chọn của Keios: working memory, 0 embedding). Prompt nhận thêm một block kỷ luật nối **sau**
+base + `promptSuffix` (`WORKING_MEMORY_INSTRUCTIONS`: chỉ ghi fact bền vững do phi hành gia nói,
+không bịa số, không kết luận y khoa, không ghi action/confirmation họ chưa nói, profile là context
+chứ không phải hồ sơ y khoa và **không phải** quyền hành động). Tool `updateWorkingMemory` do
+`@mastra/memory` tự đăng ký đi qua đúng chunk loop sẵn có nên outcome rơi vào `artifacts.tools` như
+`show_on_hud`; `CHAT_MAX_STEPS` giữ 3. Core Pi **không** đổi (không có block này, không có profile),
+one-shot (`orchestrator`, `generative-ui`, `medical-officer`) không có memory, HUD composer giữ
+`Memory` riêng cho thread `hud:<id>` **không** working memory, và không có import history pi→mastra.
+Luật twin-drift giữ nguyên hiệu lực: mọi tool chat mới của pi core phải có twin Mastra tương ứng.
+
 ### 18.5 Env & file
 
 | Biến / file | Ý nghĩa |
@@ -782,12 +802,16 @@ lấy (`readOpenCodeKey` / `readOpenRouterKey` / `readBedrockKey` — env trư�
 
 - Unit: `mastra-model.server.test.ts` (mapping 3 provider, fake keys), `mastra-core.test.ts` (fake
   Agent ở seam `setMastraAgentFactoryForTests`: delta, artifacts, abort, empty/error sentinel,
-  memory chỉ cho session stateful), `agent-core.test.ts` (default pi khi rỗng/rác/lỗi backend),
+  memory chỉ cho session stateful + working profile chỉ cho `sky-chat` — config
+  `workingMemory.enabled/scope/template`, thứ tự base < promptSuffix < block, composer không có
+  profile), `agent-core.test.ts` (default pi khi rỗng/rác/lỗi backend),
   `astro-chat.mastra.test.ts` (pipeline chat trên core mastra: delta, timeout, missing_key, evict khi
   flip), `run.mastra.test.ts` (one-shot trên mastra + pi không đổi).
 - End-to-end **không spend**: `mastra-core.e2e.test.ts` dựng một endpoint OpenAI-compatible bằng
   `node:http` trong process và chạy Mastra runtime thật — router nhận endpoint form, `max_tokens`
-  tới wire, tool loop chạy, LibSQL memory nhớ qua turn, abort kết thúc stream.
+  tới wire, tool loop chạy, LibSQL memory nhớ qua turn, abort kết thúc stream, và request chat thật
+  mang `# Working profile` trong system message + tool `updateWorkingMemory` bên cạnh
+  `show_on_hud`.
 - Self-check biên giới: `rg 'from ".*pi-(coding-agent|ai)"' apps/web/src` chỉ được ra file pi core
   (`pi.server.ts`; `hud-show.server.ts` chỉ `import type`). Mọi import Mastra nằm trong
   `features/agent/mastra/**` (+ 2 file điều phối `agent-core.server.ts`,

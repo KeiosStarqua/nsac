@@ -3,6 +3,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  CHAT_WORKING_MEMORY,
+  WORKING_MEMORY_INSTRUCTIONS,
+  WORKING_MEMORY_TEMPLATE,
   createMastraSession,
   mastraDbUrl,
   mastraMaxSteps,
@@ -28,8 +31,15 @@ function fakeStream(chunks: Chunk[], text = "") {
 
 const CHAT: AgentProfile = getAgent("sky-chat");
 const ONESHOT: AgentProfile = getAgent("sky-generative-ui");
+const COMPOSER: AgentProfile = getAgent("sky-hud-composer");
+const OFFICER: AgentProfile = getAgent("sky-medical-officer");
 
 const astronaut = { name: "Ayla Reyes", role: "Commander", callsign: "AR" } as const;
+
+/** The Memory instance a captured Agent config carries — working memory lives on `threadConfig`. */
+function memoryConfigOf(config: Record<string, any> | null): Record<string, any> | undefined {
+  return (config?.memory as { threadConfig?: Record<string, any> } | undefined)?.threadConfig;
+}
 
 describe("createMastraSession", () => {
   let dir: string;
@@ -117,23 +127,34 @@ describe("createMastraSession", () => {
     expect(config!.maxRetries).toBe(0);
   });
 
-  it("gives one-shot runners no memory and no tools", async () => {
+  it("gives the chat session a resource-scoped working profile and nothing else", async () => {
     let config: Record<string, any> | null = null;
     setMastraAgentFactoryForTests((c) => {
       config = c;
       return { stream: async () => fakeStream([{ type: "text-delta", payload: { text: "ok" } }], "ok") };
     });
 
-    const session = await createMastraSession(ONESHOT, { request: "compose a panel" });
+    const session = await createMastraSession(CHAT, { request: "", astronaut, astronautId: "ayla-reyes" });
     session.dispose();
 
-    expect(config!.id).toBe("sky-generative-ui");
-    expect(config!.memory).toBeUndefined();
-    expect(config!.tools).toBeUndefined();
-    expect(config!.instructions).toContain("compose a panel");
+    const memoryConfig = memoryConfigOf(config);
+    expect(memoryConfig?.workingMemory).toMatchObject({ enabled: true, scope: "resource" });
+    const template = memoryConfig?.workingMemory?.template as string;
+    // The Markdown sections the model fills and revises.
+    expect(template).toContain("# Working profile");
+    expect(template).toContain("Open items");
+    expect(template).toContain("Explicit confirmations");
+    // Keios's scope: working memory only — no vector store, no semantic recall, no observational
+    // memory, and the replay window stays at the library default (no lastMessages override).
+    expect(memoryConfig?.semanticRecall).toBeFalsy();
+    expect((config!.memory as Record<string, unknown>).vector).toBeUndefined();
+    expect(memoryConfig?.observationalMemory).toBeFalsy();
+    expect((config!.memory as { hasExplicitLastMessages?: boolean }).hasExplicitLastMessages).toBe(false);
+    // The exported constants stay the single source of the config the tests pin.
+    expect(CHAT_WORKING_MEMORY.template).toBe(WORKING_MEMORY_TEMPLATE);
   });
 
-  it("appends promptSuffix after a newline, like the pi core", async () => {
+  it("appends the working-memory block for chat only, after base and promptSuffix", async () => {
     let config: Record<string, any> | null = null;
     setMastraAgentFactoryForTests((c) => {
       config = c;
@@ -148,7 +169,78 @@ describe("createMastraSession", () => {
     );
     session.dispose();
 
+    const instructions = config!.instructions as string;
+    expect(instructions).toBe(`${base}\nSUFFIX LINE\n${WORKING_MEMORY_INSTRUCTIONS}`);
+
+    // Order: base prompt < caller suffix < memory block.
+    const baseAt = instructions.indexOf(base);
+    const suffixAt = instructions.indexOf("SUFFIX LINE");
+    const blockAt = instructions.indexOf(WORKING_MEMORY_INSTRUCTIONS);
+    expect(baseAt).toBeGreaterThanOrEqual(0);
+    expect(suffixAt).toBeGreaterThan(baseAt);
+    expect(blockAt).toBeGreaterThan(suffixAt);
+    // The discipline the model is held to.
+    expect(instructions).toContain("working memory");
+    expect(instructions).toContain("never authorization to act");
+  });
+
+  it("never gives a one-shot runner the working-memory block", async () => {
+    let config: Record<string, any> | null = null;
+    setMastraAgentFactoryForTests((c) => {
+      config = c;
+      return { stream: async () => fakeStream([{ type: "text-delta", payload: { text: "ok" } }], "ok") };
+    });
+    const base = OFFICER.systemPrompt({ request: "summarize" });
+
+    const session = await createMastraSession(
+      OFFICER,
+      { request: "summarize", astronaut, astronautId: "ayla-reyes" },
+      { promptSuffix: "SUFFIX LINE" },
+    );
+    session.dispose();
+
+    // Pi parity: the officer prompt is untouched — base + suffix, nothing appended.
     expect(config!.instructions).toBe(`${base}\nSUFFIX LINE`);
+    expect(config!.instructions).not.toContain("never authorization to act");
+    expect(config!.memory).toBeUndefined();
+    expect(mastraMaxSteps("sky-medical-officer")).toBe(2);
+    expect(mastraThreadId({ request: "", astronautId: "ayla-reyes" })).toBe("astronaut:ayla-reyes");
+  });
+
+  it("gives the HUD composer its own thread memory without the working profile", async () => {
+    let config: Record<string, any> | null = null;
+    setMastraAgentFactoryForTests((c) => {
+      config = c;
+      return { stream: async () => fakeStream([{ type: "text-delta", payload: { text: "ok" } }], "ok") };
+    });
+
+    const session = await createMastraSession(
+      COMPOSER,
+      { request: "compose", astronaut, astronautId: "ayla-reyes" },
+      { threadId: "hud:ayla-reyes" },
+    );
+    session.dispose();
+
+    // Composer keeps its prior behaviour: a separate Memory for the `hud:<id>` thread, no profile.
+    expect(config!.memory).toBeTruthy();
+    expect(memoryConfigOf(config)?.workingMemory?.enabled).not.toBe(true);
+    expect(config!.instructions).not.toContain("never authorization to act");
+  });
+
+  it("gives one-shot runners no memory and no tools", async () => {
+    let config: Record<string, any> | null = null;
+    setMastraAgentFactoryForTests((c) => {
+      config = c;
+      return { stream: async () => fakeStream([{ type: "text-delta", payload: { text: "ok" } }], "ok") };
+    });
+
+    const session = await createMastraSession(ONESHOT, { request: "compose a panel" });
+    session.dispose();
+
+    expect(config!.id).toBe("sky-generative-ui");
+    expect(config!.memory).toBeUndefined();
+    expect(config!.tools).toBeUndefined();
+    expect(config!.instructions).toContain("compose a panel");
   });
 
   it("forwards deltas in order and returns the whole reply", async () => {
@@ -206,6 +298,7 @@ describe("createMastraSession", () => {
         const chunks: Chunk[] =
           turn === 1
             ? [
+                { type: "tool-result", payload: { toolName: "updateWorkingMemory", isError: false } },
                 { type: "tool-result", payload: { toolName: "show_on_hud", isError: false } },
                 { type: "text-delta", payload: { text: "done" } },
               ]
@@ -220,7 +313,11 @@ describe("createMastraSession", () => {
       { artifacts },
     );
     await session.prompt("show it", {});
-    expect(artifacts.tools).toEqual([{ name: "show_on_hud", ok: true }]);
+    // The library's own working-memory tool rides the same chunk loop as our twin.
+    expect(artifacts.tools).toEqual([
+      { name: "updateWorkingMemory", ok: true },
+      { name: "show_on_hud", ok: true },
+    ]);
 
     // A turn that calls no tool must not inherit the previous turn's outcomes.
     await session.prompt("just talking", {});
