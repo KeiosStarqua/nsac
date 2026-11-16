@@ -96,7 +96,12 @@ export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions
           parseHudProgram,
         );
         if (!review.ok) {
-          console.warn("show_on_hud: catalog review rejected", review.reasons.join("; "));
+          // Programs carry no digits and no free prose values (Fact ids only), so the head is safe to log.
+          console.warn(
+            "show_on_hud: catalog review rejected",
+            review.reasons.join("; "),
+            program.slice(0, 400),
+          );
           return err(
             `HUD update rejected by catalog review (${review.reasons[0] ?? "unknown"}). Reply without changing the display.`,
           );
