@@ -802,7 +802,7 @@ Luật twin-drift giữ nguyên hiệu lực: mọi tool chat mới của pi cor
 | `NSAC_SKY_MASTRA_DB` | Override DB Mastra: path thường, `file:` URL, hoặc `libsql://` URL. Mặc định `var/sky-mastra.db` |
 | `var/sky-mastra.db` | Thread/message memory của Mastra core (LibSQL; WAL tạo `.db-wal`/`.db-shm`) |
 | `MASTRA_TELEMETRY_DISABLED` | Module tự set `1` (không gửi telemetry) |
-| `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_SECRET_KEY` · `LANGFUSE_BASE_URL` | Tracing Langfuse cho **core Mastra** (`mastra/mastra-observability.server.ts`, `@mastra/observability` `Observability` + `@mastra/langfuse` `LangfuseExporter`). Observability chỉ khởi tạo khi **cả ba** non-empty (trim); thiếu/rỗng ⇒ không tracing, turn chạy y như không có. `LANGFUSE_BASE_URL` **bắt buộc** và không có default — không bao giờ tự trỏ `cloud.langfuse.com`; trỏ instance self-host trên OPfaOS. Exporter chạy **batch** (`realtime: false`), root `Mastra` cache một lần/process, agent đăng ký theo `profile.id` sau mỗi `buildAgent` (lỗi đăng ký/import chỉ warn một lần, không bao giờ throw). Keys chỉ nằm ở `/etc/nsac-web/env` trên box, **không** trong repo/flake/docs. |
+| `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_SECRET_KEY` · `LANGFUSE_BASE_URL` | Tracing Langfuse cho **core Mastra** (`mastra/mastra-observability.server.ts`, `@mastra/observability` `Observability` + `@mastra/langfuse` `LangfuseExporter`). Nguồn cấu hình: **env (thắng, khi cả ba non-empty trimmed)** hoặc file do `/admin/keys` lưu — `var/sky-langfuse.json` (mode 0600, gitignored, cả ba hợp lệ, ghi atomic một lần; `NSAC_LANGFUSE_KEY_PATH` override) — **fallback**; thiếu cả hai ⇒ không tracing, turn chạy y như không có. Không trộn nguồn theo từng biến: env thiếu một biến thì cả bộ lấy từ file. `LANGFUSE_BASE_URL` **bắt buộc** và không có default — không bao giờ tự trỏ `cloud.langfuse.com`; trỏ instance self-host trên OPfaOS. Exporter chạy **batch** (`realtime: false`), root `Mastra` cache một lần/process (bật tracing từ panel áp dụng cho lượt kế tiếp; đổi key khi đã bật cần restart service), agent đăng ký theo `profile.id` sau mỗi `buildAgent` (lỗi đăng ký/import chỉ warn một lần, không bao giờ throw). Keys **không** nằm trong repo/flake/docs — chỉ `/etc/nsac-web/env` trên box hoặc file store gitignored; status API của panel chỉ trả `source` (`env`\|`file`\|`none`), `updatedAt` và `baseUrl` (chỉ khi nguồn là file), không bao giờ trả key. |
 | `LANGFUSE_ENVIRONMENT` · `LANGFUSE_RELEASE` | Optional tag cho trace. `environment` fallback `NODE_ENV`; `release` fallback `npm_package_version` → `NSAC_GIT_SHA` → `GIT_SHA`. |
 
 ### 18.6 Test & vận hành
@@ -811,9 +811,16 @@ Luật twin-drift giữ nguyên hiệu lực: mọi tool chat mới của pi cor
   Agent ở seam `setMastraAgentFactoryForTests`: delta, artifacts, abort, empty/error sentinel,
   memory chỉ cho session stateful + working profile chỉ cho `sky-chat` — config
   `workingMemory.enabled/scope/template`, thứ tự base < promptSuffix < block, composer không có
-  profile), `mastra-observability.server.test.ts` (gate env đủ/thiếu/rỗng, singleton root dùng lại,
+  profile), `mastra-observability.server.test.ts` (gate env đủ/thiếu/rỗng, gate từ file
+  `/admin/keys` khi env trống, singleton root dùng lại,
   import fail ⇒ `null` + warn một lần không lộ key, `addAgent` đúng `profile.id` qua fake root,
   không root ⇒ không import, đăng ký lỗi ⇒ turn vẫn trả reply — không network),
+  `langfuse-key.server.test.ts` (roundtrip atomic qua file, `langfuseKeySource` env/file/none,
+  precedence: env đủ thắng file, env nửa vời thua file đủ, validation matrix cho public/secret/base
+  URL — non-URL, http ngoài localhost, userinfo, >200 ký tự —, file thiếu/rỗng ⇒ `null`, clear
+  idempotent không chạm env) và `langfuse-key.functions.test.ts` (admin gate 401-path, validation
+  theo từng trường, roundtrip save → status source=file + baseUrl, env precedence, io_error, không
+  payload nào chứa key),
   `agent-core.test.ts` (default pi khi rỗng/rác/lỗi backend),
   `astro-chat.mastra.test.ts` (pipeline chat trên core mastra: delta, timeout, missing_key, evict khi
   flip), `run.mastra.test.ts` (one-shot trên mastra + pi không đổi).

@@ -570,6 +570,39 @@ export interface Copy {
     goKeyClearFailed: string;
     /** Note under the panel: write-only semantics + when the stored key is used. */
     goKeyNote: string;
+    /** Langfuse panel — public key + secret key + base URL stored as ONE atomic triple (Mastra tracing). */
+    langfuseTitle: string;
+    langfuseConfiguredEnv: string;
+    langfuseConfiguredFile: string;
+    langfuseNotConfigured: string;
+    /** Hint shown when the triple comes from the environment (env wins over the stored file). */
+    langfuseEnvHint: string;
+    langfuseUrlLabel: string;
+    langfuseUrlPlaceholder: string;
+    langfusePublicKeyLabel: string;
+    langfusePublicKeyPlaceholder: string;
+    langfuseSecretKeyLabel: string;
+    langfuseSecretKeyPlaceholder: string;
+    /** Placeholder on the public/secret fields while a stored triple exists — keys are never shown. */
+    langfusePlaceholderStored: string;
+    /** Read-only line showing the stored instance URL (an address, never a credential). */
+    langfuseEndpointLabel: string;
+    langfuseSave: string;
+    langfuseSaving: string;
+    langfuseSaved: string;
+    langfuseSaveFailed: string;
+    langfuseInvalidUrl: string;
+    langfuseInvalidPublicKey: string;
+    langfuseInvalidSecretKey: string;
+    /** Clear button label; the action needs the inline 2-step confirm. */
+    langfuseClear: string;
+    langfuseClearConfirm: string;
+    langfuseClearCancel: string;
+    langfuseClearing: string;
+    langfuseClearDone: string;
+    langfuseClearFailed: string;
+    /** Note under the panel: write-only semantics + when tracing switches on. */
+    langfuseNote: string;
     /** Speech Engine panel — manage the ElevenLabs Speech Engine instance behind the / mic voice chat. */
     speech: {
       title: string;

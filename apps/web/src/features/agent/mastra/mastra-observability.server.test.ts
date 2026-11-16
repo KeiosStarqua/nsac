@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Mastra } from "@mastra/core/mastra";
@@ -77,7 +77,11 @@ const ENV_KEYS = [
   "npm_package_version",
   "NSAC_GIT_SHA",
   "GIT_SHA",
+  "NSAC_LANGFUSE_KEY_PATH",
 ] as const;
+
+/** A store path that never exists, so the env-only gate stays deterministic. */
+const ABSENT_STORE = join(tmpdir(), `nsac-langfuse-absent-${process.pid}.json`);
 
 describe("mastra-observability", () => {
   const prev = new Map<string, string | undefined>();
@@ -89,6 +93,8 @@ describe("mastra-observability", () => {
       delete process.env[key];
     }
     delete process.env.LANGFUSE_PUBLIC_KEY;
+    // The Langfuse store can also open the gate (admin panel); keep these tests env-only.
+    process.env.NSAC_LANGFUSE_KEY_PATH = ABSENT_STORE;
     setMastraRootForTests(undefined);
     setObservabilityImportForTests(null);
     warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -151,6 +157,36 @@ describe("mastra-observability", () => {
       expect(mastraObservabilityEnv()).toMatchObject({ environment: "staging", release: "0.0.0" });
       process.env.LANGFUSE_RELEASE = "sha-abc123";
       expect(mastraObservabilityEnv()?.release).toBe("sha-abc123");
+    });
+
+    it("is enabled by the /admin/keys-stored file when the environment is unset", () => {
+      const dir = mkdtempSync(join(tmpdir(), "nsac-mastra-lf-store-"));
+      try {
+        const storePath = join(dir, "sky-langfuse.json");
+        writeFileSync(
+          storePath,
+          JSON.stringify({
+            publicKey: "pk-lf-store",
+            secretKey: "sk-lf-store",
+            baseUrl: "https://store.langfuse.test",
+            savedAt: Date.now(),
+          }),
+        );
+        process.env.NSAC_LANGFUSE_KEY_PATH = storePath;
+
+        expect(mastraObservabilityEnabled()).toBe(true);
+        expect(mastraObservabilityEnv()).toMatchObject({
+          publicKey: "pk-lf-store",
+          secretKey: "sk-lf-store",
+          baseUrl: "https://store.langfuse.test",
+        });
+        // Env still wins as a whole triple once present.
+        setFullEnv();
+        expect(mastraObservabilityEnv()?.baseUrl).toBe("https://langfuse.example.test");
+      } finally {
+        process.env.NSAC_LANGFUSE_KEY_PATH = ABSENT_STORE;
+        rmSync(dir, { recursive: true, force: true });
+      }
     });
   });
 
