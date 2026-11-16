@@ -2,14 +2,18 @@ import "@tanstack/react-start/server-only";
 import { z } from "zod";
 
 // Loopback proxies to the Bun backend (`apps/backend`) for the ElevenLabs Speech Engine voice
-// chat on `/`. The browser never sees the backend URL and never gets the API key — the engine
-// id handed out by `/api/speech/config` is a public instance handle, everything else happens
-// inside the backend. Mirrors the spirit of `routes/api/tts.ts` (cross-site guard) but answers
-// inside a feature module so vitest covers the branches.
+// chat on `/`. The browser never sees the backend URL and never gets the API key — the engine id
+// handed out by `/api/speech/config` is a public instance handle, the conversation token is minted
+// server-side by `/api/speech/token`, and everything else happens inside the backend. Mirrors the
+// spirit of `routes/api/tts.ts` (cross-site guard) but answers inside a feature module so vitest
+// covers the branches.
 const SAME_SITE = new Set(["same-origin", "same-site", "none"]);
 // The backend answers register/config from memory — nothing upstream is contacted on these paths.
 // 1500 ms is generous; anything slower is a broken backend, not a slow one.
 const BACKEND_TIMEOUT_MS = 1500;
+// `/api/speech/token` makes the backend call ElevenLabs (conversation token mint), so it gets a
+// longer budget than the in-memory routes; still short enough to fail quietly on the console.
+const TOKEN_TIMEOUT_MS = 5000;
 
 export const SpeechRegisterBody = z.object({
   astronautId: z.string().min(1).max(64),
@@ -109,6 +113,46 @@ export async function handleSpeechConfig(request: Request, fetchImpl: typeof fet
     }
     if (res.ok && typeof (data as { engineId?: unknown } | null)?.engineId === "string") {
       return Response.json({ engineId: (data as { engineId: string }).engineId });
+    }
+    if (res.status === 404 && (data as { error?: unknown } | null)?.error === "no_engine") {
+      return Response.json({ ok: false, error: "no_engine" }, { status: 404 });
+    }
+    return Response.json({ ok: false, error: "speech_backend" }, { status: 502 });
+  } catch {
+    return Response.json({ ok: false, error: "speech_backend" }, { status: 502 });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * POST semantics: mints an ElevenLabs conversation token through the backend
+ * (`POST /api/speech/token` — the backend holds the API key). The engine is created with
+ * `auth.enable_auth: true`, so the browser must present a token instead of a bare agent id.
+ * `200 { token }` passes through; the backend's `404 no_engine` passes through unchanged so the
+ * client can show the quiet "Voice not configured" hint; everything else is a 502. The token is
+ * never logged.
+ */
+export async function handleSpeechToken(request: Request, fetchImpl: typeof fetch = fetch): Promise<Response> {
+  if (isCrossSite(request)) return forbidden();
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TOKEN_TIMEOUT_MS);
+  try {
+    const res = await fetchImpl(`${backendBase()}/api/speech/token`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { accept: "application/json" },
+    });
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      data = undefined;
+    }
+    const token = (data as { token?: unknown } | null)?.token;
+    if (res.ok && typeof token === "string" && token.length > 0) {
+      return Response.json({ token });
     }
     if (res.status === 404 && (data as { error?: unknown } | null)?.error === "no_engine") {
       return Response.json({ ok: false, error: "no_engine" }, { status: 404 });

@@ -177,12 +177,17 @@ describe("POST /create", () => {
     expect(settingsRepo.getSpeechEngineId()?.engineId).toBe("eng_created_1");
     const status = (await (await speechAdmin.handleSpeechAdminRequest(req("/api/settings/speech-engine")))?.json()) as Record<string, unknown>;
     expect(status).toMatchObject({ wsRunning: true, engineId: "eng_created_1", source: "db", configured: true });
-    // The upstream call carried the default name + wsUrl and the key header.
+    // The upstream call carried the default name + wsUrl, the auth flag and the key header.
     // ElevenLabs's wire format is snake_case — camelCase is rejected with HTTP 422.
     const sent = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
-    expect(sent).toEqual({ name: "sky-nsac-speech-engine", speech_engine: { ws_url: "wss://nasa.taquangkhoi.com/speech/ws" } });
+    expect(sent).toEqual({
+      name: "sky-nsac-speech-engine",
+      speech_engine: { ws_url: "wss://nasa.taquangkhoi.com/speech/ws" },
+      auth: { enable_auth: true },
+    });
     expect(sent).not.toHaveProperty("speechEngine");
     expect(sent.speech_engine).not.toHaveProperty("wsUrl");
+    expect(sent.auth).not.toHaveProperty("enableAuth");
     speech.stopSpeechEngine();
   });
 
