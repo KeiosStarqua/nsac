@@ -112,6 +112,16 @@ export function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
+/**
+ * One identity line for threaded scheduled turns (Mastra `astronaut:<id>` thread) and for the
+ * `/admin/schedules` create form: the prompt already carries who the turn is for, so the model
+ * never invents a crew member. Fictional crew — deterministic, no IO. The exact wording is part
+ * of the scheduled-fire contract (see HARNESSING §19); keep it byte-stable.
+ */
+export function astronautIdentityLine(a: Astronaut): string {
+  return `Astronaut: ${a.name}, ${a.role} (${a.callsign}). Fictional crew member — respond to THEM personally.`;
+}
+
 const AstronautRowSchema = z.object({
   id: z.string().trim().min(1),
   name: z.string().trim().min(1),

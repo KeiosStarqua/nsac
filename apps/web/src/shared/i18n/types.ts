@@ -647,7 +647,56 @@ export interface Copy {
       retry: string;
       genericError: string;
     };
-    /** Tab labels for the six /admin sections. */
+    /** Schedules tab (`/admin/schedules`) — Mastra Schedules threaded into the astronaut chat thread (HARNESSING §19). */
+    schedulesTitle: string;
+    schedulesIntro: string;
+    schedulesAgentFixed: string;
+    schedulesCreateTitle: string;
+    schedulesAstronautLabel: string;
+    schedulesKindLabel: string;
+    schedulesKindCheckin: string;
+    schedulesKindCheckinDesc: string;
+    schedulesKindCardioWatchdog: string;
+    schedulesKindCardioWatchdogDesc: string;
+    schedulesKindFindingsReview: string;
+    schedulesKindFindingsReviewDesc: string;
+    schedulesCronLabel: string;
+    schedulesCronHint: string;
+    schedulesPresetDaily: string;
+    schedulesPresetWeekly: string;
+    schedulesPresetCustom: string;
+    schedulesTimezoneLabel: string;
+    schedulesNameLabel: string;
+    schedulesNamePlaceholder: string;
+    schedulesPromptLabel: string;
+    /** Shows the kind's default prompt when empty. */
+    schedulesPromptPlaceholder: string;
+    schedulesSave: string;
+    schedulesSaving: string;
+    schedulesSaved: string;
+    schedulesInvalid: string;
+    schedulesSaveFailed: string;
+    schedulesListTitle: string;
+    schedulesEmpty: string;
+    /** `{time}` is an ISO-ish UTC stamp, substituted in the component. */
+    schedulesNextFire: string;
+    /** `{time}` is an ISO-ish UTC stamp, substituted in the component. */
+    schedulesLastFire: string;
+    schedulesStatusActive: string;
+    schedulesStatusPaused: string;
+    schedulesStatusCompleted: string;
+    schedulesShowCompleted: string;
+    schedulesSeeded: string;
+    schedulesRunNow: string;
+    schedulesRunConfirm: string;
+    schedulesPause: string;
+    schedulesResume: string;
+    schedulesDelete: string;
+    schedulesDeleteConfirm: string;
+    schedulesDeleteCancel: string;
+    schedulesLoadFailed: string;
+    schedulesUnavailable: string;
+    /** Tab labels for the /admin sections. */
     tabModels: string;
     /** API Keys — OpenCode Go + AWS Bedrock + ElevenLabs in one tab. */
     tabKeys: string;
@@ -656,7 +705,9 @@ export interface Copy {
     tabBackground: string;
     /** Agent Core — the pi | mastra switch (dual-core, HARNESSING §18). */
     tabCore: string;
-    /** aria-label of the tablist above the six sections. */
+    /** Schedules — Mastra Schedules threaded into the astronaut chat thread (HARNESSING §19). */
+    tabSchedules: string;
+    /** aria-label of the tablist above the /admin sections. */
     tabsLabel: string;
     /** Background tab (`/admin/background`) — the `/` backdrop picker. */
     backgroundTitle: string;

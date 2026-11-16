@@ -10,6 +10,7 @@ export {
   ASTRONAUT_STORAGE_KEY,
   DEFAULT_ASTRONAUT_ID,
   astronautForKey,
+  astronautIdentityLine,
   findAstronaut,
   firstName,
   moveSelection,

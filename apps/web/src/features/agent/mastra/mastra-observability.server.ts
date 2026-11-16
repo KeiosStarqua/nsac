@@ -1,6 +1,12 @@
 import "@tanstack/react-start/server-only";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { Mastra } from "@mastra/core/mastra";
+import type { Observability } from "@mastra/observability";
+import { LibSQLStore } from "@mastra/libsql";
 import { readLangfuseConfig } from "../runtime/langfuse-key.server";
+import { mastraDbUrl } from "./mastra-core.server";
+import { buildSchedulesHooks, scrubScheduledFireError } from "./mastra-schedules.server";
 
 /**
  * Langfuse tracing for the Mastra core (HARNESSING §18.5).
@@ -27,6 +33,18 @@ import { readLangfuseConfig } from "../runtime/langfuse-key.server";
  *
  * Two sinks now (they are independent): the backend SQLite `agent_traces` rows (§16, always on
  * when the backend is reachable) and Langfuse (§18.5, config-gated, Mastra core only).
+ *
+ * **Schedules (§19, 2026-11-17):** the root always carries
+ * `storage: new LibSQLStore({ id: "sky-root", url: mastraDbUrl() })` (the schedules domain lives
+ * in the same LibSQL file as memory/threads) and `schedules: <hook bundle>` from
+ * `mastra-schedules.server.ts`, plus `scheduler: { enabled: true }` so imperative schedules
+ * (created via /admin/schedules) are honored without any declarative workflow config. The
+ * Langfuse exporter is layered on top only when the gate is open; when it is closed the root
+ * still builds — "tracing off" and "schedules on" are independent. `ensureSkyMastraRoot()` is the
+ * one construction path (boot plugin + tracing call-sites); `getMastraRoot()` keeps its exact
+ * gate semantics for callers. The root is built lazily on first call — never at import time —
+ * and registers the generic, astronaut-agnostic `sky-chat` once (`buildEagerSkyChatAgent`),
+ * so scheduled fires resolve the profile even before any chat turn ran.
  *
  * Nothing is constructed at import time — the root `Mastra`, the `Observability` instance and
  * the exporter are built lazily on the first traced session and cached for the process, because
@@ -94,7 +112,7 @@ async function importObservabilityRuntime(): Promise<ObservabilityImports> {
 
 let importRuntime: () => Promise<ObservabilityImports> = importObservabilityRuntime;
 
-/** Process-wide cache. `undefined` = not built yet, `null` = disabled or init failed. */
+/** Process-wide cache (§19: storage + hooks always). `undefined` = not built yet, `null` = init failed. */
 let rootPromise: Promise<Mastra | null> | null = null;
 
 /** Test override: an object short-circuits everything; `null` means "tracing off". */
@@ -126,25 +144,77 @@ export function noteMastraObservabilityFailure(error: unknown): void {
   warnOnce(message, env ? [env.publicKey, env.secretKey] : []);
 }
 
-async function buildRoot(env: MastraObservabilityEnv): Promise<Mastra> {
-  const { Observability, LangfuseExporter } = await importRuntime();
-  const exporter = new LangfuseExporter({
-    publicKey: env.publicKey,
-    secretKey: env.secretKey,
-    baseUrl: env.baseUrl,
-    // Batch mode is the documented default for production; realtime is a dev-only convenience.
-    realtime: false,
-    environment: env.environment,
-    ...(env.release ? { release: env.release } : {}),
+/**
+ * The one construction path for the process-wide root (§19): storage + schedule hooks are
+ * UNCONDITIONAL; the Langfuse exporter is attached only when the gate is open. Cached per
+ * process. Never throws — a build failure warns once and resolves `null`.
+ */
+async function buildSkyMastraRoot(): Promise<Mastra> {
+  const env = mastraObservabilityEnv();
+  const url = mastraDbUrl();
+  if (url.startsWith("file:")) {
+    try {
+      mkdirSync(dirname(url.slice("file:".length)), { recursive: true, mode: 0o700 });
+    } catch {
+      // Best effort — LibSQL surfaces a usable error if the directory really is missing.
+    }
+  }
+  let observability: Observability | undefined;
+  if (env) {
+    const { Observability: ObservabilityCtor, LangfuseExporter } = await importRuntime();
+    const exporter = new LangfuseExporter({
+      publicKey: env.publicKey,
+      secretKey: env.secretKey,
+      baseUrl: env.baseUrl,
+      // Batch mode is the documented default for production; realtime is a dev-only convenience.
+      realtime: false,
+      environment: env.environment,
+      ...(env.release ? { release: env.release } : {}),
+    });
+    observability = new ObservabilityCtor({
+      configs: {
+        langfuse: { serviceName: "sky-nsac", exporters: [exporter] },
+      },
+    });
+  }
+  // Agents are NOT registered for tracing here per-agent; the root gets storage + hooks, and a
+  // single eager `sky-chat` (no astronaut identity — the prepared prompt carries it at fire
+  // time) so scheduled fires resolve the profile without any prior chat turn.
+  const root = new Mastra({
+    storage: new LibSQLStore({ id: "sky-root", url }),
+    // Schedules are managed imperatively (/admin/schedules); the scheduler must run even
+    // though no workflow declares a declarative schedule.
+    scheduler: { enabled: true },
+    schedules: buildSchedulesHooks(),
+    ...(observability ? { observability } : {}),
   });
-  const observability = new Observability({
-    configs: {
-      langfuse: { serviceName: "sky-nsac", exporters: [exporter] },
-    },
+  try {
+    const core = await import("./mastra-core.server");
+    const agent = await core.buildEagerSkyChatAgent();
+    if (agent) {
+      // Remove-then-add, same discipline as createMastraSession: never MASTRA_ADD_AGENT_DUPLICATE_KEY.
+      if (typeof root.removeAgent === "function") root.removeAgent("sky-chat");
+      root.addAgent(agent, "sky-chat");
+    }
+  } catch (error) {
+    console.warn("[sky-schedules] eager sky-chat registration failed:", scrubScheduledFireError(error));
+  }
+  return root;
+}
+
+/**
+ * The tracing root for this process when the gate is open, or the schedules-capable root
+ * (§19) — same shared builder, same cached promise. Never throws: an import or init failure
+ * warns once and resolves `null`, so the caller's turn runs unchanged.
+ */
+export async function ensureSkyMastraRoot(): Promise<Mastra | null> {
+  if (rootOverride !== undefined) return rootOverride;
+  if (rootPromise) return rootPromise;
+  rootPromise = buildSkyMastraRoot().catch((error: unknown) => {
+    noteMastraObservabilityFailure(error);
+    return null;
   });
-  // Agents are NOT registered here: `createMastraSession` adds each built agent under its
-  // profile id, so no agent exists before the first session builds one.
-  return new Mastra({ observability });
+  return rootPromise;
 }
 
 /**
@@ -153,15 +223,9 @@ async function buildRoot(env: MastraObservabilityEnv): Promise<Mastra> {
  */
 export async function getMastraRoot(): Promise<Mastra | null> {
   if (rootOverride !== undefined) return rootOverride;
-  if (rootPromise) return rootPromise;
-  const env = mastraObservabilityEnv();
   // Disabled is not cached: the gate is cheap to re-read and a runtime change may open it.
-  if (!env) return null;
-  rootPromise = buildRoot(env).catch((error: unknown) => {
-    noteMastraObservabilityFailure(error);
-    return null;
-  });
-  return rootPromise;
+  if (!mastraObservabilityEnv()) return null;
+  return ensureSkyMastraRoot();
 }
 
 /** Test seam: `undefined` restores the real lazily-built root, `null` forces "tracing off". */
