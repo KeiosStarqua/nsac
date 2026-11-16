@@ -6,15 +6,19 @@ import {
   INSIGHT_BAND,
   INSIGHT_BAND_DISMISSED,
   INSIGHT_BAND_DOCK,
+  ORB_REEL,
+  ORB_REEL_CHAT,
   ORB_STAGE,
-  ORB_STAGE_CHAT,
+  ORB_ZONE_CHAT,
   VOICE_CLUSTER,
   VOICE_CLUSTER_HIDDEN,
 } from "./mock-classes";
+import { CHAT_CARD_ANCHOR, CHAT_CARD_AXIS, CHAT_CARD_HEIGHT, CHAT_CARD_TOP, ORB_BALL_SIZE, ORB_ZONE_CHAT_SIZE, ORB_ZONE_CHAT_WIDTH } from "../sky-hud/chat-geometry";
 
-// Chat-open layout contract of the `/` mock console: the voice zone hides, the orb shrinks and
-// lifts, and the insight band slides out. Everything is transform/opacity only — no box changes —
-// so the grid, greeting and footer keep their positions.
+// Chat-open layout contract of the `/` mock console: the voice zone hides, the orb parks at the top
+// of the centre column (leaving the chat card underneath it), and the insight band slides out.
+// Everything is transform/opacity/width only — no box changes on the stage — so the grid, greeting
+// and footer keep their positions.
 
 describe("hud-mock chat-open classes", () => {
   test("voice cluster hides without leaving the layout", () => {
@@ -32,14 +36,37 @@ describe("hud-mock chat-open classes", () => {
     expect(VOICE_CLUSTER).toContain("motion-reduce:transition-none");
   });
 
-  test("orb stage grows a transform-only chat variant", () => {
-    expect(ORB_STAGE_CHAT.startsWith(ORB_STAGE)).toBe(true);
-    expect(ORB_STAGE_CHAT).toContain("-translate-y-[4%]");
-    expect(ORB_STAGE_CHAT).toContain("scale-[.85]");
-    expect(ORB_STAGE).toContain("motion-reduce:transition-none");
-    // The chat variant adds transform utilities only — nothing that changes the stage's box.
-    const added = ORB_STAGE_CHAT.slice(ORB_STAGE.length).trim().split(" ").filter(Boolean);
-    expect(added).toEqual(["-translate-y-[4%]", "scale-[.85]"]);
+  test("orb parks at the column top without moving the stage box", () => {
+    // The stage keeps its box (flex-1/min-h-0): only the reel and the zone carry the chat-open move.
+    expect(ORB_STAGE).toContain("flex-1");
+    expect(ORB_STAGE).toContain("min-h-0");
+    // The reel is pulled up half the stage and the zone pushes itself down half of its own height, so
+    // the zone's top edge lands on the stage's — percentages, so no layout reflow and it animates.
+    expect(ORB_REEL_CHAT.startsWith(ORB_REEL)).toBe(true);
+    expect(ORB_REEL_CHAT).toContain("min-[1101px]:-translate-y-1/2");
+    expect(ORB_REEL_CHAT).toContain("min-[1101px]:h-full");
+    expect(ORB_REEL_CHAT).toContain("transition");
+    expect(ORB_REEL_CHAT).toContain("motion-reduce:transition-none");
+    expect(ORB_ZONE_CHAT).toContain("min-[1101px]:translate-y-1/2");
+    expect(ORB_ZONE_CHAT).toContain("[transition:width_.3s_ease,translate_.3s_ease]");
+    // The chat ball has a fixed diameter and the zone is that / 0.72 (the vendored ball draws at 0.72).
+    expect(ORB_ZONE_CHAT).toContain(ORB_ZONE_CHAT_WIDTH);
+    expect(ORB_ZONE_CHAT_WIDTH).toContain(ORB_ZONE_CHAT_SIZE);
+    expect(ORB_ZONE_CHAT_SIZE).toContain(ORB_BALL_SIZE);
+  });
+
+  test("chat card anchors under the ball on the centre-column axis", () => {
+    // Vertical: header bottom (measured) + the zone's top pad + the ball + the 8px gap.
+    expect(CHAT_CARD_TOP).toContain("var(--hud-header-bottom,96px)");
+    expect(CHAT_CARD_TOP).toContain(ORB_ZONE_CHAT_SIZE);
+    expect(CHAT_CARD_TOP).toContain("+8px");
+    expect(CHAT_CARD_HEIGHT).toContain("min(600px,calc(100dvh-");
+    // The classes Tailwind actually ships are literal copies of those two values — kept in step here.
+    expect(CHAT_CARD_ANCHOR).toContain(`mt-[${CHAT_CARD_TOP}]`);
+    expect(CHAT_CARD_ANCHOR).toContain(`h-[${CHAT_CARD_HEIGHT}]`);
+    // Horizontal: −80px on the three-column console, +208px (clamped) on the two-column one.
+    expect(CHAT_CARD_AXIS).toContain("min-[1101px]:-translate-x-[80px]");
+    expect(CHAT_CARD_AXIS).toContain("min-[721px]:max-[1100px]:translate-x-[min(208px,calc(50vw-288px))]");
   });
 
   test("insight band slides down and fades", () => {

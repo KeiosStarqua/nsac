@@ -18,6 +18,11 @@
 // the vitals/trends cards on the left and the readiness-detail card on the right carry `flex-1
 // min-h-0`, the centre column wraps the orb in a `flex-1 min-h-0` stage so free space hosts the orb,
 // and card rows/bars spread with `justify-evenly` rather than top-packing.
+//
+// Chat-open orb contract (2026-11-16): `ORB_REEL_CHAT` + `ORB_ZONE_CHAT` park the ball at the top of
+// the centre column and the chat card anchors under it — one geometry, see `../sky-hud/chat-geometry.ts`.
+
+import { ORB_ZONE_CHAT_WIDTH } from "../sky-hud/chat-geometry";
 
 export const MOCK_ROOT = [
   "relative isolate flex min-h-dvh w-full flex-col overflow-x-hidden min-[1101px]:h-dvh min-[1101px]:overflow-hidden",
@@ -34,16 +39,29 @@ export const MOCK_VIGNETTE =
 export const FILL_CARD =
   "flex flex-col min-[1101px]:min-h-0 min-[1101px]:flex-1";
 
-/** Centre-column stage that hosts the orb in the free vertical space (≥1101px). */
-export const ORB_STAGE =
-  "relative grid w-full flex-1 min-h-0 place-items-center [transition:translate_.3s_ease,scale_.3s_ease] motion-reduce:transition-none";
+/**
+ * Centre-column stage that hosts the orb in the free vertical space (≥1101px). A flex column (not a
+ * grid) so the reel below can take `h-full` of a definite height — the chat-open move is a
+ * percentage translate, and percentages need a resolved parent height.
+ */
+export const ORB_STAGE = "relative flex w-full flex-1 min-h-0 flex-col items-center justify-center";
 
 /**
- * Chat-open variant of `ORB_STAGE`: the orb shrinks a little and lifts, leaving breathing room for
- * the floating chat card. Transform only (translate/scale) — the stage keeps its layout box, so the
- * greeting, grid and insight band do not reflow.
+ * The reel around the orb zone. In flow it is content-sized (it is the stage's only child), so the
+ * orb keeps its own box at every breakpoint; ≥1101px it fills the stage and both the reel and the
+ * zone translate to park the orb at the column top while the stage box (and so the greeting, grid
+ * and insight band) never move. The two translates are `-50%` of the reel (the stage height) and
+ * `+50%` of the zone (its own height), which lands the zone's top edge exactly on the stage's —
+ * pure transform, so the move is animatable and never reflows.
  */
-export const ORB_STAGE_CHAT = `${ORB_STAGE} -translate-y-[4%] scale-[.85]`;
+export const ORB_REEL = [
+  "flex w-full flex-col items-center justify-center",
+  "min-[1101px]:h-full min-[1101px]:[transition:translate_.3s_ease]",
+  "motion-reduce:transition-none",
+].join(" ");
+
+/** Chat-open reel: pulled up half the stage height (`min-[1101px]` only — below, the orb is already at the top). */
+export const ORB_REEL_CHAT = `${ORB_REEL} min-[1101px]:-translate-y-1/2`;
 
 const FOCUS_RING = "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!";
 
@@ -167,16 +185,48 @@ export const CHANGE_BUTTON = [
 
 // ---- Voice column --------------------------------------------------------------------------------
 
+/** The ball's own container fills the zone exactly and never contributes to its height. */
+const ORB_CANVAS_BOX = "[&>div]:absolute [&>div]:inset-0";
+
 export const ORB_ZONE = [
   "relative aspect-square w-[min(100%,clamp(220px,36dvh,420px))]",
   "[filter:drop-shadow(0_0_26px_rgba(68,172,255,.24))]",
   "[&_canvas]:relative [&_canvas]:z-[2] [&_canvas]:block [&_canvas]:h-full [&_canvas]:w-full",
+  // Out of flow: the canvas keeps an inline px size set by its ResizeObserver, and an in-flow
+  // container would let that stale size feed back into the zone's height (visible after a chat-open
+  // round trip). `aspect-square` alone decides the box.
+  ORB_CANVAS_BOX,
   "min-[721px]:max-[1100px]:w-[min(100%,320px)]",
   "max-[720px]:w-[min(72vw,300px)]",
   "max-[420px]:w-[min(64vw,240px)]",
 ].join(" ");
 
 export const ORB_ZONE_THINKING = "[filter:drop-shadow(0_0_34px_rgba(171,142,255,.33))]";
+
+/**
+ * Chat-open orb zone: a fixed ball (`ORB_BALL_SIZE`) parked at the top of the centre column, so the
+ * floating chat card can sit under it instead of over it (`chat-geometry.ts` derives the card's
+ * anchor from the same numbers — ball bottom = zone top + (zone + ball) / 2). Only the size and the
+ * zone's `translate` change; the reel carries the move, so nothing else on the screen reflows.
+ */
+export const ORB_ZONE_CHAT = [
+  "relative aspect-square",
+  // Below 721px the console is a single column and the card is centred, so the orb keeps its size
+  // (and the greeting below it never moves); it may sit behind the card — allowed ≤480px, where the
+  // card goes full-bleed.
+  "w-[min(100%,clamp(220px,36dvh,420px))]",
+  "max-[720px]:w-[min(72vw,300px)] max-[420px]:w-[min(64vw,240px)]",
+  // ≥721px: the fixed chat ball (chat-geometry.ts).
+  ORB_ZONE_CHAT_WIDTH,
+  "[filter:drop-shadow(0_0_26px_rgba(68,172,255,.24))]",
+  "[&_canvas]:relative [&_canvas]:z-[2] [&_canvas]:block [&_canvas]:h-full [&_canvas]:w-full",
+  // The ball's own container is taken out of flow so its measured size cannot feed back into the
+  // zone's height: with no in-flow content, `aspect-square` decides and the zone stays square.
+  ORB_CANVAS_BOX,
+  "[transition:width_.3s_ease,translate_.3s_ease] motion-reduce:transition-none",
+  // +50% of its own height, canceling the reel's −50% of the stage: zone top = stage top.
+  "min-[1101px]:translate-y-1/2",
+].join(" ");
 
 export const GREETING_STACK = "flex flex-col items-center px-2 text-center";
 
