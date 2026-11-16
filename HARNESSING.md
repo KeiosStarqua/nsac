@@ -696,9 +696,9 @@ HRP site trả lỗi khi fetch tự động 2026-11-16; Circulation URL 403 bot-
 - ⬜ P4 — clinical validation (ngoài scope demo)
 - **Event-driven cardio** (subscribe bus thay vì watermark poll) — deferred theo §5.
 
-## 18. Dual core: Pi SDK (default) ↔ Mastra (opt-in beta, 2026-11-16)
+## 18. Dual core: Pi SDK (default) ↔ Mastra (opt-in, production từ 2026-11-17)
 
-> **Mastra là beta tự chọn. Mặc định vẫn là Pi SDK.** Mọi mục §1–§17 vẫn mô tả core Pi SDK đang
+> **Code default vẫn là Pi SDK; production chạy Mastra từ 2026-11-17 (Keios set qua `/admin/core` trên box).** Mọi mục §1–§17 vẫn mô tả core Pi SDK đang
 > chạy production. Section này chỉ THÊM: core thứ hai chạy sau cùng một seam, một switch admin, và
 > những gì **không** được migrate.
 
