@@ -15,6 +15,7 @@ import {
   mastraModelSpecFromEnv,
   resolveMastraModel,
 } from "./mastra-model.server";
+import { getMastraRoot, noteMastraObservabilityFailure } from "./mastra-observability.server";
 // One description, one gate — shared with the pi core. The HUD graph is already in the server graph
 // (astro-chat imports the pi twin statically), so no lazy import here.
 import { SHOW_HUD_DESCRIPTION, composeHudProgramForBrief } from "../runtime/hud-show.server";
@@ -47,6 +48,9 @@ import { SHOW_HUD_DESCRIPTION, composeHudProgramForBrief } from "../runtime/hud-
  *   only tool.
  * - `overrides.sessionManager` is ignored: Mastra keeps history in its memory threads, not in a pi
  *   JSONL session file.
+ * - Tracing: every built agent is registered on the process-wide Mastra root
+ *   (`mastra-observability.server.ts`) so its spans export to Langfuse when `LANGFUSE_*` is set.
+ *   HARNESSING §18.5.
  *
  * Nothing here is constructed at import time: the Agent, the tool and the memory store are built
  * per session inside `createMastraSession`, because Nitro/vite import server modules during the
@@ -250,9 +254,23 @@ export async function createMastraSession(
     ...(memory ? { memory } : {}),
   });
 
+  // Tracing (HARNESSING §18.5): register this session's agent on the process-wide Mastra root so
+  // the runtime's own model/tool/step spans export to Langfuse. Gated on LANGFUSE_* AND best
+  // effort — tracing off, a failed import, or a registration error must never break the turn.
+  try {
+    const root = await getMastraRoot();
+    if (root) {
+      // One registration per profile key: a newer session replaces the older agent, so a warm
+      // process never trips MASTRA_ADD_AGENT_DUPLICATE_KEY on the second chat turn.
+      if (typeof root.removeAgent === "function") root.removeAgent(profile.id);
+      root.addAgent(agent as unknown as Agent, profile.id);
+    }
+  } catch (e) {
+    noteMastraObservabilityFailure(e);
+  }
+
   const controller = new AbortController();
   let disposed = false;
-
   return {
     async prompt(text, opts = {}) {
       if (disposed) throw new Error("session_disposed");

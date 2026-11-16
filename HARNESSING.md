@@ -598,6 +598,11 @@ timeout 1200 ms, không bao giờ throw, `setTraceFetch` là test seam, tắt ho
 `tool_execution_end` của Pi SDK (capture trong `pi.server.ts`); fallback: `show_on_hud` có mặt ⇔
 `artifacts.hudProgram` được set. Composer trace có `replyText` = program đã qua review (truncated).
 
+Từ 2026-11-17 agent tracing có **hai sink độc lập**: row `agent_traces` trên backend SQLite (§16,
+luôn bật khi backend sống, cả pi lẫn Mastra) và **Langfuse** (§18.5, chỉ khởi tạo khi đủ
+`LANGFUSE_*`, **chỉ core Mastra**, batch mode) — sink thứ hai không thay thế sink thứ nhất và
+không bao giờ là điều kiện để một turn chạy.
+
 ## 17. Clinical multi-agent space medical system — APPROVED V1, IMPLEMENTED (2026-11-16, branch clinical-p0-backend)
 
 **Đã build (backend).** V1 là Clinical Routine Engine deterministic — không có LLM, không có PI SDK
@@ -797,6 +802,8 @@ Luật twin-drift giữ nguyên hiệu lực: mọi tool chat mới của pi cor
 | `NSAC_SKY_MASTRA_DB` | Override DB Mastra: path thường, `file:` URL, hoặc `libsql://` URL. Mặc định `var/sky-mastra.db` |
 | `var/sky-mastra.db` | Thread/message memory của Mastra core (LibSQL; WAL tạo `.db-wal`/`.db-shm`) |
 | `MASTRA_TELEMETRY_DISABLED` | Module tự set `1` (không gửi telemetry) |
+| `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_SECRET_KEY` · `LANGFUSE_BASE_URL` | Tracing Langfuse cho **core Mastra** (`mastra/mastra-observability.server.ts`, `@mastra/observability` `Observability` + `@mastra/langfuse` `LangfuseExporter`). Observability chỉ khởi tạo khi **cả ba** non-empty (trim); thiếu/rỗng ⇒ không tracing, turn chạy y như không có. `LANGFUSE_BASE_URL` **bắt buộc** và không có default — không bao giờ tự trỏ `cloud.langfuse.com`; trỏ instance self-host trên OPfaOS. Exporter chạy **batch** (`realtime: false`), root `Mastra` cache một lần/process, agent đăng ký theo `profile.id` sau mỗi `buildAgent` (lỗi đăng ký/import chỉ warn một lần, không bao giờ throw). Keys chỉ nằm ở `/etc/nsac-web/env` trên box, **không** trong repo/flake/docs. |
+| `LANGFUSE_ENVIRONMENT` · `LANGFUSE_RELEASE` | Optional tag cho trace. `environment` fallback `NODE_ENV`; `release` fallback `npm_package_version` → `NSAC_GIT_SHA` → `GIT_SHA`. |
 
 ### 18.6 Test & vận hành
 
@@ -804,7 +811,10 @@ Luật twin-drift giữ nguyên hiệu lực: mọi tool chat mới của pi cor
   Agent ở seam `setMastraAgentFactoryForTests`: delta, artifacts, abort, empty/error sentinel,
   memory chỉ cho session stateful + working profile chỉ cho `sky-chat` — config
   `workingMemory.enabled/scope/template`, thứ tự base < promptSuffix < block, composer không có
-  profile), `agent-core.test.ts` (default pi khi rỗng/rác/lỗi backend),
+  profile), `mastra-observability.server.test.ts` (gate env đủ/thiếu/rỗng, singleton root dùng lại,
+  import fail ⇒ `null` + warn một lần không lộ key, `addAgent` đúng `profile.id` qua fake root,
+  không root ⇒ không import, đăng ký lỗi ⇒ turn vẫn trả reply — không network),
+  `agent-core.test.ts` (default pi khi rỗng/rác/lỗi backend),
   `astro-chat.mastra.test.ts` (pipeline chat trên core mastra: delta, timeout, missing_key, evict khi
   flip), `run.mastra.test.ts` (one-shot trên mastra + pi không đổi).
 - End-to-end **không spend**: `mastra-core.e2e.test.ts` dựng một endpoint OpenAI-compatible bằng
