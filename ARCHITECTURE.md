@@ -13,13 +13,14 @@ trên một laptop. Hệ thống lấy baseline riêng của từng người, ph
 chỉ liều tập / hành động an toàn, để phi hành gia **xác nhận**, rồi gửi báo cáo về Trái Đất qua link
 trễ 20 phút. Điểm 0–100 “Mars landing readiness” có công thức minh blanco, mỗi trọng số có nguồn.
 
-Repo chứa hai sản phẩm phần mềm tách biệt:
+Repo chứa ba sản phẩm phần mềm tách biệt:
 
 | Thành phần | Vai trò | Trạng thái |
 |---|---|---|
 | `apps/web` | Web app **Sky**: console + trang concept/demo/story, dựng panel bằng OpenUI | Đang chạy |
 | `apps/` | Pipeline sức khỏe TypeScript (Bun): sinh dữ liệu → phát hiện lệch → readiness → draft → confirm → báo cáo | Đang chạy (CLI + test) |
 | `apps/onboard` | App phi hành gia (NiceGUI), dự kiến | Chưa có code (chỉ `.gitkeep`) |
+| `apps/ml-inference` | Service FastAPI (Python 3.12 + uv) phục vụ mô hình đã train trong `data/3_models` qua HTTP `127.0.0.1:8100` | Đang chạy; backend chưa gọi (vòng sau) |
 
 `practice/` là monorepo luyện tay riêng, **không** thuộc bài nộp và không chia sẻ code với
 `apps/`.
@@ -32,6 +33,7 @@ Repo chứa hai sản phẩm phần mềm tách biệt:
 nsac/
 ├── apps/
 │   ├── web/                 Sky (TanStack Start + React 19 + Nitro, bun)
+│   ├── ml-inference/        Service suy luận FastAPI (Python 3.12 + uv), nix `.#inference`
 │   ├── onboard/             (dự kiến) NiceGUI — chưa có code
 │   ├── generative-ui/       (chỗ giữ) catalog/renderer/presets — chưa dùng
 │   └── website/             (chỗ giữ) — chưa dùng

@@ -3,6 +3,15 @@
 
   inputs = {
     nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst";
+
+    # Submodule `data/` (pipeline sky-ml: models, features, configs, source của package `sky_ml`).
+    # Rev PHẢI bằng đúng gitlink của submodule: `git submodule status data` → khi bump submodule
+    # phải bump rev ở đây trong CÙNG commit, nếu không `.#inference` phục vụ artifact khác với
+    # checkout. `flake = false`: chỉ cần cây file, không có outputs Nix.
+    nsac-data = {
+      url = "github:wosonday/nsac-data/c76d50d1df2aaffc07b41da8813519b5372c3dce";
+      flake = false;
+    };
   };
 
   outputs = inputs:
@@ -45,6 +54,53 @@
               aarch64-linux = "sha256-rkz94S8kMzqpJ9Mz9l95h27VHE/9ekVvCJvYI4nevrs=";
             }.${pkgs.stdenv.hostPlatform.system};
           };
+
+          # ---------------------------------------------------------------------------------
+          # Sky ML inference (apps/ml-inference) — xem apps/ml-inference/AGENTS.md.
+          #
+          # `inferenceSrc`: cây "repo + submodule" (./. trừ gitlink data/ + nsac-data ở data/)
+          # để lệnh build nhìn thấy đúng layout của một checkout thật.
+          inferenceSrc = pkgs.runCommand "nsac-inference-src" { } ''
+            mkdir -p $out
+            cp -a ${./.}/. $out/
+            chmod -R u+w $out
+            rm -rf $out/data
+            cp -a ${inputs.nsac-data} $out/data
+          '';
+
+          # FOD: chỉ tải WHEEL (.whl) về một wheelhouse — không chứa venv.
+          #
+          # Vì sao không phải FOD venv như .#nodeModules: nix CẤM output của FOD tham chiếu
+          # store path. Venv luôn tham chiếu interpreter (`pyvenv.cfg` + shebang
+          # `$out/bin/python`), nên build FOD venv với hash đúng sẽ bị:
+          #   error: fixed-output derivations must not reference store paths
+          # (đã kiểm bằng probe). Vì vậy: FOD = wheelhouse (network + hash theo platform),
+          # còn venv được lắp trong derivation thường `inference` bên dưới (không cần mạng).
+          # Wheels khác nhau theo platform ⇒ outputHash per system, bump khi uv.lock đổi.
+          inferenceWheels = pkgs.runCommand "nsac-inference-wheels-1.0.0" {
+            nativeBuildInputs = [ pkgs.uv pkgs.python312 pkgs.python312Packages.pip pkgs.cacert ];
+            dontFixup = true;
+            dontPatchShebangs = true;
+            outputHashMode = "recursive";
+            # Cả hai platform đã pin hash THẬT (không còn fakeHash): x86_64 build tại local,
+            # aarch64 build trên box OpfaOS rồi đối chiếu `nix hash path` → khớp đúng SRI dưới đây.
+            # Bump khi uv.lock đổi; lấy hash mới bằng lib.fakeHash (xem docs/fod-reproducibility.md).
+            outputHash = {
+              x86_64-linux = "sha256-f0wHlsmQQrOU2HAcPaiyAh4xcuzv3e/CxnPiN6Vd67M=";
+              aarch64-linux = "sha256-Z8rJBrfBCrcUWa64TxH3YcoHdLlGLrIAbIul8B9lziE=";
+            }.${pkgs.stdenv.hostPlatform.system};
+          } ''
+            export HOME=$TMPDIR
+            export UV_PYTHON_DOWNLOADS=never
+            export UV_CACHE_DIR=$TMPDIR/uv-cache
+            export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+            cd ${inferenceSrc}/apps/ml-inference
+            uv export --frozen --no-dev --no-emit-project --no-hashes -o $TMPDIR/requirements.txt
+            mkdir -p $out
+            ${pkgs.python312}/bin/python -m pip download \
+              --no-deps --only-binary=:all: --disable-pip-version-check --no-cache-dir \
+              --requirement $TMPDIR/requirements.txt --dest $out
+          '';
         in
         {
           # Dependency tree FOD, exposed by name so deploy.sh can build it and pin its own
@@ -52,6 +108,10 @@
           # reference to it, so without a gcroot `nix-store --gc` deletes it and the next
           # build has to re-run `bun install`, whose output no longer matches outputHash.
           nodeModules = nodeModules;
+
+          # Wheelhouse FOD của service suy luận — expose riêng để build/pin hash theo platform
+          # (deploy.sh build .#inference, nó tự kéo FOD này).
+          inferenceWheels = inferenceWheels;
 
           web = pkgs.stdenv.mkDerivation {
             pname = "nsac-web";
@@ -120,6 +180,47 @@ EOF
             '';
           };
 
+          # Service suy luận (FastAPI, 127.0.0.1:8100) — hợp đồng ở apps/ml-inference/AGENTS.md.
+          # Không build step: PYTHONPATH trỏ thẳng source (apps/ml-inference/src + data/src), venv
+          # chỉ chứa thư viện. Nhờ vậy hash FOD wheelhouse KHÔNG đổi khi sửa code service.
+          # `share/inference-wheels` là symlink tới FOD: output này giữ reference ⇒ gcroot
+          # /nix/var/nix/gcroots/nsac-inference bảo vệ luôn wheelhouse, không cần root riêng.
+          inference = pkgs.stdenv.mkDerivation {
+            pname = "nsac-inference";
+            version = "1.0.0";
+            dontUnpack = true;
+            # Wheel manylinux liên kết libstdc++/libgcc_s/libz của hệ thống ⇒ autoPatchelfHook
+            # sửa RPATH sang store path (fixupPhase chạy như mọi derivation thường).
+            nativeBuildInputs = [ pkgs.uv pkgs.python312 pkgs.autoPatchelfHook ];
+            buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.zlib ];
+            buildPhase = ''
+              export HOME=$TMPDIR
+              export UV_PYTHON_DOWNLOADS=never
+              export UV_CACHE_DIR=$TMPDIR/uv-cache
+              cd ${inferenceSrc}/apps/ml-inference
+              uv export --frozen --no-dev --no-emit-project --no-hashes -o $TMPDIR/requirements.txt
+              uv venv --python ${pkgs.python312}/bin/python3.12 $out
+              uv pip install --python $out/bin/python --no-index \
+                --find-links ${inferenceWheels} --requirements $TMPDIR/requirements.txt
+            '';
+            installPhase = ''
+              mkdir -p $out/share
+              ln -s ${inferenceWheels} $out/share/inference-wheels
+              cat > $out/bin/sky-inference <<EOF
+#!${pkgs.runtimeShell}
+# Sky ML inference — wrapper sinh bởi flake.nix (.#inference). Không đọc secrets.
+# SKY_DATA_ROOT trỏ vào input nsac-data, nên service không phụ thuộc checkout nào trên box.
+export SKY_DATA_ROOT="\''${SKY_DATA_ROOT:-${inputs.nsac-data}}"
+export SKY_ML_SRC="\''${SKY_ML_SRC:-${inputs.nsac-data}/src}"
+export PYTHONPATH="${inferenceSrc}/apps/ml-inference/src:${inputs.nsac-data}/src\''${PYTHONPATH:+:\$PYTHONPATH}"
+export SKY_INFERENCE_HOST="\''${SKY_INFERENCE_HOST:-127.0.0.1}"
+export SKY_INFERENCE_PORT="\''${SKY_INFERENCE_PORT:-8100}"
+exec $out/bin/python -m sky_inference "\$@"
+EOF
+              chmod +x $out/bin/sky-inference
+            '';
+          };
+
           default = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.web;
         });
 
@@ -131,6 +232,10 @@ EOF
         backend = {
           type = "app";
           program = "${inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.backend}/bin/nsac-backend";
+        };
+        inference = {
+          type = "app";
+          program = "${inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.inference}/bin/sky-inference";
         };
         default = inputs.self.apps.${pkgs.stdenv.hostPlatform.system}.web;
         # gc dọn store path mồ côi của các bản deploy cũ (bảo vệ bằng gcroots

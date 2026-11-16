@@ -13,9 +13,27 @@
         "url": "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst"
       }
     },
+    "nsac-data": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794669765,
+        "narHash": "sha256-OKgx2VSKBK87TvjCgKMgLxEysv2cDSfpMC1wKzR+Aww=",
+        "owner": "wosonday",
+        "repo": "nsac-data",
+        "rev": "c76d50d1df2aaffc07b41da8813519b5372c3dce",
+        "type": "github"
+      },
+      "original": {
+        "owner": "wosonday",
+        "repo": "nsac-data",
+        "rev": "c76d50d1df2aaffc07b41da8813519b5372c3dce",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "nsac-data": "nsac-data"
       }
     }
   },

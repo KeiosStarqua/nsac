@@ -1,0 +1,9 @@
+# venv + cache của uv (không commit)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# nix out-links khi build cục bộ
+result
+result-*

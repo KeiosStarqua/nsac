@@ -80,7 +80,6 @@
 - Date: 2026-11-15
 
 ## beui (Morphing Tabs)
-
 - Licence: MIT
 - Source: https://beui.dev/components/blocks/morphing-tabs
 - Repository: https://github.com/starc007/ui-components
@@ -88,6 +87,29 @@
 - Location: apps/web/src/shared/beui/morphing-tabs.tsx
 - Adaptations: `lib/ease` motion tokens inlined as local constants with the upstream values (`EASE_OUT`, `SPRING_GLIDE`, `SPRING_PRESS`); `lib/touch` inlined (`TOUCH_GESTURE_CLASS`, `capturePointer`); `lib/i18n` replaced by inline English defaults (`tabsLabel` "Tabs", close "Close {label}") with the `labels` prop kept; `cn` from `src/shared/lib/utils.ts`; re-themed to Sky's dark HUD tokens (rail = dark navy surface + border, panel = raised navy surface, liquid surface + active tab = `--accent` cyan with `--accent-ink` text, inactive tab = `--muted`); a straight panel top edge (`rounded-t-none`) covers the liquid seam instead of upstream's fill == panel colour; `border-0 bg-transparent` on the buttons (no preflight in this app); `noUncheckedIndexedAccess` guards/non-null assertions (no `as any`, no `@ts-nocheck`). Not vendored: beui's `lib/{ease,i18n,touch,utils}`. No new npm dependency.
 - Used by: the `/admin` page — four operator tabs (Agent models / OpenCode Go key / ElevenLabs key / Reset claims)
+- Date: 2026-11-16
+
+## Python runtime dependencies (`apps/ml-inference`)
+
+Service suy luận (`apps/ml-inference/pyproject.toml` + `uv.lock`) dùng các package sau. Giấy phép
+trích từ metadata của wheel đã pin trong `uv.lock`; nội dung đầy đủ ở LICENSE của từng project.
+
+- **FastAPI** — MIT — https://github.com/fastapi/fastapi/blob/master/LICENSE
+- **Uvicorn** — BSD-3-Clause — https://github.com/Kludex/uvicorn/blob/master/LICENSE.md
+- **Pydantic / pydantic-core** — MIT — https://github.com/pydantic/pydantic/blob/main/LICENSE
+- **Starlette** (transitive của FastAPI) — BSD-3-Clause — https://github.com/encode/starlette/blob/master/LICENSE.md
+- **scikit-learn** 1.9.1 — BSD-3-Clause — https://github.com/scikit-learn/scikit-learn/blob/main/COPYING
+- **LightGBM** 4.7.0 — MIT — https://github.com/microsoft/LightGBM/blob/master/LICENSE
+- **NumPy** — BSD-3-Clause — https://github.com/numpy/numpy/blob/main/LICENSE.txt
+- **Pandas** — BSD-3-Clause — https://github.com/pandas-dev/pandas/blob/main/LICENSE
+- **SciPy** — BSD-3-Clause — https://github.com/scipy/scipy/blob/main/LICENSE.txt
+- **PyYAML** — MIT — https://github.com/yaml/pyyaml/blob/main/LICENSE
+- **joblib** — BSD-3-Clause — https://github.com/joblib/joblib/blob/main/LICENSE.txt
+- **httpx** (dev/test only, `fastapi.testclient`) — BSD-3-Clause — https://github.com/encode/httpx/blob/master/LICENSE.md
+
+Không package nào trong danh sách trên là OSI-approved bắt buộc (luật license OSI đã bỏ 2026-11-14);
+attribution + điều khoản từng thư viện vẫn phải giữ. `sky_ml` (pipeline train) không được cài vào venv
+deploy — service import nó từ submodule `data/` (repo `wosonday/nsac-data`, Apache-2.0 như repo này).
 - Date: 2026-11-16
 
 ## Assets
