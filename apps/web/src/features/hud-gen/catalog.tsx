@@ -36,7 +36,6 @@ import {
   InsightBand as MockInsightBand,
   LeftColumn,
   MiniCards as MockMiniCards,
-  MockFooter,
   MockHeader,
   OrbStage as MockOrbStage,
   ProfileCard as MockProfileCard,
@@ -391,7 +390,7 @@ const RightColumnRegion = columnComponent(
 const Footer = defineComponent({
   name: "Footer",
   description:
-    "The console footer: the demo disclaimer, plus a dismissable hint while the agent-composed layout is active.",
+    "A dismissable hint shown only while the agent-composed layout is active; renders nothing otherwise.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
@@ -408,7 +407,6 @@ const Footer = defineComponent({
             <span aria-hidden="true">×</span>
           </button>
         ) : null}
-        <MockFooter note={ctx.copy.chat.footer} />
       </>
     );
   },

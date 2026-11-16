@@ -28,7 +28,6 @@ export { InsightBand } from "./components/InsightBand";
 export { Sparkline } from "./components/Sparkline";
 export { HudBackdrop } from "./components/HudBackdrop";
 export { MockHeader } from "./components/MockHeader";
-export { MockFooter } from "./components/MockFooter";
 export { LeftColumn, CenterColumn, RightColumn } from "./components/MockColumns";
 export { GreetingStack } from "./components/GreetingStack";
 export { OrbStage } from "./components/OrbStage";

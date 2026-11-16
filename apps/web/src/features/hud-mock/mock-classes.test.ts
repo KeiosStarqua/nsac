@@ -17,8 +17,8 @@ import { CHAT_CARD_ANCHOR, CHAT_CARD_AXIS, CHAT_CARD_HEIGHT, CHAT_CARD_TOP, ORB_
 
 // Chat-open layout contract of the `/` mock console: the voice zone hides, the orb parks at the top
 // of the centre column (leaving the chat card underneath it), and the insight band slides out.
-// Everything is transform/opacity/width only — no box changes on the stage — so the grid, greeting
-// and footer keep their positions.
+// Everything is transform/opacity/width only — no box changes on the stage — so the grid and greeting
+// keep their positions.
 
 describe("hud-mock chat-open classes", () => {
   test("voice cluster hides without leaving the layout", () => {

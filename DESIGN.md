@@ -239,7 +239,7 @@ A single cool family: navy mineral field, sea-glass and instrument cyan for inte
 - **Metric** (300, 30px, 1.0, `-0.02em`, tabular): the one number that answers the panel's question. The gauge and mini cards sit at 19–30px; the detail panel goes to 37px. Units ride along at 10–12px muted, never in the same size.
 - **Body** (300, 12px, 1.5): row values, insight sentence, panel rows. 11–13.5px across the HUD; 14px everywhere in the instrument register.
 - **Label** (500, 10px baseline, .14–.2em, uppercase): card titles (11px), tab labels, chip text, mission chip. Never a sentence — caps + tracking is metadata grammar only.
-- **Micro** (400, 9px, .16em, uppercase): eyebrows, demo markers, `SIMULATED`, the footer note. The floor: nothing reads below 8.5px.
+- **Micro** (400, 9px, .16em, uppercase): eyebrows, demo markers, `SIMULATED`. The floor: nothing reads below 8.5px.
 - **Mono** (400, 12px, .12em): the listening timer (`38px` when live), `⌘K` kbd chips, monospaced severity/engine pills.
 
 ### Named Rules
@@ -265,7 +265,7 @@ Page routes (`/performance`, `/research`) use a centred column (`max-w-[1440px]`
 
 The **watch** face is not laid out in px: the live HUD is clipped into the mockup glass (`53.3% × 53.4%` of the device, `border-radius: 22%/20%`), `container-type: size`, and everything inside sizes in `cqw`/`cqh` so it survives 160×240.
 
-Spacing rhythm is 4px-based: 2px hairlines, 3–4px gaps inside chips and tabs, 6–9px inside rows, 11–14px card padding, 16–20px grid gaps, 24px page gutter, 56px bottom band under the grid so the footer never covers content. Safe-area insets (`env(safe-area-inset-*)`) pad the header, watch stage and floating chrome.
+Spacing rhythm is 4px-based: 2px hairlines, 3–4px gaps inside chips and tabs, 6–9px inside rows, 11–14px card padding, 16–20px grid gaps, 24px page gutter, 56px bottom band under the grid (bottom breathing room). Safe-area insets (`env(safe-area-inset-*)`) pad the header, watch stage and floating chrome.
 
 ## Elevation & Depth
 

@@ -29,8 +29,6 @@ import { HudBackdrop, DetailOverlay } from "../hud-mock";
 import type { DetailDialogProps } from "../hud-mock";
 import { MOCK_ROOT, MOCK_VIGNETTE } from "../hud-mock/mock-classes";
 
-const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
-
 /**
  * The declarative SKY HUD (`?arch=openui`) with its ENTIRE display tree declared as OpenUI Lang
  * (@openuidev/react-lang, pinned 1.1.0) against the catalog in `catalog.tsx`.
@@ -335,9 +333,9 @@ export function SkyScreenGen() {
     return res;
   }, [copy, refreshClaims]);
 
-  const openDetail = useCallback(({ title, value, message, eyebrow = "SIMULATED DATA", footer = DEFAULT_FOOTER }: DetailDialogProps) => {
+  const openDetail = useCallback(({ title, value, message, eyebrow = "SIMULATED DATA" }: DetailDialogProps) => {
     previousFocus.current = document.activeElement;
-    setDetail({ title, value, message, eyebrow, footer });
+    setDetail({ title, value, message, eyebrow });
     setAnnouncer(title);
   }, []);
   const closeDetail = useCallback(() => {
@@ -422,7 +420,6 @@ export function SkyScreenGen() {
         case "OpenMission":
           openDetail({
             ...DETAILS.mission,
-            footer: DEFAULT_FOOTER,
             action: {
               label: copy.astronaut.change,
               onClick: () => {
@@ -499,8 +496,8 @@ export function SkyScreenGen() {
             setClaimError(false);
             setPickerOpen(true);
           }}
-          onVital={(kind: VitalKind) => openDetail({ ...VITAL_DETAILS[kind], footer: DEFAULT_FOOTER })}
-          onHealth={() => openDetail({ ...DETAILS.health, footer: DEFAULT_FOOTER })}
+          onVital={(kind: VitalKind) => openDetail({ ...VITAL_DETAILS[kind] })}
+          onHealth={() => openDetail({ ...DETAILS.health })}
         />
       ) : (
         <HudScopeProvider value={scope}>

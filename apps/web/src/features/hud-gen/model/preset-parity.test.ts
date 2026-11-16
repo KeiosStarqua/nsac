@@ -30,7 +30,6 @@ const MOCK_ORDER = [
   "ReadinessCard",
   "ReadinessDetail",
   "MiniCards",
-  "MockFooter",
 ] as const;
 
 /** The preset's component names for the same regions. */
@@ -79,7 +78,6 @@ describe("mock ↔ gen parity", () => {
     // The wrappers are the mock's own components...
     for (const name of [
       "MockHeader",
-      "MockFooter",
       "MockProfileCard",
       "MockVitalsCard",
       "MockTrendsCard",
