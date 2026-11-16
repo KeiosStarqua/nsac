@@ -2,7 +2,7 @@
  * Incremental Server-Sent Events parser (no IO, client-safe).
  *
  * The chat stream (`/api/chat-stream`) emits one JSON payload per frame, `data: {...}\n\n`, plus
- * `: ping` comments every 15 s. Network chunks split frames at arbitrary byte boundaries, so the
+ * `: ok` / `: ping` comments (5 s keepalive; see `turn-stream.ts`). Network chunks split frames at arbitrary byte boundaries, so the
  * parser keeps the unfinished tail and only dispatches on a blank line.
  *
  * Handled per the SSE spec (https://html.spec.whatwg.org/multipage/server-sent-events.html):

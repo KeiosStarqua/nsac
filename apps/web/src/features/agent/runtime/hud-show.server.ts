@@ -55,12 +55,19 @@ export function createShowHudTool(artifacts: TurnArtifacts, opts: ShowHudOptions
   const compose =
     opts.compose ??
     (async (brief: string): Promise<string> => {
-      const res = await runAgent("sky-generative-ui", brief, {
-        request: brief,
-        surface: "SKY HUD",
-        allowList: HUD_COMPONENT_NAMES,
-        maxChars: MAX_PROGRAM_CHARS,
-      });
+      const res = await runAgent(
+        "sky-generative-ui",
+        brief,
+        {
+          request: brief,
+          surface: "SKY HUD",
+          allowList: HUD_COMPONENT_NAMES,
+          maxChars: MAX_PROGRAM_CHARS,
+        },
+        // Cancelled turn (the astronaut closed the chat / reloaded): the delegated generation stops
+        // with it instead of running on to its own 30 s budget unwatched.
+        { signal: artifacts.signal },
+      );
       if (res.status !== "ok") throw new Error(res.status);
       return res.text;
     });

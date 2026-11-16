@@ -19,7 +19,12 @@ export function setSessionFactory(f: SessionFactory | null) {
   factory = f;
 }
 
-export async function runAgent(profileId: AgentId, input: string, ctx: AgentContext = { request: input }): Promise<RunResult> {
+export async function runAgent(
+  profileId: AgentId,
+  input: string,
+  ctx: AgentContext = { request: input },
+  opts: { signal?: AbortSignal } = {},
+): Promise<RunResult> {
   const profile = getAgent(profileId);
   const merged: AgentContext = { ...ctx, request: ctx.request ?? input };
   const sessFactory = factory ?? (await import("./pi.server")).createSession;
@@ -31,6 +36,12 @@ export async function runAgent(profileId: AgentId, input: string, ctx: AgentCont
     return { status: "unavailable", text: "" };
   }
   const ac = new AbortController();
+  // `opts.signal` is the caller's own budget: a nested turn (e.g. `show_on_hud` delegating to
+  // `sky-generative-ui`) must stop when the turn that asked for it is cancelled, instead of burning
+  // tokens for up to its own timeout on a reply nobody will read.
+  const onExternalAbort = () => ac.abort();
+  if (opts.signal?.aborted) ac.abort();
+  else opts.signal?.addEventListener("abort", onExternalAbort, { once: true });
   const timer = setTimeout(() => ac.abort(), profile.timeoutMs);
   try {
     const text = await Promise.race([
@@ -45,5 +56,7 @@ export async function runAgent(profileId: AgentId, input: string, ctx: AgentCont
     session.dispose();
     if ((e as { message?: string })?.message === "timeout" || ac.signal.aborted) return { status: "timeout", text: "" };
     return { status: "unavailable", text: "" };
+  } finally {
+    opts.signal?.removeEventListener("abort", onExternalAbort);
   }
 }
