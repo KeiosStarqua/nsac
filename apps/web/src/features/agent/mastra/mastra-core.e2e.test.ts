@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createMastraSession, setMastraAgentFactoryForTests } from "./mastra-core.server";
+import { setMastraRootForTests, setObservabilityImportForTests } from "./mastra-observability.server";
 import { resetAgentModelCacheForTests } from "../runtime/agent-model.server";
 import { setSessionFactory } from "../runtime/run.server";
 import { getAgent } from "../agents/registry";
@@ -74,6 +75,9 @@ describe("mastra core end-to-end (local OpenAI-compatible endpoint)", () => {
     backend: process.env.BACKEND_URL,
     db: process.env.NSAC_SKY_MASTRA_DB,
     keyPath: process.env.NSAC_OPENCODE_KEY_PATH,
+    lfPublic: process.env.LANGFUSE_PUBLIC_KEY,
+    lfSecret: process.env.LANGFUSE_SECRET_KEY,
+    lfBase: process.env.LANGFUSE_BASE_URL,
   };
 
   beforeAll(async () => {
@@ -144,6 +148,8 @@ describe("mastra core end-to-end (local OpenAI-compatible endpoint)", () => {
   afterEach(() => {
     setSessionFactory(null);
     setMastraAgentFactoryForTests(null);
+    setObservabilityImportForTests(null);
+    setMastraRootForTests(undefined);
     resetAgentModelCacheForTests();
     const restore = (key: string, value: string | undefined) => {
       if (value === undefined) delete process.env[key];
@@ -155,6 +161,9 @@ describe("mastra core end-to-end (local OpenAI-compatible endpoint)", () => {
     restore("BACKEND_URL", prev.backend);
     restore("NSAC_SKY_MASTRA_DB", prev.db);
     restore("NSAC_OPENCODE_KEY_PATH", prev.keyPath);
+    restore("LANGFUSE_PUBLIC_KEY", prev.lfPublic);
+    restore("LANGFUSE_SECRET_KEY", prev.lfSecret);
+    restore("LANGFUSE_BASE_URL", prev.lfBase);
     rmSync(dir, { recursive: true, force: true });
   });
 
@@ -249,5 +258,42 @@ describe("mastra core end-to-end (local OpenAI-compatible endpoint)", () => {
     setTimeout(() => ac.abort(), 50);
     await expect(pending).rejects.toThrow("aborted");
     session.dispose();
+  });
+
+  it("exports real spans for a tool turn through the observability pipeline", { timeout: 30000 }, async () => {
+    // Real `Observability` + the real Mastra root; only the Langfuse exporter is replaced by a
+    // recorder, so nothing leaves the process (LANGFUSE_BASE_URL points at a dead local port and is
+    // never contacted by the recorder). This is the proof the wiring produces spans at all — the
+    // unit tests stop at `addAgent`.
+    const { BaseExporter, Observability } = await import("@mastra/observability");
+    const { TracingEventType } = await import("@mastra/core/observability");
+    const spans: Array<{ type: string; name?: string }> = [];
+    class RecordingExporter extends BaseExporter {
+      name = "recording";
+      async _exportTracingEvent(event: any) {
+        if (event?.type !== TracingEventType.SPAN_ENDED) return;
+        spans.push({ type: String(event.exportedSpan?.type), name: event.exportedSpan?.name });
+      }
+    }
+    setObservabilityImportForTests(
+      (async () => ({ Observability, LangfuseExporter: RecordingExporter })) as any,
+    );
+    process.env.LANGFUSE_PUBLIC_KEY = "pk-lf-test";
+    process.env.LANGFUSE_SECRET_KEY = "sk-lf-test";
+    process.env.LANGFUSE_BASE_URL = "http://127.0.0.1:1";
+
+    mode = "tool";
+    const artifacts: TurnArtifacts = {};
+    const session = await createMastraSession(getAgent("sky-chat"), chatCtx, { artifacts });
+    const reply = await session.prompt("please show my heart rate", {});
+    session.dispose();
+    // Span export is dispatched asynchronously after the span ends.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(reply).toBe("The display is updated.");
+    const types = spans.map((span) => span.type);
+    expect(types).toContain("agent_run");
+    expect(types).toContain("model_generation");
+    expect(types).toContain("tool_call");
   });
 });
