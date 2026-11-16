@@ -15,8 +15,13 @@
 // handshake/WS upgrade hangs. JWT verification is replicated exactly (HS256, secret = SHA-256 of
 // the residency-suffix-stripped API key) and stays ON always — there is no `disableAuth` here.
 //
-// Phase 1 scope: accumulate the reply and `session.sendResponse` it whole on `done` — no streaming.
-// The `ui` SSE frame (generative UI → HUD swap) is dropped with a log line.
+// Streaming turn: `delta` text is forwarded as `agent_response` frames incrementally
+// (`is_final: false`) as soon as each SSE delta arrives — the turn no longer waits for `done`.
+// A single final `agent_response` (`content: ""`, `is_final: true`) still closes the turn.
+// ElevenLabs sends `user_transcript` refinements while the user speaks; each refinement re-arms a
+// ~800 ms debounce (`SKY_SPEECH_DEBOUNCE_MS`, clamped 300–3000, invalid → 800) so exactly one LLM
+// turn fires after speech stops — duplicates are ignored and close/engine-`error` cancels the pending
+// turn. The `ui` SSE frame (generative UI → HUD swap) is dropped with a log line.
 //
 // Wiring: `startSpeechEngine()` is called once from `server.ts` (same process); the admin surface
 // (`speechAdmin.ts`) can stop/start/restart it and reads `speechEngineStatus()`. The HTTP surface
@@ -29,6 +34,10 @@ import { settingsRepo } from "./db/repositories/settings";
 import { astronautsRepo } from "./db/repositories/astronauts";
 
 const DEFAULT_SPEECH_PORT = 3300;
+/** Transcript debounce: exactly one LLM turn fires this long after the last transcript refinement. */
+export const SPEECH_DEBOUNCE_MS = 800;
+const MIN_SPEECH_DEBOUNCE_MS = 300;
+const MAX_SPEECH_DEBOUNCE_MS = 3000;
 /** Fallback when no astronaut ever picked the HUD (matches the web default crew). */
 export const DEFAULT_ASTRONAUT = "ayla-reyes";
 /** Registration lifetime: a pick older than this no longer binds a new conversation. */
@@ -262,7 +271,23 @@ export function createSseParser(): SseParser {
 }
 
 // ---------------------------------------------------------------------------
-// Turn adapter — one user transcript in, one `sendResponse` out.
+// Transcript debounce — resolves SPEECH_DEBOUNCE_MS with SKY_SPEECH_DEBOUNCE_MS override.
+// ---------------------------------------------------------------------------
+
+/**
+ * Debounce in ms: `SPEECH_DEBOUNCE_MS` (800) unless `SKY_SPEECH_DEBOUNCE_MS` overrides it.
+ * Override is clamped to [300, 3000]; a missing/invalid value falls back to the default.
+ */
+export function speechDebounceMs(): number {
+  const raw = process.env.SKY_SPEECH_DEBOUNCE_MS?.trim();
+  if (!raw) return SPEECH_DEBOUNCE_MS;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return SPEECH_DEBOUNCE_MS;
+  return Math.min(MAX_SPEECH_DEBOUNCE_MS, Math.max(MIN_SPEECH_DEBOUNCE_MS, Math.trunc(n)));
+}
+
+// ---------------------------------------------------------------------------
+// Turn adapter — one user transcript in, one streamed turn of `agent_response` out.
 // ---------------------------------------------------------------------------
 
 export type SpeechTurnStatus = "ok" | "error" | "aborted";
@@ -272,6 +297,8 @@ export interface RunSpeechTurnArgs {
   message: string;
   /** Aborts the upstream fetch when the user interrupts or the socket closes. */
   signal?: AbortSignal;
+  /** Called for every SSE `delta` frame with non-empty text, in order, only while no error was seen. */
+  onDelta?: (text: string) => void;
   /** Called exactly once on a completed turn (`done` frame). Never on error/abort. */
   sendResponse: (text: string) => void;
   /** Test seam — defaults to global fetch. */
@@ -288,7 +315,8 @@ function chatStreamUrl(): string {
 
 /**
  * Runs one voice turn against the web `/api/chat-stream` SSE pipeline and reports back.
- * Accumulates `delta` text, drops `ui` frames (phase 1), refuses to answer on an `error` frame,
+ * Streams `delta` text through `onDelta` as it arrives (never on/after an `error` frame),
+ * still accumulates it internally, drops `ui` frames, refuses to answer on an `error` frame,
  * and on abort cancels the body without responding. `sendResponse` fires at most once per call.
  */
 export async function runSpeechTurn(args: RunSpeechTurnArgs): Promise<SpeechTurnStatus> {
@@ -323,6 +351,14 @@ export async function runSpeechTurn(args: RunSpeechTurnArgs): Promise<SpeechTurn
       for (const frame of frames) {
         if (frame.type === "delta" && typeof frame.text === "string") {
           full += frame.text;
+          if (frame.text.length > 0 && !sawError) {
+            try {
+              args.onDelta?.(frame.text);
+            } catch {
+              // Deltas are fire-and-forget — a broken consumer must not corrupt the turn outcome.
+              console.error("[speech] onDelta handler failed");
+            }
+          }
         } else if (frame.type === "ui") {
           // Phase 1: generative UI → HUD swap is out of scope for the voice loop.
           console.info("[speech] ui frame dropped (phase 1)");
@@ -377,10 +413,20 @@ export async function runSpeechTurn(args: RunSpeechTurnArgs): Promise<SpeechTurn
 // Outgoing frames — shape per the wire protocol (see module header).
 // ---------------------------------------------------------------------------
 
-function sendAgentResponse(ws: SpeechSocket, content: string, eventId: number | null): void {
+/** Streaming delta — `is_final: false`. ElevenLabs expects these during the turn. */
+function sendAgentDelta(ws: SpeechSocket, content: string, eventId: number | null): void {
   if (ws.readyState !== 1) return; // OPEN
   try {
     ws.send(JSON.stringify({ type: "agent_response", content, event_id: eventId ?? undefined, is_final: false }));
+  } catch {
+    // Socket died mid-turn — deltas are best-effort; the final frame will fail the same way.
+  }
+}
+
+/** Turn completion — exactly the final `is_final: true` frame production sends today. */
+function sendAgentFinal(ws: SpeechSocket, eventId: number | null): void {
+  if (ws.readyState !== 1) return; // OPEN
+  try {
     ws.send(JSON.stringify({ type: "agent_response", content: "", event_id: eventId ?? undefined, is_final: true }));
   } catch {
     // Socket died mid-turn — nothing more to do.
@@ -393,6 +439,7 @@ interface SpeechSocketData {
   astronautId: string | null;
   lastEventId: number | null;
   currentAbort: AbortController | null;
+  pendingTranscript: { content: string; timer: ReturnType<typeof setTimeout> } | null;
 }
 interface SpeechSocket {
   data: SpeechSocketData;
@@ -414,12 +461,21 @@ const incomingMessageSchema = z.object({
 });
 
 function freshSocketData(): SpeechSocketData {
-  return { conversationId: null, astronautId: null, lastEventId: null, currentAbort: null };
+  return { conversationId: null, astronautId: null, lastEventId: null, currentAbort: null, pendingTranscript: null };
+}
+
+/** Cancel a buffered (debounced) transcript turn without firing it. */
+function clearPendingTranscript(ws: SpeechSocket): void {
+  if (ws.data.pendingTranscript) {
+    clearTimeout(ws.data.pendingTranscript.timer);
+    ws.data.pendingTranscript = null;
+  }
 }
 
 function cleanupSocket(ws: SpeechSocket): void {
   ws.data.currentAbort?.abort();
   ws.data.currentAbort = null;
+  clearPendingTranscript(ws);
   if (ws.data.conversationId) {
     unbindConversation(ws.data.conversationId);
     ws.data.conversationId = null;
@@ -438,27 +494,41 @@ function handleInit(ws: SpeechSocket, conversationId: string): void {
   bindConversation(conversationId, ws.data.astronautId);
 }
 
-function handleUserTranscript(ws: SpeechSocket, transcript: Array<{ role: string; content: string }>, eventId: number | undefined): void {
-  const lastUser = [...transcript].reverse().find((m) => m.role === "user" && m.content.length > 0);
-  if (!lastUser) return;
-  // A new transcript interrupts the in-flight turn (the SDK does the same via abortCurrent()).
-  ws.data.currentAbort?.abort();
+/** Starts one LLM turn for `message` — moved out of the transcript handler so the debounce timer can fire it. */
+function startSpeechTurn(ws: SpeechSocket, message: string): void {
   const ac = new AbortController();
   ws.data.currentAbort = ac;
-  if (typeof eventId === "number" && Number.isFinite(eventId)) {
-    ws.data.lastEventId = eventId;
-  }
   const astronautId =
     ws.data.astronautId ?? (ws.data.conversationId ? astronautForConversation(ws.data.conversationId) : null) ?? DEFAULT_ASTRONAUT;
   void runSpeechTurn({
     astronautId,
-    message: lastUser.content,
+    message,
     signal: ac.signal,
-    sendResponse: (text) => sendAgentResponse(ws, text, ws.data.lastEventId),
+    onDelta: (text) => sendAgentDelta(ws, text, ws.data.lastEventId),
+    sendResponse: (_text) => sendAgentFinal(ws, ws.data.lastEventId),
   }).then((status) => {
     if (ws.data.currentAbort === ac) ws.data.currentAbort = null;
     if (status === "aborted") console.info("[speech] turn aborted (user interrupted or socket closed)");
   });
+}
+
+function handleUserTranscript(ws: SpeechSocket, transcript: Array<{ role: string; content: string }>, eventId: number | undefined): void {
+  const lastUser = [...transcript].reverse().find((m) => m.role === "user" && m.content.length > 0);
+  if (!lastUser) return;
+  // A pure duplicate refinement — keep the pending timer untouched, change nothing.
+  if (ws.data.pendingTranscript?.content === lastUser.content) return;
+  // A new transcript interrupts the in-flight turn (the SDK does the same via abortCurrent()).
+  ws.data.currentAbort?.abort();
+  clearPendingTranscript(ws);
+  if (typeof eventId === "number" && Number.isFinite(eventId)) {
+    ws.data.lastEventId = eventId;
+  }
+  const content = lastUser.content;
+  const timer = setTimeout(() => {
+    ws.data.pendingTranscript = null;
+    startSpeechTurn(ws, content);
+  }, speechDebounceMs());
+  ws.data.pendingTranscript = { content, timer };
 }
 
 /** Bun websocket handlers for the speech engine port (same shape as sensors/ws.ts). */
@@ -500,6 +570,7 @@ export const speechWsHandlers = {
         const safe = (msg.message ?? "unknown").slice(0, 200);
         console.error(`[speech] engine error: ${safe}`);
         ws.data.currentAbort?.abort();
+        clearPendingTranscript(ws);
         return;
       }
       default:
