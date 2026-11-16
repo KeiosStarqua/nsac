@@ -215,7 +215,7 @@ const VoiceClusterRegion = defineComponent({
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
-    const live = ctx.phase === "listening" || ctx.phase === "requesting_permission";
+    const live = ctx.phase !== "idle" && ctx.phase !== "error" && ctx.phase !== "offline";
     return (
       <MockVoiceCluster
         phase={ctx.phase}

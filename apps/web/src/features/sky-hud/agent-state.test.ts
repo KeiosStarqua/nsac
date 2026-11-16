@@ -59,6 +59,17 @@ describe("agentStateForVoiceChat", () => {
     expect(agentStateForVoiceChat("idle", "listening", null)).toBe("idle");
     expect(agentStateForVoiceChat("connecting", "listening", null)).toBe("connecting");
     expect(agentStateForVoiceChat("live", "listening", null)).toBe("listening");
+    expect(agentStateForVoiceChat("live", "thinking", null)).toBe("thinking");
     expect(agentStateForVoiceChat("live", "speaking", null)).toBe("speaking");
+  });
+
+  it("lets a live thinking state clear into speaking (the backend answers the turn)", () => {
+    expect(agentStateForVoiceChat("live", "thinking", null)).toBe("thinking");
+    expect(agentStateForVoiceChat("live", "speaking", null)).toBe("speaking");
+  });
+
+  it("keeps the notice precedence over thinking", () => {
+    expect(agentStateForVoiceChat("live", "thinking", "failed")).toBe("error");
+    expect(agentStateForVoiceChat("live", "thinking", "notConfigured")).toBe("error");
   });
 });

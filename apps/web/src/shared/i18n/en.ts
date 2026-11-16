@@ -172,6 +172,7 @@ export const en: Copy = {
     voiceConnecting: "Connecting to Sky…",
     voiceListening: "Listening…",
     voiceSpeaking: "Sky is speaking…",
+    voiceThinking: "Sky is thinking…",
     voiceNotConfigured: "Voice not configured",
     voiceFailed: "Voice unavailable — type instead",
   },

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMounted } from "../../shared/hooks/useMounted";
 import { useReducedMotion } from "motion/react";
 import { CHAT_OVERRIDE_CHIP } from "../sky-hud/hud-classes";
-import { useSkyVoice } from "../sky-hud/useSkyVoice";
-import { agentStateForVoicePhase } from "../sky-hud/agent-state";
+import { useVoiceChat } from "../sky-hud/useVoiceChat";
+import { agentStateForVoiceChat } from "../sky-hud/agent-state";
 import { useToggleChatShortcut } from "../sky-hud/useToggleChatShortcut";
 import { PHASE_TEXT } from "../sky-hud/voiceCopy";
 import { SkyOrb } from "../sky-hud/SkyOrb";
@@ -37,8 +37,8 @@ const DEFAULT_FOOTER = "Demonstration only · Not medical advice";
  *
  * The catalog renders the mock console's own modules (`features/hud-mock/components/*`) and classes,
  * so this screen and `/` (`SkyHudMock`) are one design: same header, grid, cards, copy and fixture.
- * Only the gen chrome (the "Back to Sky's view" chip) and the voice path (`useSkyVoice` here,
- * ElevenLabs Speech Engine on `/`) differ.
+ * Only the gen chrome (the "Back to Sky's view" chip) differs; the voice path is the same
+ * ElevenLabs Speech Engine (`useVoiceChat`) as the mock console on `/`.
  *
  * The preset is the primary path. The `sky-hud-composer` agent (per-astronaut PI SDK session,
  * `var/sky-sessions/<id>.hud.jsonl`) may replace it after review passes; on any failure the preset
@@ -52,7 +52,6 @@ export function SkyScreenGen() {
   const copy = useCopy();
   const locale = useLocale();
   const navigate = useNavigate();
-  const [hint, setHint] = useState(PHASE_TEXT.idle);
   const mounted = useMounted();
   useEffect(() => {
     if (!mounted) return;
@@ -96,8 +95,63 @@ export function SkyScreenGen() {
   const detailRef = useRef<HTMLDivElement | null>(null);
   const previousFocus = useRef<Element | null>(null);
 
-  const { phase, energyRef, toggle, readEnergy, readSpectrum } = useSkyVoice((next) => setHint(PHASE_TEXT[next]));
-  const orbState = agentStateForVoicePhase(phase);
+  const {
+    status: voiceStatus,
+    mode: voiceMode,
+    notice: voiceNotice,
+    energyRef,
+    wavePhase,
+    readSpectrum,
+    syncEnergy,
+    start: startVoiceChat,
+    stop: stopVoiceChat,
+    setNotice: setVoiceNotice,
+  } = useVoiceChat(astronautId);
+  const orbState = agentStateForVoiceChat(voiceStatus, voiceMode, voiceNotice);
+
+  // Quiet hints (not configured / failed) clear themselves back to the idle line.
+  useEffect(() => {
+    if (!voiceNotice) return;
+    const timer = window.setTimeout(() => setVoiceNotice(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [voiceNotice, setVoiceNotice]);
+
+  const hint =
+    voiceStatus === "connecting"
+      ? copy.hudMock.voiceConnecting
+      : voiceStatus === "live"
+        ? voiceMode === "speaking"
+          ? copy.hudMock.voiceSpeaking
+          : voiceMode === "thinking"
+            ? copy.hudMock.voiceThinking
+            : copy.hudMock.voiceListening
+        : voiceNotice === "notConfigured"
+          ? copy.hudMock.voiceNotConfigured
+          : voiceNotice === "failed"
+            ? copy.hudMock.voiceFailed
+            : PHASE_TEXT.idle;
+
+  // Announce voice transitions to screen readers.
+  useEffect(() => {
+    setAnnouncer(
+      voiceStatus === "connecting"
+        ? copy.hudMock.voiceConnecting
+        : voiceStatus === "live"
+          ? voiceMode === "speaking"
+            ? copy.hudMock.voiceSpeaking
+            : voiceMode === "thinking"
+              ? copy.hudMock.voiceThinking
+              : copy.hudMock.voiceListening
+          : "",
+    );
+  }, [voiceStatus, voiceMode, copy]);
+
+  // One start/stop helper — every mic entry point (ToggleMic, the watch layout, "Use voice")
+  // taps the same button: idle starts, anything else ends the session.
+  const toggleVoiceChat = useCallback(() => {
+    if (voiceStatus === "idle") void startVoiceChat();
+    else void stopVoiceChat();
+  }, [voiceStatus, startVoiceChat, stopVoiceChat]);
 
   // ⌘K / Ctrl+K anywhere on the console toggles the chat card (the watch layout has no chat card).
   useToggleChatShortcut(() => setChatOpen((open) => !open), !isWatch);
@@ -258,12 +312,12 @@ export function SkyScreenGen() {
       if (document.hidden) return;
       if (now - last < 33) return;
       last = now;
-      readEnergy();
+      syncEnergy();
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readEnergy]);
+  }, [syncEnergy]);
 
   const persistLocalPick = useCallback((astroId: string) => {
     try { window.localStorage.setItem(ASTRONAUT_STORAGE_KEY, astroId); } catch { /* ignore */ }
@@ -441,7 +495,7 @@ export function SkyScreenGen() {
           setChatOpen((value) => !value);
           return;
         case "ToggleMic":
-          void toggle();
+          toggleVoiceChat();
           return;
         case "DismissComposeHint":
           setComposeHintDismissed(true);
@@ -450,7 +504,7 @@ export function SkyScreenGen() {
           break;
       }
     },
-    [copy, openDetail, closeDetail, toggle],
+    [copy, openDetail, closeDetail, toggleVoiceChat],
   );
 
   const scope = useMemo<HudScopeValue>(
@@ -464,7 +518,7 @@ export function SkyScreenGen() {
         role: shown.role,
       },
       fx,
-      phase,
+      phase: wavePhase,
       hint,
       energyRef,
       readSpectrum,
@@ -478,23 +532,23 @@ export function SkyScreenGen() {
       resetView,
       onAction: handleAction,
     }),
-    [copy, facts, shown, fx, phase, hint, energyRef, readSpectrum, greeting, prompt, chatOpen, agentProgram, composeHintDismissed, orbNode, resetView, handleAction],
+    [copy, facts, shown, fx, wavePhase, hint, energyRef, readSpectrum, greeting, prompt, chatOpen, agentProgram, composeHintDismissed, orbNode, resetView, handleAction],
   );
 
   const program = overrideProgram ?? agentProgram ?? hudPreset(locale);
 
   return (
-    <main className={MOCK_ROOT} data-phase={phase} data-agent-state={orbState} aria-label="SKY astronaut wellness overview">
+    <main className={MOCK_ROOT} data-phase={wavePhase} data-agent-state={orbState} aria-label="SKY astronaut wellness overview">
       <HudBackdrop bg={bg} fx={fx} />
       <div className={MOCK_VIGNETTE} aria-hidden="true" />
 
       {isWatch ? (
         <WatchHud
-          phase={phase}
+          phase={wavePhase}
           hint={hint}
-          micDisabled={phase === "requesting_permission"}
+          micDisabled={voiceStatus === "connecting"}
           astronautName={selectedAstronaut ? firstName(selectedAstronaut.name) : null}
-          onToggleMic={() => void toggle()}
+          onToggleMic={toggleVoiceChat}
           onSelectCrew={() => {
             setClaimError(false);
             setPickerOpen(true);
@@ -525,9 +579,9 @@ export function SkyScreenGen() {
           onReply={(t) => { setPrompt(t.length > 160 ? `${t.slice(0, 157)}…` : t); setAnnouncer(t); }}
           onUiProgram={handleChatProgram}
           onUseVoice={() => {
-            // Same as tapping the idle orb: only start capture from idle/error.
+            // Same as tapping the mic on the console: only start from idle.
             setChatOpen(false);
-            if (phase === "idle" || phase === "error") handleAction({ type: "ToggleMic", params: {} });
+            if (voiceStatus === "idle") void startVoiceChat();
           }}
         />
       ) : null}

@@ -35,8 +35,9 @@ export interface VoiceClusterProps {
 
 /**
  * The centre column's voice control: `VoicePill` while idle, the wide `ListeningBar` while a session
- * is live, the hint line under it and the "Type instead" pill. One component for `/` (Speech Engine
- * voice) and `?arch=openui` (local `useSkyVoice`) — the voice path differs, the chrome does not.
+ * is live, the hint line under it and the "Type instead" pill. One component for both `/` consoles
+ * (the mock console and `?arch=openui` Hub Gen) — both speak through the ElevenLabs Speech Engine
+ * (`useVoiceChat`); `/watch` keeps `useSkyVoice`.
  */
 export function VoiceCluster({
   phase,
