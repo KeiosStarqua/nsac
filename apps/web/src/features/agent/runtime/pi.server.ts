@@ -3,8 +3,15 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { registerLazyBedrockProvider } from "@earendil-works/pi-ai/lazy-bedrock-provider";
 import { readOpenCodeKey } from "./opencode-key.server";
 import { readBedrockKey } from "./bedrock-key.server";
+
+// Nitro inlines pi-ai; its Bedrock implementation is reached through a variable
+// specifier the bundler cannot follow. Registering a literal dynamic import here
+// keeps the Bedrock chunk inside the server bundle (loaded on the first Bedrock
+// request only). Server-only module — must not reach the browser bundle.
+registerLazyBedrockProvider();
 
 // Re-exported with the signature intact — every existing import site keeps working.
 export { readOpenCodeKey, readBedrockKey };

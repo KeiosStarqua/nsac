@@ -32,6 +32,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@ai-sdk/react": "^4.0.177",
+        "@earendil-works/pi-ai": "1.5.2",
         "@earendil-works/pi-coding-agent": "1.5.2",
         "@elevenlabs/client": "^1.36.1",
         "@hugeicons/core-free-icons": "^4.4.0",
