@@ -166,7 +166,6 @@ export const en: Copy = {
     insightText: "Your sleep was {sleep} with {efficiency} efficiency. Recovery is on track.",
     insightKicker: "Simulated signals",
     insightOpen: "Open Human Performance",
-    simulatedCrew: "SIMULATED CREW DATA (P0)",
     bodyHoloAria: "Simulated body composition hologram",
     bodyHoloOpen: "Open the simulated body health map",
     detailClose: "Close details",

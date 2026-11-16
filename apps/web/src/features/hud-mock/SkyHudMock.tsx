@@ -508,7 +508,7 @@ export function SkyHudMock() {
         </RightColumn>
       </div>
 
-      <MockFooter note={copy.chat.footer} chip={copy.hudMock.simulatedCrew} />
+      <MockFooter note={copy.chat.footer} />
 
       {detail ? (
         <DetailOverlay

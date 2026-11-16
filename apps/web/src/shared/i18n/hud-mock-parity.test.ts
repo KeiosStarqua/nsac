@@ -68,7 +68,6 @@ describe("hudMock.* i18n", () => {
       "cardActivity",
       "cardEnergyBurned",
       "cardEnergyIntake",
-      "simulatedCrew",
       "detailClose",
     ];
     for (const key of translated) {
