@@ -13,7 +13,7 @@
 // output path plays TTS through the SDK's WebRTC/WS audio out; `/api/tts` is not involved.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VoiceConversation } from "@elevenlabs/client";
-import type { VoicePhase } from "../sky-hud/types";
+import type { VoicePhase } from "./types";
 
 export type VoiceChatStatus = "idle" | "connecting" | "live";
 export type VoiceChatMode = "listening" | "thinking" | "speaking";
