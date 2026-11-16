@@ -9,13 +9,14 @@ import {
 } from "./admin-tabs";
 
 describe("ADMIN_TABS", () => {
-  it("has the five tabs in display order", () => {
+  it("has the six tabs in display order", () => {
     expect(ADMIN_TABS.map((tab) => tab.id)).toEqual([
       "models",
       "keys",
       "speech",
       "claims",
       "background",
+      "ui",
     ]);
   });
 
@@ -39,6 +40,7 @@ describe("adminTabFromPathname", () => {
     expect(adminTabFromPathname("/admin/speech")).toBe("speech");
     expect(adminTabFromPathname("/admin/claims")).toBe("claims");
     expect(adminTabFromPathname("/admin/background")).toBe("background");
+    expect(adminTabFromPathname("/admin/ui")).toBe("ui");
   });
 
   it("folds the legacy key routes into keys", () => {
