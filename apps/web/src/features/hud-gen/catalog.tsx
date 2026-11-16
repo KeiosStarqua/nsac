@@ -391,7 +391,7 @@ const RightColumnRegion = columnComponent(
 const Footer = defineComponent({
   name: "Footer",
   description:
-    "The console footer: demo disclaimer, simulated-data chip, plus a dismissable hint while the agent-composed layout is active.",
+    "The console footer: the demo disclaimer, plus a dismissable hint while the agent-composed layout is active.",
   props: z.object({}),
   component: () => {
     const ctx = useHudScope();
@@ -408,7 +408,7 @@ const Footer = defineComponent({
             <span aria-hidden="true">×</span>
           </button>
         ) : null}
-        <MockFooter note={ctx.copy.chat.footer} chip={ctx.copy.hudMock.simulatedCrew} />
+        <MockFooter note={ctx.copy.chat.footer} />
       </>
     );
   },

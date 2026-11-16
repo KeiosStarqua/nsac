@@ -205,7 +205,6 @@ export interface Copy {
     insightText: string;
     insightKicker: string;
     insightOpen: string;
-    simulatedCrew: string;
     bodyHoloAria: string;
     /** Accessible name of the Body-tab hologram button that opens `/body`. */
     bodyHoloOpen: string;

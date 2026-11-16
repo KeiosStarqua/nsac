@@ -166,7 +166,6 @@ export const vi: Copy = {
     insightText: "Bạn đã ngủ {sleep} với hiệu suất {efficiency}. Quá trình hồi phục đang đúng tiến độ.",
     insightKicker: "Tín hiệu mô phỏng",
     insightOpen: "Mở trang Hiệu suất thể chất",
-    simulatedCrew: "DỮ LIỆU PHI HÀNH ĐOÀN MÔ PHỎNG (P0)",
     bodyHoloAria: "Ảnh ba chiều thành phần cơ thể mô phỏng",
     bodyHoloOpen: "Mở bản đồ sức khỏe cơ thể mô phỏng",
     detailClose: "Đóng chi tiết",
