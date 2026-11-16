@@ -28,10 +28,13 @@ export interface MockHeaderProps {
 /**
  * The console header: brand mark, `ISS · Day N` mission chip, the Console | Watch and SPACECRAFT
  * chips, plus the locale switcher. One component for `/` and `?arch=openui` so the chrome matches.
+ * `data-hud-header` is the measurement anchor for the floating chat card (`chat-geometry.ts`) — the
+ * card is portalled to `document.body` and anchors under the centre column, which starts at the
+ * header's bottom edge.
  */
 export function MockHeader({ copy, showLanguageSwitcher = true, onBrand, onMission }: MockHeaderProps) {
   return (
-    <header className={MOCK_HEADER}>
+    <header className={MOCK_HEADER} data-hud-header="">
       <button className={BRAND} type="button" aria-label={copy.hud.brandAria} onClick={onBrand}>
         <span className={BRAND_RING} aria-hidden="true" />
         <span className={BRAND_COPY}>

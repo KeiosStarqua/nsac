@@ -3,9 +3,10 @@
  * (`src/shared/ai-elements/`, MIT) with a custom AI SDK transport (`features/agent/runtime/chat-transport.ts`).
  *
  * `/watch` keeps the legacy `ChatPanel` (a compact text row inside the watch face); this panel is the
- * console conversation. It is a **floating card portalled to `document.body`**, centred on screen over
- * a transparent click-catcher (no dim, no blur — the stage stays fully visible behind it) — full-bleed
- * below 480px. Behaviour it owns:
+ * console conversation. It is a **floating card portalled to `document.body`** over a transparent
+ * click-catcher (no dim, no blur — the stage stays fully visible behind it): from 721px it sits on the
+ * HUD centre-column axis and is anchored under the orb (`features/sky-hud/chat-geometry.ts`), so the
+ * orb stays visible above it; below that it is centred, and full-bleed under 480px. Behaviour it owns:
  *
  *  - `useChat` state only; history comes from the existing `loadChatHistory` server function (the SDK
  *    never fetches it) and a turn streams through the SSE route `/api/chat-stream` (transport-owned):
@@ -18,7 +19,7 @@
  *    capture the idle orb starts.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent, KeyboardEvent } from "react";
+import type { CSSProperties, FormEvent, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useChat } from "@ai-sdk/react";
 import { LoaderCircleIcon, MessageCircleDashedIcon, MessageCircleIcon, MicIcon, SendIcon, Volume2Icon, VolumeXIcon, XIcon } from "lucide-react";
@@ -50,6 +51,7 @@ import {
 import { format, useCopy } from "~/shared/i18n";
 import { firstName } from "../../astronaut";
 import { loadChatHistory } from "../../agent/chat";
+import { CHAT_CARD_ANCHOR, CHAT_CARD_AXIS } from "../chat-geometry";
 import { SkyChatTransport, chatErrorCode, messageText, toUIMessages } from "../../agent/runtime/chat-transport";
 import type { SkyUIMessage } from "../../agent/runtime/chat-transport";
 
@@ -64,12 +66,19 @@ export type SkyChatPanelProps = {
 };
 
 // Centered modal over the HUD: a transparent flex layer that catches outside clicks (dismiss) under
-// the card — no dim, no blur, so the stage stays fully visible behind the chat. The card is centred
-// both axes; full-bleed on phones (≤480px). Palette unchanged (Sky navy + cyan→purple rim).
-const CHAT_LAYER = "fixed inset-0 z-[40] flex items-center justify-center";
+// the card — no dim, no blur, so the stage stays fully visible behind the chat. From 721px the card is
+// anchored under the orb (`chat-geometry.ts`) instead of centred vertically, so the orb stays visible;
+// below that it is centred, and full-bleed on phones (≤480px). Palette unchanged (Sky navy + rim).
+const CHAT_LAYER = "fixed inset-0 z-[40] flex items-center justify-center min-[721px]:items-start";
 
 const CHAT_CARD = [
   "relative flex h-[min(600px,84dvh)] w-[min(560px,94vw)] flex-col overflow-hidden",
+  // Horizontal: the HUD's centre-column axis, not the viewport centre (`CHAT_CARD_AXIS` explains the
+  // per-breakpoint offsets — −80px ≥1101px, +208px on the two-column layout, clamped inside the viewport).
+  CHAT_CARD_AXIS,
+  // Vertical ≥721px: the header bottom + the orb's ball, measured by `--hud-header-bottom` (the header
+  // wraps, so its height is not a constant) — the card starts 8px under the ball and never overflows.
+  CHAT_CARD_ANCHOR,
   "rounded-[20px] border border-transparent",
   // Double background: navy fill in the padding box, the cyan→purple rim in the border box.
   "[background:linear-gradient(180deg,#0b1a34,#081427)_padding-box,linear-gradient(120deg,rgba(92,240,208,.5),rgba(179,114,255,.5))_border-box]",
@@ -80,7 +89,11 @@ const CHAT_CARD = [
   "max-[480px]:[transition:none] max-[480px]:[background:linear-gradient(180deg,#0b1a34,#081427)_padding-box]",
 ].join(" ");
 
-/** The two rAFs between mount and this state are the fade + 8px rise; skipped for reduced motion. */
+/**
+ * The two rAFs between mount and this state are the fade + 8px rise; skipped for reduced motion.
+ * Only `y` lives in these two states — the axis shift (`CHAT_CARD_AXIS`) sits in `CHAT_CARD`, so the
+ * entrance animates the rise alone (Tailwind v4 composes both through the `translate` longhand + its vars).
+ */
 const CHAT_CARD_OPEN = "translate-y-0 opacity-100";
 const CHAT_CARD_ENTER = "translate-y-2 opacity-0 motion-reduce:translate-y-0 motion-reduce:opacity-100";
 
@@ -129,6 +142,26 @@ export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVo
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // The card is portalled to `document.body`, so it cannot inherit the console's layout: the one
+  // number it needs is where the console header ends (the centre column starts there). The header
+  // wraps at some widths, so measure it and re-measure on resize — `chat-geometry.ts` fallback 96px
+  // only covers the first paint (the measured value is 88.2px at 1440×900).
+  const [headerBottom, setHeaderBottom] = useState(96);
+  useEffect(() => {
+    const header = document.querySelector<HTMLElement>("[data-hud-header]");
+    // `ceil`: the card must start at or below the measured header edge, never a sub-pixel above it
+    // (the grid's 12px top pad is inside the calc, so rounding down would shave the ball's clearance).
+    const measure = () => setHeaderBottom(header ? Math.ceil(header.getBoundingClientRect().bottom) : 96);
+    measure();
+    window.addEventListener("resize", measure);
+    const observer = header && typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (header) observer?.observe(header);
+    return () => {
+      window.removeEventListener("resize", measure);
+      observer?.disconnect();
+    };
+  }, []);
+
   // Entrance: two frames after mount flips the card out of the offset/faded state. One frame is not
   // enough — the browser would paint the open state straight away and the transition would never run
   // (reduced motion is exempt: the enter classes are neutralised under `motion-reduce`).
@@ -168,6 +201,7 @@ export function SkyChatPanel({ astronaut, onClose, onReply, onUiProgram, onUseVo
         aria-modal="true"
         aria-label={label}
         className={`${CHAT_CARD} ${entered ? CHAT_CARD_OPEN : CHAT_CARD_ENTER}`}
+        style={{ "--hud-header-bottom": `${headerBottom}px` } as CSSProperties}
       >
         {/* Keyed by crew member: `useChat` reads its transport once, so a new astronaut needs a new chat. */}
         <SkyChatThread
@@ -370,16 +404,22 @@ function SkyChatThread({ astronaut, onClose, onReply, onUiProgram, onUseVoice }:
         </div>
       </header>
 
-      <div className="min-h-0 w-full flex-1 px-6">
+      {/* min-h-0 + overflow: the thread region absorbs whatever the card height leaves; a short card
+          (small viewport under a large orb) clips its own content instead of spilling over the
+          composer. The scroller inside owns its scrolling. */}
+      <div className="min-h-0 w-full flex-1 overflow-hidden px-6">
         <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollPreviousItemPeek={48}>
           {messages.length === 0 && !busy ? (
-            <Empty className="h-full">
+            // Short viewports leave the card less room under a large orb: drop the empty-state glyph,
+            // tighten the padding and step the copy down a size, so all of it still fits
+            // (`max-height` variants, same pattern as WatchHud).
+            <Empty className="h-full [@media(max-height:840px)]:p-2">
               <EmptyHeader>
-                <EmptyMedia variant="icon">
+                <EmptyMedia variant="icon" className="[@media(max-height:840px)]:hidden">
                   <MessageCircleDashedIcon className="size-5" />
                 </EmptyMedia>
-                <EmptyTitle>{c.emptyTitle}</EmptyTitle>
-                <EmptyDescription>{c.emptyDescription}</EmptyDescription>
+                <EmptyTitle className="[@media(max-height:840px)]:text-base">{c.emptyTitle}</EmptyTitle>
+                <EmptyDescription className="[@media(max-height:840px)]:text-xs">{c.emptyDescription}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
