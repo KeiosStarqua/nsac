@@ -368,6 +368,7 @@ A 14px-radius frame, `aspect-ratio: 2/3`, 1px `rgba(122,222,255,.14)`, interior 
 - **Do** keep every measurement tabular, with its unit separate and muted, and every score labelled with its source or `SIMULATED`.
 - **Do** show the `SIMULATED` chip on any fixture value, on the card itself, at ≥8.5px — never only in a footer.
 - **Do** keep the focus ring at 2px `#f5fcff`, offset 3–5px, on every interactive element including canvases and the picker.
+- **Do** theme the browser scrollbar to the stage — a thin navy thumb (`#243252`, hover `#33456f`) on `#070b14`, `scrollbar-width: thin` — not the platform default on the dark field.
 - **Do** ship both languages through `shared/i18n` and let the widest string drive the layout.
 - **Do** give every state a word, not only a colour: `unknown`, `stale`, `queued`, `acknowledged`, `needs review`.
 - **Do** treat reduced motion as a first-class state: `motion-reduce:animate-none!` on every animation and `behavior:auto` on scroll.

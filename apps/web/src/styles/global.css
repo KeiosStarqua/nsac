@@ -72,6 +72,33 @@
   color-scheme: dark;
 }
 
+/* The browser's own scrollbar is part of the design: a thin navy thumb on the page field, at
+   every size where the layout scrolls. Firefox reads scrollbar-color/width; Chromium/WebKit the
+   pseudo-elements. Page and any internally scrolling column get the same skin. */
+html {
+  scrollbar-color: #243252 #070b14;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #243252;
+  border: 2px solid #070b14;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #33456f;
+}
+
 /* Arc (https://uiarc.dev, MIT) design tokens, mapped onto the palette above. The app is dark only, so
    <html> carries data-theme="dark" and this block replaces Arc's neutral greys with Sky's navy and
    teal. The sizes, spacing, motion curves and shadows Arc ships with are kept as they are. */

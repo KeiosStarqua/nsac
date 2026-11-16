@@ -14,8 +14,10 @@ export const MISSION_DAY = 170;
 
 /** Sleep total, shared by the trends card and the recovery panel. */
 const SLEEP_TOTAL_MINUTES = 7 * 60 + 42;
-/** Active minutes, shared by the trends card, the energy panel and the activity mini card. */
+/** 48 active minutes, shared by the trends card, the energy panel and the activity mini card. */
 const ACTIVITY_MINUTES = 48;
+/** HRV (ms), shared by the vitals row and the recovery panel. */
+const HRV_MS = 49;
 const ENERGY_BURNED_KCAL = 2340;
 const ENERGY_INTAKE_KCAL = 2520;
 
@@ -41,6 +43,7 @@ export interface HudMockFixture {
     readonly respiratoryRate: VitalsWithSeries;
     readonly bloodOxygen: VitalsWithSeries;
     readonly bodyTemperature: VitalsWithSeries;
+    readonly heartRateVariability: VitalsWithSeries;
   };
   readonly quickTrends: {
     readonly heartRateAvg: number;
@@ -57,6 +60,8 @@ export interface HudMockFixture {
     readonly score: number;
     /** The small secondary 0–100 value beside the ring. */
     readonly support: number;
+    /** Points the readiness score gained over the trailing 7 days (simulated). */
+    readonly deltaWeek: number;
   };
   readonly body: {
     readonly weightKg: number;
@@ -97,6 +102,7 @@ const SYSTOLIC_SERIES = buildSeries(23, 24, 118, 5);
 const RESPIRATORY_SERIES = buildSeries(37, 24, 16, 1.6);
 const SPO2_SERIES = buildSeries(53, 24, 98, 0.6);
 const TEMPERATURE_SERIES = buildSeries(71, 24, 36.7, 0.12);
+const HRV_SERIES = buildSeries(83, 24, HRV_MS, 3);
 const TREND_HEART_RATE_SERIES = buildSeries(97, 48, 62, 7);
 const ACTIVITY_BARS = buildSeries(131, 24, 0.45, 0.42).map((value) =>
   Math.min(1, Math.max(0.06, value)),
@@ -105,6 +111,7 @@ const ACTIVITY_BARS = buildSeries(131, 24, 0.45, 0.42).map((value) =>
 export const HUD_MOCK: HudMockFixture = {
   vitalSigns: {
     heartRate: { value: 62, unit: "bpm", series: HEART_RATE_SERIES },
+    heartRateVariability: { value: HRV_MS, unit: "ms", series: HRV_SERIES },
     bloodPressure: { systolic: 118, diastolic: 76, unit: "mmHg", series: SYSTOLIC_SERIES },
     respiratoryRate: { value: 16, unit: "breaths/min", series: RESPIRATORY_SERIES },
     bloodOxygen: { value: 98, unit: "%", series: SPO2_SERIES },
@@ -118,7 +125,7 @@ export const HUD_MOCK: HudMockFixture = {
     activityMinutes: ACTIVITY_MINUTES,
     activityBars: ACTIVITY_BARS,
   },
-  readiness: { score: 86, support: 96 },
+  readiness: { score: 86, support: 96, deltaWeek: 4 },
   body: {
     weightKg: 72.4,
     muscleMassKg: 32.1,
@@ -128,7 +135,7 @@ export const HUD_MOCK: HudMockFixture = {
   recovery: {
     sleepMinutes: SLEEP_TOTAL_MINUTES,
     sleepEfficiencyPct: 91,
-    hrvMs: 49,
+    hrvMs: HRV_MS,
     fatigue: "low",
   },
   cognitive: {

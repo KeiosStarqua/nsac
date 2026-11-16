@@ -23,11 +23,15 @@ describe("hud-mock fixture — reference values", () => {
     expect(HUD_MOCK.vitalSigns.bloodOxygen.value).toBe(98);
     expect(HUD_MOCK.vitalSigns.bodyTemperature.value).toBe(36.7);
     expect(HUD_MOCK.vitalSigns.bodyTemperature.unit).toBe("°C");
+    expect(HUD_MOCK.vitalSigns.heartRateVariability.value).toBe(49);
+    expect(HUD_MOCK.vitalSigns.heartRateVariability.unit).toBe("ms");
+    expect(HUD_MOCK.vitalSigns.heartRateVariability.value).toBe(HUD_MOCK.recovery.hrvMs);
   });
 
   test("readiness scores stay inside their 0–100 scale", () => {
     expect(HUD_MOCK.readiness.score).toBe(86);
     expect(HUD_MOCK.readiness.support).toBe(96);
+    expect(HUD_MOCK.readiness.deltaWeek).toBe(4);
     for (const value of [HUD_MOCK.readiness.score, HUD_MOCK.readiness.support]) {
       expect(value).toBeGreaterThanOrEqual(0);
       expect(value).toBeLessThanOrEqual(100);
@@ -62,6 +66,7 @@ describe("hud-mock fixture — cross-panel consistency", () => {
       HUD_MOCK.vitalSigns.respiratoryRate.series,
       HUD_MOCK.vitalSigns.bloodOxygen.series,
       HUD_MOCK.vitalSigns.bodyTemperature.series,
+      HUD_MOCK.vitalSigns.heartRateVariability.series,
     ];
     for (const points of series) expect(points).toHaveLength(24);
     expect(HUD_MOCK.quickTrends.activityBars).toHaveLength(24);

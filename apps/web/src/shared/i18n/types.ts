@@ -151,6 +151,8 @@ export interface Copy {
     vitalRespiratoryRate: string;
     vitalBloodOxygen: string;
     vitalBodyTemperature: string;
+    /** HRV (heart-rate variability), milliseconds. */
+    vitalHrv: string;
     vitalsAria: string;
     trendsTitle: string;
     trendsLast24h: string;
@@ -164,6 +166,10 @@ export interface Copy {
     readinessStatus: string;
     readinessStable: string;
     readinessGuidance: string;
+    /** Micro-label in front of the secondary 0–100 value (so the bare number is self-describing). */
+    readinessRecoveryIdx: string;
+    /** Trailing fragment of "▲ +{n} <this>" — the sign and arrow are rendered by the component. */
+    readinessDeltaWeek: string;
     /** `{score}` = the ring's 0–100 value. */
     readinessScoreAria: string;
     /** `{value}` = the small secondary 0–100 value beside the ring. */

@@ -48,7 +48,7 @@ import { VoiceCluster } from "./components/VoiceCluster";
 import { DetailOverlay } from "./components/DetailOverlay";
 import type { DetailDialogProps } from "./components/DetailOverlay";
 import { useHudBackground } from "../hud-bg";
-import { applyLiveVitals, useLiveHealth } from "../live-health";
+import { applyLiveVitals, liveStripMode, useLiveHealth } from "../live-health";
 
 /**
  * `/` — "SKY · Astronaut Wellness", the mock console.
@@ -99,6 +99,17 @@ export function SkyHudMock() {
   // every failure — the fixture rows render untouched, so the mock stays byte-identical offline.
   const liveHealth = useLiveHealth(astronautId);
   const vitalSigns = useMemo(() => applyLiveVitals(HUD_MOCK.vitalSigns, liveHealth.data?.metrics), [liveHealth.data]);
+  // Once the feed has settled, the vitals chip reports its state (same labels as /performance);
+  // before the first read it stays the static "Now" tag, exactly like the fixture fallback.
+  const liveMode = liveHealth.settled ? liveStripMode(liveHealth.data) : null;
+  const liveLabel =
+    liveMode === "live"
+      ? copy.live.visibleLive
+      : liveMode === "historical"
+        ? copy.live.historicalLabel
+        : liveMode === "offline"
+          ? copy.live.offlineLabel
+          : null;
 
   useEffect(() => {
     if (!mounted) return;
@@ -452,7 +463,7 @@ export function SkyHudMock() {
             changeLabel={copy.astronaut.change}
             onChange={openPicker}
           />
-          <VitalsCard vitalSigns={vitalSigns} copy={copy.hudMock} />
+          <VitalsCard vitalSigns={vitalSigns} copy={copy.hudMock} liveMode={liveMode} liveLabel={liveLabel} />
           <TrendsCard trends={HUD_MOCK.quickTrends} copy={copy.hudMock} />
         </LeftColumn>
 
