@@ -93,6 +93,8 @@ export const en: Copy = {
     watchCaption: "SKY · Watch preview — live demonstration",
     spacecraftButton: "SPACECRAFT",
     spacecraftButtonAria: "Open the full-screen ISS 3D view",
+    notebooksButton: "NOTEBOOKS",
+    notebooksButtonAria: "Open the data notebooks",
     captionsListening: "Microphone active · audio analysed locally",
     captionsError: "Microphone unavailable — type instead",
     greetingFallback: "Good morning.",
@@ -643,5 +645,11 @@ export const en: Copy = {
     coreLoadFailed: "Backend unreachable — showing the default (Pi SDK).",
     coreNote:
       "Stored on the backend (agent.core). Switching evicts the cached chat session, so the next turn uses the new core; history stays where each core keeps it.",
+  },
+  notebooks: {
+    back: "Back to console",
+    title: "Notebooks",
+    openNewTab: "Open marimo in a new tab",
+    fallback: "If the frame stays empty, marimo may not be deployed yet — open the raw instance:",
   },
 };
