@@ -1,6 +1,6 @@
 # apps/backend — Sky backend API
 
-> **Agents: KHÔNG tự chạy build/test/deploy** (root AGENTS.md, 2026-11-17). Các lệnh build/test/serve bên dưới chỉ do Keios hoặc git-bot (`.agents/bot/git`) chạy; agent review bằng diff, không chạy.
+> **Agents: KHÔNG tự chạy build/test/deploy** (root AGENTS.md, 2026-11-17). Các lệnh build/test/serve bên dưới chỉ do Keios, hoặc ops (`.agents/bot/ops`) chạy theo entry trong `.agents/bot/ops/OPS.md`; agent review bằng diff, không chạy.
 
 ## Purpose
 
