@@ -11,10 +11,11 @@
 # (Caddy handle do Keios's infra thêm riêng, web iframe route đã bị bỏ — marimo serve thẳng).
 # Không secret.
 #
-# TRẠNG THÁI 2026-11-17: packaging .#marimo đang CHỜ CEO chốt (FOD wheelhouse | uv sync trên
-# box lúc deploy). nixpkgs python312Packages.marimo closure vỡ trên pin hiện tại — không dùng.
-# Unit này + stage marimo trong scripts/deploy.sh đã sẵn sàng; chưa có gì chạy được trên box
-# cho tới khi packaging được duyệt và merge. Xem report /tmp/opencode/notebooks-marimo-report.md.
+# TRẠNG THÁI 2026-11-17: packaging = FOD wheelhouse per-system hash (CEO duyệt Option 1):
+# ops/marimo-requirements.txt pin + hash toàn bộ closure (36 package), pip download
+# --require-hashes khi build .#marimoWheels, venv `.#marimo` cài --no-index --find-links.
+# Sau khi wheels vào Nix store thì deploy KHÔNG cần mạng cho stage này.
+# Xem report /tmp/opencode/notebooks-marimo-report.md.
 
 [Unit]
 Description=NSAC Sky marimo notebooks (nix .#marimo, read-only) on 127.0.0.1:8200

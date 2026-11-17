@@ -77,6 +77,77 @@
           # (đã kiểm bằng probe). Vì vậy: FOD = wheelhouse (network + hash theo platform),
           # còn venv được lắp trong derivation thường `inference` bên dưới (không cần mạng).
           # Wheels khác nhau theo platform ⇒ outputHash per system, bump khi uv.lock đổi.
+          # FOD: chỉ tải WHEEL (.whl) về một wheelhouse — không chứa venv.
+          #
+          # .#marimoWheels: FOD per-system hash, closure được PIN HOÀN TOÀN trong
+          # ops/marimo-requirements.txt (uv pip compile --python-version 3.12 --generate-hashes,
+          # 36 package). pip download chạy với --require-hashes nên mọi wheel đều được kiểm
+          # hash lúc fetch. `--platform`/`--abi` pin cứng ⇒ output giống hệt trên mọi máy của
+          # mỗi platform, không phụ thuộc pip host. Hash x86_64/aarch64 derive từ chính lệnh
+          # download đó (pip download + nix hash path) — verify trùng khi --require-hashes.
+          marimoPlatform = {
+            x86_64-linux = "--platform manylinux2014_x86_64 --platform manylinux_2_28_x86_64";
+            aarch64-linux = "--platform manylinux2014_aarch64 --platform manylinux_2_28_aarch64";
+          }.${pkgs.stdenv.hostPlatform.system};
+          marimoWheels = pkgs.runCommand "nsac-marimo-wheels-0.25.1" {
+            nativeBuildInputs = [ pkgs.python312Packages.pip pkgs.cacert ];
+            dontFixup = true;
+            dontPatchShebangs = true;
+            outputHashMode = "recursive";
+            outputHash = {
+              x86_64-linux = "sha256-ltrRvf5vMrbDib2ac2UqON5wTkM3ou5Xe1efAI6YX2c=";
+              aarch64-linux = "sha256-e2W1KJ33MNxmq4T+g/BcaFs7Q9zaA9AWTh7RTjvR2c8=";
+            }.${pkgs.stdenv.hostPlatform.system};
+          } ''
+            export HOME=$TMPDIR
+            export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+            mkdir -p $out
+            ${pkgs.python312}/bin/python -m pip download \
+              --no-deps --only-binary=:all: --require-hashes \
+              --disable-pip-version-check --no-cache-dir \
+              ${marimoPlatform} \
+              --python-version 3.12 --implementation cp --abi cp312 --abi abi3 \
+              --requirement ${./ops/marimo-requirements.txt} --dest $out
+          '';
+
+          # Marimo notebooks (data/notebooks, serve read-only qua `marimo run` folder mode).
+          # Venv lắp từ wheelhouse .#marimoWheels (đã pin + check hash), KHÔNG dùng
+          # python312Packages.marimo của nixpkgs (closure vỡ trên pin này — amendment 2026-11-17).
+          # Phục vụ từ checkout rsync trên box (/home/ec2-user/nsac/data, LFS đã smudge), KHÔNG từ
+          # flake input nsac-data (thiếu LFS). Read-only là do `marimo run`, không dựa vào fs perms.
+          # `share/marimo-wheels` symlink tới FOD ⇒ gcroot /nix/var/nix/gcroots/nsac-marimo bảo vệ cả hai.
+          marimo = pkgs.stdenv.mkDerivation {
+            pname = "nsac-marimo";
+            version = "0.25.1";
+            dontUnpack = true;
+            nativeBuildInputs = [ pkgs.uv pkgs.python312 pkgs.autoPatchelfHook ];
+            buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.zlib ];
+            buildPhase = ''
+              export HOME=$TMPDIR
+              export UV_PYTHON_DOWNLOADS=never
+              export UV_CACHE_DIR=$TMPDIR/uv-cache
+              uv venv --python ${pkgs.python312}/bin/python3.12 $out
+              uv pip install --python $out/bin/python --no-index \
+                --find-links ${marimoWheels} --requirements ${./ops/marimo-requirements.txt}
+            '';
+            installPhase = ''
+              mkdir -p $out/share
+              ln -s ${marimoWheels} $out/share/marimo-wheels
+              cat > $out/bin/sky-notebooks <<EOF
+#!${pkgs.runtimeShell}
+# Sky notebooks — wrapper sinh bởi flake.nix (.#marimo). `marimo run` = read-only
+# (không editing), folder mode: index liệt kê mọi notebook trong notebooks/. Không đọc secrets.
+# Wrapper nhúng store path của venv ⇒ gcroot /nix/var/nix/gcroots/nsac-marimo giữ được venv.
+export SKY_NOTEBOOKS_ROOT="\''${SKY_NOTEBOOKS_ROOT:-/home/ec2-user/nsac/data}"
+cd "\$SKY_NOTEBOOKS_ROOT" || exit 1
+export MPLCONFIGDIR="\''${MPLCONFIGDIR:-/tmp/nsac-marimo-mplconfig}"
+mkdir -p "\$MPLCONFIGDIR"
+exec $out/bin/python -m marimo run notebooks --host 127.0.0.1 --port "\''${SKY_NOTEBOOKS_PORT:-8200}" --headless --no-token --base-url /notebooks
+EOF
+              chmod +x $out/bin/sky-notebooks
+            '';
+          };
+
           inferenceWheels = pkgs.runCommand "nsac-inference-wheels-1.0.0" {
             nativeBuildInputs = [ pkgs.uv pkgs.python312 pkgs.python312Packages.pip pkgs.cacert ];
             dontFixup = true;
@@ -112,6 +183,13 @@
           # Wheelhouse FOD của service suy luận — expose riêng để build/pin hash theo platform
           # (deploy.sh build .#inference, nó tự kéo FOD này).
           inferenceWheels = inferenceWheels;
+
+          # Wheelhouse FOD của service notebooks — expose riêng để build/pin hash theo platform
+          # (deploy.sh build .#marimo, nó tự kéo FOD này).
+          marimoWheels = marimoWheels;
+
+          # Service notebooks (read-only marimo) — deploy.sh build .#marimo + pin gcroot nsac-marimo.
+          marimo = marimo;
 
           web = pkgs.stdenv.mkDerivation {
             pname = "nsac-web";

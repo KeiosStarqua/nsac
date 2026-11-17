@@ -5,16 +5,15 @@
 # các sự cố 2026-11-14: mất ~/nsac/result-backend → gcroot lủng lẳng → GC xoá backend (203/EXEC);
 # worktree thiếu submodule → /data trả 500; FOD staleness từ bun.lock đổi mà không có hash bump.
 #
-# 4 gcroot (enforced bởi nix-gc.sh — luôn symlink TRỰC TIẾP tới store path, tạo SAU khi build
-# thành công, TRƯỚC khi gc):
+# 5 gcroot (luôn symlink TRỰC TIẾP tới store path, tạo SAU khi build thành công, TRƯỚC khi gc):
 #   nsac-web, nsac-backend — output runtime đang chạy.
 #   nsac-inference         — service ML (.#inference). Output này giữ reference tới FOD
 #     wheelhouse (share/inference-wheels) nên một gcroot bảo vệ cả hai.
+#   nsac-marimo            — service notebooks (.#marimo). Output giữ reference tới FOD
+#     wheelhouse (share/marimo-wheels) nên một gcroot bảo vệ cả hai.
 #   nsac-web-node-modules  — FOD node_modules (.#nodeModules → result-node-modules). Chỉ là
 #     build-time input: không output runtime nào giữ reference, nên không pin thì GC xoá và
 #     deploy sau phải `bun install` lại → hash lệch outputHash → nix build fail.
-#   (nsac-marimo sẽ là gcroot thứ 5 + được nix-gc.sh enforce — thêm cùng commit với packaging
-#   .#marimo, đang chờ CEO duyệt: FOD wheelhouse hay uv sync trên box lúc deploy.)
 #
 # Stage inference là FAIL-SOFT: box/ssh không tới được hoặc unit không cài/khởi động được ⇒
 # cảnh báo to + bỏ qua inference (web/backend vẫn deploy, vẫn tag). Nhưng nếu unit chạy mà
@@ -23,9 +22,9 @@
 #
 # Stage marimo mirror stage inference với cùng ngữ nghĩa: box/ssh/build/unit-install lỗi ⇒
 # cảnh báo to + bỏ qua (deploy tiếp); nhưng unit chạy mà `/notebooks/` không trả 200 thì deploy
-# THẤT BẠI (exit 1, không tag). Hiện packaging .#marimo chưa tồn tại (nixpkgs
-# python312Packages.marimo closure vỡ trên pin này — amendment Keios 2026-11-17) nên stage
-# no-op với cảnh báo cho tới khi CEO chốt phương án (FOD wheelhouse | uv sync trên box).
+# THẤT BẠI (exit 1, không tag). Packaging .#marimo = FOD wheelhouse (Option 1, Keios duyệt
+# 2026-11-17): ops/marimo-requirements.txt pin + hash toàn bộ closure, pip download
+# --require-hashes, outputHash per-system, không cần mạng sau khi wheels vào Nix store.
 #
 # Chạy từ BẤT KỲ checkout nào của repo (thường là shared tree hoặc worktree tại main):
 #   scripts/deploy.sh                  # deploy origin/main (fetch trước) — mặc định
@@ -92,7 +91,7 @@ RSYNC_EXCLUDES=(--exclude .git --exclude node_modules --exclude .output --exclud
 if [ "$DRY_RUN" = "1" ]; then
   rsync -a --delete --dry-run "${RSYNC_EXCLUDES[@]}" "$WORKTREE/" "$REMOTE_HOST:$REMOTE_DIR/" | tail -5
   echo "deploy.sh: DRY_RUN — stage inference sẽ: build .#inference --out-link result-inference; pin gcroot /nix/var/nix/gcroots/nsac-inference; bootstrap-or-restart nsac-inference.service; curl 127.0.0.1:8100/health (fail-soft nếu box/ssh/unit lỗi)."
-  echo "deploy.sh: DRY_RUN — stage marimo sẽ (khi .#marimo tồn tại sau khi CEO chốt packaging): build .#marimo --out-link result-marimo; pin gcroot /nix/var/nix/gcroots/nsac-marimo; bootstrap-or-restart nsac-marimo.service; curl 127.0.0.1:8200/notebooks/ (fail-soft nếu box/ssh/unit lỗi; health != 200 ⇒ exit 1, không tag)."
+  echo "deploy.sh: DRY_RUN — stage marimo sẽ: build .#marimo --out-link result-marimo; pin gcroot /nix/var/nix/gcroots/nsac-marimo; bootstrap-or-restart nsac-marimo.service; curl 127.0.0.1:8200/notebooks/ (fail-soft nếu box/ssh/unit lỗi; health != 200 ⇒ exit 1, không tag)."
   echo "deploy.sh: DRY_RUN=1 — không thay đổi gì trên box. Thoát."
   exit 0
 fi
@@ -177,10 +176,8 @@ fi
 # mode cho data/notebooks, phục vụ sau Caddy cùng origin tại /notebooks*. Cùng ngữ nghĩa stage
 # inference: box/ssh/build/unit-install lỗi ⇒ cảnh báo to + bỏ qua (deploy tiếp); nhưng unit
 # chạy mà `/notebooks/` không trả 200 thì deploy THẤT BẠI (exit 1, không tag).
-# LƯU Ý: packaging .#marimo đang CHỜ CEO chốt (nixpkgs python312Packages.marimo closure vỡ
-# trên pin hiện tại; amendment 2026-11-17). Cho tới khi package tồn tại, `nix build .#marimo`
-# fail ⇒ MARIMO_SKIP ⇒ deploy tiếp bình thường, KHÔNG tạo gcroot/unit. nix-gc.sh chưa enforce
-# nsac-marimo; enforcement sẽ thêm cùng commit với packaging được duyệt.
+# .#marimo = FOD wheelhouse per-system hash (Option 1, Keios 2026-11-17) — build trên box dùng
+# nix store đã có wheels, không cần mạng; deploy.sh pin gcroot nsac-marimo sau build thành công.
 MARIMO_SKIP=""
 if [ "$BOX_REACHABLE" != "1" ]; then
   MARIMO_SKIP="box không ssh được tới $REMOTE_HOST"
