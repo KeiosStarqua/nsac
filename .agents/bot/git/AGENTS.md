@@ -4,15 +4,17 @@
 
 Hợp nhất mọi nhánh code/doc của các bot/agent vào `origin/main` — một cách có kiểm soát, không ai tự merge trong chat. Registry duy nhất: `BRANCHES.md` (cùng thư mục).
 
+Phối hợp với ops (`.agents/bot/ops`, Keios 2026-11-17): git-bot chỉ **merge + push**; build/test/deploy sau push do **ops** thực thi theo yêu cầu trong `.agents/bot/ops/OPS.md`. Git-bot không tự chạy gates/`scripts/deploy.sh`; merge xong chỉ **ghi entry vào `OPS.md`** rồi trả về watcher.
+
 ## Nhiệm vụ — vòng watch → merge (Keios, 2026-11-15)
 
 - Agent/CEO làm xong code → tự ghi nhánh của mình vào `BRANCHES.md` với `Status: ready` (+ gates + report). Đó là cách duy nhất báo việc cho git-bot.
 - Git-bot nghe hai tín hiệu từ **một** watcher `.opencode/plugins/watch-branches.sh` (xem "Background watch"):
-  - `CHANGED: BRANCHES…` → canh `BRANCHES.md`; mỗi lần nội dung đổi (background watcher báo) → đọc lại file từ đầu → lấy nhánh `ready` đầu tiên → merge vào `origin/main` theo "Quy trình merge" (worktree detached từ `origin/main` mới nhất → gates → commit merge `--no-ff` → push → deploy/tag nếu `Request` yêu cầu) → ghi `merged <sha>` vào entry + commit cập nhật registry → dọn worktree + `git branch -d` → re-arm watcher.
+  - `CHANGED: BRANCHES…` → canh `BRANCHES.md`; mỗi lần nội dung đổi (background watcher báo) → đọc lại file từ đầu → lấy nhánh `ready` đầu tiên → merge vào `origin/main` theo "Quy trình merge" (worktree detached từ `origin/main` mới nhất → commit merge `--no-ff` → push → **ghi entry vào `../ops/OPS.md`** cho ops test/deploy) → ghi `merged <sha>` vào entry + commit cập nhật registry → dọn worktree + `git branch -d` → re-arm watcher.
   - `CHANGED: TREE…` → working tree (chưa commit) đổi → xem "Commit trực tiếp trên `main`" bên dưới: **xem xét và có thể commit** các thay đổi rời trên `main` (không chờ nhánh), hoặc để nguyên nếu là WIP đang dở của phiên khác. Không merge nhánh, không deploy.
   - `CHANGED: BRANCHES+TREE…` → làm cả hai, **BRANCHES trước** (một nhánh mỗi lượt), rồi TREE.
 - Không có nhánh `ready` (chỉ `active`/`merged`/`rejected`) → **không merge gì**, báo cáo ngắn và re-arm watcher.
-- Commit trong một lượt merge gồm: (1) merge commit `--no-ff` của nhánh, (2) commit cập nhật `BRANCHES.md` (`merged <sha>`) — cùng push lên `origin/main`; tag do `scripts/deploy.sh` sinh khi có deploy.
+- Commit trong một lượt merge gồm: (1) merge commit `--no-ff` của nhánh, (2) commit cập nhật `BRANCHES.md` (`merged <sha>`) — cùng push lên `origin/main`. Build/test/deploy cho sha đó không do git-bot chạy: git-bot ghi entry `OPS.md`, **ops** thực thi; tag do `scripts/deploy.sh` sinh khi ops chạy deploy.
 - `BRANCHES.md` là **local-only (git-ignored)**: registry phối hợp trên máy này, không commit/push; các agent khác ghi trực tiếp vào file này. Watcher bắt mọi thay đổi qua lệnh `/watch-branches` (`.agents/bot/git/.opencode/commands/watch-branches.md`).
 - Tín hiệu TREE **không** phải là merge queue thứ hai: nó chỉ cho phép commit trực tiếp trên `main`, không được dùng để merge/rebase nhánh của ai, và không tự deploy.
 
@@ -26,12 +28,12 @@ Khi watcher báo `CHANGED: TREE…` (hoặc `BRANCHES+TREE`), bot **xem xét** r
    - **WIP đang dở** (file được sửa nhiều lần trong phiên khác, sửa một mảnh của feature đang làm, nội dung mâu thuẫn giữa các file) → **KHÔNG commit**, báo ngắn gọn và để nguyên cho phiên sở hữu. Khi mơ hồ → để nguyên, hỏi Keios.
 3. Không bao giờ commit: secrets/key (`.env`, `var/`, `*.pem`, `sk-*`), `BRANCHES.md` và `.watch-state` (local-only), `node_modules/`, output build (`.output/`, `.turbo/`), thay đổi con trỏ submodule `data/` (phải đi theo repo nsac-data, không bump mù), hoặc bất kỳ file nào đang được phiên khác chỉnh **ngay trong lúc** bạn kiểm (kiểm `git diff` hai lần cách nhau vài giây; nội dung đổi giữa hai lần → dừng, để nguyên).
 4. Sau khi commit TREE: tree lại sạch → re-arm watcher như thường lệ. Chú ý: commit làm `git diff HEAD` rỗng/đổi HEAD nên watcher có thể báo `CHANGED: TREE` một lần nữa ngay sau commit — đó là no-op dự kiến (re-arm sẽ re-seed), không lặp commit.
-5. TREE commit **không deploy**: deploy/tag vẫn chỉ đi qua "Quy trình merge" (nhánh `ready` trong `BRANCHES.md`) hoặc lệnh rõ ràng của Keios. Docs-only TREE commit không cần deploy.
+5. TREE commit **không deploy**, nhưng vẫn được ops test: sau khi push, ghi entry `Request: test` vào `OPS.md` (Source: tree-commit) — mọi commit trên `main` đều đi qua ops theo thứ tự. Docs-only TREE commit: ghi entry `test` như thường; deploy chỉ phát sinh từ merge push (mặc định) hoặc lệnh rõ ràng của Keios.
 6. Nếu main có cả nhánh `ready` và file rời: merge nhánh theo quy trình, rồi mới xét file rời ở cuối — mỗi lượt chỉ một nhánh.
 
 ## Local Contracts
 
-- **Không bot/agent nào tự merge nhánh.** CEO/chat chỉ: verify → ghi nhánh `ready` vào `BRANCHES.md` → dọn worktree của agent → `hc kill`/`hc rm`. Toàn bộ merge/push/deploy/tag thuộc git-bot này.
+- **Không bot/agent nào tự merge nhánh.** CEO/chat chỉ: verify → ghi nhánh `ready` vào `BRANCHES.md` → dọn worktree của agent → `hc kill`/`hc rm`. Merge/push thuộc git-bot; **build/test/deploy thuộc ops** (`.agents/bot/ops`) theo yêu cầu trong `OPS.md` — git-bot không tự chạy chúng.
 - Một thời điểm một nhánh. Không bao giờ merge nhánh chưa `ready`; không force-push; không `-D` nhánh chưa merge vào `origin/main`.
 - Mỗi nhánh được merge trong **detached worktree** tách từ `origin/main` mới nhất (không merge từ shared tree đang bẩn của phiên khác).
 
@@ -44,13 +46,13 @@ Khi watcher báo `CHANGED: TREE…` (hoặc `BRANCHES+TREE`), bot **xem xét** r
 - Base: <sha>
 - Owner: <session/agent id> — <task slug>
 - Task: <một dòng>
-- Gates: (chưa chạy) | build ✅ typecheck ✅ tests <n>/<n> ✅ screenshots <paths>
+- Gates: (ops chưa báo) | ops `<sha-12>` pass ✅ | fail <tóm tắt> (lấy từ kết quả ops sau khi sha được test)
 - Report: <path nếu có>
 - Request: merge → origin/main [+ deploy, tag]
 - Notes: …
 ```
 
-Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiện → sau khi agent idle + verify xong, đặt `ready` (điền gates + report) → git-bot merge → `merged <sha>` (+ deploy nếu `Request` có deploy; tag nếu origin/main == sha) → dọn worktree + `git branch -d` → báo lại.
+Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiện → sau khi agent idle + verify xong, đặt `ready` (điền gates nếu team tự chạy, hoặc để trống chờ ops + report) → git-bot merge + push → ghi entry `OPS.md` (ops test/deploy) → `merged <sha>` → dọn worktree + `git branch -d` → báo lại (kết quả test/deploy lấy từ `OPS.md` khi ops xong).
 
 `active` nghĩa là **chưa được đụng vào** — không merge, không rebase, không xoá.
 
@@ -59,9 +61,23 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
 1. `git fetch origin`; đọc `BRANCHES.md`; chọn nhánh `ready` **đầu tiên chưa bị ghi chú chặn** (thứ tự file). Nếu không có → dừng, không làm gì.
 2. **Merge trên local `main` rồi push** (Keios, 2026-11-16): luôn fast-forward local `main` theo `origin/main` trước (`git merge --ff-only origin/main`) — shared tree phải nằm trên tip mới nhất trước khi chạm vào; sau đó merge `--no-ff <branch>` trực tiếp trên local `main` (trong shared tree, DOX chain vẫn được tôn trọng), hoặc trong detached worktree từ local `main` nếu cần cách ly. Sau push, local `main` và `origin/main` phải trùng sha — **luôn giữ "main on remote" và "main local" sync**, không merge lệch (app/deploy đọc `origin/main`; session code đọc local). Trước khi push luôn xác minh `git status --short` sạch và `git log` đúng series.
 3. Doc conflicts → hợp nhất theo kiểu union (giữ cả hai ý, không xoá nội dung nào có nguồn); sau merge **LUÔN** `grep -n -F '<<<<<<<'` trên mọi file đã đụng — không marker nào được phép ở commit. Code conflicts ngoài docs/scripts → `rejected` (trả lại owner), không tự ý sáng tạo.
-4. Chạy gates trong merge worktree: `bun install --frozen-lockfile` (root), `cd apps/web && bun run build && bun run typecheck && bun run test` (backend `readings` fail là pre-existing). Fail → `rejected` với log, không push.
-5. Push `origin/main`. Sau khi push xong, **deploy luôn** (`scripts/deploy.sh`, Keios 2026-11-16 — "merge/commit xong là deploy"): không chờ Keios chốt; chỉ bỏ deploy khi nhánh/registry có lệnh cấm deploy rõ ràng. Một deploy tại một thời điểm máy; nếu đang có deploy khác chạy, bỏ qua deploy lượt này và ghi chú. Tag sinh tự động bởi script. **Deploy chỉ do git-bot chạy** (Keios, 2026-11-16): agent tại repo root không được deploy; chỉ bot dưới `.agents/bot/git` mới được gọi `scripts/deploy.sh`.
-6. Cập nhật entry `merged <sha>`; rồi **dọn sạch nhánh ngay trong cùng lượt** (xem "Clear sau merge"); HC-AGENTS.md (ceo) một dòng nếu có deploy.
+4. Push `origin/main`. **Không chạy gates trong git-bot** (Keios, 2026-11-17): sau push ghi entry vào `/home/keios/repos/mein/nsac/.agents/bot/ops/OPS.md` — tạo file nếu chưa có, **nối vào cuối** (thứ tự file = thứ tự xử lý của ops):
+
+   ```
+   ## <sha-12> — queued
+   - Status: queued
+   - Sha: <sha đầy đủ vừa push>
+   - Request: test+deploy    (mặc định; nhánh/registry có "KHÔNG deploy" rõ ràng → `test`)
+   - Source: merge <branch>
+   - Requester: git-bot
+   - Queued: <ts>
+   - Log: logs/<sha-12>.log
+   - Result: (chưa chạy)
+   - Notes: <branch> merged --no-ff
+   ```
+
+   Ops lần lượt build/test từng sha theo thứ tự file và deploy sau khi test pass (`scripts/deploy.sh <sha>`, một deploy tại một thời điểm máy, tag do script sinh). Deploy mặc định vẫn chạy sau merge — chỉ khác: do ops chạy, qua `OPS.md`, **sau khi test pass**; test fail → ops dừng hàng, không deploy, báo Keios. Git-bot không chờ ops xong mới kết lượt.
+5. Cập nhật entry `merged <sha>`; rồi **dọn sạch nhánh ngay trong cùng lượt** (xem "Clear sau merge"); HC-AGENTS.md (ceo) một dòng nếu có deploy được yêu cầu.
 
 ## Clear sau merge — bắt buộc (Keios, 2026-11-15)
 
@@ -107,5 +123,5 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
 
 ## Restraint
 
-- Không deploy hộ nhánh khác; không mở rộng scope; không sửa code của nhánh đang `active`; không commit rác vào main; khi mơ hồ → `rejected <lý do>` và hỏi Keios/CEO.
+- Không tự chạy build/test/deploy hộ nhánh khác (việc đó thuộc ops qua `OPS.md`); không mở rộng scope; không sửa code của nhánh đang `active`; không commit rác vào main; khi mơ hồ → `rejected <lý do>` và hỏi Keios/CEO.
 - `BRANCHES.md` là dữ liệu điều phối, không chứa secret, không chứa dữ liệu cá nhân thật.
