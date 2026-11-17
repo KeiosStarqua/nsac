@@ -1,5 +1,7 @@
 # apps/backend — Sky backend API
 
+> **Agents: KHÔNG tự chạy build/test/deploy** (root AGENTS.md, 2026-11-17). Các lệnh build/test/serve bên dưới chỉ do Keios hoặc git-bot (`.agents/bot/git`) chạy; agent review bằng diff, không chạy.
+
 ## Purpose
 
 HTTP API của Sky cho box demo single-node: Bun chạy thẳng TypeScript, Drizzle trên `bun:sqlite`, không auth (demo). Cung cấp crew/claims, broadcast events, sensors + telemetry WS, settings (gồm ElevenLabs key cho Sky TTS), `/api/tts`, health observation layer (năng lượng/cơ/giấc ngủ/nước) cho `apps/web`, và Speech Engine websocket cho voice chat `/`.

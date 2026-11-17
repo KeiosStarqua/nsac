@@ -1,5 +1,7 @@
 # practice
 
+> **Agents: KHÔNG tự chạy build/test/deploy** (root AGENTS.md, 2026-11-17). Các lệnh build/test/serve bên dưới chỉ do Keios hoặc git-bot (`.agents/bot/git`) chạy; agent review bằng diff, không chạy.
+
 ## Purpose
 
 Hands-on practice monorepo (Turborepo + bun): TanStack Start web app, a toy flu-outbreak simulation, a Mastra agent on local Ollama, and an OpenUI component library. It is NOT the HKT submission and shares no code with `backend/` or `apps/`.

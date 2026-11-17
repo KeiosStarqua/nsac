@@ -1,5 +1,7 @@
 # features/iss
 
+> **Agents: KHÔNG tự chạy build/test/deploy** (root AGENTS.md, 2026-11-17). Các lệnh build/test/serve bên dưới chỉ do Keios hoặc git-bot (`.agents/bot/git`) chạy; agent review bằng diff, không chạy.
+
 ## Purpose
 
 Streamed (spatial) loading of the NASA ISS full-detail model for `/spacecraft`: the page paints the lightweight overview first, then streams the parts of the full-detail station around the camera instead of loading one 42.4 MB GLB. Display only — no simulation, no data claims, no UI chrome.

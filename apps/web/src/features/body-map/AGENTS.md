@@ -1,5 +1,7 @@
 # features/body-map
 
+> **Agents: KHÔNG tự chạy build/test/deploy** (root AGENTS.md, 2026-11-17). Các lệnh build/test/serve bên dưới chỉ do Keios hoặc git-bot (`.agents/bot/git`) chạy; agent review bằng diff, không chạy.
+
 ## Purpose
 
 The body hologram around the Open Anatomy 3D male model, in two variants. `variant="overlay"` (the default) is the HUD's full-screen glass panel: header, `LayerRail`, `StructureCard`, CC BY 4.0 footer. Keep that render unchanged — it is the HUD modal; today the HUD's `#hologramButton` is a `<Link to="/body">`, so no route mounts the overlay variant. `variant="page"` is the `/body` route (`BodyMapPage`): fullscreen with no chrome — the canvas at `absolute inset-0` (`role="img"` + `aria-label`; the 3D is not itself a screen-reader surface), the floating "Body systems" rail, one attribution line, one discreet kbd chip (`Esc` · `HUD`) that calls the same `onClose` as `Escape` → HUD, the accessible Body Tree (`components/BodyTree.tsx`; a left-edge toggle + drawer listing all 147 catalog structures, grouped by system, keyboard/SR selectable) and a non-drag `ViewControls` pill (rotate/zoom/Reset View — DESIGN.md BodyVolume rule). In both variants a click on a structure picks its catalog key and eases the camera to it, and hovering (or tapping on a touch screen) shows that structure's catalog facts in a small card at the pointer; the overlay variant additionally shows its catalog facts and — for the heart, lungs and brain — the simulated HUD readings. Showcase only; nothing is measured or diagnosed.

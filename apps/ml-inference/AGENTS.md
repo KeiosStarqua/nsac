@@ -1,5 +1,7 @@
 # Sky ML inference — `apps/ml-inference`
 
+> **Agents: KHÔNG tự chạy build/test/deploy** (root AGENTS.md, 2026-11-17). Các lệnh build/test/serve bên dưới chỉ do Keios hoặc git-bot (`.agents/bot/git`) chạy; agent review bằng diff, không chạy.
+
 ## Purpose
 
 FastAPI service phục vụ **26 mô hình đã train** của pipeline `sky-ml` (submodule `data/`) qua HTTP

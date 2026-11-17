@@ -1,5 +1,7 @@
 # features/spacecraft
 
+> **Agents: KHÔNG tự chạy build/test/deploy** (root AGENTS.md, 2026-11-17). Các lệnh build/test/serve bên dưới chỉ do Keios hoặc git-bot (`.agents/bot/git`) chạy; agent review bằng diff, không chạy.
+
 ## Purpose
 
 Full-screen cinematic 3D viewer for `/spacecraft`: renders the NASA ISS adrift in a deep-black universe — Webb "Cosmic Cliffs" backdrop, twin sparse star layers, blue/violet nebula tints, rim/split lighting. The lightweight overview (ISS-B) paints first; the full-detail station streams in around the camera and crossfades in (see `features/iss/AGENTS.md`). Display only — nothing here is measured, and no real crew data is involved. The station carries one **simulated** layer: an illustrative crew-position fixture, six fictional crew members shown as glowing portrait markers (their `public/astronauts/<id>.png` art, initials if it fails) walking a closed patrol loop through the connected modules, standing still at each waypoint (fixture data in `model/crew-positions.ts`; the overlay caption says `POSITIONS SIMULATED`). Exactly one piece of chrome: the crew presence avatar group in the bottom-left (who is checked in); no other chrome.
