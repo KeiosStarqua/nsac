@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# watch-branches.sh — block until BRANCHES.md content OR the working tree changes, or until TIMEOUT.
+# watch-branches.sh — DEPRECATED FALLBACK (Keios 2026-11-17): primary watcher is the sentinel monitor
+# (tools.sentinel_monitor in .agents/bot/git/AGENTS.md, section "Background watch"). Keep this file for
+# emergency use only — never run it alongside the sentinel monitor. Fallback when the sentinel plugin fails.
+# block until BRANCHES.md content OR the working tree changes, or until TIMEOUT.
 #
 # Two signals are tracked:
 #   branches  sha256 of .agents/bot/git/BRANCHES.md (ready-branch merge queue)

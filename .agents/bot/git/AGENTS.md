@@ -91,28 +91,32 @@ Lifecycle: người/agent sở hữu nhánh ghi `active` khi nhánh xuất hiệ
 - **Không bao giờ xoá worktree `deploy-*`** (`/home/keios/nsac.worktrees/deploy-<sha>`) — chúng thuộc `scripts/deploy.sh`, có thể đang là nguồn rsync của một deploy đang chạy. Trước khi xoá bất kỳ worktree/branch nào: `pgrep -af 'deploy\.sh|nix build'` phải trống (bài học 2026-11-15: xoá nhầm worktree deploy đang chạy, phải dựng lại cùng sha ngay).
 - Nếu xoá thất bại (branch chưa merge đúng, worktree còn lock): ghi `Notes` lý do, báo Keios, không ép `-D`, không bỏ qua im lặng.
 
-## Background watch — luôn có một shell chờ thay đổi `BRANCHES.md` HOẶC working tree (Keios, 2026-11-15, mở rộng 2026-11-17)
+## Background watch — sentinel monitor canh `BRANCHES.md` + working tree (Keios, 2026-11-17)
 
-- **Bất biến: luôn có đúng MỘT background shell đang chạy `watch-branches.sh`.** Đầu mỗi lượt, trước khi làm việc khác, kiểm tra `pgrep -af watch-branches.sh`; chưa có → mở ngay. Không bao giờ để bot ở trạng thái "không ai canh".
-- Mở bằng tool `shell` với `background: true`, chạy từ repo root:
+- **Bất biến: luôn có đúng MỘT sentinel monitor (`tools.sentinel_monitor`) canh hai tín hiệu.** `tools.sentinel_list()` phải luôn hiển thị nó; chết/mất → `sentinel_stop` + `sentinel_monitor` tạo lại monitor mới ngay. Không chạy shell watcher song song với sentinel.
+- Monitor chạy poll mỗi 5s trên **hai tín hiệu cùng lúc** (cùng logic bản shell watcher cũ, giữ nguyên test/không đổi semantics):
+  - `BRANCHES` — sha256 của `BRANCHES.md`.
+  - `TREE` — sha256 của `git status --porcelain=v1 -uall` + `git diff HEAD` + stat(size,mtime) của các file untracked.
+- Filter `GIT-BOT-WAKE` — chỉ các dòng in ra khớp mới notify; dòng `armed` không ồn. Khi có thay đổi, monitor in:
+  - `GIT-BOT-WAKE branches <old> -> <new>`, `GIT-BOT-WAKE tree <old> -> <new>`, hoặc cả hai.
+- Harness notify khi có `GIT-BOT-WAKE` → bot đọc lại registry **từ đầu** + `git status`:
+  - `BRANCHES` → lấy nhánh `ready` đầu tiên, chạy đúng một lượt merge (theo "Quy trình merge"); không có → báo cáo ngắn.
+  - `TREE` → xét theo "Commit trực tiếp trên `main`" (doc/config nhỏ hoàn chỉnh → commit + push + OPS.md entry; WIP khác → để nguyên và báo).
+  - Cả hai → BRANCHES trước, rồi TREE.
+- Monitor **không** cần re-arm sau mỗi lượt — nó chạy liên tục trong nền. Muốn dừng/kiểm tra: `sentinel_list()`; dừng: `sentinel_stop({id})`.
+- Start (dùng đúng command này khi cần làm lại monitor):
 
-  ```bash
-  .agents/bot/git/.opencode/plugins/watch-branches.sh 7200
+  ```js
+  tools.sentinel_monitor({
+    command: "bash -c 'BR=\"/home/keios/repos/mein/nsac/.agents/bot/git/BRANCHES.md\"; R=\"/home/keios/repos/mein/nsac\"; prev=\"\"; while :; do b=$(sha256sum \"$BR\" | cut -d\" \" -f1); t=$(cd \"$R\" && { git status --porcelain=v1 -uall; printf \"\0\"; git diff HEAD; printf \"\0\"; git ls-files -o --exclude-standard -z | xargs -0 -r stat -c \"%n:%s:%Y\"; } | sha256sum | cut -d\" \" -f1); cur=\"$b $t\"; if [ -z \"$prev\" ]; then prev=\"$cur\"; echo \"git-bot watch armed branches=$b tree=$t\"; sleep 5; continue; fi; if [ \"$cur\" != \"$prev\" ]; then pb=\"${prev%% *}\"; pt=\"${prev##* }\"; if [ \"$b\" != \"$pb\" ] && [ \"$t\" != \"$pt\" ]; then echo \"GIT-BOT-WAKE branches $pb -> $b tree $pt -> $t\"; elif [ \"$b\" != \"$pb\" ]; then echo \"GIT-BOT-WAKE branches $pb -> $b\"; else echo \"GIT-BOT-WAKE tree $pt -> $t\"; fi; prev=\"$cur\"; fi; sleep 5; done'",
+    description: "git-bot nsac: BRANCHES.md + working tree watch (GIT-BOT-WAKE)",
+    filter: "GIT-BOT-WAKE"
+  })
   ```
 
-- Watcher theo dõi **hai tín hiệu** trong một tiến trình:
-  - `BRANCHES` — sha256 của `BRANCHES.md` (như trước).
-  - `TREE` — sha256 của `git status --porcelain=v1 -uall` + `git diff HEAD` + stat(size,mtime) của các file untracked (bắt mọi thay đổi chưa commit: sửa file tracked, thêm/xoá file untracked, sửa nội dung, kể cả chmod/touch).
-- Harness báo khi watcher kết thúc — đó là tín hiệu làm việc, không phải lỗi:
-  - exit `0` → có thay đổi; dòng `CHANGED:` cho biết tín hiệu nào nổ:
-    - `BRANCHES` (hoặc `BRANCHES+TREE`) → đọc lại registry **từ đầu**; có nhánh `ready` → chạy đúng một lượt merge (theo "Quy trình merge"); không có → báo cáo ngắn; sau đó (với `BRANCHES+TREE`) xét tiếp phần TREE; rồi **mở watcher mới ngay**.
-    - `TREE` (hoặc `BRANCHES+TREE`) → `git status` + `git diff --stat`; nếu có thay đổi rời → xét theo "Commit trực tiếp trên `main`"; xong → **mở watcher mới ngay**.
-  - exit `2` = 7200s không đổi → mở watcher mới, không coi là fail, không làm gì thêm.
-- Watcher lưu cặp hash vào `.watch-state` (local, git-ignored, format hai dòng `branches=<sha>` / `tree=<sha>`; file cũ một dòng được tự re-seed).
-- `.watch-state` được viết lại mỗi lần watcher chốt trạng thái (arm hoặc wake) → sau mỗi commit/deploy main, tree hash đổi → watcher có thể wake một lần no-op; re-arm lúc này chỉ cần xoá `.watch-state` rồi mở lại (hoặc để nó tự seed).
-- Blind spots đã biết: thay đổi bên trong submodule `data/` (chỉ hiện thành một dòng status), file bị `.gitignore`, và đổi tên file giữ nguyên nội dung path. Chấp nhận được — các cú false-wake chỉ tốn một lần kiểm tra.
-- Cấm `sleep`/poll thủ công trong chat để chờ file — chỉ dựa vào background watcher (cùng tinh thần luật `hc wait` ở root AGENTS.md).
-- Muốn ép đọc lại: xoá `.watch-state` rồi arm lại bình thường (watcher tự seed hash hiện tại).
+- `plugins/watch-branches.sh` (+ `.opencode/scripts/watch-branches-start.sh`) giữ làm **fallback** khi sentinel plugin hỏng — không chạy song song; `.watch-state` không còn được dùng (xoá khi thấy file).
+- Blind spots đã biết: thay đổi bên trong submodule `data/` (chỉ hiện thành một dòng status), file bị `.gitignore`, và đổi tên file giữ nguyên nội dung path. False-wake chỉ tốn một lần kiểm tra.
+- Cấm `sleep`/poll thủ công trong chat để chờ file — sentinel monitor là cơ chế duy nhất (cùng tinh thần luật `hc wait`).
 
 ## Plugin wake-up — `.agents/bot/git/plugins/watch-branches/` (Keios, 2026-11-15)
 
