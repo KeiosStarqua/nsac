@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { NotebookPen } from "lucide-react";
 import DepthText from "~/shared/react-bits/DepthText/DepthText";
 import ShinyText from "~/shared/react-bits/ShinyText/ShinyText";
 import type { Copy } from "~/shared/i18n";
@@ -8,6 +9,7 @@ import {
   BRAND_NAME,
   BRAND_RING,
   BRAND_TAGLINE,
+  NOTEBOOKS_LINK,
   SPACECRAFT_LINK,
 } from "~/features/sky-hud/hud-classes";
 import { DeviceSwitcher } from "~/features/sky-hud/components/DeviceSwitcher";
@@ -26,8 +28,8 @@ export interface MockHeaderProps {
 }
 
 /**
- * The console header: brand mark, `ISS · Day N` mission chip, the Console | Watch and SPACECRAFT
- * chips, plus the locale switcher. The single console header — `/` renders it through the catalog.
+ * The console header: brand mark, `ISS · Day N` mission chip, the Console | Watch, SPACECRAFT
+ * and NOTEBOOKS chips, plus the locale switcher. The single console header — `/` renders it through the catalog.
  * `data-hud-header` is the measurement anchor for the floating chat card (`chat-geometry.ts`) — the
  * card is portalled to `document.body` and anchors under the centre column, which starts at the
  * header's bottom edge.
@@ -100,6 +102,15 @@ export function MockHeader({ copy, showLanguageSwitcher = true, onBrand, onMissi
             <circle cx="24" cy="12" r="1.5" />
           </svg>
           <span>{copy.hud.spacecraftButton}</span>
+        </Link>
+        <Link
+          to="/notebooks"
+          id="notebooksLink"
+          className={NOTEBOOKS_LINK}
+          aria-label={copy.hud.notebooksButtonAria}
+        >
+          <NotebookPen aria-hidden="true" strokeWidth={1.7} />
+          <span>{copy.hud.notebooksButton}</span>
         </Link>
       </div>
     </header>

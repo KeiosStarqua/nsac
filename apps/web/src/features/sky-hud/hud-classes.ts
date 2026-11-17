@@ -300,6 +300,24 @@ export const SPACECRAFT_LINK = [
   "max-[480px]:hidden",
 ].join(" ");
 
+/**
+ * NOTEBOOKS chip beside SPACECRAFT — same chrome family as `SPACECRAFT_LINK`, mirrored with
+ * a square `[&_svg]` box because the icon is lucide `NotebookPen` (viewBox 24×24), not the
+ * wide satellite SVG the spacecraft chip sizes for.
+ */
+export const NOTEBOOKS_LINK = [
+  "mt-[3px] inline-flex cursor-pointer items-center gap-[9px] rounded-full! border no-underline backdrop-blur-[6px]",
+  "border-[rgba(122,222,255,.35)] bg-[rgba(11,36,58,.5)] px-[13px] py-[8px]",
+  "text-[10px] font-medium tracking-[.22em] indent-[.22em] whitespace-nowrap text-[#aee6ff]!",
+  "[transition:border-color_.18s,background_.18s,box-shadow_.18s,color_.18s]",
+  "hover:border-[#8ce7ff] hover:bg-[rgba(20,62,94,.55)] hover:text-[#e6fbff]! hover:shadow-[0_0_16px_rgba(105,214,255,.28)]",
+  "[&_svg]:block [&_svg]:h-[13px] [&_svg]:w-[13px]",
+  "focus-visible:outline-2! focus-visible:outline-offset-[3px]! focus-visible:outline-[#f5fcff]!",
+  "max-[1000px]:mt-[2px] max-[1000px]:gap-[6px] max-[1000px]:px-[9px] max-[1000px]:py-[6px] max-[1000px]:text-[9px] max-[1000px]:[&_svg]:h-[11px] max-[1000px]:[&_svg]:w-[11px]",
+  "max-[720px]:mt-[1px] max-[720px]:px-[8px] max-[720px]:py-[5px] max-[720px]:tracking-[.14em] max-[720px]:indent-[.14em] max-[720px]:[&_svg]:h-[9px] max-[720px]:[&_svg]:w-[9px]",
+  "max-[480px]:hidden",
+].join(" ");
+
 export const DEVICE_SWITCHER =
   "mt-[3px] inline-flex items-center gap-[2px] rounded-full border border-[rgba(122,222,255,.35)] bg-[rgba(11,36,58,.5)] p-[3px] backdrop-blur-[6px] max-[720px]:mt-[1px] max-[720px]:p-[2px] max-[480px]:hidden";
 

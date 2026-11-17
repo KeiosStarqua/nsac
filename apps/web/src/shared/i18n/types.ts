@@ -118,6 +118,9 @@ export interface Copy {
     /** Header chrome chip linking to the `/spacecraft` cinematic ISS 3D view. */
     spacecraftButton: string;
     spacecraftButtonAria: string;
+    /** Header chrome chip linking to `/notebooks` (read-only marimo notebooks view). */
+    notebooksButton: string;
+    notebooksButtonAria: string;
     captionsListening: string;
     captionsError: string;
     greetingFallback: string;
@@ -743,5 +746,21 @@ export interface Copy {
     coreInvalid: string;
     coreLoadFailed: string;
     coreNote: string;
+  };
+  /**
+   * `/notebooks` — read-only marimo instance behind a full-viewport iframe of the
+   * same-origin `/marimo/` path (marimo service on 127.0.0.1:8200, Caddy publishes it
+   * same-origin at `/marimo/`; WebSocket flows through the same path, so the web app
+   * never proxies it).
+   */
+  notebooks: {
+    /** Back link to the `/` console. */
+    back: string;
+    /** Page title in the chrome bar. */
+    title: string;
+    /** Link that opens the raw marimo instance in a new tab. */
+    openNewTab: string;
+    /** Muted line under the bar; the trailing inline link doubles as the raw instance. */
+    fallback: string;
   };
 }

@@ -93,6 +93,8 @@ export const vi: Copy = {
     watchCaption: "SKY · Xem thử Đồng hồ — minh họa trực tiếp",
     spacecraftButton: "TÀU VŨ TRỤ",
     spacecraftButtonAria: "Mở chế độ xem trạm ISS 3D toàn màn hình",
+    notebooksButton: "SỔ TAY",
+    notebooksButtonAria: "Mở sổ tay dữ liệu",
     captionsListening: "Mic đang bật · âm thanh phân tích cục bộ",
     captionsError: "Mic không khả dụng — hãy nhập thay",
     greetingFallback: "Chào buổi sáng.",
@@ -644,5 +646,11 @@ export const vi: Copy = {
     coreLoadFailed: "Backend không phản hồi — đang hiển thị mặc định (Pi SDK).",
     coreNote:
       "Lưu trên backend (agent.core). Đổi lõi sẽ huỷ session chat trong cache, nên lượt sau dùng lõi mới; lịch sử vẫn nằm ở nơi từng lõi lưu.",
+  },
+  notebooks: {
+    back: "Quay lại bảng điều khiển",
+    title: "Sổ tay",
+    openNewTab: "Mở marimo trong tab mới",
+    fallback: "Nếu khung vẫn trống, marimo có thể chưa được triển khai — hãy mở instance gốc:",
   },
 };
