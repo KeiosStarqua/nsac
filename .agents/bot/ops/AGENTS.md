@@ -38,9 +38,9 @@ Nối vào **cuối** file (thứ tự file = thứ tự xử lý); không sửa
 1. Đọc `OPS.md` từ đầu. Entry `running` nhưng process đã chết → `failed (stale)`, tail log vào entry, giải phóng lock, **dừng hàng**, báo Keios.
 2. Xử lý các entry `queued` **theo đúng thứ tự file** (FIFO = thứ tự push = thứ tự merge). Một job một lúc. Không nhảy cóc, không gom batch; Keios có thể yêu cầu nhảy hàng bằng lệnh rõ ràng.
 3. Mỗi entry tạo **worktree detached tại đúng ref** (`git worktree add --detach <path> <sha hoặc branch>`; agent nhánh local resolve được ngay, không cần fetch); submodule `data/` update chỉ khi Keios/entry yêu cầu. Sau khi chạy xong → `git worktree remove` worktree đó (giữ log trong `logs/`). Không bao giờ đụng `deploy-*` worktree.
-4. Các bước cho một sha (giống gates cũ của git-bot):
-   a. `bun install --frozen-lockfile` ở root worktree.
-   b. `cd apps/web && bun run build && bun run typecheck && bun run test`.
+4. Các bước cho một sha — job nặng chạy trong scope giới hạn (wrapper `bin/run-limited.sh`, xem "Giới hạn tài nguyên"). Tương đương gates cũ:
+   a. `bin/run-limited.sh -- bun install --frozen-lockfile` ở root worktree.
+   b. `cd apps/web && bin/run-limited.sh -- bun run build` → `bin/run-limited.sh -- bun run typecheck` → `bin/run-limited.sh -- bun run test` (cwd là apps/web; `bin/run-limited.sh` = đường dẫn tuyệt đối tới script trong `.agents/bot/ops/bin/`).
    c. Backend `readings` fail = pre-existing → ghi Notes, **không** coi là fail.
 5. Kết quả: `pass` → nếu `Request: test+deploy`: giữ lại worktree, chạy deploy ở bước 6; entry `done` chỉ sau khi deploy xong (hoặc `test` only → `done` ngay). `fail` ở bất kỳ bước nào → `failed`, tail log:
    - Entry của **sha trên origin/main** (merge/tree-commit/keios): **dừng toàn bộ hàng** (không test/deploy sha sau) cho tới khi Keios ack — main có thể đang đỏ. Không tự revert, không tự retry, không tự fix code.
@@ -53,6 +53,15 @@ Nối vào **cuối** file (thứ tự file = thứ tự xử lý); không sửa
 - `locks/deploy.lock/` — `mkdir` atomic (`pid`, `ts`, `ref`, `sha`). Trước mọi deploy: kiểm tra lock **và** `pgrep -af 'deploy\.sh'` (bắt cả deploy do người khác chạy chưa qua lock — vd. lượt merge cũ chưa migrate). Deploy đang chạy → entry `test+deploy` chờ, chỉ chạy `test` nếu Keios cho phép tách; mặc định chờ đủ cả pipeline.
 - `locks/heavy.lock/` — một job nặng (install + build + test hoặc `nix build`) tại một thời điểm. Deploy **không** chen ngang heavy đang chạy: heavy chạy xong, deploy chờ.
 - Tải máy: trước khi chạy job, `uptime` + `pgrep -af 'turbo|nix build|bun run (build|test)|deploy\.sh'`. Thấy job lạ chạy (ví dụ phiên khác build tay) → hoãn entry, ghi Notes, báo — **không** override, không kill. Job do ops spawn mới kill được (khi Keios cancel); không kill job của ai khác.
+
+## Giới hạn tài nguyên (wrapper `bin/run-limited.sh`)
+
+Keios chốt ngân sách 2026-11-17: **tối đa 4/12 core, 6 GB RAM, swap 0** cho job nặng (install/build/test) trên máy local.
+
+- Bước 4 chạy qua `bin/run-limited.sh` (cùng thư mục): systemd user scope `systemd-run --user --scope --collect -p CPUQuota=400% -p MemoryMax=6G -p MemorySwapMax=0`. Trong scope `nproc` = 4; OOM xảy ra ngay thay vì tràn vào swap.
+- Wrapper lỗi (thiếu `systemd-run`, cgroup từ chối) → job coi như fail, **không** fallback chạy không giới hạn.
+- Deploy **không** qua wrapper: `scripts/deploy.sh` chạy nguyên trạng (nix build diễn ra trên box EC2 — ngoài phạm vi giới hạn local; muốn giới hạn phía box là thay đổi riêng, cần Keios chốt).
+- Đổi ngân sách = sửa `bin/run-limited.sh` **và** file này trong cùng lượt; verify wrapper bằng `bin/run-limited.sh -- echo ok` (smoke test — **không** chạy build thật để thử). Ref đã verify 2026-11-17: scope `memory.max` = 6442450944, `cpu.max` = `400000 100000`.
 
 ## Giám sát tài nguyên (mỗi lượt / khi rảnh)
 
