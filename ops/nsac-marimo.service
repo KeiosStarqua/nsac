@@ -1,0 +1,37 @@
+# NSAC Sky marimo notebooks (nix .#marimo → `marimo run` folder mode, read-only, loopback-only).
+#
+# Cài lần đầu trên box (deploy.sh tự làm khi unit còn thiếu):
+#   sudo cp ops/nsac-marimo.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now nsac-marimo.service
+#
+# ExecStart đi qua ~/nsac/result-marimo (symlink nix tạo khi deploy) — gcroot
+# /nix/var/nix/gcroots/nsac-marimo pin TRỰC TIẾP store path.
+# Wrapper bin/sky-notebooks cd vào SKY_NOTEBOOKS_ROOT (mặc định /home/ec2-user/nsac/data,
+# checkout đã rsync + LFS smudge) rồi chạy `marimo run notebooks --base-url /notebooks`
+# — read-only, không sửa notebook được; phục vụ sau Caddy cùng origin tại /notebooks*
+# (Caddy handle do Keios's infra thêm riêng, web iframe route đã bị bỏ — marimo serve thẳng).
+# Không secret.
+#
+# TRẠNG THÁI 2026-11-17: packaging = FOD wheelhouse per-system hash (chọn theo đề xuất
+# của CEO 2026-11-17; sign-off cuối cùng thuộc về Keios lúc merge/deploy):
+# ops/marimo-requirements.txt pin + hash toàn bộ closure (36 package), pip download
+# --require-hashes khi build .#marimoWheels, venv `.#marimo` cài --no-index --find-links.
+# Sau khi wheels vào Nix store thì deploy KHÔNG cần mạng cho stage này.
+# Xem report /tmp/opencode/notebooks-marimo-report.md.
+
+[Unit]
+Description=NSAC Sky marimo notebooks (nix .#marimo, read-only) on 127.0.0.1:8200
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+Environment=SKY_NOTEBOOKS_PORT=8200
+ExecStart=/home/ec2-user/nsac/result-marimo/bin/sky-notebooks
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
