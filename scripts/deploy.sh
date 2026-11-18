@@ -22,8 +22,9 @@
 #
 # Stage marimo mirror stage inference với cùng ngữ nghĩa: box/ssh/build/unit-install lỗi ⇒
 # cảnh báo to + bỏ qua (deploy tiếp); nhưng unit chạy mà `/notebooks/` không trả 200 thì deploy
-# THẤT BẠI (exit 1, không tag). Packaging .#marimo = FOD wheelhouse (Option 1, Keios duyệt
-# 2026-11-17): ops/marimo-requirements.txt pin + hash toàn bộ closure, pip download
+# THẤT BẠI (exit 1, không tag). Packaging .#marimo = FOD wheelhouse per-system
+# (chọn theo đề xuất của CEO 2026-11-17; sign-off cuối cùng thuộc về Keios lúc merge/deploy):
+# ops/marimo-requirements.txt pin + hash toàn bộ closure, pip download
 # --require-hashes, outputHash per-system, không cần mạng sau khi wheels vào Nix store.
 #
 # Chạy từ BẤT KỲ checkout nào của repo (thường là shared tree hoặc worktree tại main):
@@ -176,7 +177,8 @@ fi
 # mode cho data/notebooks, phục vụ sau Caddy cùng origin tại /notebooks*. Cùng ngữ nghĩa stage
 # inference: box/ssh/build/unit-install lỗi ⇒ cảnh báo to + bỏ qua (deploy tiếp); nhưng unit
 # chạy mà `/notebooks/` không trả 200 thì deploy THẤT BẠI (exit 1, không tag).
-# .#marimo = FOD wheelhouse per-system hash (Option 1, Keios 2026-11-17) — build trên box dùng
+# .#marimo = FOD wheelhouse per-system hash (chọn theo đề xuất của CEO 2026-11-17;
+# sign-off cuối cùng thuộc về Keios lúc merge/deploy) — build trên box dùng
 # nix store đã có wheels, không cần mạng; deploy.sh pin gcroot nsac-marimo sau build thành công.
 MARIMO_SKIP=""
 if [ "$BOX_REACHABLE" != "1" ]; then

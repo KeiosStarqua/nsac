@@ -11,7 +11,8 @@
 # (Caddy handle do Keios's infra thêm riêng, web iframe route đã bị bỏ — marimo serve thẳng).
 # Không secret.
 #
-# TRẠNG THÁI 2026-11-17: packaging = FOD wheelhouse per-system hash (CEO duyệt Option 1):
+# TRẠNG THÁI 2026-11-17: packaging = FOD wheelhouse per-system hash (chọn theo đề xuất
+# của CEO 2026-11-17; sign-off cuối cùng thuộc về Keios lúc merge/deploy):
 # ops/marimo-requirements.txt pin + hash toàn bộ closure (36 package), pip download
 # --require-hashes khi build .#marimoWheels, venv `.#marimo` cài --no-index --find-links.
 # Sau khi wheels vào Nix store thì deploy KHÔNG cần mạng cho stage này.
