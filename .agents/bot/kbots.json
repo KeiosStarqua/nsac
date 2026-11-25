@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "bots": {
+    "ceo": {
+      "enabled": true,
+      "opencode": {
+        "instructions": [".agents/bot/ceo/*.md"],
+        "plugins": [
+          "./.agents/bot/ceo/plugins/herdr-tab-status",
+          "./.agents/bot/ceo/plugins/herdr-tab-reminder"
+        ]
+      }
+    },
+    "git": {
+      "enabled": true,
+      "opencode": {
+        "instructions": [".agents/bot/git/BRANCHES.md"],
+        "plugins": ["./.agents/bot/git/plugins/watch-branches"]
+      }
+    },
+    "ops": {
+      "enabled": true,
+      "opencode": {
+        "instructions": [".agents/bot/ops/AGENTS.md"],
+        "plugins": []
+      }
+    }
+  }
+}

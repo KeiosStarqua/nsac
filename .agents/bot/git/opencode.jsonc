@@ -1,12 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  // Local-dir plugin: dùng ABSOLUTE path (server resolve relative theo cwd của
-  // background service, không theo repo root) và phải có package.json
-  // (exports "." → ./index.ts), nếu thiếu là "failed to load".
-  "plugins": [
-    "/home/keios/repos/mein/nsac/.agents/bot/git/plugins/watch-branches",
-  ],
   "instructions": [
-    ".agents/bot/git/BRANCHES.md",
+    ".agents/bot/git/BRANCHES.md"
   ],
+  "plugins": [
+    "/home/keios/repos/mein/nsac/.agents/bot/git/plugins/watch-branches"
+  ]
 }
